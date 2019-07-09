@@ -92,6 +92,10 @@ const opts_accumulate_flows = (flow_opts★..., el_type=Bool, compact⋁=false) 
 
 function accumulate_aggr_flows(afc::AggregateFlowCircuit△, batches::XBatches{Bool})
     fc = FlowCircuit(afc, max_batch_size(batches), Bool, FlowCache(), opts_accumulate_flows)
+    accumulate_aggr_flows(fc, batches)
+end
+
+function accumulate_aggr_flows(fc::FlowCircuit△, batches::XBatches{Bool})
     for batch in batches
         accumulate_aggr_flows_batch(fc, batch)
     end
