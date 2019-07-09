@@ -124,6 +124,8 @@ function accumulate_aggr_flows(n::Flow⋁, xd::XData{Bool})
         end
         origin.aggr_flow_children .+= child_aggr_flows
     end
+    @assert (sum(origin.aggr_flow_children) ≈ origin.aggr_flow)
+            "Flow is leaking between parent and children: $(origin.aggr_flow) should equal $(origin.aggr_flow_children)"
 end
 
 aggregate_data(xd::PlainXData, f::AbstractArray) = sum(f)

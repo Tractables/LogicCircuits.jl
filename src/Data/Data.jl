@@ -8,10 +8,11 @@ using ..Utils:
 
 export AbstractData, WXData, PlainXData, XData, XBatches, XYBatches, Dataset, UnlabeledDataset,
 LabeledDataset, XDataset, XYDataset, BatchedXDataset, BatchedXYDataset,
-num_examples, batch_size, max_batch_size, num_features, num_labels, num_batches, 
+num_examples, total_example_weight, batch_size, max_batch_size, num_features, num_labels, num_batches,
 feature_matrix, plain_x_data, x_data, labels, weights, aggr_weight_type, feature_type, label_type,
 train, valid, test,
-shuffle, batch, threshold, fully_factorized_likelihood, 
+shuffle, batch, threshold, fully_factorized_likelihood,
+ll_per_example, bits_per_pixel,
 dataset, mnist, sampled_mnist, twenty_datasets
 
 include("DataLoaders.jl")
@@ -111,6 +112,13 @@ num_examples(::Nothing) = 0
 num_examples(xd::Union{XData,XYData}) = size(feature_matrix(xd))[1]
 num_examples(bs::Union{XBatches,XYBatches}) = sum(b -> num_examples(b), bs)
 num_examples(ds::Dataset) = num_examples(train(ds)) + num_examples(valid(ds)) + num_examples(test(ds))
+
+total_example_weight(::Nothing) = 0.0
+total_example_weight(d::PlainXData) = num_examples(d)
+total_example_weight(d::WXData) = sum(weights(d))
+total_example_weight(d::XYData) = total_example_weight(x_data(d))
+total_example_weight(bs::Union{XBatches,XYBatches}) = sum(b -> total_example_weight(b), bs)
+total_example_weight(ds::Dataset) = total_example_weight(train(ds)) + total_example_weight(valid(ds)) + total_example_weight(test(ds))
 
 batch_size(batch::Union{XData,XYData}) = num_examples(batch)
 max_batch_size(batches::Union{XBatches,XYBatches}) = maximum(b -> batch_size(b), batches)
@@ -238,6 +246,9 @@ function fully_factorized_likelihood(batches::XBatches; pseudocount)
     ll += sum(log.(1 .- exp.(log_estimates)) .* (num_examples(batches) .- counts))
     ll / num_examples(batches)
 end
+
+ll_per_example(ll, data) = ll / total_example_weight(data)
+bits_per_pixel(ll, data) = -ll_per_example(ll, data)  / num_features(data) / log(2)
 
 
 end # module
