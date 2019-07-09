@@ -113,12 +113,12 @@ num_examples(xd::Union{XData,XYData}) = size(feature_matrix(xd))[1]
 num_examples(bs::Union{XBatches,XYBatches}) = sum(b -> num_examples(b), bs)
 num_examples(ds::Dataset) = num_examples(train(ds)) + num_examples(valid(ds)) + num_examples(test(ds))
 
-total_example_weight(::Nothing) = 0.0
-total_example_weight(d::PlainXData) = num_examples(d)
-total_example_weight(d::WXData) = sum(weights(d))
-total_example_weight(d::XYData) = total_example_weight(x_data(d))
-total_example_weight(bs::Union{XBatches,XYBatches}) = sum(b -> total_example_weight(b), bs)
-total_example_weight(ds::Dataset) = total_example_weight(train(ds)) + total_example_weight(valid(ds)) + total_example_weight(test(ds))
+total_example_weight(::Nothing)::Float64 = 0.0
+total_example_weight(d::PlainXData)::Float64 = num_examples(d)
+total_example_weight(d::WXData)::Float64 = sum(weights(d))
+total_example_weight(d::XYData)::Float64 = total_example_weight(x_data(d))
+total_example_weight(bs::Union{XBatches,XYBatches})::Float64 = sum(b -> total_example_weight(b), bs)
+total_example_weight(ds::Dataset)::Float64 = total_example_weight(train(ds)) + total_example_weight(valid(ds)) + total_example_weight(test(ds))
 
 batch_size(batch::Union{XData,XYData}) = num_examples(batch)
 max_batch_size(batches::Union{XBatches,XYBatches}) = maximum(b -> batch_size(b), batches)
@@ -247,8 +247,8 @@ function fully_factorized_likelihood(batches::XBatches; pseudocount)
     ll / num_examples(batches)
 end
 
-ll_per_example(ll, data) = ll / total_example_weight(data)
-bits_per_pixel(ll, data) = -ll_per_example(ll, data)  / num_features(data) / log(2)
+ll_per_example(ll::Float64, data) = ll / total_example_weight(data)
+bits_per_pixel(ll::Float64, data) = -(ll_per_example(ll, data)  / num_features(data)) / log(2)
 
 
 end # module
