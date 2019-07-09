@@ -79,33 +79,37 @@ end
 @inline cvar(n::AggregateFlowLeafNode)::Var  = cvar(n.origin)
 
 function collect_aggr_flows(afc::AggregateFlowCircuit△, batches::XBatches{Bool})
-    for n in afc
-        # set flow counters to zero
-        reset_aggregate_flow(n)
-    end
-    opts = (flow_opts★..., el_type=Bool, compact⋁=false) #keep default options but insist on Bool flows
-    fc = FlowCircuit(afc, max_batch_size(batches), Bool, FlowCache(), opts)
-    for batch in batches
-        collect_aggr_flows_batch(fc, batch)
-    end
+    reset_aggregate_flows(afc)
+    accumulate_aggr_flows(afc, batches)
 end
 
+        # set flow counters to zero
+reset_aggregate_flows(afc::AggregateFlowCircuit△) = foreach(n->reset_aggregate_flow(n), afc)
 reset_aggregate_flow(::AggregateFlowCircuitNode) = () # do nothing
 reset_aggregate_flow(n::AggregateFlow⋁{A}) where A = (n.aggr_flow = zero(A) ; n.aggr_flow_children .= zero(A))
 
-function collect_aggr_flows_batch(fc::FlowCircuit△, batch::XData{Bool})
+const opts_accumulate_flows = (flow_opts★..., el_type=Bool, compact⋁=false) #keep default options but insist on Bool flows
+
+function accumulate_aggr_flows(afc::AggregateFlowCircuit△, batches::XBatches{Bool})
+    fc = FlowCircuit(afc, max_batch_size(batches), Bool, FlowCache(), opts_accumulate_flows)
+    for batch in batches
+        accumulate_aggr_flows_batch(fc, batch)
+    end
+end
+
+function accumulate_aggr_flows_batch(fc::FlowCircuit△, batch::XData{Bool})
     # pass a mini-batch through the flow circuit
     pass_up_down(fc, plain_x_data(batch))
     for n in fc
          # collect flows from mini-batch into aggregate statistics
-        aggregate_flow(n, batch)
+        accumulate_aggr_flows(n, batch)
     end
 end
 
-aggregate_flow(::FlowCircuitNode, ::Any) = () # do nothing
-function aggregate_flow(n::Flow⋁, xd::XData{Bool})
+accumulate_aggr_flows(::FlowCircuitNode, ::Any) = () # do nothing
+function accumulate_aggr_flows(n::Flow⋁, xd::XData{Bool})
     origin = n.origin::AggregateFlow⋁
-    origin.aggr_flow += count(π(n))
+    origin.aggr_flow += aggregate_data(xd,π(n))
     if num_children(n) == 1
         # flow goes entirely to one child
         origin.aggr_flow_children[1] += aggregate_data(xd,π(n))
@@ -123,4 +127,4 @@ aggregate_data(xd::PlainXData, f::AbstractArray{Bool}) = count(f)
 aggregate_data(xd::WXData, f::AbstractArray) = sum(f .* weights(xd))
 
 aggregate_data_factorized(xd::PlainXData, x1::BitVector, xs::BitVector...) = count_conjunction(x1, xs...)
-aggregate_data_factorized(xd::WXData, x1::BitVector, xs::BitVector...) = sum_weighted_conjunction(weights(xd), x1, xs)
+aggregate_data_factorized(xd::WXData, x1::BitVector, xs::BitVector...) = sum_weighted_product(weights(xd), x1, xs...)
