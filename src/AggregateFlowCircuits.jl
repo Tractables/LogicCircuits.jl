@@ -132,6 +132,7 @@ end
 aggregate_data(xd::PlainXData, f::AbstractArray) = sum(f)
 aggregate_data(xd::PlainXData, f::AbstractArray{Bool}) = count(f)
 aggregate_data(xd::WXData, f::AbstractArray) = sum(f .* weights(xd))
+aggregate_data(xd::WXData, f::AbstractArray{Bool}) = sum(weights(xd)[f])
 
 aggregate_data_factorized(xd::PlainXData, x1::BitVector, xs::BitVector...) = count_conjunction(x1, xs...)
 aggregate_data_factorized(xd::WXData, x1::BitVector, xs::BitVector...) = sum_weighted_product(weights(xd), x1, xs...)

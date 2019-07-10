@@ -35,7 +35,7 @@ struct WXData{X,W,M} <: XData{X,M}
     xd::PlainXData{X,M}
     w::Vector{W}
     WXData(x::PlainXData{X,M}, w::AbstractVector{<:W}) where {X,W,M} =
-        (num_examples(x) == length(w)) ? new{X,W,M}(x,w) : error("x and w have different numbers of examples")
+        (num_examples(x) == length(w)) ? new{X,W,M}(x,w) : error("x and w have different numbers of examples ($(num_examples(x)) vs. $(length(w)))")
 end
 
 # unsupervised learning data (X-values with Y-labels)
