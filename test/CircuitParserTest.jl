@@ -1,7 +1,8 @@
 using Test;
 
 
-include("../src/Circuits.jl")
+include("../src/Circuits/Circuits.jl")
+using .Juice
 
 @testset "Circuit file parser tests" begin
    @test parse_one_obj("c blah blablah", circuit_matchers.lc_line) isa CommentLine
