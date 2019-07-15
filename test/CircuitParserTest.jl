@@ -1,7 +1,6 @@
 using Test;
 
-
-include("../src/Circuits/Circuits.jl")
+include("../src/Juice/Juice.jl")
 using .Juice
 
 @testset "Circuit file parser tests" begin
