@@ -15,6 +15,7 @@ shuffle, batch, threshold, fully_factorized_likelihood,
 ll_per_example, bits_per_pixel,
 dataset, mnist, sampled_mnist, twenty_datasets
 
+import Base.size
 include("DataLoaders.jl")
 
 #####################
@@ -118,6 +119,8 @@ change_features(xyd::XYData, x::M) where M = XYData(change_features(x_data(xyd))
 # Methods
 #####################
 
+size(xd::PlainXData) = size(xd.x)
+
 num_examples(::Nothing) = 0
 num_examples(xd::Union{XData,XYData}) = size(feature_matrix(xd))[1]
 num_examples(bs::Union{XBatches,XYBatches}) = sum(b -> num_examples(b), bs)
@@ -133,6 +136,7 @@ total_example_weight(ds::Dataset)::Float64 = total_example_weight(train(ds)) + t
 batch_size(batch::Union{XData,XYData}) = num_examples(batch)
 max_batch_size(batches::Union{XBatches,XYBatches}) = maximum(b -> batch_size(b), batches)
 
+num_features(wxd::WXData) = size(feature_matrix(wxd))[2]
 num_features(xd::Union{XData,XYData}) = size(feature_matrix(xd))[2]
 num_features(bs::Union{XBatches,XYBatches}) = num_features(bs[1]) # assume constructor enforces consistency
 num_features(ds::Dataset) = num_features(train(ds)) # assume constructor enforces consistency
@@ -146,6 +150,7 @@ num_batches(ds::Dataset) = num_batches(train(ds)) + num_batches(valid(ds)) + num
 
 feature_matrix(xd::XData) = xd.x
 feature_matrix(xyd::XYData) = feature_matrix(x_data(xyd))
+feature_matrix(wxd::WXData) = wxd.xd.x
 
 plain_x_data(xd::PlainXData) = xd
 plain_x_data(wxd::WXData) = wxd.xd
