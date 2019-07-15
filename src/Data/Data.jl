@@ -21,16 +21,26 @@ include("DataLoaders.jl")
 # Types
 #####################
 
+"""
+Any form of data where features are of type X
+"""
 abstract type AbstractData{X} end
 
-# unsupervised learning data (X-values)
+"""
+Abstract unsupervised learning data (X-values)
+"""
 abstract type XData{X,M<:AbstractMatrix{<:X}} <: AbstractData{X} end
 
+"""
+Unsupervised learning data (X-values) with a direct matrix representation
+"""
 struct PlainXData{X,M<:AbstractMatrix{<:X}} <: XData{X,M} # repeating the type bound here allows for automatic inference of X in constructor
     x::M
 end
 
-# weighted X-values
+"""
+Unsupervised learning data (X-values) with weights for each example
+"""
 struct WXData{X,W,M} <: XData{X,M}
     xd::PlainXData{X,M}
     w::Vector{W}
