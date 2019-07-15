@@ -49,7 +49,7 @@ struct WXData{X,W,M} <: XData{X,M}
         (num_examples(x) == length(w)) ? new{X,W,M}(x,w) : error("x and w have different numbers of examples ($(num_examples(x)) vs. $(length(w)))")
 end
 
-# unsupervised learning data (X-values with Y-labels)
+"Supervised learning data (X-values with Y-labels)"
 struct XYData{X,Y,XD<:XData{<:X}, V<:AbstractVector{<:Y}} <: AbstractData{X}
     xd::XD
     y::V

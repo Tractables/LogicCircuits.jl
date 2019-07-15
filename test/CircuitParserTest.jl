@@ -24,9 +24,9 @@ end
 
 @testset "Load an MNIST Circuit" begin
 
-   file = "./test/circuits/mnist-large.circuit";
-   lc = load_circuit(file);
-
-   @test lc isa LogicalCircuitNode;
+   file = "./test/circuits/mnist-large.circuit"
+   lc = load_circuit(file)
+   
+   @test lc isa LogicalCircuit△
 
 end
