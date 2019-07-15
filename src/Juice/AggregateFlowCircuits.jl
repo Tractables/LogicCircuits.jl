@@ -33,10 +33,6 @@ const AggregateFlowCircuit△{A} = AbstractVector{<:AggregateFlowCircuitNode{A}}
 # traits
 #####################
 
-@traitimpl Leaf{AggregateFlowLeafNode}
-@traitimpl Inner{AggregateFlowInnerNode}
-@traitimpl Circuit△{AggregateFlowCircuit△}
-
 NodeType(::Type{<:AggregateFlowPosLeaf}) = PosLeaf()
 NodeType(::Type{<:AggregateFlowNegLeaf}) = NegLeaf()
 
@@ -68,7 +64,7 @@ AggregateFlowCircuitNode(nt::⋁, n::CircuitNode, ::Type{A}, cache::AggregateFlo
         AggregateFlow⋁(n, AggregateFlowCircuit(n.children, A, cache), zero(A), some_vector(A, num_children(n)))
     end
 
-@traitfn function AggregateFlowCircuit(c::C, ::Type{A}, cache::AggregateFlowCache = AggregateFlowCache()) where {A, C; Circuit△{C}}
+function AggregateFlowCircuit(c::Circuit△, ::Type{A}, cache::AggregateFlowCache = AggregateFlowCache()) where {A}
     map(n->AggregateFlowCircuitNode(n, A, cache), c)
 end
 

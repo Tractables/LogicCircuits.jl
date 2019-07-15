@@ -30,30 +30,33 @@ abstract type CircuitNode end
 abstract type LogicalCircuitNode <: CircuitNode end
 
 "A logical leaf node"
-abstract type LeafNode <: LogicalCircuitNode end
+abstract type LogicalLeafNode <: LogicalCircuitNode end
 
 "A logical inner node"
-abstract type InnerNode <: LogicalCircuitNode end
+abstract type LogicalInnerNode <: LogicalCircuitNode end
 
 "A logical positive leaf node, representing the positive literal of its variable"
-struct PosLeafNode <: LeafNode
+struct PosLeafNode <: LogicalLeafNode
     cvar::Var
 end
 
 "A logical negative leaf node, representing the negative literal of its variable"
-struct NegLeafNode <: LeafNode
+struct NegLeafNode <: LogicalLeafNode
     cvar::Var
 end
 
 "A logical conjunction node"
-struct ⋀Node <: InnerNode
+struct ⋀Node <: LogicalInnerNode
     children::Vector{LogicalCircuitNode}
 end
 
 "A logical disjunction node"
-struct ⋁Node <: InnerNode
+struct ⋁Node <: LogicalInnerNode
     children::Vector{LogicalCircuitNode}
 end
+
+"Any circuit represented as a bottom-up linear order of nodes"
+const Circuit△ = AbstractVector{<:CircuitNode}
 
 "A logical circuit represented as a bottom-up linear order of nodes"
 const LogicalCircuit△ = AbstractVector{<:LogicalCircuitNode}
@@ -62,38 +65,28 @@ const LogicalCircuit△ = AbstractVector{<:LogicalCircuitNode}
 # traits
 #####################
 
-# define an orthogonal type hierarchy of node types, not circuit types
 
-"A trait denoting leaf nodes of any type"
-@traitdef Leaf{X}
-
-"A trait denoting inner nodes of any type"
-@traitdef Inner{X}
-
-"A trait denoting circuits of any type"
-@traitdef Circuit△{X}
-
-@traitimpl Leaf{LeafNode}
-@traitimpl Inner{InnerNode}
-@traitimpl Circuit△{LogicalCircuit△}
-
-# cannot use SimpleTraits for categorical traits, such as the bottom of the circuit node hierarchy
-# so we write them manually
-
-"A categorical trait hierarchy denoting concrete types of nodes"
+"""
+A trait hierarchy denoting types of nodes
+`NodeType` defines an orthogonal type hierarchy of node types, not circuit types, so we can dispatch on node type regardless of circuit type.
+See @ref{https://docs.julialang.org/en/v1/manual/methods/#Trait-based-dispatch-1}
+"""
 abstract type NodeType end
 
+abstract type Leaf <: NodeType end
+abstract type Inner <: NodeType end
+
 "A trait denoting positive leaf nodes of any type"
-struct PosLeaf <: NodeType end
+struct PosLeaf <: Leaf end
 
 "A trait denoting negative leaf nodes of any type"
-struct NegLeaf <: NodeType end
+struct NegLeaf <: Leaf end
 
 "A trait denoting conjuction nodes of any type"
-struct ⋀ <: NodeType end
+struct ⋀ <: Inner end
 
 "A trait denoting disjunction nodes of any type"
-struct ⋁ <: NodeType end
+struct ⋁ <: Inner end
 
 "A function to retrieve the trait denoting concrete types of nodes"
 NodeType(instance) = NodeType(typeof(instance))
@@ -101,7 +94,6 @@ NodeType(::Type{<:PosLeafNode}) = PosLeaf()
 NodeType(::Type{<:NegLeafNode}) = NegLeaf()
 NodeType(::Type{<:⋀Node}) = ⋀()
 NodeType(::Type{<:⋁Node}) = ⋁()
-#TODO: remove SimpleTraits Leaf and Inner, and use a hierarchy of NodeType -- simpler
 
 
 #####################
@@ -109,45 +101,41 @@ NodeType(::Type{<:⋁Node}) = ⋁()
 #####################
 
 "Get the logical variable in a given leaf node"
-function cvar end
-@inline @traitfn cvar(n::X) where {X<:CircuitNode; Leaf{X}} = n.cvar
+@inline cvar(n::CircuitNode) = cvar(NodeType(n), n)
+@inline cvar(::Leaf, n::CircuitNode) = n.cvar
 
 "Get the children of a given inner node"
-function children end
-@traitfn children(n::X) where {X<:CircuitNode; Inner{X}} = n.children
+@inline children(n::CircuitNode) = children(NodeType(n), n)
+@inline children(::Inner, n::CircuitNode) = n.children
 
 "Does the node have children?"
-function has_children end
-@traitfn has_children(n::X) where {X<:CircuitNode; Inner{X}} = !isempty(children(n))
-@traitfn has_children(n::X) where {X<:CircuitNode; !Inner{X}} = false
+@inline has_children(n::CircuitNode) = has_children(NodeType(n), n)
+@inline has_children(::Inner, n::CircuitNode) = !isempty(children(n))
+@inline has_children(::Leaf, n::CircuitNode) = false
 
 "Get the number of children of a given inner node"
-function num_children end
-@traitfn num_children(n::X) where {X<:CircuitNode; Inner{X}} = length(children(n))
+@inline num_children(n::CircuitNode) = num_children(NodeType(n), n)
+@inline num_children(::Inner, n::CircuitNode) = length(children(n))
+@inline num_children(::Leaf, n::CircuitNode) = 0
 
 "Get the list of conjunction nodes in a given circuit"
-function ⋀_nodes end
-@traitfn ⋀_nodes(c::X) where {X; Circuit△{X}} = (c |> @filter(NodeType(_) isa ⋀) |> collect)
+⋀_nodes(c::Circuit△) = (c |> @filter(NodeType(_) isa ⋀) |> collect)
 
 "Get the list of disjunction nodes in a given circuit"
-function ⋁_nodes end
-@traitfn ⋁_nodes(c::X) where {X; Circuit△{X}} = (c |> @filter(NodeType(_) isa ⋁) |> collect)
+⋁_nodes(c::Circuit△) = (c |> @filter(NodeType(_) isa ⋁) |> collect)
 
 "Give count of types and fan-ins of inner nodes in the circuit"
-function inode_stats end
-@traitfn function inode_stats(c::X) where {X; Circuit△{X}}
-    c |> @filter(istrait(Inner{typeof(_)})) |> @groupby((typeof(_),num_children(_))) |> @map({Type_Arity=key(_), Count=length(_)}) |> collect
+function inode_stats(c::Circuit△)
+    c |> @filter(NodeType(_) isa Inner) |> @groupby((typeof(_),num_children(_))) |> @map({Type_Arity=key(_), Count=length(_)}) |> collect
 end
 
 "Give count of types of leaf nodes in the circuit"
-function leaf_stats end
-@traitfn function leaf_stats(c::X) where {X; Circuit△{X}}
-    c |> @filter(istrait(Leaf{typeof(_)})) |> @groupby(typeof(_)) |> @map({Type=key(_), Count=length(_)}) |> collect
+function leaf_stats(c::Circuit△)
+    c |> @filter(NodeType(_) isa Leaf) |> @groupby(typeof(_)) |> @map({Type=key(_), Count=length(_)}) |> collect
 end
 
 "Give count of types and fan-ins of all nodes in the circuit"
-function node_stats end
-@traitfn node_stats(c:: X) where {X; Circuit△{X}} = append!(leaf_stats(c), inode_stats(c))
+node_stats(c:: Circuit△) = append!(leaf_stats(c), inode_stats(c))
 
 "Generate a fully factorized (Naive bayes/logistic regression) circuit over `n` variables"
 function fully_factorized_circuit(n)
