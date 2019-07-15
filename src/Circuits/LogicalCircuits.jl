@@ -2,7 +2,15 @@
 # General logic
 #####################
 
+"""
+Variables are represented as 32-bit unsigned integers
+"""
 const Var = UInt32 # variable ids
+
+"""
+Literals are represented as 32-bit signed integers.
+Positive literals are positive integers identical to their variable. Negative literals are their negations. Integer 0 should not be used to represent literals.
+"""
 const Lit = Int32 # variable with a positive or negative sign
 
 @inline var2lit(v::Var)::Lit = convert(Var,v)
