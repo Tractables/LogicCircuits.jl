@@ -1,3 +1,5 @@
+using Test;
+
 @testset "Circuit file parser tests" begin
    @test parse_one_obj("c blah blablah", circuit_matchers.lc_line) isa CommentLine
    @test parse_one_obj("c", circuit_matchers.lc_line) isa CommentLine
@@ -18,4 +20,13 @@
    @test (parse_one_obj("B -0.6090213458520287 0.10061233805363132 -0.44510731039287776 -0.4536824618763301 -0.738392695523771 -0.5610245232140584 -0.4586543592164493 -0.07962059343551083 -0.2582953135054242 -0.03257926010007175"
                         , circuit_matchers.lc_line) isa BiasLine)
    @test (parse_lc_file("test/circuits/mnist-large.circuit") isa Vector{CircuitFormatLine})
+end
+
+@testset "Load an MNIST Circuit" begin
+
+   file = "./test/circuits/mnist-large.circuit";
+   lc = load_circuit(file);
+
+   @test lc isa LogicalCircuitNode;
+
 end
