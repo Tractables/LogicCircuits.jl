@@ -29,23 +29,23 @@ end
 function build_vtree_matchers()
     spc::Matcher = Drop(Space())
 
-    comment::Matcher = Seq!(E"c", Drop(Space()[0:1]), Pattern(r".*"), Eos()) > VtreeCommentLine{String}
-    header::Matcher = Seq!(E"vtree", spc, PUInt32(), Eos()) > VtreeHeaderLine
-    inner::Matcher = Seq!(E"I", spc, PUInt32(), spc, PUInt32(), spc, PUInt32(), Eos()) > VtreeInnerLine
-    leaf::Matcher = Seq!(E"L", spc, PUInt32(), spc, PUInt32(), Eos()) > VtreeLeafLine
+    vtree_comment::Matcher = Seq!(E"c", Drop(Space()[0:1]), Pattern(r".*"), Eos()) > VtreeCommentLine{String}
+    vtree_header::Matcher = Seq!(E"vtree", spc, PUInt32(), Eos()) > VtreeHeaderLine
+    vtree_inner::Matcher = Seq!(E"I", spc, PUInt32(), spc, PUInt32(), spc, PUInt32(), Eos()) > VtreeInnerLine
+    vtree_leaf::Matcher = Seq!(E"L", spc, PUInt32(), spc, PUInt32(), Eos()) > VtreeLeafLine
 
-    @eponymtuple(comment, header, inner, leaf)
+    @eponymtuple(vtree_comment, vtree_header, vtree_inner, vtree_leaf)
 end
 
-function parse_one_obj(s::String, p::Matcher)
-    objs = parse_one(s,p)
-    @assert length(objs) == 1 "$objs is not a single object"
-    objs[1]
-end
+# function parse_one_obj(s::String, p::Matcher)
+#     objs = parse_one(s,p)
+#     @assert length(objs) == 1 "$objs is not a single object"
+#     objs[1]
+# end
 
 const vtree_matchers = build_vtree_matchers()
 
-function parse_comment_line_fast(ln::String)
+function parse_vtree_comment_line_fast(ln::String)
     VtreeCommentLine(lstrip(chop(ln, head = 1, tail = 0))) 
 end
 
@@ -69,13 +69,13 @@ function parse_vtree_file(file::String)::Vector{VtreeFormatLine}
     open(file) do file
         for ln in eachline(file)
             if ln[1] == 'c'
-                push!(q, parse_comment_line_fast(ln))
+                push!(q, parse_vtree_comment_line_fast(ln))
             elseif ln[1] == 'L'
                 push!(q, parse_leaf_vtree_fast(ln))
             elseif ln[1] == 'I'
                 push!(q, parse_inner_vtree_fast(ln))
             else
-                push!(q, parse_one_obj(ln, vtree_matchers.header))
+                push!(q, parse_one_obj(ln, vtree_matchers.vtree_header))
             end
         end
     end
