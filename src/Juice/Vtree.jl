@@ -6,16 +6,16 @@
 abstract type VtreeNode end
 
 struct VtreeLeafNode <: VtreeNode
-    index::Int
+    index::UInt32
     var::Var
 end
 
 struct VtreeInnerNode <: VtreeNode
-    index::Int
+    index::UInt32
     left::VtreeNode
     right::VtreeNode
     var_count::Int
-    variables::Set{VtreeNode}
+    variables::Set{UInt32}
 end
 
 #####################
