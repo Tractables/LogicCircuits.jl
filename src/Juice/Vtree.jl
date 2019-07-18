@@ -15,7 +15,7 @@ struct VtreeInnerNode <: VtreeNode
     left::VtreeNode
     right::VtreeNode
     var_count::Int
-    variables::Set{UInt32}
+    variables::Set{Var}
 end
 
 #####################
