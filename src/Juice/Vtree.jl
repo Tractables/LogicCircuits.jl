@@ -31,6 +31,10 @@ Variables(n::VtreeInnerNode) = n.variables
 VariableCount(n::VtreeLeafNode) = 1
 VariableCount(n::VtreeInnerNode) = n.var_count
 
+"""
+Returns the nodes in order of leaves to root.
+Which is basically reverse Breadth First Search from the root.
+"""
 function OrderNodesLeavesBeforeParents(root::VtreeNode)::Vector{VtreeNode}
     # Running BFS
     visited = Vector{VtreeNode}()
@@ -66,6 +70,9 @@ c I id-of-internal-vtree-node id-of-left-child id-of-right-child
 c
 """
 
+"""
+Saves a vtree in the given file path.
+"""
 function save(vtree::Vector{VtreeNode}, file::AbstractString)
     open(file, "w") do f
         order = OrderNodesLeavesBeforeParents(vtree[end]);
