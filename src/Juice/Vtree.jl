@@ -6,6 +6,7 @@
 abstract type VtreeNode end
 
 struct VtreeLeafNode <: VtreeNode
+    #TODO: Guy: we don't need to store the index of the node; that's an IO issue only
     index::UInt32
     var::Var
 end
