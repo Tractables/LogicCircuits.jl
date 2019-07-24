@@ -155,3 +155,25 @@ function fully_factorized_circuit(n)
     push!(lin, bias)
     lin
 end
+
+"Is the circuit decomposable?"
+is_decomposable(c:: Circuit△) =  length(is_decomposable(c[end])) > 0
+is_decomposable(n:: CircuitNode) = is_decomposable(NodeType(n), n)
+function is_decomposable(::⋀, n:: CircuitNode)
+    varsets = map(x -> is_decomposable(x), children(n))
+    if all(x -> !isempty(length(x)), varsets) &&
+        all(x -> isempty(intersect(varsets[x[1]], varsets[x[2]])), (i,j) for i = 1:length(varsets) for j = 1:i-1)
+            reduce(union, varsets)
+    else
+        Set()
+    end
+end
+function is_decomposable(::⋁, n:: CircuitNode)
+    varsets = map(x -> is_decomposable(x), children(n))
+    if all(x -> length(x) > 0, varsets)
+        reduce(union, varsets)
+    else
+        Set()
+    end
+end
+is_decomposable(::Leaf, n:: CircuitNode) = Set(cvar(n))
