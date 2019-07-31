@@ -105,11 +105,13 @@ XDataset(xyd::XYDataset{X}) where X = XDataset{X}(x_data(xyd.train),
                                         map_something(v -> x_data(v), xyd.valid),
                                         x_data(xyd.test))
 
-convert(::Type{XBatches{X}}, d::XData{X}) where X = [d]
-convert(::Type{XYBatches{X,Y}}, d::XYBatches{X,Y}) where {X,Y} = [d]
+Base.convert(::Type{XBatches}, d::XData) = [d]
+Base.convert(::Type{XBatches{X}}, d::XData{X}) where X = [d]
+Base.convert(::Type{XYBatches{X,Y}}, d::XYBatches{X,Y}) where {X,Y} = [d]
 
-convert(::Type{BatchedXDataset{X}}, d::XDataset{X}) where X = BatchedXDataset(d.train, d.valid, d.test)
-convert(::Type{BatchedXYDataset{X,Y}}, d::XYDataset{X,Y}) where {X,Y} = BatchedXYDataset(d.train, d.valid, d.test)
+Base.convert(::Type{BatchedXDataset}, d::XDataset) = BatchedXDataset(d.train, d.valid, d.test)
+Base.convert(::Type{BatchedXDataset{X}}, d::XDataset{X}) where X = BatchedXDataset(d.train, d.valid, d.test)
+Base.convert(::Type{BatchedXYDataset{X,Y}}, d::XYDataset{X,Y}) where {X,Y} = BatchedXYDataset(d.train, d.valid, d.test)
 
 change_features(xd::PlainXData, x::M) where M = PlainXData(x)
 change_features(xd::WXData, x::M) where M = WXData(x,weights(xd))
