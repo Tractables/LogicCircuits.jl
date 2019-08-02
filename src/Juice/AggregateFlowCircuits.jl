@@ -99,7 +99,7 @@ end
 
 function accumulate_aggr_flows_batch(fc::FlowCircuit△, batch::XData{Bool})
     # pass a mini-batch through the flow circuit
-    pass_up_down(fc, plain_x_data(batch))
+    pass_up_down(fc, unweighted_data(batch))
     for n in fc
          # collect flows from mini-batch into aggregate statistics
         accumulate_aggr_flows(n, batch)
