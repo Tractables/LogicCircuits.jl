@@ -1,5 +1,4 @@
 using ParserCombinator
-using Test
 using EponymTuples
 
 """
@@ -113,4 +112,8 @@ function compile_vtree_format_lines(lines::Vector{VtreeFormatLine})::Vector{Vtre
         compile(ln)
     end
     lin
+end
+
+function load_vtree(file::String)::Vector{VtreeNode}
+    return compile_vtree_format_lines(parse_vtree_file(file))
 end

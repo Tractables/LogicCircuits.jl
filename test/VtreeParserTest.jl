@@ -49,7 +49,7 @@ using Test;
     temp_path = "test/circuits/little_4var_temp.vtree"
     save(vtree, temp_path)
 
-    vtree2 = compile_vtree_format_lines(parse_vtree_file(temp_path))
+    vtree2 = load_vtree(temp_path)
     test_vtree(vtree2)
 
     rm(temp_path)
