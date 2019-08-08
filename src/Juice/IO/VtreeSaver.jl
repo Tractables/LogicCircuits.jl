@@ -15,27 +15,39 @@ c
 """
 Saves a vtree in the given file path.
 """
-function save(vtree::Vector{VtreeNode}, file::AbstractString)
+function save(vtree::Vtree, file::AbstractString)
+
+    # map from VtreeNode to index for output
+    index_cache = Dict{VtreeNode, UInt32}()
+    index = -1
+    node2index(n::VtreeNode) =
+        get!(index_cache, n) do; index += 1; end
+
+    # save Vtree to file
     open(file, "w") do f
+
+        # save VtreeNode function
+        function save_vtree_node(n::VtreeLeafNode)
+            node_index = node2index(n)
+            node_variable = n.var
+            write(f, "L $node_index $node_variable\n")
+        end
+
+        function save_vtree_node(n::VtreeInnerNode)
+            node_index = node2index(n)
+            left = node2index(n.left)
+            right = node2index(n.right)
+            write(f, "I $node_index $left $right\n")
+        end
+
         order = OrderNodesLeavesBeforeParents(vtree[end]);
         vtree_count = length(vtree)
 
         write(f, VTREE_FORMAT)
-        
+
         write(f, "vtree $vtree_count\n")
-        for (ind, node) in enumerate(order)
-            if node isa VtreeLeafNode
-                node_index = node.index
-                node_variable = node.var
-                write(f, "L $node_index $node_variable\n")
-            elseif node isa VtreeInnerNode
-                node_index = node.index
-                left = node.left.index
-                right = node.right.index
-                write(f, "I $node_index $left $right\n")
-            else
-                throw("Invalid Vtree Node Type")
-            end
+        for node in order
+            save_vtree_node(node)
         end
     end
 end

@@ -6,15 +6,15 @@ A line in one vtree file format
 """
 abstract type VtreeFormatLine end
 
-struct VtreeCommentLine{T<:AbstractString} <: VtreeFormatLine 
+struct VtreeCommentLine{T<:AbstractString} <: VtreeFormatLine
     comment::T
 end
 
-struct VtreeHeaderLine <: VtreeFormatLine 
+struct VtreeHeaderLine <: VtreeFormatLine
     node_count::UInt32
 end
 
-struct VtreeInnerLine <: VtreeFormatLine 
+struct VtreeInnerLine <: VtreeFormatLine
     node_id::UInt32
     left_id::UInt32
     right_id::UInt32
@@ -45,7 +45,7 @@ end
 const vtree_matchers = build_vtree_matchers()
 
 function parse_vtree_comment_line_fast(ln::String)
-    VtreeCommentLine(lstrip(chop(ln, head = 1, tail = 0))) 
+    VtreeCommentLine(lstrip(chop(ln, head = 1, tail = 0)))
 end
 
 function parse_inner_vtree_fast(ln::String)
@@ -83,29 +83,41 @@ end
 
 
 function compile_vtree_format_lines(lines::Vector{VtreeFormatLine})::Vector{VtreeNode}
-    lin = Vector{VtreeNode}()
+
+    # map from index to VtreeNode for input
     node_cache = Dict{UInt32, VtreeNode}()
 
+    index2node(index::UInt32)::VtreeNode =
+        get!(node_cache, index) do
+            throw("Invalid Vtree file format, meet children before parent $index")
+        end
+
+    index2node(index::UInt32, variable::Var)::VtreeNode =
+        get!(node_cache, index) do
+            VtreeLeafNode(variable)
+        end
+
+    index2node(index::UInt32, left::UInt32, right::UInt32)::VtreeNode =
+        get!(node_cache, index) do
+            left_node = index2node(left)
+            right_node = index2node(right)
+            VtreeInnerNode(
+                        left_node,
+                        right_node,
+                        union(Variables(left_node),Variables(right_node)))
+        end
+
+    lin = Vector{VtreeNode}()
+
+    # ccompile VtreeFormatLine to VtreeNode
     compile(::Union{VtreeHeaderLine, VtreeCommentLine}) = () # do nothing
     function compile(ln::VtreeLeafLine)
-        n = VtreeLeafNode(ln.node_id, ln.variable)
-        node_cache[n.index] = n
+        n = index2node(ln.node_id, ln.variable)
         push!(lin, n)
     end
     function compile(ln::VtreeInnerLine)
-        left = node_cache[ln.left_id]
-        right = node_cache[ln.right_id]
-
-        var_count = VariableCount(left) +
-                        VariableCount(right)
-
-        vars = union(Variables(left), 
-                    Variables(right)) 
-
-        node = VtreeInnerNode(ln.node_id, left, right, 
-                            var_count, vars)
-        node_cache[node.index] = node
-        push!(lin, node)
+        n = index2node(ln.node_id, ln.left_id, ln.right_id)
+        push!(lin, n)
     end
 
     for ln in lines
