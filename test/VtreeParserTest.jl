@@ -25,21 +25,21 @@ using Test;
             @test vtree[i] isa VtreeInnerNode
         end
 
-        @test Variables(vtree[1]) == Set([1])
-        @test Variables(vtree[2]) == Set([2])
-        @test Variables(vtree[3]) == Set([3])
-        @test Variables(vtree[4]) == Set([4])
+        @test variables(vtree[1]) == Set([1])
+        @test variables(vtree[2]) == Set([2])
+        @test variables(vtree[3]) == Set([3])
+        @test variables(vtree[4]) == Set([4])
 
-        @test Variables(vtree[5]) == Set([1,2])
-        @test Variables(vtree[6]) == Set([3,4])
-        @test Variables(vtree[7]) == Set([1,2,3,4])
+        @test variables(vtree[5]) == Set([1,2])
+        @test variables(vtree[6]) == Set([3,4])
+        @test variables(vtree[7]) == Set([1,2,3,4])
 
         for i = 1:4
-            @test VariableCount(vtree[i]) == 1
+            @test num_variables(vtree[i]) == 1
         end
-        @test VariableCount(vtree[5]) == 2
-        @test VariableCount(vtree[6]) == 2
-        @test VariableCount(vtree[7]) == 4
+        @test num_variables(vtree[5]) == 2
+        @test num_variables(vtree[6]) == 2
+        @test num_variables(vtree[7]) == 4
     end
 
     test_vtree(vtree)

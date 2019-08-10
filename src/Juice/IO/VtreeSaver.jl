@@ -115,7 +115,7 @@ function save(vtree::Vtree, file::AbstractString)
     end
 
     " 4. saving frame"
-    order = OrderNodesLeavesBeforeParents(vtree[end])
+    order = order_nodes_leaves_before_parents(vtree[end])
 
     save_vtree_header(vtree, f)
 

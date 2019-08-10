@@ -101,15 +101,12 @@ function compile_vtree_format_lines(lines::Vector{VtreeFormatLine})::Vector{Vtre
         get!(node_cache, index) do
             left_node = index2node(left)
             right_node = index2node(right)
-            VtreeInnerNode(
-                        left_node,
-                        right_node,
-                        union(Variables(left_node),Variables(right_node)))
+            VtreeInnerNode(left_node,right_node)
         end
 
     lin = Vector{VtreeNode}()
 
-    # ccompile VtreeFormatLine to VtreeNode
+    # compile VtreeFormatLine to VtreeNode
     compile(::Union{VtreeHeaderLine, VtreeCommentLine}) = () # do nothing
     function compile(ln::VtreeLeafLine)
         n = index2node(ln.node_id, ln.variable)
