@@ -91,7 +91,7 @@ function construct_top_down(vars::Set{Var}, split_method, context::VtreeLearnerC
     parent = Dict{VtreeNode, VtreeNode}()
     queue = Queue{VtreeNode}()
 
-    "1. initial split method"
+    "1. construct root"
     root = VtreeNode(vars)
     enqueue!(queue, root)
 
@@ -126,7 +126,7 @@ end
 
 
 """
-Construct Vtree bottom up, using method specified by combine_method.
+Construct Vtree bottom up, using method specified by combine_method!.
 """
 function construct_bottom_up(vars::Set{Var}, combine_method!, context::VtreeLearnerContext)::Vtree
     ln = Vector{VtreeNode}()
@@ -143,7 +143,6 @@ function construct_bottom_up(vars::Set{Var}, combine_method!, context::VtreeLear
     while length(vars) > 1
         matches = combine_method!(vars, context) # vars are mutable
         for (left, right) in matches
-            left, right = order_asc(left, right)
             n = VtreeInnerNode(node_cache[left], node_cache[right])
             node_cache[left] = node_cache[right] = n
             push!(ln, n)
@@ -154,5 +153,6 @@ function construct_bottom_up(vars::Set{Var}, combine_method!, context::VtreeLear
     order_nodes_leaves_before_parents(ln[end])
 end
 
-
-@inline order_asc(x::Var, y::Var) = x > y ? (y, x) : (x , y)
+"""
+Compare whether two vtrees are equal, inner index doesn't matter
+"""
