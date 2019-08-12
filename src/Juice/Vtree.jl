@@ -51,9 +51,11 @@ isleaf(n::VtreeInnerNode) = false
 
 variables(n::VtreeLeafNode) = Set([n.var])
 variables(n::VtreeInnerNode) = n.variables
+variables(n::Vtree) = variables(n[end])
 
 num_variables(n::VtreeLeafNode) = 1
 num_variables(n::VtreeInnerNode) = length(n.variables)
+num_variables(n::Vtree) = num_variables(n[end])
 
 #####################
 # Methods
@@ -153,6 +155,44 @@ function construct_bottom_up(vars::Set{Var}, combine_method!, context::VtreeLear
     order_nodes_leaves_before_parents(ln[end])
 end
 
+import Base.isequal
+
 """
 Compare whether two vtrees are equal, inner index doesn't matter
 """
+@inline function isequal(leaf1::VtreeInnerNode, leaf2::VtreeInnerNode)::Bool
+    return leaf1.variable == leaf2.variable
+end
+
+function isequal(inner1::VtreeInnerNode, inner2::VtreeInnerNode)::Bool
+    return isequal(variables(inner1), variables(inner2)) &&
+        isequal(inner1.left, inner2.left) &&
+        isequal(inner2.right, inner2.right)
+end
+
+@inline function isequal(n1::VtreeInnerNode, n2::VtreeLeafNode) false; end
+
+@inline function isequal(n1::VtreeLeafNode, n2::VtreeInnerNode) false; end
+
+function isequal(vtree1::Vtree, vtree2::Vtree)::Bool
+    return isequal(vtree1[end], vtree2[end])
+end
+
+
+"""
+Check vtree validation, variables(parent) = variables(left) + variables(right)
+"""
+function isvalid(n::VtreeInnerNode)::Bool
+    return num_variables(n) == num_variables(n.left) + num_variables(n.right) &&
+        isequal(variables(n), union(variables(n.left), variables(n.right))) &&
+        isvalid(n.right) &&
+        isvalid(n.left)
+end
+
+@inline function isvalid(n::VtreeLeafNode)::Bool true; end
+
+@inline function isvalid(n::VtreeEmptyNode)::Bool @assert 0; end
+
+function isvalid(vtree::Vtree)::Bool
+    return isvalid(vtree[end])
+end
