@@ -73,7 +73,7 @@ function save(vtree::Vtree, file::AbstractString)
     end
 
     function save_vtree_header(vtree::Vtree, f::VtreeDotFile)
-        write(f.file,"digraph vtree {\n")
+        write(f.file,"strict graph vtree {\n")
     end
 
     function save_vtree_node(n::VtreeLeafNode, f)
@@ -83,7 +83,7 @@ function save(vtree::Vtree, file::AbstractString)
         if f isa VtreeConfigFile
             write(f.file, "L $node_index $node_variable\n")
         elseif f isa VtreeDotFile
-            write(f.file, "$node_index -> Var$node_variable [style=dotted]\n")
+            write(f.file, "$node_index -- Var_$node_variable [style=dotted]\n")
         else
             @assert 0
         end
@@ -97,8 +97,8 @@ function save(vtree::Vtree, file::AbstractString)
         if f isa VtreeConfigFile
             write(f.file, "I $node_index $left $right\n")
         elseif f isa VtreeDotFile
-            write(f.file, "$node_index -> $right\n")
-            write(f.file, "$node_index -> $left\n")
+            write(f.file, "$node_index -- $right\n")
+            write(f.file, "$node_index -- $left\n")
         else
             @assert 0
         end
