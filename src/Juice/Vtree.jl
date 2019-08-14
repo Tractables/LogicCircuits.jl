@@ -131,6 +131,7 @@ end
 Construct Vtree bottom up, using method specified by combine_method!.
 """
 function construct_bottom_up(vars::Set{Var}, combine_method!, context::VtreeLearnerContext)::Vtree
+    vars = copy(vars)
     ln = Vector{VtreeNode}()
     node_cache = Dict{Var, VtreeNode}() # map from variable to *highest* level node
 
@@ -160,23 +161,44 @@ import Base.isequal
 """
 Compare whether two vtrees are equal, inner index doesn't matter
 """
-@inline function isequal(leaf1::VtreeInnerNode, leaf2::VtreeInnerNode)::Bool
-    return leaf1.variable == leaf2.variable
+@inline function isequal(leaf1::VtreeLeafNode, leaf2::VtreeLeafNode)::Bool
+    return leaf1.var == leaf2.var
 end
 
 function isequal(inner1::VtreeInnerNode, inner2::VtreeInnerNode)::Bool
     return isequal(variables(inner1), variables(inner2)) &&
         isequal(inner1.left, inner2.left) &&
-        isequal(inner2.right, inner2.right)
+        isequal(inner1.right, inner2.right)
 end
 
 @inline function isequal(n1::VtreeInnerNode, n2::VtreeLeafNode) false; end
-
 @inline function isequal(n1::VtreeLeafNode, n2::VtreeInnerNode) false; end
 
 function isequal(vtree1::Vtree, vtree2::Vtree)::Bool
     return isequal(vtree1[end], vtree2[end])
 end
+
+"""
+Compare whether two vtrees are equal, left right child order doesnot matter
+"""
+function isequal_unordered(vtree1::Vtree, vtree2::Vtree)::Bool
+    return isequal_unordered(vtree1[end], vtree2[end])
+end
+
+function isequal_unordered(inner1::VtreeInnerNode, inner2::VtreeInnerNode)::Bool
+    return isequal(variables(inner1), variables(inner2)) &&
+                ((isequal_unordered(inner1.left, inner2.left) &&
+                isequal_unordered(inner1.right, inner2.right)) ||
+                (isequal_unordered(inner1.left, inner2.right) &&
+                isequal_unordered(inner1.right, inner2.left)))
+end
+
+@inline function isequal_unordered(leaf1::VtreeLeafNode, leaf2::VtreeLeafNode)::Bool
+    return leaf1.var == leaf2.var
+end
+
+@inline function isequal_unordered(n1::VtreeInnerNode, n2::VtreeLeafNode) false; end
+@inline function isequal_unordered(n1::VtreeLeafNode, n2::VtreeInnerNode) false; end
 
 
 """
