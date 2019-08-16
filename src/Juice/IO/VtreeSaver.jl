@@ -73,7 +73,7 @@ function save(vtree::Vtree, file::AbstractString)
     end
 
     function save_vtree_header(vtree::Vtree, f::VtreeDotFile)
-        write(f.file,"strict graph vtree { node [shape=point] \n")
+        write(f.file,"strict graph vtree { node [shape=point]; splines=false; \n")
     end
 
     function save_vtree_node(n::VtreeLeafNode, f)

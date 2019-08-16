@@ -84,6 +84,35 @@ function order_nodes_leaves_before_parents(root::VtreeNode)::Vtree
     reverse(visited)
 end
 
+"""
+
+"""
+function left_most_child(root::VtreeNode)::VtreeLeafNode
+    while !(root isa VtreeLeafNode)
+        root = root.left
+    end
+    root
+end
+"""
+"""
+function pre_order_traverse(root::VtreeNode)::Vtree
+    # Running DFS
+    visited = Vector{VtreeNode}()
+    stack = Stack{VtreeNode}()
+    push!(stack, root)
+
+    while !isempty(stack)
+        cur = pop!(stack)
+        push!(visited, cur)
+
+        if cur isa VtreeInnerNode
+            push!(stack, cur.left)
+            push!(stack, cur.right)
+        end
+    end
+    reverse(visited)
+end
+
 abstract type VtreeLearnerContext end
 """
 Construct Vtree top town, using method specified by split_method.
