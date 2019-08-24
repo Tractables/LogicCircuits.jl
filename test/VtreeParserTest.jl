@@ -50,7 +50,7 @@ using Test;
     save(vtree, temp_path)
 
     dot_path = "test/circuits/little_4var_temp.dot"
-    save(vtree, dot_path)
+    #save(vtree, dot_path)
 
     vtree2 = load_vtree(temp_path)
     test_vtree(vtree2)
