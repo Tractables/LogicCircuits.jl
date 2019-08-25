@@ -135,7 +135,7 @@ function leaf_stats(c::Circuit△)
 end
 
 "Give count of types and fan-ins of all nodes in the circuit"
-node_stats(c:: Circuit△) = append!(leaf_stats(c), inode_stats(c))
+node_stats(c:: Circuit△) = vcat(leaf_stats(c), inode_stats(c))
 
 "Generate a fully factorized (Naive bayes/logistic regression) circuit over `n` variables"
 function fully_factorized_circuit(n)
