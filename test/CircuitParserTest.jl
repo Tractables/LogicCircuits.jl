@@ -15,7 +15,7 @@ end
 @testset "Load an MNIST Circuit" begin
 
    file = "./test/circuits/mnist-large.circuit"
-   lc = load_circuit(file)
+   lc = load_logical_circuit(file)
    
    @test lc isa LogicalCircuit△
 
