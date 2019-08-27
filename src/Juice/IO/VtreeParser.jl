@@ -44,6 +44,12 @@ end
 
 const vtree_matchers = build_vtree_matchers()
 
+function parse_one_obj(s::String, p::Matcher)
+    objs = parse_one(s,p)
+    @assert length(objs) == 1 "$objs is not a single object"
+    objs[1]
+end
+
 function parse_vtree_comment_line_fast(ln::String)
     VtreeCommentLine(lstrip(chop(ln, head = 1, tail = 0)))
 end
@@ -74,6 +80,7 @@ function parse_vtree_file(file::String)::Vector{VtreeFormatLine}
             elseif ln[1] == 'I'
                 push!(q, parse_inner_vtree_fast(ln))
             else
+                # TODO add one more special case and get rid of parser combinators
                 push!(q, parse_one_obj(ln, vtree_matchers.vtree_header))
             end
         end

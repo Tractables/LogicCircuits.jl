@@ -1,11 +1,11 @@
 
 @testset "Decomposability tests" begin
     file = "test/circuits/little_4var.psdd"
-    prob_circuit = load_psdd_prob_circuit(file);
+    prob_circuit = load_prob_circuit(file);
     @test is_decomposable(prob_circuit);
 
     file = "test/circuits/mnist-antonio.psdd"
-    prob_circuit = load_psdd_prob_circuit(file);
+    prob_circuit = load_prob_circuit(file);
     @test is_decomposable(prob_circuit);
 
     lin = LogicalCircuitNode[]
