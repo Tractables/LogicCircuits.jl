@@ -1,5 +1,3 @@
-using Test;
-
 
 @testset "Decomposability tests" begin
     file = "test/circuits/little_4var.psdd"

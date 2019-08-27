@@ -1,6 +1,3 @@
-using Test;
-
-
 @testset "Vtree File Parser Test" begin
     vtree_lines = parse_vtree_file("test/circuits/little_4var.vtree");
     for i = 1:9

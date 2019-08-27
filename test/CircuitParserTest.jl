@@ -1,5 +1,3 @@
-using Test;
-
 @testset "Circuit file parser tests" begin
    @test parse_one_obj("c blah blablah", circuit_matchers.lc_line) isa CommentLine
    @test parse_one_obj("c", circuit_matchers.lc_line) isa CommentLine
