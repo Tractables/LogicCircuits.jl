@@ -17,7 +17,7 @@ mutable struct VtreeInnerNode <: VtreeNode
     variables::Set{Var}
 end
 
-const Vtree = Vector{<:VtreeNode}
+const Vtree = AbstractVector{<:VtreeNode}
 
 #####################
 # Constructor
@@ -72,7 +72,7 @@ function order_nodes_leaves_before_parents(root::VtreeNode)::Vtree
 end
 
 """
-
+Return the leftmost child.
 """
 function left_most_child(root::VtreeNode)::VtreeLeafNode
     while !(root isa VtreeLeafNode)
@@ -80,7 +80,9 @@ function left_most_child(root::VtreeNode)::VtreeLeafNode
     end
     root
 end
+
 """
+Order the nodes in preorder
 """
 function pre_order_traverse(root::VtreeNode)::Vtree
     # Running DFS
@@ -153,7 +155,7 @@ end
 import Base.isequal
 
 """
-Compare whether two vtrees are equal, inner index doesn't matter
+Compare whether two vtrees are equal
 """
 @inline function isequal(leaf1::VtreeLeafNode, leaf2::VtreeLeafNode)::Bool
     return leaf1.var == leaf2.var
@@ -165,15 +167,15 @@ function isequal(inner1::VtreeInnerNode, inner2::VtreeInnerNode)::Bool
         isequal(inner1.right, inner2.right)
 end
 
-@inline function isequal(n1::VtreeInnerNode, n2::VtreeLeafNode) false; end
-@inline function isequal(n1::VtreeLeafNode, n2::VtreeInnerNode) false; end
+@inline isequal(n1::VtreeInnerNode, n2::VtreeLeafNode) = false
+@inline isequal(n1::VtreeLeafNode, n2::VtreeInnerNode) = false
 
 function isequal(vtree1::Vtree, vtree2::Vtree)::Bool
     return isequal(vtree1[end], vtree2[end])
 end
 
 """
-Compare whether two vtrees are equal, left right child order doesnot matter
+Compare whether two vtrees are equal, left right child order does not matter
 """
 function isequal_unordered(vtree1::Vtree, vtree2::Vtree)::Bool
     return isequal_unordered(vtree1[end], vtree2[end])
@@ -191,8 +193,8 @@ end
     return leaf1.var == leaf2.var
 end
 
-@inline function isequal_unordered(n1::VtreeInnerNode, n2::VtreeLeafNode) false; end
-@inline function isequal_unordered(n1::VtreeLeafNode, n2::VtreeInnerNode) false; end
+@inline isequal_unordered(n1::VtreeInnerNode, n2::VtreeLeafNode) = false
+@inline isequal_unordered(n1::VtreeLeafNode, n2::VtreeInnerNode) = false
 
 
 """
@@ -206,8 +208,6 @@ function isvalid(n::VtreeInnerNode)::Bool
 end
 
 @inline function isvalid(n::VtreeLeafNode)::Bool true; end
-
-@inline function isvalid(n::VtreeEmptyNode)::Bool @assert 0; end
 
 function isvalid(vtree::Vtree)::Bool
     return isvalid(vtree[end])
