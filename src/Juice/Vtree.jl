@@ -17,34 +17,21 @@ mutable struct VtreeInnerNode <: VtreeNode
     variables::Set{Var}
 end
 
-struct VtreeEmptyNode <: VtreeNode
-    #nothing
-
-    VtreeEmptyNode() = new()
-end
-
-const Vtree = Vector{VtreeNode}
-const empty_node = VtreeEmptyNode()
+const Vtree = Vector{<:VtreeNode}
 
 #####################
 # Constructor
 #####################
 
-VtreeInnerNode(left::VtreeNode, right::VtreeNode) =
+function VtreeInnerNode(left::VtreeNode, right::VtreeNode)
+    @assert isempty(intersect(variables(left), variables(right)))
     VtreeInnerNode(left, right, union(variables(left), variables(right)))
+end
 
-VtreeInnerNode(vars::Set{Var}) =
-    VtreeInnerNode(empty_node, empty_node, vars)
-
-VtreeLeafNode(vars::Set{Var}) = VtreeLeafNode(collect(vars)[1])
-
-
-VtreeNode(vars::Set{Var}) =
-    if length(vars) == 1
-        return VtreeLeafNode(vars)
-    else
-        return VtreeInnerNode(vars)
-    end
+function VtreeLeafNode(vars::Set{Var}) 
+    @assert length(vars) == 1
+    VtreeLeafNode(collect(vars)[1])
+end
 
 isleaf(n::VtreeLeafNode) = true
 isleaf(n::VtreeInnerNode) = false
@@ -113,58 +100,36 @@ function pre_order_traverse(root::VtreeNode)::Vtree
     reverse(visited)
 end
 
-abstract type VtreeLearnerContext end
 """
 Construct Vtree top town, using method specified by split_method.
 """
-function construct_top_down(vars::Set{Var}, split_method, context::VtreeLearnerContext)::Vtree
-    ln = Vector{VtreeNode}()
-    parent = Dict{VtreeNode, VtreeNode}()
-    queue = Queue{VtreeNode}()
+function construct_top_down(vars::Set{Var}, split_method)::VtreeNode
+    order_nodes_leaves_before_parents(
+        construct_top_down_root(vars,split_method))
+end
 
-    "1. construct root"
-    root = VtreeNode(vars)
-    enqueue!(queue, root)
-
-    "2. construct node"
-    while !isempty(queue)
-        cur = dequeue!(queue)
-        push!(ln, cur)
-
-        if cur isa VtreeInnerNode
-            (subset1, subset2) = split_method(variables(cur), context)
-            n1 = VtreeNode(subset1)
-            n2 = VtreeNode(subset2)
-            parent[n1] = cur
-            parent[n2] = cur
-            enqueue!(queue, n1)
-            enqueue!(queue, n2)
-        end
+function construct_top_down_root(vars::Set{Var}, split_method)::VtreeNode
+    @assert !isempty(vars) "Cannot construct a vtree with zero variables"
+    if length(vars) == 1
+        VtreeLeafNode(vars)
+    else
+        (X, Y) = split_method(vars)
+        prime = construct_top_down_root(X, split_method)
+        sub = construct_top_down_root(Y, split_method)
+        VtreeInnerNode(prime, sub)
     end
-
-    "3. clean up, build parent-children relation"
-    for n in reverse(ln[2 : end])
-        if parent[n].right == empty_node
-            parent[n].right = n
-        else
-            parent[n].left = n
-        end
-    end
-
-    ln = reverse(ln)
-    return order_nodes_leaves_before_parents(ln[end])
 end
 
 
 """
 Construct Vtree bottom up, using method specified by combine_method!.
 """
-function construct_bottom_up(vars::Set{Var}, combine_method!, context::VtreeLearnerContext)::Vtree
+function construct_bottom_up(vars::Set{Var}, combine_method!)::Vtree
     vars = copy(vars)
     ln = Vector{VtreeNode}()
     node_cache = Dict{Var, VtreeNode}() # map from variable to *highest* level node
 
-    "1. construct leaf noede"
+    "1. construct leaf node"
     for var in vars
         n = VtreeLeafNode(var)
         node_cache[var] = n
@@ -173,7 +138,7 @@ function construct_bottom_up(vars::Set{Var}, combine_method!, context::VtreeLear
 
     "2. construct inner node"
     while length(vars) > 1
-        matches = combine_method!(vars, context) # vars are mutable
+        matches = combine_method!(vars) # vars are mutable
         for (left, right) in matches
             n = VtreeInnerNode(node_cache[left], node_cache[right])
             node_cache[left] = node_cache[right] = n
