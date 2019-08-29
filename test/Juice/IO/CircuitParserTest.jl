@@ -1,3 +1,10 @@
+if endswith(@__FILE__, PROGRAM_FILE)
+   # this file is run as a script
+   include("../../../src/Juice/Juice.jl")
+end
+
+using Test
+using .Juice
 import .Juice.IO: 
    parse_comment_line, parse_lc_header_line, parse_true_literal_line, parse_false_literal_line, parse_lc_decision_line, parse_bias_line, 
    CircuitFormatLine, BiasLine, LCDecisionLine, WeightedNegLiteralLine, WeightedPosLiteralLine, HeaderLine, CommentLine

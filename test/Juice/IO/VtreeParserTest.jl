@@ -1,4 +1,11 @@
-using .Juice.IO: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine
+if endswith(@__FILE__, PROGRAM_FILE)
+    # this file is run as a script
+    include("../../../src/Juice/Juice.jl")
+ end
+
+ using Test
+ using .Juice
+ using .Juice.IO: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine
 
 @testset "Vtree File Parser Test" begin
     vtree_lines = parse_vtree_file("test/circuits/little_4var.vtree");
