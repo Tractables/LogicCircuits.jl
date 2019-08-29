@@ -29,11 +29,13 @@ abstract type CircuitNode end
 "Root of the logical circuit node hierarchy"
 abstract type LogicalCircuitNode <: CircuitNode end
 
+abstract type UnstructLogicalCircuitNode <: LogicalCircuitNode end
+
 "A logical leaf node"
-abstract type LogicalLeafNode <: LogicalCircuitNode end
+abstract type LogicalLeafNode <: UnstructLogicalCircuitNode end
 
 "A logical inner node"
-abstract type LogicalInnerNode <: LogicalCircuitNode end
+abstract type LogicalInnerNode <: UnstructLogicalCircuitNode end
 
 "A logical positive leaf node, representing the positive literal of its variable"
 struct PosLeafNode <: LogicalLeafNode
@@ -60,6 +62,7 @@ const Circuit△ = AbstractVector{<:CircuitNode}
 
 "A logical circuit represented as a bottom-up linear order of nodes"
 const LogicalCircuit△ = AbstractVector{<:LogicalCircuitNode}
+const UnstructLogicalCircuit△ = AbstractVector{<:UnstructLogicalCircuitNode}
 
 #####################
 # traits

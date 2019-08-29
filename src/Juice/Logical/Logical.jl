@@ -1,14 +1,16 @@
 module Logical
 
-using Query # @filter
-using StatsFuns # logsumexp
+using Query: @filter, @groupby, @map
+using StatsFuns: logsumexp
 
 using ...Data
 using ...Utils
 
 export
+
 # LogicalCircuits
-Var, Lit, var2lit, lit2var, CircuitNode, Circuit△, LogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, 
+Var, Lit, var2lit, lit2var, CircuitNode, Circuit△, LogicalCircuitNode, 
+UnstructLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstructLogicalCircuit△, 
 PosLeafNode, NegLeafNode, ⋁Node, ⋀Node, PosLeaf, NegLeaf, ⋁, ⋀, cvar, ⋁_nodes,
  num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable, fully_factorized_circuit,
 
@@ -23,11 +25,16 @@ reset_aggregate_flows, accumulate_aggr_flows_batch, opts_accumulate_flows, colle
 # Vtree
 VtreeNode, VtreeLeafNode, VtreeInnerNode, isleaf, variables, num_variables, Vtree,
 order_nodes_leaves_before_parents, construct_top_down, construct_bottom_up,
-isequal, isequal_unordered, left_most_child
+isequal, isequal_unordered, left_most_child,
+
+# StructuredLogicalCircuits
+StructLogicalCircuitNode, StructLogicalLeafNode, StructLogicalCircuit△, 
+StructPosLeafNode, StructNegLeafNode, Struct⋁Node, Struct⋀Node
 
 include("LogicalCircuits.jl")
 include("FlowCircuits.jl")
 include("AggregateFlowCircuits.jl")
 include("Vtree.jl")
+include("StructuredLogicalCircuits.jl")
 
 end
