@@ -109,14 +109,14 @@ end
 accumulate_aggr_flows(::FlowCircuitNode, ::Any) = () # do nothing
 function accumulate_aggr_flows(n::Flow⋁, xd::XData{Bool})
     origin = n.origin::AggregateFlow⋁
-    origin.aggr_flow += aggregate_data(xd,π(n))
+    origin.aggr_flow += aggregate_data(xd,path_flow(n))
     if num_children(n) == 1
         # flow goes entirely to one child
-        origin.aggr_flow_children[1] += aggregate_data(xd,π(n))
+        origin.aggr_flow_children[1] += aggregate_data(xd,path_flow(n))
     else
         child_aggr_flows = map(n.children) do c
             pr_fs = pr_factors(c)
-            aggregate_data_factorized(xd, π(n), pr_fs...)
+            aggregate_data_factorized(xd, path_flow(n), pr_fs...)
         end
         origin.aggr_flow_children .+= child_aggr_flows
     end
