@@ -1,14 +1,16 @@
+using .Juice.IO: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine
+
 @testset "Vtree File Parser Test" begin
     vtree_lines = parse_vtree_file("test/circuits/little_4var.vtree");
     for i = 1:9
-        @test vtree_lines[i] isa Juice.VtreeCommentLine
+        @test vtree_lines[i] isa VtreeCommentLine
     end
-    @test vtree_lines[10] isa Juice.VtreeHeaderLine
+    @test vtree_lines[10] isa VtreeHeaderLine
     for i = 11:14
-        @test vtree_lines[i] isa Juice.VtreeLeafLine
+        @test vtree_lines[i] isa VtreeLeafLine
     end
     for i = 15:17
-        @test vtree_lines[i] isa Juice.VtreeInnerLine
+        @test vtree_lines[i] isa VtreeInnerLine
     end
 
 
