@@ -33,6 +33,7 @@ end
 "A structured logical disjunction node"
 struct Struct⋁Node <: StructLogicalInnerNode
     children::Vector{StructLogicalCircuitNode}
+    vtree::VtreeInnerNode
 end
 
 "A structured logical circuit represented as a bottom-up linear order of nodes"

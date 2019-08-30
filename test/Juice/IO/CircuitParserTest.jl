@@ -9,7 +9,7 @@ import .Juice.IO:
    parse_comment_line, parse_lc_header_line, parse_true_literal_line, parse_false_literal_line, parse_lc_decision_line, parse_bias_line, 
    CircuitFormatLine, BiasLine, LCDecisionLine, WeightedNegLiteralLine, WeightedPosLiteralLine, HeaderLine, CommentLine
 
-@testset "Circuit file parser tests" begin
+@testset "Logistic circuit file parser tests" begin
    @test parse_comment_line("c blah blablah") isa CommentLine
    @test parse_comment_line("c") isa CommentLine
    @test parse_comment_line("c    blah blablah") isa CommentLine
@@ -23,16 +23,8 @@ import .Juice.IO:
    @test parse_lc_file("test/circuits/mnist-large.circuit") isa Vector{CircuitFormatLine}
 end
 
-@testset "Load an MNIST Circuit" begin
 
-   file = "./test/circuits/mnist-large.circuit"
-   lc = load_logical_circuit(file)
-   
-   @test lc isa LogicalCircuit△
-
-end
-
-@testset "Load Small PSDD and test methods" begin
+@testset "Load a small PSDD and test methods" begin
    file = "test/circuits/little_4var.psdd"
    prob_circuit = load_prob_circuit(file);
    @test prob_circuit isa Vector{<:ProbCircuitNode};
@@ -62,4 +54,21 @@ psdd_files = ["test/circuits/little_4var.psdd", "test/circuits/msnbc-yitao-a.psd
    for psdd_file in psdd_files
       @test check_parameter_integrity(load_prob_circuit(psdd_file))
    end
+end
+
+
+@testset "Test structured logical circuit loading" begin
+   circuit, vtree = load_struct_logical_circuit("./test/circuits/mnist-large.circuit", "./test/circuits/balanced.vtree")
+   @test circuit isa StructLogicalCircuit△
+   @test vtree isa Vtree△
+   @test is_decomposable(circuit)
+end
+
+@testset "Load an MNIST logisitc circuit as a logical circuit" begin
+
+   file = "./test/circuits/mnist-large.circuit";
+   lc = load_logical_circuit(file);
+   
+   @test lc isa LogicalCircuit△
+
 end
