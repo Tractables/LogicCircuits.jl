@@ -64,7 +64,7 @@ end
    @test is_decomposable(circuit)
 end
 
-@testset "Load an MNIST logisitc circuit as a logical circuit" begin
+@testset "Load an MNIST logistic circuit as a logical circuit" begin
 
    file = "./test/circuits/mnist-large.circuit";
    lc = load_logical_circuit(file);
