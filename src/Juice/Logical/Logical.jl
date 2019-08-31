@@ -10,7 +10,7 @@ export
 
 # LogicalCircuits
 Var, Lit, var2lit, lit2var, CircuitNode, Circuit△, LogicalCircuitNode, 
-UnstructLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstructLogicalCircuit△, 
+UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstLogicalCircuit△, 
 PosLeafNode, NegLeafNode, ⋁Node, ⋀Node, PosLeaf, NegLeaf, ⋁, ⋀, cvar, ⋁_nodes,
  num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable, fully_factorized_circuit,
 

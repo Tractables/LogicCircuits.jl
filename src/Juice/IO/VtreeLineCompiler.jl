@@ -24,9 +24,9 @@ struct VtreeLeafLine <: VtreeFormatLine
 end
 
 compile_vtree_format_lines(lines::Vector{VtreeFormatLine})::Vtree△ = 
-    compile_vtree_format_lines_with_mapping(lines)[1]
+    compile_vtree_format_lines_m(lines)[1]
 
-function compile_vtree_format_lines_with_mapping(lines::Vector{VtreeFormatLine})
+function compile_vtree_format_lines_m(lines::Vector{VtreeFormatLine})
 
     # linearized vtree nodes
     vtree = Vector{VtreeNode}()
