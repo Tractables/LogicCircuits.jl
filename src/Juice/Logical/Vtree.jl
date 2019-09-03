@@ -28,7 +28,7 @@ function VtreeInnerNode(left::VtreeNode, right::VtreeNode)
     VtreeInnerNode(left, right, union(variables(left), variables(right)))
 end
 
-function VtreeLeafNode(vars::Set{Var}) 
+function VtreeLeafNode(vars::Set{Var})
     @assert length(vars) == 1
     VtreeLeafNode(collect(vars)[1])
 end
@@ -211,4 +211,21 @@ end
 
 function isvalid(vtree::Vtree△)::Bool
     return isvalid(vtree[end])
+end
+
+"""
+Return the length from vtree inner node `n` to leaf node which contains `var`
+"""
+function path_length(n::VtreeInnerNode, var::Var)
+    @assert var in variables(n)
+    if var in variables(n.left)
+        return 1 + path_length(n.left, var)
+    else
+        return 1 + path_length(n.right, var)
+    end
+end
+
+function path_length(n::VtreeLeafNode, var::Var)
+    @assert variables(n) == Set(var)
+    return 0
 end
