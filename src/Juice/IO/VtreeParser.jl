@@ -26,7 +26,7 @@ function parse_vtree_header_line(ln::String)
     VtreeHeaderLine()
 end
 
-function parse_vtree_file(file::String)::Vector{VtreeFormatLine}
+function parse_vtree_file(file::String)::VtreeFormatLines
     q = Vector{VtreeFormatLine}()
     open(file) do file
         for ln in eachline(file)

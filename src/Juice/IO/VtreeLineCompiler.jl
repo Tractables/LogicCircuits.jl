@@ -6,6 +6,8 @@ A line in one vtree file format
 """
 abstract type VtreeFormatLine <: FormatLine end
 
+const VtreeFormatLines = AbstractVector{<:VtreeFormatLine}
+
 struct VtreeCommentLine{T<:AbstractString} <: VtreeFormatLine
     comment::T
 end
@@ -23,10 +25,10 @@ struct VtreeLeafLine <: VtreeFormatLine
     variable::Var
 end
 
-compile_vtree_format_lines(lines::Vector{VtreeFormatLine})::Vtree△ = 
+compile_vtree_format_lines(lines::VtreeFormatLines)::Vtree△ = 
     compile_vtree_format_lines_m(lines)[1]
 
-function compile_vtree_format_lines_m(lines::Vector{VtreeFormatLine})
+function compile_vtree_format_lines_m(lines::VtreeFormatLines)
 
     # linearized vtree nodes
     vtree = Vector{VtreeNode}()

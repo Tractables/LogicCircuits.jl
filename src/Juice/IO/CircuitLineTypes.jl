@@ -2,29 +2,46 @@
 # Circuit line types to interface between file parsers and circuit compilers
 #####################
 
+"""Circuit and vtree node ids used for IO"""
 const ID = UInt32
 
+"""A parsed circuit file format line"""
 abstract type CircuitFormatLine <: FormatLine end
 
-struct CommentLine{T<:AbstractString} <: CircuitFormatLine
+"""A file consisting for circuit formal lines"""
+const CircuitFormatLines = AbstractVector{<:CircuitFormatLine}
+
+"""A string comment line for circuit files"""
+struct CircuitCommentLine{T<:AbstractString} <: CircuitFormatLine
     comment::T
 end
 
-struct HeaderLine <: CircuitFormatLine end
+"""A header line for circuit files"""
+struct CircuitHeaderLine <: CircuitFormatLine end
 
-abstract type LeafLine <: CircuitFormatLine end
+"""A circuit format line without child IDs"""
+abstract type LeafCircuitLine <: CircuitFormatLine end
 
-abstract type LiteralLine <: CircuitFormatLine end
+"""A circuit format line with child IDs"""
+abstract type InnerCircuitLine <: CircuitFormatLine end
 
-"""Weighted lines are always for normalized circuits"""
+"""A line that represents a logical literal"""
+abstract type LiteralLine <: LeafCircuitLine end
+
+"""
+A line representing a weighted single literal (for example a logistic circuit literal).
+"""
 struct WeightedLiteralLine <: LiteralLine 
     node_id::ID
     vtree_id::ID
     literal::Lit
+    normalized::Bool
     weights::Vector{Float32}
 end
 
-"""Unweighted literal lines could be either normalized or trimmed"""
+"""
+A line representing a single literal without parameters.
+"""
 struct UnweightedLiteralLine <: LiteralLine 
     node_id::ID
     vtree_id::ID
@@ -32,31 +49,38 @@ struct UnweightedLiteralLine <: LiteralLine
     normalized::Bool
 end
 
-is_normalized(::WeightedLiteralLine) = true
-is_normalized(l::UnweightedLiteralLine) = l.normalized
+is_normalized(l::LiteralLine) = l.normalized
+literal(l::LiteralLine) = l.literal
+variable(l::LiteralLine) = lit2var(literal(l))
 
-abstract type ConstantLine <: CircuitFormatLine end
+"""
+A line representing either the true or false logical constants
+"""
+abstract type ConstantLine <: LeafCircuitLine end
 
-"""Weighted constants are always normalized"""
-struct WeightedConstantLine <: ConstantLine
+"""
+A weighted constant line for a known variable
+"""
+struct WeightedNamedConstantLine <: ConstantLine
     node_id::ID
     vtree_id::ID
     variable::Var
-    # constant can only be true if weighted
+    # constant::Bool always true because one cannot associate a weight with the models of false
+    # normalized::Bool always true because we have a single variable field given above, which only exists if the node is normalized
     weight::Float32
 end
 
-constant(::WeightedConstantLine) = true
-constant(ln::UnweightedConstantLine) = ln.constant
-
-struct UnweightedConstantLine <: ConstantLine
+struct AnonymousConstantLine <: ConstantLine
     node_id::ID
     constant::Bool
     normalized::Bool
 end
 
-is_normalized(::WeightedConstantLine) = true
-is_normalized(l::UnweightedConstantLine) = l.normalized
+is_normalized(l::AnonymousConstantLine) = l.normalized
+is_normalized(::WeightedNamedConstantLine) = true
+variable(l::WeightedNamedConstantLine) = l.variable
+constant(::WeightedNamedConstantLine) = true
+constant(l::AnonymousConstantLine) = l.constant
 
 """
 Paired boxes, or elements, are conjunctions 
@@ -84,16 +108,24 @@ struct SDDElement <: TrimmedElement
     sub_id::ID
 end
 
+is_normalized(::NormalizedElement) = true
+is_normalized(::TrimmedElement) = false
 
-struct DecisionLine{ET<:Element} <: CircuitFormatLine
+"""
+A line representing a decision node in the circuit (an OR of AND elements)
+"""
+struct DecisionLine{ET<:Element} <: InnerCircuitLine
     node_id::ID
     vtree_id::ID
     num_elements::UInt32
     elements:: Vector{ET}
 end
 
-struct BiasLine <: CircuitFormatLine
+"""
+A line representing a bias node in the circuit (an OR with one child)
+"""
+struct BiasLine <: InnerCircuitLine
     node_id::ID
     weights::Vector{Float32}
-    BiasLine(weights) = new(typemax(UInt32), weights)
+    BiasLine(weights) = new(typemax(ID), weights)
 end
