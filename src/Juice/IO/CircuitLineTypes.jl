@@ -1,5 +1,5 @@
 #####################
-# Compilers to Juice data structures starting from already parsed line objects
+# Circuit line types to interface between file parsers and circuit compilers
 #####################
 
 const ID = UInt32
@@ -13,57 +13,50 @@ end
 struct HeaderLine <: CircuitFormatLine end
 
 abstract type LeafLine <: CircuitFormatLine end
-abstract type AbstractLiteralLine <: CircuitFormatLine end
+
+abstract type LiteralLine <: CircuitFormatLine end
 
 """Weighted lines are always for normalized circuits"""
-abstract type WeightedLiteralLine <: AbstractLiteralLine end
-
-struct WeightedPosLiteralLine <: WeightedLiteralLine
+struct WeightedLiteralLine <: LiteralLine 
     node_id::ID
-    vtree_id::ID # assume normalized, not trimmed
-    variable::Var
-    weights::Vector{Float32}
-end
-
-struct WeightedNegLiteralLine <: WeightedLiteralLine
-    node_id::ID
-    vtree_id::ID # assume normalized, not trimmed
-    variable::Var
+    vtree_id::ID
+    literal::Lit
     weights::Vector{Float32}
 end
 
 """Unweighted literal lines could be either normalized or trimmed"""
-abstract type UnweightedLiteralLine <: AbstractLiteralLine end
-
-struct NormalizedLiteralLine <: UnweightedLiteralLine
+struct UnweightedLiteralLine <: LiteralLine 
     node_id::ID
-    vtree_id::ID # assume normalized, not trimmed
+    vtree_id::ID
     literal::Lit
+    normalized::Bool
 end
 
-struct TrimmedLiteralLine <: UnweightedLiteralLine
-    node_id::ID
-    vtree_id::ID # assume trimmed, not normalized
-    literal::Lit
-end
+is_normalized(::WeightedLiteralLine) = true
+is_normalized(l::UnweightedLiteralLine) = l.normalized
 
 abstract type ConstantLine <: CircuitFormatLine end
 
 """Weighted constants are always normalized"""
-struct WeightedTrueLeafLine <: ConstantLine
+struct WeightedConstantLine <: ConstantLine
     node_id::ID
-    vtree_id::ID # assume normalized, not trimmed
+    vtree_id::ID
     variable::Var
+    # constant can only be true if weighted
     weight::Float32
 end
 
-struct TrueLeafLine <: ConstantLine
+constant(::WeightedConstantLine) = true
+constant(ln::UnweightedConstantLine) = ln.constant
+
+struct UnweightedConstantLine <: ConstantLine
     node_id::ID
+    constant::Bool
+    normalized::Bool
 end
 
-struct FalseLeafLine <: ConstantLine
-    node_id::ID
-end
+is_normalized(::WeightedConstantLine) = true
+is_normalized(l::UnweightedConstantLine) = l.normalized
 
 """
 Paired boxes, or elements, are conjunctions 
@@ -104,5 +97,3 @@ struct BiasLine <: CircuitFormatLine
     weights::Vector{Float32}
     BiasLine(weights) = new(typemax(UInt32), weights)
 end
-
-const TrimmedLine = Union{TrueLeafLine,FalseLeafLine,TrimmedLiteralLine,DecisionLine{SDDElement}}
