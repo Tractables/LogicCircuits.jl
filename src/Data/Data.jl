@@ -7,7 +7,7 @@ using ..Utils:
     flatmap, copy_with_eltype
 
 export AbstractData, WXData, PlainXData, XData, XBatches, XYBatches, Dataset, UnlabeledDataset,
-LabeledDataset, XDataset, XYDataset, BatchedXDataset, BatchedXYDataset,
+LabeledDataset, XDataset, XYDataset, BatchedXDataset, BatchedXYDataset, num_components,
 num_examples, total_example_weight, batch_size, max_batch_size, num_features, num_labels, num_batches,
 feature_matrix, unweighted_data, feature_data, labels, weights, aggr_weight_type, feature_type, label_type,
 train, valid, test,
@@ -147,13 +147,13 @@ total_example_weight(d::PlainXData)::Float64 = num_examples(d)
 total_example_weight(d::WXData)::Float64 = sum(weights(d))
 total_example_weight(d::XYData)::Float64 = total_example_weight(feature_data(d))
 total_example_weight(bs::Union{XBatches,XYBatches})::Float64 = sum(b -> total_example_weight(b), bs)
-total_example_weight(ds::Dataset)::Float64 = 
+total_example_weight(ds::Dataset)::Float64 =
     total_example_weight(train(ds)) + total_example_weight(valid(ds)) + total_example_weight(test(ds))
 
 "Number of batches in the dataset"
 num_batches(bs::Union{XBatches,XYBatches}) = length(bs)
 num_batches(ds::Dataset) = num_batches(train(ds)) + num_batches(valid(ds)) + num_batches(test(ds))
-    
+
 "Size of the largest batch"
 max_batch_size(batch::Union{XData,XYData}) = num_examples(batch)
 max_batch_size(batches::Union{XBatches,XYBatches}) = maximum(b -> max_batch_size(b), batches)
