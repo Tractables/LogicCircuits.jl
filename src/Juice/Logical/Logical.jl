@@ -15,7 +15,7 @@ PosLeafNode, NegLeafNode, ⋁Node, ⋀Node, PosLeaf, NegLeaf, ⋁, ⋀, cvar, �
  num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable, fully_factorized_circuit,
 
 # FlowCircuits
-FlowCircuitNode, FlowCircuit, FlowCircuit△, Flow⋁, FlowCache, HasPathFlow,
+FlowCircuitNode, FlowCircuit, FlowCircuit△, Flow⋁, FlowCache, HasPathFlow,flow_opts★,
 pass_down, pass_up, marginal_pass_up, marginal_pass_up_down, pass_up_down, path_flow, pr_factors, pr,
 
 # AggregateFlowCircuits
