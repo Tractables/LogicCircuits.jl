@@ -6,7 +6,7 @@ end
 using Test
 using .Juice
 import .Juice.IO: 
-   parse_comment_line, parse_lc_header_line, parse_lc_literal_line, parse_psdd_literal_line, parse_lc_decision_line, parse_bias_line, parse_lc_file, 
+   parse_comment_line, parse_lc_header_line, parse_lc_literal_line, parse_literal_line, parse_lc_decision_line, parse_bias_line, parse_lc_file, 
    CircuitFormatLine, BiasLine, DecisionLine, WeightedLiteralLine, CircuitHeaderLine, CircuitCommentLine, LCElement, CircuitFormatLines
 
 @testset "Logistic circuit file parser tests" begin
@@ -21,49 +21,6 @@ import .Juice.IO:
    @test parse_lc_decision_line("D 10652 1001 2 (508 511 0.0008337025235152718 -6.048729079142479e-05 0.0012900540050118133 0.006382987897195768 0.00013330176570593142 -0.0034902489721742023 0.003162325487226574 -0.009619185307110537 0.043311151137203116 -0.007194862955461081) (509 511 0.023396488696149225 -0.000729066431265012 6.551173017401332e-06 0.05715185398005281 -0.008310854435718613 -0.003834142193742804 -0.005833871820252338 -0.05352747769146413 0.010573950714222884 0.03262423061844396)") isa DecisionLine{LCElement}
    @test parse_bias_line("B -0.6090213458520287 0.10061233805363132 -0.44510731039287776 -0.4536824618763301 -0.738392695523771 -0.5610245232140584 -0.4586543592164493 -0.07962059343551083 -0.2582953135054242 -0.03257926010007175") isa BiasLine
    @test parse_lc_file("test/circuits/mnist-large.circuit") isa CircuitFormatLines
-end
-
-
-@testset "Load a small PSDD and test methods" begin
-   file = "test/circuits/little_4var.psdd"
-   prob_circuit = load_prob_circuit(file);
-   @test prob_circuit isa ProbCircuit△
-
-   # Testing number of nodes and parameters
-   @test  9 == num_parameters(prob_circuit)
-   @test 20 == size(prob_circuit)[1]
-   
-   # Testing Read Parameters
-   EPS = 1e-7
-   @test abs(prob_circuit[13].log_thetas[1] - (-1.6094379124341003)) < EPS
-   @test abs(prob_circuit[13].log_thetas[2] - (-1.2039728043259361)) < EPS
-   @test abs(prob_circuit[13].log_thetas[3] - (-0.916290731874155)) < EPS
-   @test abs(prob_circuit[13].log_thetas[4] - (-2.3025850929940455)) < EPS
-
-   @test abs(prob_circuit[18].log_thetas[1] - (-2.3025850929940455)) < EPS
-   @test abs(prob_circuit[18].log_thetas[2] - (-2.3025850929940455)) < EPS
-   @test abs(prob_circuit[18].log_thetas[3] - (-2.3025850929940455)) < EPS
-   @test abs(prob_circuit[18].log_thetas[4] - (-0.35667494393873245)) < EPS
-
-   @test abs(prob_circuit[20].log_thetas[1] - (0.0)) < EPS
-end
-
-psdd_files = ["test/circuits/little_4var.psdd", "test/circuits/msnbc-yitao-a.psdd", "test/circuits/msnbc-yitao-b.psdd", "test/circuits/msnbc-yitao-c.psdd", "test/circuits/msnbc-yitao-d.psdd", "test/circuits/msnbc-yitao-e.psdd", "test/circuits/mnist-antonio.psdd"]
-
-@testset "Test parameter integrity of loaded PSDDs" begin
-   for psdd_file in psdd_files
-      @test check_parameter_integrity(load_prob_circuit(psdd_file))
-   end
-end
-
-@testset "Test parameter integrity of loaded structured PSDDs" begin
-   circuit, vtree = load_struct_prob_circuit(
-      "test/circuits/little_4var.psdd", "test/circuits/little_4var.vtree")
-   @test check_parameter_integrity(circuit)
-   @test vtree isa Vtree△
-   # no other combinations of vtree and psdd are in this repo?
-   # @test check_parameter_integrity(load_struct_prob_circuit(
-   #          "test/circuits/mnist-antonio.psdd", "test/circuits/balanced.vtree"))
 end
 
 @testset "Test structured logical circuit loading" begin
