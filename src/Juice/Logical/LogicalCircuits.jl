@@ -105,7 +105,7 @@ NodeType(::Type{<:⋁Node}) = ⋁()
 
 # When you suspect there is a bug but execution halts, it may be because of 
 # pretty printing a huge recursive structure. In that case:
-# Base.show(io::IO, c::CircuitNode) = print(io, "Some CircuitNode")
+Base.show(io::IO, c::CircuitNode) = print(io, "Some CircuitNode")
 
 "Get the logical variable in a given leaf node"
 @inline cvar(n::CircuitNode) = cvar(NodeType(n), n)
