@@ -23,18 +23,17 @@ import .Juice.IO:
    @test parse_lc_file("test/circuits/mnist-large.circuit") isa CircuitFormatLines
 end
 
-@testset "Test structured logical circuit loading" begin
+@testset "Test logical circuit loading" begin
+   circuit = load_logical_circuit("./test/circuits/mnist-large.circuit")
+   @test circuit isa LogicalCircuit△
+   @test is_decomposable(circuit)
+
+   circuit = load_smooth_logical_circuit("./test/circuits/mnist-large.circuit")
+   @test circuit isa LogicalCircuit△
+   @test is_decomposable(circuit)
+
    circuit, vtree = load_struct_smooth_logical_circuit("./test/circuits/mnist-large.circuit", "./test/circuits/balanced.vtree")
    @test circuit isa StructLogicalCircuit△
    @test vtree isa Vtree△
    @test is_decomposable(circuit)
-end
-
-@testset "Load an MNIST logistic circuit as a logical circuit" begin
-
-   file = "./test/circuits/mnist-large.circuit";
-   lc = load_smooth_logical_circuit(file);
-   
-   @test lc isa LogicalCircuit△
-
 end
