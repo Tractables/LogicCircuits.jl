@@ -26,8 +26,10 @@ end
 @testset "Test logical circuit loading" begin
    circuit = load_logical_circuit("./test/circuits/mnist-large.circuit")
    @test circuit isa LogicalCircuit△
-   println("MNIST large has size $(length(circuit)) nodes")
-   println("MNIST large has tree size $(tree_size(circuit)) nodes")
+   # println("MNIST large has size $(length(circuit)) nodes")
+   # println("MNIST large has tree size $(tree_size(circuit)) nodes")
+   # println("MNIST large has scope $(variable_scope(circuit))")
+   
    @test is_decomposable(circuit)
 
    circuit = load_smooth_logical_circuit("./test/circuits/mnist-large.circuit")

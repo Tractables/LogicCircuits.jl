@@ -100,7 +100,6 @@ NodeType(::Type{<:ConstantNode}) = ConstantLeaf()
 NodeType(::Type{<:⋀Node}) = ⋀()
 NodeType(::Type{<:⋁Node}) = ⋁()
 
-
 #####################
 # methods
 #####################
@@ -203,26 +202,41 @@ function tree_size(circuit:: Circuit△)
     size[circuit[end]]
 end
 
+"Get the variable scope of the entire circuit"
+function variable_scope(circuit:: Circuit△)::BitSet
+    variable_scopes(circuit)[circuit[end]]
+end
+
+"Get the variable scope of each node in the circuit"
+function variable_scopes(circuit:: Circuit△)::Dict{CircuitNode,BitSet}
+    scope = Dict{CircuitNode,BitSet}()
+    scope_set(n::CircuitNode) = scope_set(NodeType(n),n)
+    scope_set(::ConstantLeaf, ::CircuitNode) = BitSet()
+    scope_set(::LiteralLeaf, n::CircuitNode) = BitSet(variable(n))
+    scope_set(::Inner, n::CircuitNode) = 
+        mapreduce(c -> scope[c], union, children(n))
+    for node in circuit
+        scope[node] = scope_set(node)
+    end
+    scope
+end
+
+"Is the circuit smooth?"
+function is_smooth(circuit:: Circuit△)::Bool
+    scope = variable_scopes(circuit)
+    is_smooth_node(n::CircuitNode) = is_smooth_node(NodeType(n),n)
+    is_smooth_node(::NodeType, ::CircuitNode) = true
+    is_smooth_node(::⋁, n::CircuitNode) =
+        all(c -> scope[c] == scope[n], children(n))
+    all(n -> is_smooth_node(n), circuit)
+end
 
 "Is the circuit decomposable?"
-#TODO re-implement to be linear in the size of the circuit. Also to factor our scope to reuse in smoothing code.
-is_decomposable(c:: Circuit△) =  length(is_decomposable(c[end])) > 0
-is_decomposable(n:: CircuitNode) = is_decomposable(NodeType(n), n)
-function is_decomposable(::⋀, n:: CircuitNode)
-    varsets = map(x -> is_decomposable(x), children(n))
-    if all(x -> !isempty(length(x)), varsets) &&
-        all(x -> isempty(intersect(varsets[x[1]], varsets[x[2]])), (i,j) for i = 1:length(varsets) for j = 1:i-1)
-            reduce(union, varsets)
-    else
-        Set()
-    end
+function is_decomposable(circuit:: Circuit△)::Bool
+    scope = variable_scopes(circuit)
+    is_decomposable_node(n::CircuitNode) = is_decomposable_node(NodeType(n),n)
+    is_decomposable_node(::NodeType, ::CircuitNode) = true
+    is_decomposable_node(::⋀, n::CircuitNode) =
+        disjoint(map(c -> scope[c], children(n))...)
+    all(n -> is_decomposable_node(n), circuit)
 end
-function is_decomposable(::⋁, n:: CircuitNode)
-    varsets = map(x -> is_decomposable(x), children(n))
-    if all(x -> length(x) > 0, varsets)
-        reduce(union, varsets)
-    else
-        Set()
-    end
-end
-is_decomposable(::LiteralLeaf, n:: CircuitNode) = Set(variable(n))
