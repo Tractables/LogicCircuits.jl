@@ -11,7 +11,8 @@ export
 # LogicalCircuits
 Var, Lit, var2lit, lit2var, CircuitNode, Circuit△, LogicalCircuitNode,
 UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstLogicalCircuit△,
-LiteralNode, ConstantNode, ⋁Node, ⋀Node, LiteralLeaf, ConstantLeaf, ⋁, ⋀, variable, ⋁_nodes,
+LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, 
+LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
  num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable, fully_factorized_circuit,
  negative, positive, variable, literal, tree_size, variable_scopes, variable_scope,
 
