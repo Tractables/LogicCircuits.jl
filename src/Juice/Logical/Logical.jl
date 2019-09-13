@@ -11,12 +11,16 @@ export
 # LogicalCircuits
 Var, Lit, var2lit, lit2var, CircuitNode, Circuit△, LogicalCircuitNode,
 UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstLogicalCircuit△,
-PosLeafNode, NegLeafNode, ⋁Node, ⋀Node, PosLeaf, NegLeaf, ⋁, ⋀, cvar, ⋁_nodes,
+LiteralNode, ConstantNode, ⋁Node, ⋀Node, LiteralLeaf, ConstantLeaf, ⋁, ⋀, variable, ⋁_nodes,
  num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable, fully_factorized_circuit,
+ negative, positive, variable, literal, tree_size, variable_scopes, variable_scope,
 
 # FlowCircuits
-FlowCircuitNode, FlowCircuit, FlowCircuit△, Flow⋁, FlowCache, HasPathFlow,flow_opts★,
-pass_down, pass_up, marginal_pass_up, marginal_pass_up_down, pass_up_down, path_flow, pr_factors, pr,
+DecoratorCircuitNode, FlowCircuitNode, FlowCircuit, FlowCircuit△, FlowLeafNode, FlowInnerNode,
+FlowLiteral, FlowConstant, Flow⋀Compact, Flow⋀Cached, Flow⋁Compact, Flow⋁Cached, Flow⋀, Flow⋁,
+FlowCache, HasDownFlow,flow_opts★,
+pass_down, pass_up, pass_up_down, pass_up_node, downflow, pr_factors, pr, origin, resize_flows,
+reset_downflow_in_progress, downflow_sinks,
 
 # AggregateFlowCircuits
 AggregateFlowCircuit, AggregateFlowCircuit△, AggregateFlowCircuitNode, AggregateFlow⋁,
@@ -29,7 +33,7 @@ isequal, isequal_unordered, left_most_child,path_length,
 
 # StructuredLogicalCircuits
 StructLogicalCircuitNode, StructLogicalLeafNode, StructLogicalCircuit△,
-StructPosLeafNode, StructNegLeafNode, Struct⋁Node, Struct⋀Node
+StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node
 
 include("LogicalCircuits.jl")
 include("FlowCircuits.jl")

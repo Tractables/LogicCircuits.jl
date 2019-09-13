@@ -17,9 +17,9 @@ using .Juice
 
     lin = LogicalCircuitNode[]
     ors = map(1:10) do v
-        pos = PosLeafNode(v)
+        pos = LiteralNode(var2lit(Var(v)))
         push!(lin, pos)
-        neg = NegLeafNode(v)
+        neg = LiteralNode(-var2lit(Var(v)))
         push!(lin, neg)
         or = ⋁Node([pos,neg])
         push!(lin, or)
@@ -35,9 +35,9 @@ using .Juice
 
     lin2 = LogicalCircuitNode[]
     ors = map(1:10) do v
-        pos = PosLeafNode(v)
+        pos = LiteralNode(var2lit(Var(v)))
         push!(lin2, pos)
-        neg = NegLeafNode(v)
+        neg = LiteralNode(-var2lit(Var(v)))
         push!(lin2, neg)
         or = ⋁Node([pos,neg])
         push!(lin2, or)
@@ -55,9 +55,9 @@ using .Juice
 
     lin3 = LogicalCircuitNode[]
     ors = map(1:10) do v
-        pos = PosLeafNode(v)
+        pos = LiteralNode(var2lit(Var(v)))
         push!(lin3, pos)
-        neg = NegLeafNode(v)
+        neg = LiteralNode(-var2lit(Var(v)))
         push!(lin3, neg)
         or = ⋁Node([pos,neg])
         push!(lin3, or)
@@ -81,12 +81,12 @@ using .Juice
     @test !is_decomposable(lin3)
 
     simpletest1 = LogicalCircuitNode[]
-    push!(simpletest1, PosLeafNode(1))
+    push!(simpletest1, LiteralNode(Lit(1)))
     @test is_decomposable(simpletest1)
 
     simpletest2 = LogicalCircuitNode[]
-    leaf1 = PosLeafNode(1)
-    leaf2 = NegLeafNode(1)
+    leaf1 = LiteralNode(Lit(1))
+    leaf2 = LiteralNode(Lit(-1))
     and = ⋀Node([leaf1, leaf2])
     push!(simpletest2, leaf1)
     push!(simpletest2, leaf2)
