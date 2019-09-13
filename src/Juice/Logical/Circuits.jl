@@ -64,7 +64,7 @@ function NodeType end
 
 # When you suspect there is a bug but execution halts, it may be because of 
 # pretty printing a huge recursive structure. In that case:
-Base.show(io::IO, c::CircuitNode) = print(io, "CircuitNode($(typeof(c)))")
+Base.show(io::IO, c::CircuitNode) = print(io, "$(typeof(c))($(hash(c))))")
 
 # following methods should be defined for all types of circuits
 
@@ -119,6 +119,12 @@ leafnodes(c::Circuit△) = filter(n -> NodeType(n) isa Leaf, c)
 
 "Get the list of disjunction nodes in a given circuit"
 ⋁_nodes(c::Circuit△) = filter(n -> NodeType(n) isa ⋁, c)
+
+"Number of nodes in the circuit"
+num_nodes(c::Circuit△) = length(c)
+
+"Number of edges in the circuit"
+num_edges(c::Circuit△) = sum(n -> length(children(n)), c)
 
 "Give count of types and fan-ins of inner nodes in the circuit"
 function inode_stats(c::Circuit△)
@@ -189,6 +195,30 @@ function is_decomposable(circuit:: Circuit△)::Bool
     is_decomposable_node(::⋀, n::CircuitNode) =
         disjoint(map(c -> scope[c], children(n))...)
     all(n -> is_decomposable_node(n), circuit)
+end
+
+"Make the circuit smooth"
+function smooth(circuit::Circuit△)
+    scope = variable_scopes(circuit)
+    smoothed = Dict{CircuitNode,CircuitNode}()
+    smooth_node(n::CircuitNode) = smooth_node(NodeType(n),n)
+    smooth_node(::Leaf, n::CircuitNode) = n
+    function smooth_node(::⋀, n::CircuitNode)
+        smoothed_children = map(c -> smoothed[c], children(n))
+        conjoin_like(n, smoothed_children...)
+    end
+    function smooth_node(::⋁, n::CircuitNode) 
+        parent_scope = scope[n]
+        smoothed_children = map(children(n)) do c
+            missing_scope = setdiff(parent_scope, scope[c])
+            smooth(smoothed[c], missing_scope)
+        end
+        disjoin_like(n, smoothed_children...)
+    end
+    for node in circuit
+        smoothed[node] = smooth_node(node)
+    end
+    root(smoothed[circuit[end]])
 end
 
 "Remove all constant leafs from the circuit"

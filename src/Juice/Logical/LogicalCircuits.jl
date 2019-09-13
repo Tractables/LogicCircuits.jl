@@ -98,6 +98,9 @@ function conjoin_like(example::UnstLogicalCircuitNode, arguments...)
         TrueNode()
     elseif length(arguments) == 1
         arguments[1]
+    elseif issetequal(children(example), arguments)
+        @assert example isa ⋀Node
+        example
     else
         ⋀Node(collect(arguments))
     end
@@ -109,7 +112,22 @@ function disjoin_like(example::UnstLogicalCircuitNode, arguments...)
         FalseNode()
     elseif length(arguments) == 1
         arguments[1]
+    elseif issetequal(children(example), arguments)
+        @assert example isa ⋁Node
+        example
     else
         ⋁Node(collect(arguments))
+    end
+end
+
+"Return a smooth version of the node where the missing variables are added to the scope"
+function smooth(node::UnstLogicalCircuitNode, missing_scope::BitSet)
+    if isempty(missing_scope)
+        return node
+    else
+        ors = map(collect(missing_scope)) do v
+            ⋁Node([LiteralNode(var2lit(Var(v))), LiteralNode(-var2lit(Var(v)))])
+        end
+        return ⋀Node([node, ors...])
     end
 end
