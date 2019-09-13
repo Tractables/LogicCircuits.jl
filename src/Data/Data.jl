@@ -13,7 +13,8 @@ feature_matrix, unweighted_data, feature_data, labels, weights, aggr_weight_type
 train, valid, test,
 shuffle, batch, threshold, fully_factorized_likelihood,
 ll_per_example, bits_per_pixel,
-dataset, mnist, sampled_mnist, twenty_datasets, twenty_dataset_names
+dataset, mnist, sampled_mnist, twenty_datasets, twenty_dataset_names,
+vslice    
 
 import Base.size
 include("DataLoaders.jl")
@@ -187,6 +188,7 @@ weights(xd::WXData) = xd.w
 "Get the label vector of the data"
 labels(xyd::XYData) = xyd.y
 
+
 "What type should instance weights aggregate to?"
 aggr_weight_type(x) = aggr_weight_type(typeof(x))
 aggr_weight_type(::Type{<:XData}) = Int
@@ -243,6 +245,17 @@ shuffle(d::D) where {D <: Union{XDataset,XYDataset}} =
 slice(xd::PlainXData, first, last) = PlainXData(feature_matrix(xd)[first:last, :])
 slice(wxd::WXData, first, last) = WXData(feature_matrix(wxd)[first:last], weights(wxd)[first:last])
 slice(xyd::XYData, first, last) = XYData(slice(feature_data(xyd),first,last), labels(xyd)[first:last])
+
+"Get slices of data (rows and columns ids) as a view (no memory allocation)"
+vslice(x::PlainXData, rows, cols) = PlainXData(@view feature_matrix(x)[rows, cols])
+function vslice(xd::WXData, rows, cols)
+    x = feature_matrix(xd)
+    w = weights(xd)
+    xv = @view x[rows, cols]
+    wv = @view w[rows]
+    return WXData(xv, wv)
+end
+
 
 function batch(xd::Union{XData,XYData}, batch_size::Integer)
     start_indices = 1:batch_size:num_examples(xd)
