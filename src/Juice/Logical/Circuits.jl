@@ -241,5 +241,5 @@ function root(root::CircuitNode)::Circuit△
         end
     end
     see(root)
-    circuit
+    lower_element_type(circuit) # specialize the circuit node type
 end
