@@ -15,6 +15,12 @@ import .Juice.IO:
   circuit = load_logical_circuit("test/circuits/random.sdd") 
   @test circuit isa LogicalCircuit△
   @test length(circuit) == 1676
+
+  println("Node stats before constant propagation: ", node_stats(circuit))
+  prop_circuit = propagate_constants(circuit)
+  println("Node stats after constant propagation: ", node_stats(prop_circuit))
+  println("Circuit type: ", typeof(prop_circuit))
+  
   
 end
 
