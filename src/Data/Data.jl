@@ -7,8 +7,8 @@ using ..Utils:
     flatmap, copy_with_eltype
 
 export AbstractData, WXData, PlainXData, XData, XBatches, XYBatches, Dataset, UnlabeledDataset,
-LabeledDataset, XDataset, XYDataset, BatchedXDataset, BatchedXYDataset, num_components,
-num_examples, total_example_weight, batch_size, max_batch_size, num_features, num_labels, num_batches,
+LabeledDataset, XDataset, XYDataset, BatchedXDataset, BatchedXYDataset, weights,
+num_examples, total_example_weight, max_batch_size, num_features, num_labels, num_batches,
 feature_matrix, unweighted_data, feature_data, labels, weights, aggr_weight_type, feature_type, label_type,
 train, valid, test,
 shuffle, batch, threshold, fully_factorized_likelihood,

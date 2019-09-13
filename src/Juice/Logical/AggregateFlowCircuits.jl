@@ -3,15 +3,15 @@
 # (like a flow circuit but aggregates flows over several examples and batches)
 #####################
 
-abstract type AggregateFlowCircuitNode{A} <: CircuitNode end
+abstract type AggregateFlowCircuitNode{A} <: DecoratorCircuitNode end
 abstract type AggregateFlowLeafNode{A} <: AggregateFlowCircuitNode{A} end
 abstract type AggregateFlowInnerNode{A} <: AggregateFlowCircuitNode{A} end
 
-struct AggregateFlowPosLeaf{A} <: AggregateFlowLeafNode{A}
+struct AggregateFlowLiteral{A} <: AggregateFlowLeafNode{A}
     origin::CircuitNode
 end
 
-struct AggregateFlowNegLeaf{A} <: AggregateFlowLeafNode{A}
+struct AggregateFlowConstant{A} <: AggregateFlowLeafNode{A}
     origin::CircuitNode
 end
 
@@ -33,8 +33,8 @@ const AggregateFlowCircuit△{A} = AbstractVector{<:AggregateFlowCircuitNode{A}}
 # traits
 #####################
 
-NodeType(::Type{<:AggregateFlowPosLeaf}) = PosLeaf()
-NodeType(::Type{<:AggregateFlowNegLeaf}) = NegLeaf()
+NodeType(::Type{<:AggregateFlowLiteral}) = LiteralLeaf()
+NodeType(::Type{<:AggregateFlowConstant}) = ConstantLeaf()
 
 NodeType(::Type{<:AggregateFlow⋀}) = ⋀()
 NodeType(::Type{<:AggregateFlow⋁}) = ⋁()
@@ -48,11 +48,11 @@ const AggregateFlowCache = Dict{CircuitNode, AggregateFlowCircuitNode}
 AggregateFlowCircuitNode(n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
     AggregateFlowCircuitNode(NodeType(n), n, A, cache)
 
-AggregateFlowCircuitNode(::PosLeaf, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
-    get!(()-> AggregateFlowPosLeaf{A}(n), cache, n)
+AggregateFlowCircuitNode(::LiteralLeaf, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
+    get!(()-> AggregateFlowLiteral{A}(n), cache, n)
 
-AggregateFlowCircuitNode(::NegLeaf, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
-    get!(()-> AggregateFlowNegLeaf{A}(n), cache, n)
+AggregateFlowCircuitNode(::ConstantLeaf, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
+    get!(()-> AggregateFlowConstant{A}(n), cache, n)
 
 AggregateFlowCircuitNode(::⋀, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
     get!(cache, n) do
@@ -72,14 +72,16 @@ end
 # methods
 #####################
 
-@inline cvar(n::AggregateFlowLeafNode)::Var  = cvar(n.origin)
+@inline literal(n::AggregateFlowLiteral)::Lit  = literal(n.origin)
+@inline constant(n::AggregateFlowConstant)::Bool = constant(n.origin)
+@inline children(n::AggregateFlowInnerNode) = n.children
 
 function collect_aggr_flows(afc::AggregateFlowCircuit△, batches::XBatches{Bool})
     reset_aggregate_flows(afc)
     accumulate_aggr_flows(afc, batches)
 end
 
-        # set flow counters to zero
+# set flow counters to zero
 reset_aggregate_flows(afc::AggregateFlowCircuit△) = foreach(n->reset_aggregate_flow(n), afc)
 reset_aggregate_flow(::AggregateFlowCircuitNode) = () # do nothing
 reset_aggregate_flow(n::AggregateFlow⋁{A}) where A = (n.aggr_flow = zero(A) ; n.aggr_flow_children .= zero(A))
@@ -107,16 +109,17 @@ function accumulate_aggr_flows_batch(fc::FlowCircuit△, batch::XData{Bool})
 end
 
 accumulate_aggr_flows(::FlowCircuitNode, ::Any) = () # do nothing
+
 function accumulate_aggr_flows(n::Flow⋁, xd::XData{Bool})
     origin = n.origin::AggregateFlow⋁
-    origin.aggr_flow += aggregate_data(xd,path_flow(n))
+    origin.aggr_flow += aggregate_data(xd,downflow(n))
     if num_children(n) == 1
         # flow goes entirely to one child
-        origin.aggr_flow_children[1] += aggregate_data(xd,path_flow(n))
+        origin.aggr_flow_children[1] += aggregate_data(xd,downflow(n))
     else
         child_aggr_flows = map(n.children) do c
             pr_fs = pr_factors(c)
-            aggregate_data_factorized(xd, path_flow(n), pr_fs...)
+            aggregate_data_factorized(xd, downflow(n), pr_fs...)
         end
         origin.aggr_flow_children .+= child_aggr_flows
     end
@@ -127,8 +130,8 @@ end
 
 aggregate_data(xd::PlainXData, f::AbstractArray) = sum(f)
 aggregate_data(xd::PlainXData, f::AbstractArray{Bool}) = count(f)
-aggregate_data(xd::WXData, f::AbstractArray) = sum(f .* Data.weights(xd))
-aggregate_data(xd::WXData, f::AbstractArray{Bool}) = sum(Data.weights(xd)[f])
+aggregate_data(xd::WXData, f::AbstractArray) = sum(f .* weights(xd))
+aggregate_data(xd::WXData, f::AbstractArray{Bool}) = sum(weights(xd)[f])
 
 aggregate_data_factorized(xd::PlainXData, x1::BitVector, xs::BitVector...) = count_conjunction(x1, xs...)
 aggregate_data_factorized(xd::WXData, x1::BitVector, xs::BitVector...) = sum_weighted_product(Data.weights(xd), x1, xs...)

@@ -12,17 +12,19 @@ abstract type StructLogicalLeafNode <: StructLogicalCircuitNode end
 "A structured logical inner node"
 abstract type StructLogicalInnerNode <: StructLogicalCircuitNode end
 
-"A structured logical positive leaf node, representing the positive literal of its variable"
-struct StructPosLeafNode <: StructLogicalLeafNode
-    cvar::Var
+"A structured logical literal leaf node, representing the positive or negative literal of its variable"
+struct StructLiteralNode <: StructLogicalLeafNode
+    literal::Lit
     vtree::VtreeLeafNode
 end
 
-"A structured logical negative leaf node, representing the negative literal of its variable"
-struct StructNegLeafNode <: StructLogicalLeafNode
-    cvar::Var
-    vtree::VtreeLeafNode
-end
+"""
+A structured logical constant leaf node, representing true or false.
+These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
+"""
+abstract type StructConstantNode <: StructLogicalInnerNode end
+struct StructTrueNode <: StructConstantNode end
+struct StructFalseNode <: StructConstantNode end
 
 "A structured logical conjunction node"
 struct Struct⋀Node <: StructLogicalInnerNode
@@ -43,8 +45,8 @@ const StructLogicalCircuit△ = AbstractVector{<:StructLogicalCircuitNode}
 # traits
 #####################
 
-NodeType(::Type{<:StructPosLeafNode}) = PosLeaf()
-NodeType(::Type{<:StructNegLeafNode}) = NegLeaf()
+NodeType(::Type{<:StructLiteralNode}) = LiteralLeaf()
+NodeType(::Type{<:StructConstantNode}) = ConstantLeaf()
 NodeType(::Type{<:Struct⋀Node}) = ⋀()
 NodeType(::Type{<:Struct⋁Node}) = ⋁()
 
@@ -52,3 +54,7 @@ NodeType(::Type{<:Struct⋁Node}) = ⋁()
 # methods
 #####################
 
+@inline literal(n::StructLiteralNode)::Lit = n.literal
+@inline constant(n::StructTrueNode)::Bool = true
+@inline constant(n::StructFalseNode)::Bool = false
+@inline children(n::StructLogicalInnerNode) = n.children

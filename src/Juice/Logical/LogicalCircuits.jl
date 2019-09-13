@@ -37,15 +37,15 @@ abstract type LogicalLeafNode <: UnstLogicalCircuitNode end
 "A logical inner node"
 abstract type LogicalInnerNode <: UnstLogicalCircuitNode end
 
-"A logical positive leaf node, representing the positive literal of its variable"
-struct PosLeafNode <: LogicalLeafNode
-    cvar::Var
+"A logical literal leaf node, representing the positive or negative literal of its variable"
+struct LiteralNode <: LogicalLeafNode
+    literal::Lit
 end
 
-"A logical negative leaf node, representing the negative literal of its variable"
-struct NegLeafNode <: LogicalLeafNode
-    cvar::Var
-end
+"A logical constant leaf node, representing true or false"
+abstract type ConstantNode <: LogicalInnerNode end
+struct TrueNode <: ConstantNode end
+struct FalseNode <: ConstantNode end
 
 "A logical conjunction node"
 struct ⋀Node <: LogicalInnerNode
@@ -62,6 +62,8 @@ const Circuit△ = AbstractVector{<:CircuitNode}
 
 "A logical circuit represented as a bottom-up linear order of nodes"
 const LogicalCircuit△ = AbstractVector{<:LogicalCircuitNode}
+
+"A unstructured logical circuit represented as a bottom-up linear order of nodes"
 const UnstLogicalCircuit△ = AbstractVector{<:UnstLogicalCircuitNode}
 
 #####################
@@ -79,11 +81,11 @@ abstract type NodeType end
 abstract type Leaf <: NodeType end
 abstract type Inner <: NodeType end
 
-"A trait denoting positive leaf nodes of any type"
-struct PosLeaf <: Leaf end
+"A trait denoting literal leaf nodes of any type"
+struct LiteralLeaf <: Leaf end
 
-"A trait denoting negative leaf nodes of any type"
-struct NegLeaf <: Leaf end
+"A trait denoting constant leaf nodes of any type"
+struct ConstantLeaf <: Leaf end
 
 "A trait denoting conjuction nodes of any type"
 struct ⋀ <: Inner end
@@ -93,8 +95,8 @@ struct ⋁ <: Inner end
 
 "A function to retrieve the trait denoting concrete types of nodes"
 NodeType(instance) = NodeType(typeof(instance))
-NodeType(::Type{<:PosLeafNode}) = PosLeaf()
-NodeType(::Type{<:NegLeafNode}) = NegLeaf()
+NodeType(::Type{<:LiteralNode}) = LiteralLeaf()
+NodeType(::Type{<:ConstantNode}) = ConstantLeaf()
 NodeType(::Type{<:⋀Node}) = ⋀()
 NodeType(::Type{<:⋁Node}) = ⋁()
 
@@ -105,25 +107,48 @@ NodeType(::Type{<:⋁Node}) = ⋁()
 
 # When you suspect there is a bug but execution halts, it may be because of 
 # pretty printing a huge recursive structure. In that case:
-Base.show(io::IO, c::CircuitNode) = print(io, "Some CircuitNode")
+Base.show(io::IO, c::CircuitNode) = print(io, "CircuitNode($(typeof(c)))")
 
-"Get the logical variable in a given leaf node"
-@inline cvar(n::CircuitNode) = cvar(NodeType(n), n)
-@inline cvar(::Leaf, n::CircuitNode) = n.cvar
+"""
+Get the logical literal in a given literal leaf node
+"""
+@inline literal(n::LiteralNode)::Lit = n.literal
+@inline literal(n::CircuitNode)::Lit = literal(NodeType(n), n)
+@inline literal(::LiteralLeaf, n::CircuitNode)::Lit = error("Each `LiteralLeaf` should implement a `literal` method")
+
+"""
+Get the logical constant in a given constant leaf node
+"""
+@inline constant(n::TrueNode)::Bool = true
+@inline constant(n::FalseNode)::Bool = false
+@inline constant(n::CircuitNode)::Lit = literal(NodeType(n), n)
+@inline constant(::ConstantLeaf, n::CircuitNode)::Lit = error("Each `ConstantLeaf` should implement a `constant` method")
 
 "Get the children of a given inner node"
+@inline children(n::LogicalInnerNode) = n.children
 @inline children(n::CircuitNode) = children(NodeType(n), n)
-@inline children(::Inner, n::CircuitNode) = n.children
+@inline children(::Union{⋀,⋁}, n::CircuitNode) = error("Each `⋀` or `⋁` node should implement a `children` method")
+
+# next bunch of methods are derived from literal, children, and the traits
+
+"Get the logical variable in a given literal leaf node"
+@inline variable(n::CircuitNode)::Var = variable(NodeType(n), n)
+@inline variable(::LiteralLeaf, n::CircuitNode)::Var = lit2var(literal(n))
+
+"Get the sign of the literal leaf node"
+@inline positive(n::CircuitNode)::Bool = positive(NodeType(n), n)
+@inline positive(::LiteralLeaf, n::CircuitNode)::Bool = literal(n) >= 0 
+@inline negative(n::CircuitNode)::Bool = !positive(n)
 
 "Does the node have children?"
-@inline has_children(n::CircuitNode) = has_children(NodeType(n), n)
-@inline has_children(::Inner, n::CircuitNode) = !isempty(children(n))
-@inline has_children(::Leaf, n::CircuitNode) = false
+@inline has_children(n::CircuitNode)::Bool = has_children(NodeType(n), n)
+@inline has_children(::Inner, n::CircuitNode)::Bool = !isempty(children(n))
+@inline has_children(::Leaf, n::CircuitNode)::Bool = false
 
 "Get the number of children of a given inner node"
-@inline num_children(n::CircuitNode) = num_children(NodeType(n), n)
-@inline num_children(::Inner, n::CircuitNode) = length(children(n))
-@inline num_children(::Leaf, n::CircuitNode) = 0
+@inline num_children(n::CircuitNode)::Int = num_children(NodeType(n), n)
+@inline num_children(::Inner, n::CircuitNode)::Int = length(children(n))
+@inline num_children(::Leaf, n::CircuitNode)::Int = 0
 
 "Get the list of conjunction nodes in a given circuit"
 ⋀_nodes(c::Circuit△) = (c |> @filter(NodeType(_) isa ⋀) |> collect)
@@ -148,9 +173,9 @@ node_stats(c:: Circuit△) = vcat(leaf_stats(c), inode_stats(c))
 function fully_factorized_circuit(n)
     lin = LogicalCircuitNode[]
     ors = map(1:n) do v
-        pos = PosLeafNode(v)
+        pos = LiteralNode( var2lit(v))
         push!(lin, pos)
-        neg = NegLeafNode(v)
+        neg = LiteralNode(-var2lit(v))
         push!(lin, neg)
         or = ⋁Node([pos,neg])
         push!(lin, or)
@@ -164,6 +189,7 @@ function fully_factorized_circuit(n)
 end
 
 "Is the circuit decomposable?"
+#TODO re-implement to be linear in the size of the circuit. Also to factor our scope to reuse in smoothing code.
 is_decomposable(c:: Circuit△) =  length(is_decomposable(c[end])) > 0
 is_decomposable(n:: CircuitNode) = is_decomposable(NodeType(n), n)
 function is_decomposable(::⋀, n:: CircuitNode)
@@ -183,4 +209,4 @@ function is_decomposable(::⋁, n:: CircuitNode)
         Set()
     end
 end
-is_decomposable(::Leaf, n:: CircuitNode) = Set(cvar(n))
+is_decomposable(::LiteralLeaf, n:: CircuitNode) = Set(variable(n))
