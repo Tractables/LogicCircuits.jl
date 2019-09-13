@@ -188,6 +188,22 @@ function fully_factorized_circuit(n)
     lin
 end
 
+"""
+Compute the size of a tree-unfolding of the DAG circuit. 
+"""
+function tree_size(circuit:: Circuit△) 
+    size = Dict{CircuitNode,BigInt}()
+    for node in circuit
+        if has_children(node)
+            size[node] = sum(c -> size[c], children(node))
+        else
+            size[node] = one(BigInt)
+        end
+    end
+    size[circuit[end]]
+end
+
+
 "Is the circuit decomposable?"
 #TODO re-implement to be linear in the size of the circuit. Also to factor our scope to reuse in smoothing code.
 is_decomposable(c:: Circuit△) =  length(is_decomposable(c[end])) > 0
