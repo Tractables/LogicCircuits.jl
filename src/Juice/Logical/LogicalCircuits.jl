@@ -149,6 +149,16 @@ Get the logical constant in a given constant leaf node
 @inline num_children(::Inner, n::CircuitNode)::Int = length(children(n))
 @inline num_children(::Leaf, n::CircuitNode)::Int = 0
 
+"Is the circuit syntactically equal to true?"
+@inline is_true(n::CircuitNode)::Int = is_true(NodeType(n), n)
+@inline is_true(::NodeType, n::CircuitNode)::Int = false
+@inline is_true(::ConstantLeaf, n::CircuitNode)::Int = (constant(n) == true)
+
+"Is the circuit syntactically equal to false?"
+@inline is_false(n::CircuitNode)::Int = is_false(NodeType(n), n)
+@inline is_false(::NodeType, n::CircuitNode)::Int = false
+@inline is_false(::ConstantLeaf, n::CircuitNode)::Int = (constant(n) == false)
+
 "Get the list of conjunction nodes in a given circuit"
 ⋀_nodes(c::Circuit△) = (c |> @filter(NodeType(_) isa ⋀) |> collect)
 
@@ -221,6 +231,8 @@ function variable_scopes(circuit:: Circuit△)::Dict{CircuitNode,BitSet}
     scope
 end
 
+#TODO remove some generic circuit functions to a different file `Circuits`
+
 "Is the circuit smooth?"
 function is_smooth(circuit:: Circuit△)::Bool
     scope = variable_scopes(circuit)
@@ -239,4 +251,27 @@ function is_decomposable(circuit:: Circuit△)::Bool
     is_decomposable_node(::⋀, n::CircuitNode) =
         disjoint(map(c -> scope[c], children(n))...)
     all(n -> is_decomposable_node(n), circuit)
+end
+
+"Remove all constant leafs from the circuit"
+function propagate_constants(circuit::C)::C where C<:Circuit△
+    proped = Dict{CircuitNode,CircuitNode}()
+    propagate(n::CircuitNode) = propagate(NodeType(n),n)
+    propagate(::Leaf, n::CircuitNode) = n
+    function propagate(::⋀, n::CircuitNode) 
+        proped_children = map(c -> proped[c], children(n))
+        if any(c -> is_false(c), proped_children)
+            #FIXME redisjoin(n)
+        else
+            proped_children = filter(c -> !is_true(c), proped_children)
+            #FIXME reconjoin(n, proped_children...)
+        end
+    end
+    function propagate(::⋁, n::CircuitNode) 
+    
+    end
+    for node in circuit
+        proped[node] = propagate(node)
+    end
+    root(result[circuit[end]])
 end
