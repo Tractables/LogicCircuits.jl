@@ -1,6 +1,5 @@
 module Logical
 
-using Query: @filter, @groupby, @map
 using StatsFuns: logsumexp
 
 using ...Data
@@ -8,13 +7,17 @@ using ...Utils
 
 export
 
-# LogicalCircuits
-Var, Lit, var2lit, lit2var, CircuitNode, Circuit△, LogicalCircuitNode,
-UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstLogicalCircuit△,
-LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, 
+# Circuits
+Var, Lit, var2lit, lit2var, CircuitNode, Circuit△, 
 LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
- num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable, fully_factorized_circuit,
- negative, positive, variable, literal, tree_size, variable_scopes, variable_scope,
+num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable,
+negative, positive, variable, literal, tree_size, variable_scopes, 
+propagate_constants, root,
+
+# LogicalCircuits
+LogicalCircuitNode, UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstLogicalCircuit△,
+LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode,
+fully_factorized_circuit,
 
 # FlowCircuits
 DecoratorCircuitNode, FlowCircuitNode, FlowCircuit, FlowCircuit△, FlowLeafNode, FlowInnerNode,
@@ -36,6 +39,7 @@ isequal, isequal_unordered, left_most_child,path_length,
 StructLogicalCircuitNode, StructLogicalLeafNode, StructLogicalCircuit△,
 StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node
 
+include("Circuits.jl")
 include("LogicalCircuits.jl")
 include("FlowCircuits.jl")
 include("AggregateFlowCircuits.jl")
