@@ -121,7 +121,7 @@ function disjoin_like(example::UnstLogicalCircuitNode, arguments...)
 end
 
 "Return a smooth version of the node where the missing variables are added to the scope"
-function smooth(node::UnstLogicalCircuitNode, missing_scope::BitSet)
+function smooth(node::UnstLogicalCircuitNode, missing_scope)
     if isempty(missing_scope)
         return node
     else

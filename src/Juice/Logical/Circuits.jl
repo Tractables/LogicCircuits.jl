@@ -126,6 +126,9 @@ num_nodes(c::Circuit△) = length(c)
 "Number of edges in the circuit"
 num_edges(c::Circuit△) = sum(n -> length(children(n)), c)
 
+"Number of edges in the circuit"
+num_variables(c::Circuit△) = length(variable_scope(c))
+
 "Give count of types and fan-ins of inner nodes in the circuit"
 function inode_stats(c::Circuit△)
     groups = groupby(e -> (typeof(e),num_children(e)), inodes(c))
@@ -221,6 +224,37 @@ function smooth(circuit::Circuit△)
     root(smoothed[circuit[end]])
 end
 
+"""
+Forget variables from the circuit. 
+Warning: this may or may not destroy the determinism property.
+"""
+function forget(is_forgotten::Function, circuit::Circuit△)
+    forgotten = Dict{CircuitNode,CircuitNode}()
+    forget_node(n::CircuitNode) = forget_node(NodeType(n),n)
+    forget_node(::ConstantLeaf, n::CircuitNode) = n
+    forget_node(::LiteralLeaf, n::CircuitNode) =
+        is_forgotten(variable(n)) ? true_like(n) : n
+    function forget_node(::⋀, n::CircuitNode)
+        forgotten_children = map(c -> forgotten[c], children(n))
+        conjoin_like(n, forgotten_children...)
+    end
+    function forget_node(::⋁, n::CircuitNode) 
+        forgotten_children = map(c -> forgotten[c], children(n))
+        disjoin_like(n, forgotten_children...)
+    end
+    for node in circuit
+        forgotten[node] = forget_node(node)
+    end
+    root(forgotten[circuit[end]])
+end
+
+"Construct a true node in the hierarchy of node n"
+true_like(n) = conjoin_like(n)
+
+"Construct a false node in the hierarchy of node n"
+false_like(n) = disjoin_like(n)
+
+
 "Remove all constant leafs from the circuit"
 function propagate_constants(circuit::Circuit△)
     proped = Dict{CircuitNode,CircuitNode}()
@@ -229,7 +263,7 @@ function propagate_constants(circuit::Circuit△)
     function propagate(::⋀, n::CircuitNode) 
         proped_children = map(c -> proped[c], children(n))
         if any(c -> is_false(c), proped_children)
-            disjoin_like(n)
+            false_like(n) 
         else
             proped_children = filter(c -> !is_true(c), proped_children)
             conjoin_like(n, proped_children...)
@@ -238,7 +272,7 @@ function propagate_constants(circuit::Circuit△)
     function propagate(::⋁, n::CircuitNode) 
         proped_children = map(c -> proped[c], children(n))
         if any(c -> is_true(c), proped_children)
-            conjoin_like(n)
+            true_like(n) 
         else
             proped_children = filter(c -> !is_false(c), proped_children)
             disjoin_like(n, proped_children...)

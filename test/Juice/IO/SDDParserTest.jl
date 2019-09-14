@@ -20,6 +20,7 @@ import .Juice.IO:
   @test !is_smooth(circuit)
   @test any(n -> n isa FalseNode, circuit)
   @test any(n -> n isa TrueNode, circuit)
+  @test num_variables(circuit) == 30
 
   prop_circuit = propagate_constants(circuit)
 
@@ -29,6 +30,7 @@ import .Juice.IO:
   @test !is_smooth(prop_circuit)
   @test !any(n -> n isa FalseNode, prop_circuit)
   @test !any(n -> n isa TrueNode, prop_circuit)
+  @test num_variables(prop_circuit) == 30
 
   @test prop_circuit[end] === propagate_constants(prop_circuit)[end] # no new circuit created if no changes
 
@@ -40,8 +42,29 @@ import .Juice.IO:
   @test is_smooth(smooth_circuit)
   @test !any(n -> n isa FalseNode, smooth_circuit)
   @test !any(n -> n isa TrueNode, smooth_circuit)
+  @test num_variables(smooth_circuit) == 30
   
   @test smooth_circuit[end] === smooth(smooth_circuit)[end] # no new circuit created if no changes
+
+  forgotten_circuit = forget(v -> (v > 16), circuit)
+
+  @test forgotten_circuit isa UnstLogicalCircuit△
+  @test num_nodes(forgotten_circuit) == 1648
+  @test num_variables(forgotten_circuit) == 16
+  @test is_decomposable(forgotten_circuit)
+  @test !is_smooth(forgotten_circuit)
+
+  @test forgotten_circuit[end] === forget(v -> (v > 16), forgotten_circuit)[end] # no new circuit created if no changes
+
+  random_circuit = smooth(propagate_constants(forgotten_circuit))
+
+  @test random_circuit isa UnstLogicalCircuit△
+  @test num_nodes(random_circuit) == 1644
+  @test is_decomposable(random_circuit)
+  @test is_smooth(random_circuit)
+  @test !any(n -> n isa FalseNode, random_circuit)
+  @test !any(n -> n isa TrueNode, random_circuit)
+  @test num_variables(random_circuit) == 16
 
 end
 
