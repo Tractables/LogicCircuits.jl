@@ -3,6 +3,8 @@ module Data
 using Statistics
 using Random
 
+import Base.size
+
 using ..Utils:
     flatmap, copy_with_eltype
 
@@ -14,10 +16,10 @@ train, valid, test,
 shuffle, batch, threshold, fully_factorized_likelihood,
 ll_per_example, bits_per_pixel,
 dataset, mnist, sampled_mnist, twenty_datasets, twenty_dataset_names,
-vslice    
+vslice, unbatch
 
-import Base.size
 include("DataLoaders.jl")
+
 
 #####################
 # Types
@@ -109,7 +111,7 @@ end
 # Constructors and conversions
 #####################
 
-WXData(x::M, w::AbstractVector{<:W}) where {M,W} = WXData(PlainXData(x),ones(size(x)[1]))
+WXData(x::M, w::AbstractVector{<:W}) where {M,W} = WXData(PlainXData(x), w)
 WXData(x::M) where M = WXData(x,ones(num_examples(x)))
 
 XData(x::M) where M = PlainXData(x)
@@ -243,7 +245,7 @@ shuffle(d::D) where {D <: Union{XDataset,XYDataset}} =
 #no point in shuffling when already turned into mini batches, don't implement it
 
 slice(xd::PlainXData, first, last) = PlainXData(feature_matrix(xd)[first:last, :])
-slice(wxd::WXData, first, last) = WXData(feature_matrix(wxd)[first:last], weights(wxd)[first:last])
+slice(wxd::WXData, first, last) = WXData(feature_matrix(wxd)[first:last, :], weights(wxd)[first:last])
 slice(xyd::XYData, first, last) = XYData(slice(feature_data(xyd),first,last), labels(xyd)[first:last])
 
 "Get slices of data (rows and columns ids) as a view (no memory allocation)"
@@ -267,6 +269,17 @@ batch(d::XDataset{X}, batch_size::Integer) where {X} =
     BatchedXDataset{X}(batch(train(d), batch_size),batch(valid(d), batch_size),batch(test(d), batch_size))
 batch(d::XYDataset{X,Y}, batch_size::Integer) where {X,Y} =
     BatchedXYDataset{X,Y}(batch(train(d), batch_size), batch(valid(d), batch_size), batch(test(d), batch_size))
+
+"Undo `batch` operation, combine batches into one"
+unslice(xds::Vector{PlainXData{X, M}}) where {X, M} = 
+    PlainXData(vcat([feature_matrix(xd) for xd in xds]...))
+unslice(wxds::AbstractVector{WXData{X, W, M}}) where {X, W, M} = 
+    WXData(vcat([feature_matrix(wxd) for wxd in wxds]...), vcat([weights(wxd) for wxd in wxds]...))
+# unslice(xyds::AbstractVector{XYData}) = XYData(unslice(feature_data(xyds)), vcat([labels(xyds) for xyd in xyds]...)) # untest
+
+unbatch(d::XBatches{X}) where {X} = unslice(d)
+unbatch(d::BatchedXDataset) where {X} = 
+    unbatch(train(d)), unbatch(valid(d)), unbatch(test(d)) # TODO: calling `XDataset` here triger signal (4) illegal hardware instruction, fix later
 
 threshold(xd) = threshold(xd, 0.05) # default threshold offset (used for MNIST)
 
