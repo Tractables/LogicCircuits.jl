@@ -33,11 +33,11 @@ const AggregateFlowCircuit△{A} = AbstractVector{<:AggregateFlowCircuitNode{A}}
 # traits
 #####################
 
-NodeType(::Type{<:AggregateFlowLiteral}) = LiteralLeaf()
-NodeType(::Type{<:AggregateFlowConstant}) = ConstantLeaf()
+@inline NodeType(::Type{<:AggregateFlowLiteral}) = LiteralLeaf()
+@inline NodeType(::Type{<:AggregateFlowConstant}) = ConstantLeaf()
 
-NodeType(::Type{<:AggregateFlow⋀}) = ⋀()
-NodeType(::Type{<:AggregateFlow⋁}) = ⋁()
+@inline NodeType(::Type{<:AggregateFlow⋀}) = ⋀()
+@inline NodeType(::Type{<:AggregateFlow⋁}) = ⋁()
 
 #####################
 # constructors and conversions

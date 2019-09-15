@@ -43,11 +43,11 @@ const UnstLogicalCircuit△ = AbstractVector{<:UnstLogicalCircuitNode}
 # traits
 #####################
 
-NodeType(instance) = NodeType(typeof(instance))
-NodeType(::Type{<:LiteralNode}) = LiteralLeaf()
-NodeType(::Type{<:ConstantNode}) = ConstantLeaf()
-NodeType(::Type{<:⋀Node}) = ⋀()
-NodeType(::Type{<:⋁Node}) = ⋁()
+@inline NodeType(instance) = NodeType(typeof(instance))
+@inline NodeType(::Type{<:LiteralNode}) = LiteralLeaf()
+@inline NodeType(::Type{<:ConstantNode}) = ConstantLeaf()
+@inline NodeType(::Type{<:⋀Node}) = ⋀()
+@inline NodeType(::Type{<:⋁Node}) = ⋁()
 
 #####################
 # methods
