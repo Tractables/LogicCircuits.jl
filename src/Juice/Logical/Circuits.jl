@@ -55,8 +55,8 @@ struct ⋀ <: Inner end
 "A trait denoting disjunction nodes of any type"
 struct ⋁ <: Inner end
 
-"Mapping circuit nodes to their node-type trait"
-function NodeType end
+# "Mapping circuit nodes to their node-type trait"
+# function NodeType end
 
 #####################
 # methods
@@ -124,7 +124,7 @@ leafnodes(c::Circuit△) = filter(n -> NodeType(n) isa Leaf, c)
 num_nodes(c::Circuit△) = length(c)
 
 "Number of edges in the circuit"
-num_edges(c::Circuit△) = sum(n -> length(children(n)), c)
+num_edges(c::Circuit△) = sum(n -> length(children(n)), inodes(c))
 
 "Number of edges in the circuit"
 num_variables(c::Circuit△) = length(variable_scope(c))
