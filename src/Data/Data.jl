@@ -186,6 +186,7 @@ unweighted_data(wxd::WXData) = wxd.xd
 
 "Get the weight vector of the data"
 weights(xd::WXData) = xd.w
+weights(xd::PlainXData) = ones(num_examples(xd))
 
 "Get the label vector of the data"
 labels(xyd::XYData) = xyd.y
