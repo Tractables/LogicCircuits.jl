@@ -101,7 +101,12 @@ end
 # - acc .|= unrolled_reduce((x,y) -> x .& y, x1, xs) is also bad, it still does memory allocations!
 # Hence, meta-programming to the rescue.
 @inline @generated function accumulate_prod_unroll(acc::NArr, x1::NArr, xs::NArr...)
-    :(@fastmath acc .= $(accumulator_op(eltype(acc))).(acc, $(expand_product(length(xs),eltype(acc),:x1,:xs))))
+    :(@fastmath acc .= $(accumulator_op(eltype(acc))).(acc, $(expand_product(length(xs),eltype(x1),:x1,:xs))))
+end
+
+# specialize for when there is a constant x0 involved, so that x1, xs... can still be multiplied as Bools. Make sure multiplication priorities are set correctly!
+@inline @generated function accumulate_prod_unroll(acc::NArr, x0::Real, x1::NArr, xs::NArr...)
+    :(@fastmath acc .= $(accumulator_op(eltype(acc))).(acc, x0 .* ($(expand_product(length(xs),eltype(x1),:x1,:xs)))))
 end
 
 @inline function accumulate_prod(acc::NArr, xs::AbstractVector{<:NArr})
@@ -113,24 +118,33 @@ end
     end
 end
 
+@inline function accumulate_prod(acc::NArr, x1::Real, xs::NArr...)
+    if length(xs) > max_unroll_products-1
+        tmp = prod_fast(collect(xs)[max_unroll_products-1:end])
+        accumulate_prod_unroll(acc, x1, tmp, collect(xs)[1:max_unroll_products-2]...)
+    else
+        accumulate_prod_unroll(acc, x1, xs...)
+    end
+end
+
 
 # assign a product into an accumulator argument and divide by a normalizer `z`
 
 @inline @generated function assign_prod_normalized_unroll(acc::NArr, z::NArr,
     x1::NArr, xs::NArr...)
-x1ze = (eltype(z) <: Bool) ? :x1 : :(replace_nan.(x1 ./ z)) # Bool z is always equal to 0 or 1, and hence does nothing useful for flows (assuming z > x1)
-# use fastmath for all but the division where we require proper NaN handling
-:(acc .= $(expand_product(length(xs),eltype(acc),x1ze,:xs)))
+    x1ze = (eltype(z) <: Bool) ? :x1 : :(replace_nan.(x1 ./ z)) # Bool z is always equal to 0 or 1, and hence does nothing useful for flows (assuming z > x1)
+    # use fastmath for all but the division where we require proper NaN handling
+    :(acc .= $(expand_product(length(xs),eltype(acc),x1ze,:xs)))
 end
 
 @inline function assign_prod_normalized(acc::NArr, z::NArr,
 x1::NArr, xs::AbstractArray{<:NArr})
-if length(xs) > max_unroll_products
-tmp = prod_fast(xs[max_unroll_products:end])
-assign_prod_normalized_unroll(acc, z , x1, tmp, xs[1:max_unroll_products-1]...)
-else
-assign_prod_normalized_unroll(acc, z , x1, xs...)
-end
+    if length(xs) > max_unroll_products
+        tmp = prod_fast(xs[max_unroll_products:end])
+        assign_prod_normalized_unroll(acc, z , x1, tmp, xs[1:max_unroll_products-1]...)
+    else
+        assign_prod_normalized_unroll(acc, z , x1, xs...)
+    end
 end
 
 
