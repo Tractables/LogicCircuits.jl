@@ -86,7 +86,7 @@ reset_aggregate_flows(afc::AggregateFlowCircuit△) = foreach(n->reset_aggregate
 reset_aggregate_flow(::AggregateFlowCircuitNode) = () # do nothing
 reset_aggregate_flow(n::AggregateFlow⋁{A}) where A = (n.aggr_flow = zero(A) ; n.aggr_flow_children .= zero(A))
 
-const opts_accumulate_flows = (flow_opts★..., el_type=Bool, compact⋁=false) #keep default options but insist on Bool flows
+const opts_accumulate_flows = (flow_opts★..., compact⋁=false) #keep default options but insist on Bool flows
 
 function accumulate_aggr_flows(afc::AggregateFlowCircuit△, batches::XBatches{Bool})
     fc = FlowCircuit(afc, max_batch_size(batches), Bool, FlowCache(), opts_accumulate_flows)
