@@ -1,5 +1,5 @@
 #####################
-# helper arithmetic to fuse complex high-arity operation
+# helper arithmetic to fuse complex high-arity operations
 #####################
 
 function __init__()
@@ -23,90 +23,43 @@ Base.@pure product_op(::Type{Bool}) = :(&)
     :(@fastmath  acc .= $(accumulator_op(eltype(acc))).(acc, x))
 
 
+# generate product expressions
+
 const max_unroll_products = 15
 
-# generate an expression for the loop-unrolled product of x1 and xs...
-function expand_product(i, ::Type{Et}, x1::Union{Symbol,Expr}, xs::Union{Symbol,Expr}) where Et
-    if i == 0
+"generate an expression for the loop-unrolled product of xs..."
+function expand_product(num_factors, ::Type{E}, xs::Union{Symbol,Expr})  where E
+    if num_factors<=0
+        :()
+    elseif num_factors==1
+        :($xs[1])
+    else
+        :($(product_op(E)).($(expand_product(num_factors-1,E,xs)),$xs[$num_factors])) #strangely adding @inbounds here slows things down a lot
+    end
+end
+
+"generate an expression for the loop-unrolled product of x1 and xs..."
+function expand_product(num_products, ::Type{E}, x1::Union{Symbol,Expr}, xs::Union{Symbol,Expr}) where E
+    if num_products == 0
         x1
     else
-        @assert i <= max_unroll_products "Unrolling loop too many times ($i), the compiler will choke... implement a loopy version instead."
+        @assert num_products <= max_unroll_products "Unrolling loop too many times ($num_products), the compiler will choke... implement a loopy version instead."
         #strangely adding @inbounds here slows things down a lot
-        :($(product_op(Et)).($(expand_product(i-1,Et,x1,xs)),xs[$i]))
+        :($(product_op(E)).($(expand_product(num_products-1,E,x1,xs)),xs[$num_products]))
     end
 end
 
-
-# Many implementations of `accumulate_prod` are very slow, and somehow don't properly fuse broadcasts':
-# - acc .|= (&).(xs...) is terrible!
-# - acc .|= unrolled_reduce((x,y) -> x .& y, x1, xs) is also bad, it still does memory allocations!
-# Hence, meta-programming to the rescue.
-@inline @generated function accumulate_prod_unroll(acc::AbstractArray{<:Number}, x1::AbstractArray{<:Number}, xs::AbstractArray{<:Number}...)
-    :(@fastmath acc .= $(accumulator_op(eltype(acc))).(acc, $(expand_product(length(xs),eltype(acc),:x1,:xs))))
-end
-
-@inline function accumulate_prod(acc::AbstractArray{<:Number}, xs::AbstractVector{<:AbstractArray{<:Number}})
-    if length(xs) > max_unroll_products
-        tmp = prod_fast(xs[max_unroll_products:end])
-        accumulate_prod_unroll(acc, tmp, xs[1:max_unroll_products-1]...)
-    else
-        accumulate_prod_unroll(acc, xs...)
-    end
-end
-
-@inline @generated function accumulate_prod_normalized_unroll(acc::AbstractArray{<:Number}, z::AbstractArray{<:Number},
-                                                        x1::AbstractArray{<:Number}, xs::AbstractArray{<:Number}...)
-    x1ze = (eltype(z) <: Bool) ? :x1 : :(replace_nan.(x1 ./ z)) # Bool z is always equal to 0 or 1, and hence does nothing useful for flows (assuming z > x1)
-    # use fastmath for all but the division where we require proper NaN handling
-    :(acc .= $(accumulator_op(eltype(acc))).(acc, $(expand_product(length(xs),eltype(acc),x1ze,:xs))))
-end
-
-@inline function accumulate_prod_normalized(acc::AbstractArray{<:Number}, z::AbstractArray{<:Number},
-                                        x1::AbstractArray{<:Number}, xs::AbstractArray{<:AbstractArray{<:Number}})
-    if length(xs) > max_unroll_products
-        tmp = prod_fast(xs[max_unroll_products:end])
-        accumulate_prod_normalized_unroll(acc, z , x1, tmp, xs[1:max_unroll_products-1]...)
-    else
-        accumulate_prod_normalized_unroll(acc, z , x1, xs...)
-    end
-end
-
-@inline @generated function assign_prod_unroll(acc::AbstractArray{<:Number}, x1::AbstractArray{<:Number}, xs::AbstractArray{<:Number}...)
-    :(acc .= $(expand_product(length(xs),eltype(acc),:x1,:xs)))
-end
-
-@inline function assign_prod(acc::AbstractArray{<:Number}, xs::AbstractVector{<:AbstractArray{<:Number}})
-    if length(xs) > max_unroll_products
-        tmp = prod_fast(xs[max_unroll_products:end])
-        assign_prod_unroll(acc, tmp, xs[1:max_unroll_products-1]...)
-    else
-        assign_prod_unroll(acc, xs...)
-    end
-end
-
-@inline @generated function assign_prod_normalized_unroll(acc::AbstractArray{<:Number}, z::AbstractArray{<:Number},
-                                                    x1::AbstractArray{<:Number}, xs::AbstractArray{<:Number}...)
-    x1ze = (eltype(z) <: Bool) ? :x1 : :(replace_nan.(x1 ./ z)) # Bool z is always equal to 0 or 1, and hence does nothing useful for flows (assuming z > x1)
-    # use fastmath for all but the division where we require proper NaN handling
-    :(acc .= $(expand_product(length(xs),eltype(acc),x1ze,:xs)))
-end
-
-@inline function assign_prod_normalized(acc::AbstractArray{<:Number}, z::AbstractArray{<:Number},
-                                        x1::AbstractArray{<:Number}, xs::AbstractArray{<:AbstractArray{<:Number}})
-    if length(xs) > max_unroll_products
-        tmp = prod_fast(xs[max_unroll_products:end])
-        assign_prod_normalized_unroll(acc, z , x1, tmp, xs[1:max_unroll_products-1]...)
-    else
-        assign_prod_normalized_unroll(acc, z , x1, xs...)
-    end
-end
+# number array
+const NArr = AbstractArray{<:Number}
 
 
-@inline @generated function prod_fast_unroll(x1::AbstractArray{<:Number}, xs::AbstractArray{<:Number}...)
+# computer a product efficiently with almost no allocations
+
+@inline @generated function prod_fast_unroll(x1::NArr, xs::NArr...)
     :(@fastmath $(expand_product(length(xs),eltype(x1),:x1,:xs)))
 end
 
-@inline function prod_fast(xs::AbstractArray{<:AbstractArray{<:Number}})
+@inline function prod_fast(xs::AbstractArray{<:NArr})
     if length(xs) > max_unroll_products
         tmp = prod_fast(xs[max_unroll_products:end])
         prod_fast_unroll(tmp, xs[1:max_unroll_products-1]...)
@@ -115,7 +68,7 @@ end
     end
 end
 
-@inline function prod_fast(x1::AbstractArray{<:Number}, xs::AbstractArray{<:AbstractArray{<:Number}})
+@inline function prod_fast(x1::NArr, xs::AbstractArray{<:NArr})
     if length(xs) > max_unroll_products-1
         tmp = prod_fast(xs[max_unroll_products-1:end])
         prod_fast_unroll(x1, tmp, xs[1:max_unroll_products-2]...)
@@ -123,6 +76,83 @@ end
         prod_fast_unroll(x1, xs...)
     end
 end
+
+
+# assign a product to an accumulator argument 
+
+@inline @generated function assign_prod_unroll(acc::NArr, x1::NArr, xs::NArr...)
+    :(acc .= $(expand_product(length(xs),eltype(acc),:x1,:xs)))
+end
+
+@inline function assign_prod(acc::NArr, xs::AbstractVector{<:NArr})
+    if length(xs) > max_unroll_products
+        tmp = prod_fast(xs[max_unroll_products:end])
+        assign_prod_unroll(acc, tmp, xs[1:max_unroll_products-1]...)
+    else
+        assign_prod_unroll(acc, xs...)
+    end
+end
+
+
+# accumulate a product into an accumulator argument
+
+# Many implementations of `accumulate_prod` are very slow, and somehow don't properly fuse broadcasts':
+# - acc .|= (&).(xs...) is terrible!
+# - acc .|= unrolled_reduce((x,y) -> x .& y, x1, xs) is also bad, it still does memory allocations!
+# Hence, meta-programming to the rescue.
+@inline @generated function accumulate_prod_unroll(acc::NArr, x1::NArr, xs::NArr...)
+    :(@fastmath acc .= $(accumulator_op(eltype(acc))).(acc, $(expand_product(length(xs),eltype(acc),:x1,:xs))))
+end
+
+@inline function accumulate_prod(acc::NArr, xs::AbstractVector{<:NArr})
+    if length(xs) > max_unroll_products
+        tmp = prod_fast(xs[max_unroll_products:end])
+        accumulate_prod_unroll(acc, tmp, xs[1:max_unroll_products-1]...)
+    else
+        accumulate_prod_unroll(acc, xs...)
+    end
+end
+
+
+# assign a product into an accumulator argument and divide by a normalizer `z`
+
+@inline @generated function assign_prod_normalized_unroll(acc::NArr, z::NArr,
+    x1::NArr, xs::NArr...)
+x1ze = (eltype(z) <: Bool) ? :x1 : :(replace_nan.(x1 ./ z)) # Bool z is always equal to 0 or 1, and hence does nothing useful for flows (assuming z > x1)
+# use fastmath for all but the division where we require proper NaN handling
+:(acc .= $(expand_product(length(xs),eltype(acc),x1ze,:xs)))
+end
+
+@inline function assign_prod_normalized(acc::NArr, z::NArr,
+x1::NArr, xs::AbstractArray{<:NArr})
+if length(xs) > max_unroll_products
+tmp = prod_fast(xs[max_unroll_products:end])
+assign_prod_normalized_unroll(acc, z , x1, tmp, xs[1:max_unroll_products-1]...)
+else
+assign_prod_normalized_unroll(acc, z , x1, xs...)
+end
+end
+
+
+# accumulate a product into an accumulator argument and divide by a normalizer `z`
+
+@inline @generated function accumulate_prod_normalized_unroll(acc::NArr, z::NArr,
+                                                        x1::NArr, xs::NArr...)
+    x1ze = (eltype(z) <: Bool) ? :x1 : :(replace_nan.(x1 ./ z)) # Bool z is always equal to 0 or 1, and hence does nothing useful for flows (assuming z > x1)
+    # use fastmath for all but the division where we require proper NaN handling
+    :(acc .= $(accumulator_op(eltype(acc))).(acc, $(expand_product(length(xs),eltype(acc),x1ze,:xs))))
+end
+
+@inline function accumulate_prod_normalized(acc::NArr, z::NArr,
+                                        x1::NArr, xs::AbstractArray{<:NArr})
+    if length(xs) > max_unroll_products
+        tmp = prod_fast(xs[max_unroll_products:end])
+        accumulate_prod_normalized_unroll(acc, z , x1, tmp, xs[1:max_unroll_products-1]...)
+    else
+        accumulate_prod_normalized_unroll(acc, z , x1, xs...)
+    end
+end
+
 
 
 # Specialized version of sum_of_products for each 2-layer subcircuit
@@ -138,15 +168,6 @@ end
     :(y .= $sum)
 end
 
-function expand_product(i, et, xs::Union{Symbol,Expr})
-    if i<=0
-        :()
-    elseif i==1
-        :($xs[1])
-    else
-        :($(product_op(et)).($(expand_product(i-1,et,xs)),$xs[$i])) #strangely adding @inbounds here slows things down a lot
-    end
-end
 
 #TODO: make this method rebust to very large xs sets as above
 @inline @generated function count_conjunction(x1::BitVector, xs::BitVector...)::UInt32
@@ -154,9 +175,9 @@ end
 end
 
 #TODO: make this method rebust to very large xs sets as above
-# @inline @generated function sum_weighted_product(weights::AbstractArray{<:Number}, x1::AbstractArray{<:Number}, xs::AbstractArray{<:Number}...)
+# @inline @generated function sum_weighted_product(weights::NArr, x1::NArr, xs::NArr...)
 #     :(sum($(expand_product(length(xs),eltype(x1),:x1,:xs)) .* weights))
 # end
-@inline @generated function sum_weighted_product(weights::AbstractArray{<:Number}, x1::AbstractArray{<:Number}, xs::AbstractArray{<:Number}...)
+@inline @generated function sum_weighted_product(weights::NArr, x1::NArr, xs::NArr...)
     :(sum(weights[$(expand_product(length(xs),eltype(x1),:x1,:xs))]))
 end
