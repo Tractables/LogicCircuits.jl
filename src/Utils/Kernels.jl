@@ -93,6 +93,15 @@ end
     end
 end
 
+@inline function assign_prod(acc::NArr, x1::NArr, xs::AbstractVector{<:NArr})
+    if length(xs) > max_unroll_products-1
+        tmp = prod_fast(xs[max_unroll_products-1:end])
+        assign_prod_unroll(acc, tmp, x1, xs[1:max_unroll_products-2]...)
+    else
+        assign_prod_unroll(acc, x1, xs...)
+    end
+end
+
 
 # accumulate a product into an accumulator argument
 
