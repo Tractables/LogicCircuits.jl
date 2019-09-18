@@ -109,7 +109,7 @@ function accumulate_aggr_flows_batch(fc::FlowCircuit△, batch::XData{Bool})
     aggregate_data(xd::WXData, f::AbstractArray{Bool}) = sum(weights(xd)[f]) # see AggregateKernelBenchmark
     
     aggregate_data_factorized(xd::PlainXData, x1::BitVector, xs::BitVector...) = count_conjunction(x1, xs...)
-    aggregate_data_factorized(xd::WXData, x1::BitVector, xs::BitVector...) = sum_weighted_product(Data.weights(xd), x1, xs...)
+    aggregate_data_factorized(xd::WXData, x1::BitVector, xs::BitVector...) = sum_weighted_product(weights(xd), x1, xs...)
     
     for n in fc
          # collect flows from mini-batch into aggregate statistics
@@ -117,19 +117,17 @@ function accumulate_aggr_flows_batch(fc::FlowCircuit△, batch::XData{Bool})
             origin = n.origin::AggregateFlow⋁
             additional_flow = aggregate_data(batch,downflow(n))
             origin.aggr_flow += additional_flow
-            if num_children(n) == 1
-                # flow goes entirely to one child
-                origin.aggr_flow_children[1] += additional_flow
-            else
-                child_aggr_flows = map(n.children) do c
-                    pr_fs = pr_factors(c)
-                    aggregate_data_factorized(batch, downflow(n), pr_fs...)
-                end
-                origin.aggr_flow_children .+= child_aggr_flows
+            # compute aggregate flows for all but the final child
+            for i in 1:num_children(n)-1
+                child = n.children[i]
+                child_aggr_flow = aggregate_data_factorized(batch, downflow(n), pr_factors(child)...)
+                origin.aggr_flow_children[i] += child_aggr_flow
+                additional_flow -= child_aggr_flow
             end
+            # assing the remainder flow to the final child
+            origin.aggr_flow_children[end] += additional_flow
             @assert isapprox(sum(origin.aggr_flow_children), origin.aggr_flow, rtol=0.0001) "Flow is leaking between parent and children: $(origin.aggr_flow) should equal $(origin.aggr_flow_children)"
-            # normalize to get rid of small loss of flow
-            origin.aggr_flow_children .* (origin.aggr_flow ./ (sum(origin.aggr_flow_children)))
+            # no need to normalize flows here: we can leave this to parameter learning code
         end
     end
 end
