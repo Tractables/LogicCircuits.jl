@@ -102,36 +102,34 @@ end
 function accumulate_aggr_flows_batch(fc::FlowCircuit△, batch::XData{Bool})
     # pass a mini-batch through the flow circuit
     pass_up_down(fc, unweighted_data(batch))
+
+    aggregate_data(xd::PlainXData, f::AbstractArray) = sum(f)
+    aggregate_data(xd::PlainXData, f::AbstractArray{Bool}) = count(f)
+    aggregate_data(xd::WXData, f::AbstractArray) = sum(f .* weights(xd))
+    aggregate_data(xd::WXData, f::AbstractArray{Bool}) = sum(weights(xd)[f]) # see AggregateKernelBenchmark
+    
+    aggregate_data_factorized(xd::PlainXData, x1::BitVector, xs::BitVector...) = count_conjunction(x1, xs...)
+    aggregate_data_factorized(xd::WXData, x1::BitVector, xs::BitVector...) = sum_weighted_product(Data.weights(xd), x1, xs...)
+    
     for n in fc
          # collect flows from mini-batch into aggregate statistics
-        accumulate_aggr_flows(n, batch)
-    end
-end
-
-accumulate_aggr_flows(::FlowCircuitNode, ::Any) = () # do nothing
-
-function accumulate_aggr_flows(n::Flow⋁, xd::XData{Bool})
-    origin = n.origin::AggregateFlow⋁
-    origin.aggr_flow += aggregate_data(xd,downflow(n))
-    if num_children(n) == 1
-        # flow goes entirely to one child
-        origin.aggr_flow_children[1] += aggregate_data(xd,downflow(n))
-    else
-        child_aggr_flows = map(n.children) do c
-            pr_fs = pr_factors(c)
-            aggregate_data_factorized(xd, downflow(n), pr_fs...)
+        if n isa Flow⋁
+            origin = n.origin::AggregateFlow⋁
+            additional_flow = aggregate_data(batch,downflow(n))
+            origin.aggr_flow += additional_flow
+            if num_children(n) == 1
+                # flow goes entirely to one child
+                origin.aggr_flow_children[1] += additional_flow
+            else
+                child_aggr_flows = map(n.children) do c
+                    pr_fs = pr_factors(c)
+                    aggregate_data_factorized(batch, downflow(n), pr_fs...)
+                end
+                origin.aggr_flow_children .+= child_aggr_flows
+            end
+            @assert isapprox(sum(origin.aggr_flow_children), origin.aggr_flow, rtol=0.0001) "Flow is leaking between parent and children: $(origin.aggr_flow) should equal $(origin.aggr_flow_children)"
+            # normalize to get rid of small loss of flow
+            origin.aggr_flow_children .* (origin.aggr_flow ./ (sum(origin.aggr_flow_children)))
         end
-        origin.aggr_flow_children .+= child_aggr_flows
     end
-    @assert isapprox(sum(origin.aggr_flow_children), origin.aggr_flow, rtol=0.0001) "Flow is leaking between parent and children: $(origin.aggr_flow) should equal $(origin.aggr_flow_children)"
-    # normalize to get rid of small loss of flow
-    origin.aggr_flow_children .* (origin.aggr_flow ./ (sum(origin.aggr_flow_children)))
 end
-
-aggregate_data(xd::PlainXData, f::AbstractArray) = sum(f)
-aggregate_data(xd::PlainXData, f::AbstractArray{Bool}) = count(f)
-aggregate_data(xd::WXData, f::AbstractArray) = sum(f .* weights(xd))
-aggregate_data(xd::WXData, f::AbstractArray{Bool}) = sum(weights(xd)[f])
-
-aggregate_data_factorized(xd::PlainXData, x1::BitVector, xs::BitVector...) = count_conjunction(x1, xs...)
-aggregate_data_factorized(xd::WXData, x1::BitVector, xs::BitVector...) = sum_weighted_product(Data.weights(xd), x1, xs...)
