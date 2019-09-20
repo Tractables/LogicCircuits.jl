@@ -81,6 +81,12 @@ function collect_aggr_flows(afc::AggregateFlowCircuit△, batches::XBatches{Bool
     accumulate_aggr_flows(afc, batches)
 end
 
+function collect_aggr_flows(fc::FlowCircuit△, batches::XBatches{Bool})
+    @assert origin(fc) isa AggregateFlowCircuit△
+    reset_aggregate_flows(origin(fc))
+    accumulate_aggr_flows(fc, batches)
+end
+
 # set flow counters to zero
 reset_aggregate_flows(afc::AggregateFlowCircuit△) = foreach(n->reset_aggregate_flow(n), afc)
 reset_aggregate_flow(::AggregateFlowCircuitNode) = () # do nothing
@@ -102,7 +108,10 @@ end
 function accumulate_aggr_flows_batch(fc::FlowCircuit△, batch::XData{Bool})
     # pass a mini-batch through the flow circuit
     pass_up_down(fc, unweighted_data(batch))
+    accumulate_aggr_flows_cached(fc, batch)
+end
 
+function accumulate_aggr_flows_cached(fc::FlowCircuit△, batch::XData{Bool})
     aggregate_data(xd::PlainXData, f::AbstractArray) = sum(f)
     aggregate_data(xd::PlainXData, f::AbstractArray{Bool}) = count(f)
     aggregate_data(xd::WXData, f::AbstractArray) = sum(f .* weights(xd))

@@ -282,6 +282,11 @@ unbatch(d::XBatches{X}) where {X} = unslice(d)
 unbatch(d::BatchedXDataset) where {X} = 
     unbatch(train(d)), unbatch(valid(d)), unbatch(test(d)) # TODO: calling `XDataset` here triger signal (4) illegal hardware instruction, fix later
 
+reweigh(wxdata::WXData, w::AbstractVector)::WXData =
+    WXData(unweighted_data(wcdata), w)
+reweigh(wxbatches::XBatches, ws::AbstractVector{<:AbstractVector})::XBatches =
+    map((b,w) -> reweigh(b,w), wxbatches, ws)
+
 threshold(xd) = threshold(xd, 0.05) # default threshold offset (used for MNIST)
 
 function threshold(xd::XData, offset)

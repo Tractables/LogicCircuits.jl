@@ -29,6 +29,12 @@ abstract type CircuitNode end
 "Any circuit represented as a bottom-up linear order of nodes"
 const Circuit△ = AbstractVector{<:CircuitNode}
 
+"A circuit node that has an origin"
+abstract type DecoratorCircuitNode <: CircuitNode end
+
+#TODO introduce DecoratorCircuit△
+
+
 #####################
 # General traits
 #####################
@@ -178,8 +184,6 @@ function variable_scopes(circuit:: Circuit△)::Dict{CircuitNode,BitSet}
     scope
 end
 
-#TODO remove some generic circuit functions to a different file `Circuits`
-
 "Is the circuit smooth?"
 function is_smooth(circuit:: Circuit△)::Bool
     scope = variable_scopes(circuit)
@@ -306,4 +310,14 @@ function root(root::CircuitNode)::Circuit△
     end
     see(root)
     lower_element_type(circuit) # specialize the circuit node type
+end
+
+"Get the origin nodes as a circuit"
+function origin(circuit)
+    lower_element_type(map(n -> n.origin, circuit))
+end
+
+"Get the origin of the origin nodes as a circuit"
+function grand_origin(circuit)
+    origin(origin(circuit))
 end
