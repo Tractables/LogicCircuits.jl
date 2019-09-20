@@ -12,7 +12,8 @@ Var, Lit, var2lit, lit2var, CircuitNode, Circuit△,
 LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
 num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable,
 negative, positive, variable, literal, tree_size, variable_scopes, variable_scope, num_variables,
-propagate_constants, root, is_smooth, smooth, num_nodes, num_edges, forget, true_like, false_like,
+propagate_constants, root, is_smooth, smooth, num_nodes, num_edges, forget, true_like, false_like, 
+DecoratorCircuit△, DecoratorCircuitNode, origin,
 
 # LogicalCircuits
 LogicalCircuitNode, UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstLogicalCircuit△,
@@ -23,12 +24,12 @@ fully_factorized_circuit,
 DecoratorCircuitNode, FlowCircuitNode, FlowCircuit, FlowCircuit△, FlowLeafNode, FlowInnerNode,
 FlowLiteral, FlowConstant, Flow⋀Compact, Flow⋀Cached, Flow⋁Compact, Flow⋁Cached, Flow⋀, Flow⋁,
 FlowCache, HasDownFlow,flow_opts★,
-pass_down, pass_up, pass_up_down, pass_up_node, downflow, pr_factors, pr, origin, resize_flows, flow_length,
+pass_down, pass_up, pass_up_down, pass_up_node, downflow, pr_factors, pr, resize_flows, flow_length,
 reset_downflow_in_progress, downflow_sinks,
 
 # AggregateFlowCircuits
 AggregateFlowCircuit, AggregateFlowCircuit△, AggregateFlowCircuitNode, AggregateFlow⋁,
-reset_aggregate_flows, accumulate_aggr_flows_batch, opts_accumulate_flows, collect_aggr_flows,
+reset_aggregate_flows, accumulate_aggr_flows_batch, accumulate_aggr_flows_cached, opts_accumulate_flows, collect_aggr_flows,
 accumulate_aggr_flows,
 
 # Vtree
