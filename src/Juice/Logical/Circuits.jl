@@ -32,8 +32,8 @@ const Circuit△ = AbstractVector{<:CircuitNode}
 "A circuit node that has an origin"
 abstract type DecoratorCircuitNode <: CircuitNode end
 
-#TODO introduce DecoratorCircuit△
-
+"Any circuit that has an origin represented as a bottom-up linear order of nodes"
+const DecoratorCircuit△ = AbstractVector{<:DecoratorCircuitNode}
 
 #####################
 # General traits
@@ -313,11 +313,11 @@ function root(root::CircuitNode)::Circuit△
 end
 
 "Get the origin nodes as a circuit"
-function origin(circuit)
+function origin(circuit::DecoratorCircuit△)
     lower_element_type(map(n -> n.origin, circuit))
 end
 
 "Get the origin of the origin nodes as a circuit"
-function grand_origin(circuit)
+function grand_origin(circuit::DecoratorCircuit△)
     origin(origin(circuit))
 end
