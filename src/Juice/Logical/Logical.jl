@@ -29,6 +29,7 @@ reset_downflow_in_progress, downflow_sinks,
 # AggregateFlowCircuits
 AggregateFlowCircuit, AggregateFlowCircuit△, AggregateFlowCircuitNode, AggregateFlow⋁,
 reset_aggregate_flows, accumulate_aggr_flows_batch, opts_accumulate_flows, collect_aggr_flows,
+accumulate_aggr_flows,
 
 # Vtree
 VtreeNode, VtreeLeafNode, VtreeInnerNode, isleaf, variables, num_variables, Vtree△,
