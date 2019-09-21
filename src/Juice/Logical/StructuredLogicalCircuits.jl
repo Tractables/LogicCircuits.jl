@@ -45,10 +45,10 @@ const StructLogicalCircuit△ = AbstractVector{<:StructLogicalCircuitNode}
 # traits
 #####################
 
-NodeType(::Type{<:StructLiteralNode}) = LiteralLeaf()
-NodeType(::Type{<:StructConstantNode}) = ConstantLeaf()
-NodeType(::Type{<:Struct⋀Node}) = ⋀()
-NodeType(::Type{<:Struct⋁Node}) = ⋁()
+@inline NodeType(::Type{<:StructLiteralNode}) = LiteralLeaf()
+@inline NodeType(::Type{<:StructConstantNode}) = ConstantLeaf()
+@inline NodeType(::Type{<:Struct⋀Node}) = ⋀()
+@inline NodeType(::Type{<:Struct⋁Node}) = ⋁()
 
 #####################
 # methods

@@ -36,7 +36,7 @@ struct WeightedLiteralLine <: LiteralLine
     vtree_id::ID
     literal::Lit
     normalized::Bool
-    weights::Vector{Float32}
+    weights::Vector{Float64}
 end
 
 """
@@ -69,7 +69,7 @@ struct WeightedNamedConstantLine <: ConstantLine
     variable::Var
     # constant::Bool always true because one cannot associate a weight with the models of false
     # normalized::Bool always true because we have a single variable field given above, which only exists if the node is normalized
-    weight::Float32
+    weight::Float64
 end
 
 struct AnonymousConstantLine <: ConstantLine
@@ -94,13 +94,13 @@ abstract type NormalizedElement <: Element end
 struct LCElement <: NormalizedElement
     prime_id::ID
     sub_id::ID
-    weights::Vector{Float32}
+    weights::Vector{Float64}
 end
 
 struct PSDDElement <: NormalizedElement
     prime_id::ID
     sub_id::ID
-    weight::Float32
+    weight::Float64
 end
 
 abstract type TrimmedElement <: Element end
@@ -128,6 +128,6 @@ A line representing a bias node in the circuit (an OR with one child)
 """
 struct BiasLine <: InnerCircuitLine
     node_id::ID
-    weights::Vector{Float32}
+    weights::Vector{Float64}
     BiasLine(weights) = new(typemax(ID), weights)
 end

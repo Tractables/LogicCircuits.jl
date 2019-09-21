@@ -29,6 +29,12 @@ abstract type CircuitNode end
 "Any circuit represented as a bottom-up linear order of nodes"
 const Circuit△ = AbstractVector{<:CircuitNode}
 
+"A circuit node that has an origin"
+abstract type DecoratorCircuitNode <: CircuitNode end
+
+"Any circuit that has an origin represented as a bottom-up linear order of nodes"
+const DecoratorCircuit△ = AbstractVector{<:DecoratorCircuitNode}
+
 #####################
 # General traits
 #####################
@@ -55,8 +61,8 @@ struct ⋀ <: Inner end
 "A trait denoting disjunction nodes of any type"
 struct ⋁ <: Inner end
 
-"Mapping circuit nodes to their node-type trait"
-function NodeType end
+# "Mapping circuit nodes to their node-type trait"
+# function NodeType end
 
 #####################
 # methods
@@ -124,7 +130,7 @@ leafnodes(c::Circuit△) = filter(n -> NodeType(n) isa Leaf, c)
 num_nodes(c::Circuit△) = length(c)
 
 "Number of edges in the circuit"
-num_edges(c::Circuit△) = sum(n -> length(children(n)), c)
+num_edges(c::Circuit△) = sum(n -> length(children(n)), inodes(c))
 
 "Number of edges in the circuit"
 num_variables(c::Circuit△) = length(variable_scope(c))
@@ -177,8 +183,6 @@ function variable_scopes(circuit:: Circuit△)::Dict{CircuitNode,BitSet}
     end
     scope
 end
-
-#TODO remove some generic circuit functions to a different file `Circuits`
 
 "Is the circuit smooth?"
 function is_smooth(circuit:: Circuit△)::Bool
@@ -306,4 +310,14 @@ function root(root::CircuitNode)::Circuit△
     end
     see(root)
     lower_element_type(circuit) # specialize the circuit node type
+end
+
+"Get the origin nodes as a circuit"
+function origin(circuit::DecoratorCircuit△)
+    lower_element_type(map(n -> n.origin, circuit))
+end
+
+"Get the origin of the origin nodes as a circuit"
+function grand_origin(circuit::DecoratorCircuit△)
+    origin(origin(circuit))
 end
