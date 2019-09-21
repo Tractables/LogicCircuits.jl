@@ -278,6 +278,7 @@ unslice(wxds::AbstractVector{WXData{X, W, M}}) where {X, W, M} =
     WXData(vcat([feature_matrix(wxd) for wxd in wxds]...), vcat([weights(wxd) for wxd in wxds]...))
 # unslice(xyds::AbstractVector{XYData}) = XYData(unslice(feature_data(xyds)), vcat([labels(xyds) for xyd in xyds]...)) # untest
 
+unbatch(d::PlainXData{X, M}) where {X, M} = d
 unbatch(d::XBatches{X}) where {X} = unslice(d)
 unbatch(d::BatchedXDataset) where {X} = 
     unbatch(train(d)), unbatch(valid(d)), unbatch(test(d)) # TODO: calling `XDataset` here triger signal (4) illegal hardware instruction, fix later
