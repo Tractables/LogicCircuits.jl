@@ -72,6 +72,9 @@ struct ⋁ <: Inner end
 # pretty printing a huge recursive structure. In that case:
 Base.show(io::IO, c::CircuitNode) = print(io, "$(typeof(c))($(hash(c))))")
 
+
+# Base.hash(n::CircuitNode) = Base.object_id(n)
+
 # following methods should be defined for all types of circuits
 
 "Get the logical literal in a given literal leaf node"

@@ -46,7 +46,7 @@ const AggregateFlowCircuit△{A} = AbstractVector{<:AggregateFlowCircuitNode{A}}
 const AggregateFlowCache = Dict{CircuitNode, AggregateFlowCircuitNode}
 
 function AggregateFlowCircuit(c::Circuit△, ::Type{A}, cache::AggregateFlowCache = AggregateFlowCache()) where {A}
-    sizehint!(cache, length(c))
+    sizehint!(cache, length(c)*4÷3)
     AggregateFlowCircuitNodes(c, A, cache)
 end
 
