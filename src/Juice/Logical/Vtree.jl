@@ -14,7 +14,7 @@ end
 mutable struct VtreeInnerNode <: VtreeNode
     left::VtreeNode
     right::VtreeNode
-    variables::Set{Var}
+    variables::Vector{Var}
 end
 
 const Vtree△ = AbstractVector{<:VtreeNode}
@@ -25,18 +25,18 @@ const Vtree△ = AbstractVector{<:VtreeNode}
 
 function VtreeInnerNode(left::VtreeNode, right::VtreeNode)
     @assert isempty(intersect(variables(left), variables(right)))
-    VtreeInnerNode(left, right, union(variables(left), variables(right)))
+    VtreeInnerNode(left, right, [variables(left); variables(right)])
 end
 
-function VtreeLeafNode(vars::Set{Var})
+function VtreeLeafNode(vars::Vector{Var})
     @assert length(vars) == 1
-    VtreeLeafNode(collect(vars)[1])
+    VtreeLeafNode(vars[1])
 end
 
 isleaf(n::VtreeLeafNode) = true
 isleaf(n::VtreeInnerNode) = false
 
-variables(n::VtreeLeafNode) = Set([n.var])
+variables(n::VtreeLeafNode) = [n.var]
 variables(n::VtreeInnerNode) = n.variables
 variables(n::Vtree△) = variables(n[end])
 
@@ -105,12 +105,12 @@ end
 """
 Construct Vtree top town, using method specified by split_method.
 """
-function construct_top_down(vars::Set{Var}, split_method)::VtreeNode
+function construct_top_down(vars::Vector{Var}, split_method)::VtreeNode
     order_nodes_leaves_before_parents(
         construct_top_down_root(vars,split_method))
 end
 
-function construct_top_down_root(vars::Set{Var}, split_method)::VtreeNode
+function construct_top_down_root(vars::Vector{Var}, split_method)::VtreeNode
     @assert !isempty(vars) "Cannot construct a vtree with zero variables"
     if length(vars) == 1
         VtreeLeafNode(vars)
@@ -126,7 +126,7 @@ end
 """
 Construct Vtree bottom up, using method specified by combine_method!.
 """
-function construct_bottom_up(vars::Set{Var}, combine_method!)::Vtree△
+function construct_bottom_up(vars::Vector{Var}, combine_method!)::Vtree△
     vars = copy(vars)
     ln = Vector{VtreeNode}()
     node_cache = Dict{Var, VtreeNode}() # map from variable to *highest* level node
@@ -226,6 +226,6 @@ function path_length(n::VtreeInnerNode, var::Var)
 end
 
 function path_length(n::VtreeLeafNode, var::Var)
-    @assert variables(n) == Set(var)
+    @assert variables(n) == [var]
     return 0
 end
