@@ -31,14 +31,14 @@ if endswith(@__FILE__, PROGRAM_FILE)
             @test vtree[i] isa VtreeInnerNode
         end
 
-        @test variables(vtree[1]) == Set([1])
-        @test variables(vtree[2]) == Set([2])
-        @test variables(vtree[3]) == Set([3])
-        @test variables(vtree[4]) == Set([4])
+        @test sort(variables(vtree[1])) == [1]
+        @test sort(variables(vtree[2])) == [2]
+        @test sort(variables(vtree[3])) == [3]
+        @test sort(variables(vtree[4])) == [4]
 
-        @test variables(vtree[5]) == Set([1,2])
-        @test variables(vtree[6]) == Set([3,4])
-        @test variables(vtree[7]) == Set([1,2,3,4])
+        @test sort(variables(vtree[5])) == [1,2]
+        @test sort(variables(vtree[6])) == [3,4]
+        @test sort(variables(vtree[7])) == [1,2,3,4]
 
         for i = 1:4
             @test num_variables(vtree[i]) == 1
