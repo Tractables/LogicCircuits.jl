@@ -45,32 +45,28 @@ const AggregateFlowCircuit△{A} = AbstractVector{<:AggregateFlowCircuitNode{A}}
 
 const AggregateFlowCache = Dict{CircuitNode, AggregateFlowCircuitNode}
 
-function AggregateFlowCircuit(c::Circuit△, ::Type{A}, cache::AggregateFlowCache = AggregateFlowCache()) where {A}
-    sizehint!(cache, length(c)*4÷3)
-    AggregateFlowCircuitNodes(c, A, cache)
+function AggregateFlowCircuit(circuit::Circuit△, ::Type{A}, cache::AggregateFlowCache = AggregateFlowCache()) where {A}
+    sizehint!(cache, length(circuit)*4÷3)
+    
+    af_node(::LiteralLeaf, n::CircuitNode) = AggregateFlowLiteral{A}(n)
+    af_node(::ConstantLeaf, n::CircuitNode) = AggregateFlowConstant{A}(n)
+
+    af_node(::⋀, n::CircuitNode) = begin
+        children = map(c -> cache[c], n.children)
+        AggregateFlow⋀(n, children)
+    end
+
+    af_node(::⋁, n::CircuitNode) = begin
+        children = map(c -> cache[c], n.children)
+        AggregateFlow⋁(n, children, zero(A), some_vector(A, num_children(n)))
+    end
+        
+    map(circuit) do node
+        afn = af_node(NodeType(node), node)
+        cache[node] = afn
+        afn
+    end
 end
-
-AggregateFlowCircuitNodes(nodes::AbstractVector{<:CircuitNode}, ::Type{A}, cache::AggregateFlowCache) where {A} =
-    map(n->AggregateFlowCircuitNode(n, A, cache), nodes)
-
-AggregateFlowCircuitNode(n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
-    AggregateFlowCircuitNode(NodeType(n), n, A, cache)
-
-AggregateFlowCircuitNode(::LiteralLeaf, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
-    get!(()-> AggregateFlowLiteral{A}(n), cache, n)
-
-AggregateFlowCircuitNode(::ConstantLeaf, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
-    get!(()-> AggregateFlowConstant{A}(n), cache, n)
-
-AggregateFlowCircuitNode(::⋀, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
-    get!(cache, n) do
-        AggregateFlow⋀(n, AggregateFlowCircuitNodes(n.children, A, cache))
-    end
-
-AggregateFlowCircuitNode(::⋁, n::CircuitNode, ::Type{A}, cache::AggregateFlowCache) where A =
-    get!(cache, n) do
-        AggregateFlow⋁(n, AggregateFlowCircuitNodes(n.children, A, cache), zero(A), some_vector(A, num_children(n)))
-    end
 
 #####################
 # methods
