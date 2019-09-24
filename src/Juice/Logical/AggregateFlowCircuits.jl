@@ -43,9 +43,9 @@ const AggregateFlowCircuit△{A} = AbstractVector{<:AggregateFlowCircuitNode{A}}
 # constructors and conversions
 #####################
 
-const AggregateFlowCache = Dict{CircuitNode, AggregateFlowCircuitNode}
 
-function AggregateFlowCircuit(circuit::Circuit△, ::Type{A}, cache::AggregateFlowCache = AggregateFlowCache()) where {A}
+function AggregateFlowCircuit(circuit::Circuit△, ::Type{A}) where {A}
+    cache = Dict{CircuitNode, AggregateFlowCircuitNode}()
     sizehint!(cache, length(circuit)*4÷3)
     
     af_node(::LiteralLeaf, n::CircuitNode) = AggregateFlowLiteral{A}(n)
@@ -95,7 +95,7 @@ reset_aggregate_flow(n::AggregateFlow⋁{A}) where A = (n.aggr_flow = zero(A) ; 
 const opts_accumulate_flows = (flow_opts★..., compact⋁=false) #keep default options but insist on Bool flows
 
 function accumulate_aggr_flows(afc::AggregateFlowCircuit△, batches::XBatches{Bool})
-    fc = FlowCircuit(afc, max_batch_size(batches), Bool, FlowCache(), opts_accumulate_flows)
+    fc = FlowCircuit(afc, max_batch_size(batches), Bool, opts_accumulate_flows)
     accumulate_aggr_flows(fc, batches)
 end
 
