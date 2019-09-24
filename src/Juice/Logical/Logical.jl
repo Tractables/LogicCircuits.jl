@@ -23,7 +23,7 @@ fully_factorized_circuit,
 # FlowCircuits
 DecoratorCircuitNode, FlowCircuitNode, FlowCircuit, FlowCircuit△, FlowLeafNode, FlowInnerNode,
 FlowLiteral, FlowConstant, Flow⋀Compact, Flow⋀Cached, Flow⋁Compact, Flow⋁Cached, Flow⋀, Flow⋁,
-FlowCache, HasDownFlow,flow_opts★,
+HasDownFlow,flow_opts★,
 pass_down, pass_up, pass_up_down, pass_up_node, downflow, pr_factors, pr, resize_flows, flow_length,
 reset_downflow_in_progress, downflow_sinks,
 
