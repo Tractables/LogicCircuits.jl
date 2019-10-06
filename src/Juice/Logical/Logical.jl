@@ -35,7 +35,7 @@ accumulate_aggr_flows,
 # Vtree
 VtreeNode, VtreeLeafNode, VtreeInnerNode, isleaf, variables, num_variables, Vtree△,
 order_nodes_leaves_before_parents, construct_top_down, construct_bottom_up,
-isequal, isequal_unordered, left_most_child,path_length,
+isequal, isequal_unordered, left_most_child,path_length,random_vtree,
 
 # StructuredLogicalCircuits
 StructLogicalCircuitNode, StructLogicalLeafNode, StructLogicalCircuit△,
