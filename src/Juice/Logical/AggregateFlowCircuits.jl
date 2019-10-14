@@ -3,31 +3,31 @@
 # (like a flow circuit but aggregates flows over several examples and batches)
 #####################
 
-abstract type AggregateFlowCircuitNode{A} <: DecoratorCircuitNode end
-abstract type AggregateFlowLeafNode{A} <: AggregateFlowCircuitNode{A} end
-abstract type AggregateFlowInnerNode{A} <: AggregateFlowCircuitNode{A} end
+abstract type AggregateFlowCircuitNode{O,A} <: DecoratorCircuitNode{O} end
+abstract type AggregateFlowLeafNode{O,A} <: AggregateFlowCircuitNode{O,A} end
+abstract type AggregateFlowInnerNode{O,A} <: AggregateFlowCircuitNode{O,A} end
 
-struct AggregateFlowLiteral{A} <: AggregateFlowLeafNode{A}
-    origin::CircuitNode
+struct AggregateFlowLiteral{O,A} <: AggregateFlowLeafNode{O,A}
+    origin::O
 end
 
-struct AggregateFlowConstant{A} <: AggregateFlowLeafNode{A}
-    origin::CircuitNode
+struct AggregateFlowConstant{O,A} <: AggregateFlowLeafNode{O,A}
+    origin::O
 end
 
-struct AggregateFlow⋀{A} <: AggregateFlowInnerNode{A}
-    origin::CircuitNode
-    children::Vector{<:AggregateFlowCircuitNode{A}}
+struct AggregateFlow⋀{O,A} <: AggregateFlowInnerNode{O,A}
+    origin::O
+    children::Vector{<:AggregateFlowCircuitNode{O,A}}
 end
 
-mutable struct AggregateFlow⋁{A} <: AggregateFlowInnerNode{A}
-    origin::CircuitNode
-    children::Vector{<:AggregateFlowCircuitNode{A}}
+mutable struct AggregateFlow⋁{O,A} <: AggregateFlowInnerNode{O,A}
+    origin::O
+    children::Vector{<:AggregateFlowCircuitNode{O,A}}
     aggr_flow::A
     aggr_flow_children::Vector{A}
 end
 
-const AggregateFlowCircuit△{A} = AbstractVector{<:AggregateFlowCircuitNode{A}}
+const AggregateFlowCircuit△{O,A} = AbstractVector{<:AggregateFlowCircuitNode{O,A}}
 
 #####################
 # traits

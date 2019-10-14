@@ -29,8 +29,8 @@ abstract type CircuitNode end
 "Any circuit represented as a bottom-up linear order of nodes"
 const Circuit△ = AbstractVector{<:CircuitNode}
 
-"A circuit node that has an origin"
-abstract type DecoratorCircuitNode <: CircuitNode end
+"A circuit node that has an origin of type O"
+abstract type DecoratorCircuitNode{O <: CircuitNode} <: CircuitNode end
 
 "Any circuit that has an origin represented as a bottom-up linear order of nodes"
 const DecoratorCircuit△ = AbstractVector{<:DecoratorCircuitNode}
