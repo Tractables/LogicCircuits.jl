@@ -321,3 +321,6 @@ end
 function grand_origin(circuit::DecoratorCircuit△)
     origin(origin(circuit))
 end
+
+"Get the type of circuit node contained in this circuit"
+circuitnodetype(circuit::Circuit△)::Type{<:CircuitNode} = eltype(circuit)
