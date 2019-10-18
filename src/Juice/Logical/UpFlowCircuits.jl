@@ -2,9 +2,9 @@
 # Upward Flow circuits
 #####################
 
-abstract type UpFlowCircuitNode{O,F} <: DecoratorCircuitNode{O} end
-abstract type UpFlowLeafNode{O,F} <: UpFlowCircuitNode{O,F} end
-abstract type UpFlowInnerNode{O,F} <: UpFlowCircuitNode{O,F} end
+abstract type UpFlowΔNode{O,F} <: DecoratorΔNode{O} end
+abstract type UpFlowLeafNode{O,F} <: UpFlowΔNode{O,F} end
+abstract type UpFlowInnerNode{O,F} <: UpFlowΔNode{O,F} end
 
 struct UpFlowLiteral{O,F} <: UpFlowLeafNode{O,F}
     origin::O
@@ -22,31 +22,31 @@ abstract type UpFlow⋁{O,F} <: UpFlowInnerNode{O,F} end
 # use this version of UpFlow⋀ when ⋀ gates are unique to their parent ⋁ to save space (compact=true)
 struct UpFlow⋀Compact{O,F} <: UpFlow⋀{O,F}
     origin::O
-    children::Vector{<:UpFlowCircuitNode{<:O,F}}
+    children::Vector{<:UpFlowΔNode{<:O,F}}
     cached_pr_factors::Vector{F}
 end
 
 # use this version of UpFlow⋀ when ⋀ gates can have multiple parents to save computation (compact=false)
 struct UpFlow⋀Cached{O,F} <: UpFlow⋀{O,F}
     origin::O
-    children::Vector{<:UpFlowCircuitNode{<:O,F}}
+    children::Vector{<:UpFlowΔNode{<:O,F}}
     pr::F
 end
 
 # this version of UpFlow⋁ is efficient for arity-1 gates
 struct UpFlow⋁Compact{O,F} <: UpFlow⋁{O,F}
     origin::O
-    child::UpFlowCircuitNode{<:O,F}
+    child::UpFlowΔNode{<:O,F}
     cached_pr_factors::Vector{F}
 end
 
 struct UpFlow⋁Cached{O,F} <: UpFlow⋁{O,F}
     origin::O
-    children::Vector{<:UpFlowCircuitNode{<:O,F}}
+    children::Vector{<:UpFlowΔNode{<:O,F}}
     pr::F
 end
 
-const UpFlowCircuit{O,F} = AbstractVector{<:UpFlowCircuitNode{O,F}}
+const UpFlowCircuit{O,F} = AbstractVector{<:UpFlowΔNode{O,F}}
 
 #####################
 # traits
@@ -75,13 +75,13 @@ function UpFlowCircuit(circuit::Circuit, m::Int, ::Type{El}, opts = flow_opts★
     F = (El == Bool) ? BitVector : Vector{El}
     fmem  = () -> some_vector(El, m) # note: fmem's return type will determine type of all UpFlows in the circuit (should be El)
     
-    cache = Dict{CircuitNode, UpFlowCircuitNode}()
+    cache = Dict{ΔNode, UpFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)
 
-    upflow_node(::LiteralLeaf, n::CircuitNode) = UpFlowLiteral{O,F}(n, fmem())
-    upflow_node(::ConstantLeaf, n::CircuitNode) = UpFlowConstant{O,F}(n, fmem())
+    upflow_node(::LiteralLeaf, n::ΔNode) = UpFlowLiteral{O,F}(n, fmem())
+    upflow_node(::ConstantLeaf, n::ΔNode) = UpFlowConstant{O,F}(n, fmem())
 
-    upflow_node(::⋀, n::CircuitNode) = begin
+    upflow_node(::⋀, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
         @assert length(children)>=2
         pr_fs = pr_factors(children)
@@ -92,7 +92,7 @@ function UpFlowCircuit(circuit::Circuit, m::Int, ::Type{El}, opts = flow_opts★
         end
     end
 
-    upflow_node(::⋁, n::CircuitNode) = begin
+    upflow_node(::⋁, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
         @assert length(children)>=1
         pr_fs = pr_factors(children)
@@ -119,12 +119,12 @@ end
 @inline children(n::UpFlow⋁Compact) = [n.child]
 @inline children(n::Union{UpFlow⋀,UpFlow⋁Cached}) = n.children
 
-@inline pr(n::UpFlowCircuitNode) = prod_fast(pr_factors(n))
+@inline pr(n::UpFlowΔNode) = prod_fast(pr_factors(n))
 @inline pr(n::HasPr) = n.pr
 
-@inline pr_factors(n::UpFlowCircuitNode) = n.cached_pr_factors
+@inline pr_factors(n::UpFlowΔNode) = n.cached_pr_factors
 @inline pr_factors(n::HasPr) = [n.pr]
-@inline function pr_factors(ns::Vector{<:UpFlowCircuitNode{O,F}})::Vector{F} where {O,F}
+@inline function pr_factors(ns::Vector{<:UpFlowΔNode{O,F}})::Vector{F} where {O,F}
     flatmap(c -> pr_factors(c)::Vector{F}, ns, F[])
 end
 
@@ -142,7 +142,7 @@ function resize_flows(circuit::UpFlowCircuit{F}, size::Int) where {F}
     end
 end
 
-@inline resize_pr(n::UpFlowCircuitNode, size) = () #do nothing
+@inline resize_pr(n::UpFlowΔNode, size) = () #do nothing
 @inline resize_pr(n::HasPr, size) = resize!(n.pr, size)
 
 #####################
@@ -155,7 +155,7 @@ function pass_up(circuit::UpFlowCircuit{O,F}, data::PlainXData{E}) where {E <: e
     @assert all(pr(circuit[end]) .≈ one(eltype(F))) "Root probabilities are expected to be 1: $(pr(circuit[end])) ≆ $(one(eltype(F)))"
 end
 
-pass_up_node(n::UpFlowCircuitNode, ::PlainXData) = () #do nothing
+pass_up_node(n::UpFlowΔNode, ::PlainXData) = () #do nothing
 
 function pass_up_node(n::UpFlowLiteral{O,F}, data::PlainXData{E}) where {E <: eltype(F)} where {F,O}
     npr = pr(n)

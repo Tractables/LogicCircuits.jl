@@ -4,13 +4,13 @@
 #####################
 
 "Root of the structure logical circuit node hierarchy"
-abstract type StructLogicalCircuitNode <: LogicalCircuitNode end
+abstract type StructLogicalΔNode <: LogicalΔNode end
 
 "A structured logical leaf node"
-abstract type StructLogicalLeafNode <: StructLogicalCircuitNode end
+abstract type StructLogicalLeafNode <: StructLogicalΔNode end
 
 "A structured logical inner node"
-abstract type StructLogicalInnerNode <: StructLogicalCircuitNode end
+abstract type StructLogicalInnerNode <: StructLogicalΔNode end
 
 "A structured logical literal leaf node, representing the positive or negative literal of its variable"
 struct StructLiteralNode <: StructLogicalLeafNode
@@ -28,18 +28,18 @@ struct StructFalseNode <: StructConstantNode end
 
 "A structured logical conjunction node"
 struct Struct⋀Node <: StructLogicalInnerNode
-    children::Vector{StructLogicalCircuitNode}
+    children::Vector{StructLogicalΔNode}
     vtree::VtreeInnerNode
 end
 
 "A structured logical disjunction node"
 struct Struct⋁Node <: StructLogicalInnerNode
-    children::Vector{StructLogicalCircuitNode}
+    children::Vector{StructLogicalΔNode}
     vtree::VtreeNode # could be leaf or inner
 end
 
 "A structured logical circuit represented as a bottom-up linear order of nodes"
-const StructLogicalCircuit = AbstractVector{<:StructLogicalCircuitNode}
+const StructLogicalCircuit = AbstractVector{<:StructLogicalΔNode}
 
 #####################
 # traits

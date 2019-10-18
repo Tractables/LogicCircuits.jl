@@ -4,10 +4,10 @@
 
 "Representation of downward flows with `in_progress` Bool for effective book keeping"
 
-abstract type DownFlowCircuitNode{O,F} <: DecoratorCircuitNode{UpFlowCircuitNode{O,F}} end
-abstract type DownFlowInnerNode{O,F} <: DownFlowCircuitNode{O,F} end
+abstract type DownFlowΔNode{O,F} <: DecoratorΔNode{UpFlowΔNode{O,F}} end
+abstract type DownFlowInnerNode{O,F} <: DownFlowΔNode{O,F} end
 
-struct DownFlowLeaf{O,F} <: DownFlowCircuitNode{O,F}
+struct DownFlowLeaf{O,F} <: DownFlowΔNode{O,F}
     origin::UpFlowLeafNode{O,F}
 end
 
@@ -22,34 +22,34 @@ end
 
 struct DownFlow⋀Compact{O,F} <: DownFlow⋀{O,F}
     origin::UpFlow⋀{O,F}
-    children::Vector{<:DownFlowCircuitNode{<:O,F}}
+    children::Vector{<:DownFlowΔNode{<:O,F}}
     cached_downflow_sinks::Vector{DownFlow{F}}
 end
 
 # use this version of DownFlow⋀ when ⋀ gates can have multiple parents to save computation (compact=false)
 struct DownFlow⋀Cached{O,F} <: DownFlow⋀{O,F}
     origin::UpFlow⋀{<:O,<:F}
-    children::Vector{<:DownFlowCircuitNode{<:O,F}}
+    children::Vector{<:DownFlowΔNode{<:O,F}}
     downflow::DownFlow{F}
 end
 
 # this version of DownFlow⋁ is efficient for arity-1 gates
 struct DownFlow⋁Compact{O,F} <: DownFlow⋁{O,F}
     origin::UpFlow⋁{<:O,<:F}
-    child::DownFlowCircuitNode{<:O,F}
+    child::DownFlowΔNode{<:O,F}
     cached_downflow_sinks::Vector{DownFlow{F}}
 end
 
 struct DownFlow⋁Cached{O,F} <: DownFlow⋁{O,F}
     origin::UpFlow⋁{<:O,<:F}
-    children::Vector{<:DownFlowCircuitNode{<:O,F}}
+    children::Vector{<:DownFlowΔNode{<:O,F}}
     downflow::DownFlow{F}
 end
 
-const DownFlowCircuit{O,F} = AbstractVector{<:DownFlowCircuitNode{O,F}}
+const DownFlowCircuit{O,F} = AbstractVector{<:DownFlowΔNode{O,F}}
 
-const FlowCircuitNode{O,F} = DownFlowCircuitNode{O,F}
-const FlowCircuit{O,F} = AbstractVector{<:FlowCircuitNode{O,F}}
+const FlowΔNode{O,F} = DownFlowΔNode{O,F}
+const FlowCircuit{O,F} = AbstractVector{<:FlowΔNode{O,F}}
 
 #####################
 # traits
@@ -71,12 +71,12 @@ function DownFlowCircuit(circuit::UpFlowCircuit{O,F}, opts = flow_opts★)::Down
     m = flow_length(circuit)
     fmem  = () -> some_vector(eltype(F), m)
     
-    cache = Dict{CircuitNode, DownFlowCircuitNode}()
+    cache = Dict{ΔNode, DownFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)
 
-    flow_node(::Leaf, n::CircuitNode) = DownFlowLeaf{O,F}(n)
+    flow_node(::Leaf, n::ΔNode) = DownFlowLeaf{O,F}(n)
 
-    flow_node(::⋀, n::CircuitNode) = begin
+    flow_node(::⋀, n::ΔNode) = begin
         n_children = map(c -> cache[c], children(n))
         @assert length(n_children)>=2
         sinks = downflow_sinks(n_children)
@@ -87,7 +87,7 @@ function DownFlowCircuit(circuit::UpFlowCircuit{O,F}, opts = flow_opts★)::Down
         end
     end
 
-    flow_node(::⋁, n::CircuitNode) = begin
+    flow_node(::⋁, n::ΔNode) = begin
         n_children = map(c -> cache[c], children(n))
         @assert length(n_children)>=1
         sinks = downflow_sinks(n_children)
@@ -126,12 +126,12 @@ end
 @inline downflow_sinks(n::DownFlowInnerNode) = n.cached_downflow_sinks
 @inline downflow_sinks(n::HasDownFlow) = [n.downflow]
 @inline downflow_sinks(n::DownFlowLeaf{O,F}) where {O,F} = Vector{DownFlow{F}}()
-@inline function downflow_sinks(ns::Vector{<:DownFlowCircuitNode{O,F}})::Vector{DownFlow{F}} where {O,F}
+@inline function downflow_sinks(ns::Vector{<:DownFlowΔNode{O,F}})::Vector{DownFlow{F}} where {O,F}
     flatmap(c -> downflow_sinks(c)::Vector{DownFlow{F}}, ns, DownFlow{F}[])
 end
 
-pr(n::DownFlowCircuitNode) = pr(origin(n))
-pr_factors(n::DownFlowCircuitNode) = pr_factors(origin(n))
+pr(n::DownFlowΔNode) = pr(origin(n))
+pr_factors(n::DownFlowΔNode) = pr_factors(origin(n))
 
 flow_length(circuit::DownFlowCircuit) = length(downflow_sinks(circuit[end])[1].downflow)
 origin_flow_length(circuit::DownFlowCircuit) = flow_length(origin(circuit[end]))
@@ -148,7 +148,7 @@ function resize_flows(circuit::DownFlowCircuit{F}, size::Int) where {F}
     end
 end
 
-@inline resize_path_flow(n::DownFlowCircuitNode, size) = () #do nothing
+@inline resize_path_flow(n::DownFlowΔNode, size) = () #do nothing
 @inline resize_path_flow(n::HasDownFlow, size) = resize!(n.downflow.downflow, size)
 
 #####################
@@ -168,10 +168,10 @@ function pass_down(circuit::DownFlowCircuit{O,F}) where {F,O}
 end
 
 
-reset_downflow_in_progress(n::DownFlowCircuitNode) = () # do nothing
+reset_downflow_in_progress(n::DownFlowΔNode) = () # do nothing
 reset_downflow_in_progress(n::HasDownFlow) = (n.downflow.in_progress = false)
 
-pass_down_node(n::DownFlowCircuitNode) = () # do nothing
+pass_down_node(n::DownFlowΔNode) = () # do nothing
 pass_down_node(n::DownFlowLeaf) = () # too costly? @assert pr(n) ≈ downflow(n) "Postitive leaf flows should be equal to their probabilities: $(pr(n)) ≆ $(downflow(n))"
 
 function pass_down_node(n::DownFlow⋀Cached)

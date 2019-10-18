@@ -8,31 +8,31 @@ using ...Utils
 export
 
 # Circuits
-Var, Lit, var2lit, lit2var, CircuitNode, Circuit, 
+Var, Lit, var2lit, lit2var, ΔNode, Circuit, 
 LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
 num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable,
 negative, positive, variable, literal, tree_size, variable_scopes, variable_scope, num_variables,
 propagate_constants, root, is_smooth, smooth, num_nodes, num_edges, forget, true_like, false_like, 
-DecoratorCircuit, DecoratorCircuitNode, origin, grand_origin, circuitnodetype,
+DecoratorCircuit, DecoratorΔNode, origin, grand_origin, circuitnodetype,
 
 # LogicalCircuits
-LogicalCircuitNode, UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit, UnstLogicalCircuit,
+LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalCircuit, UnstLogicalCircuit,
 LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode,
 fully_factorized_circuit,
 
 # UpFlowCircuits
-UpFlowCircuitNode, UpFlowCircuit, UpFlowCircuit, UpFlowLeafNode, UpFlowInnerNode,
+UpFlowΔNode, UpFlowCircuit, UpFlowCircuit, UpFlowLeafNode, UpFlowInnerNode,
 UpFlowLiteral, UpFlowConstant, UpFlow⋀Compact, UpFlow⋀Cached, UpFlow⋁Compact, UpFlow⋁Cached, UpFlow⋀, UpFlow⋁,
 flow_opts★, pass_up, pass_up_node, pr_factors, pr, resize_flows, flow_length,
 
 # DownFlowCircuits
-DownFlowCircuitNode, DownFlowCircuit, DownFlowCircuit, DownFlowLeaf, DownFlowInnerNode,
+DownFlowΔNode, DownFlowCircuit, DownFlowCircuit, DownFlowLeaf, DownFlowInnerNode,
 DownFlow⋀Compact, DownFlow⋀Cached, DownFlow⋁Compact, DownFlow⋁Cached, DownFlow⋀, DownFlow⋁,
 HasDownFlow, pass_down, pass_up_down, downflow, reset_downflow_in_progress, downflow_sinks,
-FlowCircuitNode, FlowCircuit, FlowCircuit,
+FlowΔNode, FlowCircuit, FlowCircuit,
 
 # AggregateFlowCircuits
-AggregateFlowCircuit, AggregateFlowCircuit, AggregateFlowCircuitNode, AggregateFlow⋁,
+AggregateFlowCircuit, AggregateFlowCircuit, AggregateFlowΔNode, AggregateFlow⋁,
 reset_aggregate_flows, accumulate_aggr_flows_batch, accumulate_aggr_flows_cached, opts_accumulate_flows, collect_aggr_flows,
 accumulate_aggr_flows,
 
@@ -42,7 +42,7 @@ order_nodes_leaves_before_parents, construct_top_down, construct_bottom_up,
 isequal, isequal_unordered, left_most_child,path_length,random_vtree,
 
 # StructuredLogicalCircuits
-StructLogicalCircuitNode, StructLogicalLeafNode, StructLogicalCircuit,
+StructLogicalΔNode, StructLogicalLeafNode, StructLogicalCircuit,
 StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node
 
 include("Circuits.jl")

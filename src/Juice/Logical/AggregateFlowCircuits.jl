@@ -3,9 +3,9 @@
 # (like a flow circuit but aggregates flows over several examples and batches)
 #####################
 
-abstract type AggregateFlowCircuitNode{O,A} <: DecoratorCircuitNode{O} end
-abstract type AggregateFlowLeafNode{O,A} <: AggregateFlowCircuitNode{O,A} end
-abstract type AggregateFlowInnerNode{O,A} <: AggregateFlowCircuitNode{O,A} end
+abstract type AggregateFlowΔNode{O,A} <: DecoratorΔNode{O} end
+abstract type AggregateFlowLeafNode{O,A} <: AggregateFlowΔNode{O,A} end
+abstract type AggregateFlowInnerNode{O,A} <: AggregateFlowΔNode{O,A} end
 
 struct AggregateFlowLiteral{O,A} <: AggregateFlowLeafNode{O,A}
     origin::O
@@ -17,17 +17,17 @@ end
 
 struct AggregateFlow⋀{O,A} <: AggregateFlowInnerNode{O,A}
     origin::O
-    children::Vector{<:AggregateFlowCircuitNode{<:O,A}}
+    children::Vector{<:AggregateFlowΔNode{<:O,A}}
 end
 
 mutable struct AggregateFlow⋁{O,A} <: AggregateFlowInnerNode{O,A}
     origin::O
-    children::Vector{<:AggregateFlowCircuitNode{<:O,A}}
+    children::Vector{<:AggregateFlowΔNode{<:O,A}}
     aggr_flow::A
     aggr_flow_children::Vector{A}
 end
 
-const AggregateFlowCircuit{O,A} = AbstractVector{<:AggregateFlowCircuitNode{O,A}}
+const AggregateFlowCircuit{O,A} = AbstractVector{<:AggregateFlowΔNode{O,A}}
 
 #####################
 # traits
@@ -45,19 +45,19 @@ const AggregateFlowCircuit{O,A} = AbstractVector{<:AggregateFlowCircuitNode{O,A}
 
 
 function AggregateFlowCircuit(circuit::Circuit, ::Type{A}) where {A}
-    cache = Dict{CircuitNode, AggregateFlowCircuitNode}()
+    cache = Dict{ΔNode, AggregateFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)
     
     O = circuitnodetype(circuit) # type of node in the origin
-    af_node(::LiteralLeaf, n::CircuitNode) = AggregateFlowLiteral{O,A}(n)
-    af_node(::ConstantLeaf, n::CircuitNode) = AggregateFlowConstant{O,A}(n)
+    af_node(::LiteralLeaf, n::ΔNode) = AggregateFlowLiteral{O,A}(n)
+    af_node(::ConstantLeaf, n::ΔNode) = AggregateFlowConstant{O,A}(n)
 
-    af_node(::⋀, n::CircuitNode) = begin
+    af_node(::⋀, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
         AggregateFlow⋀{O,A}(n, children)
     end
 
-    af_node(::⋁, n::CircuitNode) = begin
+    af_node(::⋁, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
         AggregateFlow⋁{O,A}(n, children, zero(A), some_vector(A, num_children(n)))
     end
@@ -90,7 +90,7 @@ end
 
 # set flow counters to zero
 reset_aggregate_flows(afc::AggregateFlowCircuit) = foreach(n->reset_aggregate_flow(n), afc)
-reset_aggregate_flow(::AggregateFlowCircuitNode) = () # do nothing
+reset_aggregate_flow(::AggregateFlowΔNode) = () # do nothing
 reset_aggregate_flow(n::AggregateFlow⋁{O,A}) where {O,A} = (n.aggr_flow = zero(A) ; n.aggr_flow_children .= zero(A))
 
 const opts_accumulate_flows = (flow_opts★..., compact⋁=false) #keep default options but insist on Bool flows

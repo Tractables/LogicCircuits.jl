@@ -15,7 +15,7 @@ using .Juice
     prob_circuit = load_prob_circuit(file);
     @test is_decomposable(prob_circuit);
 
-    lin = LogicalCircuitNode[]
+    lin = LogicalΔNode[]
     ors = map(1:10) do v
         pos = LiteralNode(var2lit(Var(v)))
         push!(lin, pos)
@@ -33,7 +33,7 @@ using .Juice
     @test is_decomposable(lin)
 
 
-    lin2 = LogicalCircuitNode[]
+    lin2 = LogicalΔNode[]
     ors = map(1:10) do v
         pos = LiteralNode(var2lit(Var(v)))
         push!(lin2, pos)
@@ -53,7 +53,7 @@ using .Juice
 
 
 
-    lin3 = LogicalCircuitNode[]
+    lin3 = LogicalΔNode[]
     ors = map(1:10) do v
         pos = LiteralNode(var2lit(Var(v)))
         push!(lin3, pos)
@@ -80,11 +80,11 @@ using .Juice
 
     @test !is_decomposable(lin3)
 
-    simpletest1 = LogicalCircuitNode[]
+    simpletest1 = LogicalΔNode[]
     push!(simpletest1, LiteralNode(Lit(1)))
     @test is_decomposable(simpletest1)
 
-    simpletest2 = LogicalCircuitNode[]
+    simpletest2 = LogicalΔNode[]
     leaf1 = LiteralNode(Lit(1))
     leaf2 = LiteralNode(Lit(-1))
     and = ⋀Node([leaf1, leaf2])
