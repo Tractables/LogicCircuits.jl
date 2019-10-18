@@ -6,7 +6,8 @@
 
 abstract type DownFlowCircuitNode{O,F} <: DecoratorCircuitNode{O} end
 abstract type DownFlowInnerNode{O,F} <: DownFlowCircuitNode{O,F} end
-struct DownFlowLeafNode{O,F} <: DownFlowCircuitNode{O,F}
+
+struct DownFlowLeaf{O,F} <: DownFlowCircuitNode{O,F}
     origin::O
 end
 
@@ -47,12 +48,14 @@ end
 
 const DownFlowCircuit△{O,F} = AbstractVector{<:DownFlowCircuitNode{<:O,F}}
 
+const FlowCircuitNode{O,F} = DownFlowCircuitNode{UpFlowCircuitNode{O,F},F}
+const FlowCircuit△{O,F} = AbstractVector{<:FlowCircuitNode{<:O,F}}
 
 #####################
 # traits
 #####################
 
-@inline NodeType(::Type{<:DownFlowLeafNode{O}}) where O = NodeType(O)
+@inline NodeType(::Type{<:DownFlowLeaf{O}}) where O = NodeType(O)
 @inline NodeType(::Type{<:DownFlow⋀}) = ⋀()
 @inline NodeType(::Type{<:DownFlow⋁}) = ⋁()
 
@@ -63,11 +66,13 @@ const HasDownFlow = Union{DownFlow⋁Cached,DownFlow⋀Cached}
 #####################
 
 """Construct a downward flow circuit from a given other circuit"""
-function DownFlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts★) where El
+function DownFlowCircuit(circuit::U, m::Int, ::Type{El}, opts = flow_opts★) where El  where {U <: UpFlowCircuit△}
     # TODO get rid of the arguments above, they are mostly useless
 
     O = circuitnodetype(circuit) # type of node in the origin
     F = (El == Bool) ? BitVector : Vector{El}
+
+    # m = flow_length(circuit)
     fmem  = () -> some_vector(El, m) # note: fmem's return type will determine type of all flows in the circuit (should be El)
     
     cache = Dict{CircuitNode, DownFlowCircuitNode}()
@@ -118,12 +123,16 @@ end
 
 @inline downflow_sinks(n::DownFlowInnerNode) = n.cached_downflow_sinks
 @inline downflow_sinks(n::HasDownFlow) = [n.downflow]
-@inline downflow_sinks(n::DownFlowLeafNode{O,F}) where {O,F} = Vector{DownFlow{F}}()
+@inline downflow_sinks(n::DownFlowLeaf{O,F}) where {O,F} = Vector{DownFlow{F}}()
 @inline function downflow_sinks(ns::Vector{<:DownFlowCircuitNode{O,F}})::Vector{DownFlow{F}} where {O,F}
     flatmap(c -> downflow_sinks(c)::Vector{DownFlow{F}}, ns, DownFlow{F}[])
 end
 
-flow_length(circuit::DownFlowCircuit△) = length(downflow_sinks(circuit[end])[1])
+pr(n::DownFlowCircuitNode) = pr(origin(n))
+pr_factors(n::DownFlowCircuitNode) = pr_factors(origin(n))
+
+flow_length(circuit::DownFlowCircuit△) = length(downflow_sinks(circuit[end])[1].downflow)
+origin_flow_length(circuit::DownFlowCircuit△) = flow_length(origin(circuit[end]))
 
 #####################
 
@@ -143,6 +152,7 @@ end
 #####################
 
 function pass_down(circuit::DownFlowCircuit△{O,F}) where {F,O}
+    resize_flows(circuit, flow_length(origin(circuit)))
     for n in circuit
         reset_downflow_in_progress(n)
     end
@@ -160,7 +170,7 @@ reset_downflow_in_progress(n::DownFlowCircuitNode) = () # do nothing
 reset_downflow_in_progress(n::HasDownFlow) = (n.downflow.in_progress = false)
 
 pass_down_node(n::DownFlowCircuitNode) = () # do nothing
-pass_down_node(n::DownFlowLiteral) = () # too costly? @assert pr(n) ≈ downflow(n) "Postitive leaf flows should be equal to their probabilities: $(pr(n)) ≆ $(downflow(n))"
+pass_down_node(n::DownFlowLeaf) = () # too costly? @assert pr(n) ≈ downflow(n) "Postitive leaf flows should be equal to their probabilities: $(pr(n)) ≆ $(downflow(n))"
 
 function pass_down_node(n::DownFlow⋀Cached)
     for c in n.children
@@ -187,13 +197,13 @@ function pass_down_node(n::DownFlow⋁Cached)
         end
     else
         for c in n.children
-            pr_fs = pr_factors(origin(c))
+            pr_fs = pr_factors(c)
             for sink in downflow_sinks(c)
                 if !sink.in_progress
-                    assign_prod_normalized(sink.downflow, pr(origin(n)), downflow(n), pr_fs)
+                    assign_prod_normalized(sink.downflow, pr(n), downflow(n), pr_fs)
                     sink.in_progress = true
                 else
-                    accumulate_prod_normalized(sink.downflow, pr(origin(n)), downflow(n), pr_fs)
+                    accumulate_prod_normalized(sink.downflow, pr(n), downflow(n), pr_fs)
                 end
             end
         end

@@ -26,10 +26,10 @@ UpFlowLiteral, UpFlowConstant, UpFlow⋀Compact, UpFlow⋀Cached, UpFlow⋁Compa
 flow_opts★, pass_up, pass_up_node, pr_factors, pr, resize_flows, flow_length,
 
 # DownFlowCircuits
-DownFlowCircuitNode, DownFlowCircuit△, DownFlowLeafNode, DownFlowInnerNode,
+DownFlowCircuitNode, DownFlowCircuit△, DownFlowLeaf, DownFlowInnerNode,
 DownFlow⋀Compact, DownFlow⋀Cached, DownFlow⋁Compact, DownFlow⋁Cached, DownFlow⋀, DownFlow⋁,
 HasDownFlow, pass_down, pass_up_down, downflow, reset_downflow_in_progress, downflow_sinks,
-FlowCircuitNode,
+FlowCircuitNode, FlowCircuit△, FlowCircuit,
 
 # AggregateFlowCircuits
 AggregateFlowCircuit, AggregateFlowCircuit△, AggregateFlowCircuitNode, AggregateFlow⋁,
