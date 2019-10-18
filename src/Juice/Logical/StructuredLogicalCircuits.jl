@@ -39,7 +39,7 @@ struct Struct⋁Node <: StructLogicalInnerNode
 end
 
 "A structured logical circuit represented as a bottom-up linear order of nodes"
-const StructLogicalCircuit△ = AbstractVector{<:StructLogicalCircuitNode}
+const StructLogicalCircuit = AbstractVector{<:StructLogicalCircuitNode}
 
 #####################
 # traits

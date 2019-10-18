@@ -18,7 +18,7 @@ mutable struct VtreeInnerNode <: VtreeNode
     variables::Vector{Var}
 end
 
-const Vtree△ = AbstractVector{<:VtreeNode}
+const Vtree = AbstractVector{<:VtreeNode}
 
 #####################
 # Constructor
@@ -39,11 +39,11 @@ isleaf(n::VtreeInnerNode) = false
 
 variables(n::VtreeLeafNode) = [n.var]
 variables(n::VtreeInnerNode) = n.variables
-variables(n::Vtree△) = variables(n[end])
+variables(n::Vtree) = variables(n[end])
 
 num_variables(n::VtreeLeafNode) = 1
 num_variables(n::VtreeInnerNode) = length(n.variables)
-num_variables(n::Vtree△) = num_variables(n[end])
+num_variables(n::Vtree) = num_variables(n[end])
 
 #####################
 # Methods
@@ -53,7 +53,7 @@ num_variables(n::Vtree△) = num_variables(n[end])
 Returns the nodes in order of leaves to root.
 Which is basically reverse Breadth First Search from the root.
 """
-function order_nodes_leaves_before_parents(root::VtreeNode)::Vtree△
+function order_nodes_leaves_before_parents(root::VtreeNode)::Vtree
     # Running BFS
     visited = Vector{VtreeNode}()
     queue = Queue{VtreeNode}()
@@ -85,7 +85,7 @@ end
 """
 Order the nodes in preorder
 """
-function pre_order_traverse(root::VtreeNode)::Vtree△
+function pre_order_traverse(root::VtreeNode)::Vtree
     # Running DFS
     visited = Vector{VtreeNode}()
     stack = Stack{VtreeNode}()
@@ -127,7 +127,7 @@ end
 """
 Construct Vtree bottom up, using method specified by combine_method!.
 """
-function construct_bottom_up(vars::Vector{Var}, combine_method!)::Vtree△
+function construct_bottom_up(vars::Vector{Var}, combine_method!)::Vtree
     vars = copy(vars)
     ln = Vector{VtreeNode}()
     node_cache = Dict{Var, VtreeNode}() # map from variable to *highest* level node
@@ -171,14 +171,14 @@ end
 @inline isequal(n1::VtreeInnerNode, n2::VtreeLeafNode) = false
 @inline isequal(n1::VtreeLeafNode, n2::VtreeInnerNode) = false
 
-function isequal(vtree1::Vtree△, vtree2::Vtree△)::Bool
+function isequal(vtree1::Vtree, vtree2::Vtree)::Bool
     return isequal(vtree1[end], vtree2[end])
 end
 
 """
 Compare whether two vtrees are equal, left right child order does not matter
 """
-function isequal_unordered(vtree1::Vtree△, vtree2::Vtree△)::Bool
+function isequal_unordered(vtree1::Vtree, vtree2::Vtree)::Bool
     return isequal_unordered(vtree1[end], vtree2[end])
 end
 
@@ -210,7 +210,7 @@ end
 
 @inline function isvalid(n::VtreeLeafNode)::Bool true; end
 
-function isvalid(vtree::Vtree△)::Bool
+function isvalid(vtree::Vtree)::Bool
     return isvalid(vtree[end])
 end
 
@@ -246,7 +246,7 @@ function pushrand!(v::AbstractVector{<:Any}, element)
     v
 end
 
-function random_vtree(num_variables::Integer; vtree_mode::String)::Vtree△
+function random_vtree(num_variables::Integer; vtree_mode::String)::Vtree
     @assert vtree_mode in ["linear", "balanced", "rand"]
     vars = Var.(Random.randperm(num_variables))
     

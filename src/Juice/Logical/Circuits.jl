@@ -27,13 +27,13 @@ const Lit = Int32 # variable with a positive or negative sign
 abstract type CircuitNode end
 
 "Any circuit represented as a bottom-up linear order of nodes"
-const Circuit△ = AbstractVector{<:CircuitNode}
+const Circuit = AbstractVector{<:CircuitNode}
 
 "A circuit node that has an origin of type O"
 abstract type DecoratorCircuitNode{O <: CircuitNode} <: CircuitNode end
 
 "Any circuit that has an origin represented as a bottom-up linear order of nodes"
-const DecoratorCircuit△{O} = AbstractVector{<:DecoratorCircuitNode{O}}
+const DecoratorCircuit{O} = AbstractVector{<:DecoratorCircuitNode{O}}
 
 #####################
 # General traits
@@ -115,45 +115,45 @@ function children end
 @inline is_false(::ConstantLeaf, n::CircuitNode)::Bool = (constant(n) == false)
 
 "Get the list of inner nodes in a given circuit"
-inodes(c::Circuit△) = filter(n -> NodeType(n) isa Inner, c)
+inodes(c::Circuit) = filter(n -> NodeType(n) isa Inner, c)
 
 "Get the list of leaf nodes in a given circuit"
-leafnodes(c::Circuit△) = filter(n -> NodeType(n) isa Leaf, c)
+leafnodes(c::Circuit) = filter(n -> NodeType(n) isa Leaf, c)
 
 "Get the list of conjunction nodes in a given circuit"
-⋀_nodes(c::Circuit△) = filter(n -> NodeType(n) isa ⋀, c)
+⋀_nodes(c::Circuit) = filter(n -> NodeType(n) isa ⋀, c)
 
 "Get the list of disjunction nodes in a given circuit"
-⋁_nodes(c::Circuit△) = filter(n -> NodeType(n) isa ⋁, c)
+⋁_nodes(c::Circuit) = filter(n -> NodeType(n) isa ⋁, c)
 
 "Number of nodes in the circuit"
-num_nodes(c::Circuit△) = length(c)
+num_nodes(c::Circuit) = length(c)
 
 "Number of edges in the circuit"
-num_edges(c::Circuit△) = sum(n -> length(children(n)), inodes(c))
+num_edges(c::Circuit) = sum(n -> length(children(n)), inodes(c))
 
 "Number of edges in the circuit"
-num_variables(c::Circuit△) = length(variable_scope(c))
+num_variables(c::Circuit) = length(variable_scope(c))
 
 "Give count of types and fan-ins of inner nodes in the circuit"
-function inode_stats(c::Circuit△)
+function inode_stats(c::Circuit)
     groups = groupby(e -> (typeof(e),num_children(e)), inodes(c))
     map_values(v -> length(v), groups, Int)
 end
 
 "Give count of types of leaf nodes in the circuit"
-function leaf_stats(c::Circuit△)
+function leaf_stats(c::Circuit)
     groups = groupby(e -> typeof(e), leafnodes(c))
     map_values(v -> length(v), groups, Int)
 end
 
 "Give count of types and fan-ins of all nodes in the circuit"
-node_stats(c:: Circuit△) = merge(leaf_stats(c), inode_stats(c))
+node_stats(c:: Circuit) = merge(leaf_stats(c), inode_stats(c))
 
 """
 Compute the size of a tree-unfolding of the DAG circuit. 
 """
-function tree_size(circuit:: Circuit△) 
+function tree_size(circuit:: Circuit) 
     size = Dict{CircuitNode,BigInt}()
     for node in circuit
         if has_children(node)
@@ -166,12 +166,12 @@ function tree_size(circuit:: Circuit△)
 end
 
 "Get the variable scope of the entire circuit"
-function variable_scope(circuit:: Circuit△)::BitSet
+function variable_scope(circuit:: Circuit)::BitSet
     variable_scopes(circuit)[circuit[end]]
 end
 
 "Get the variable scope of each node in the circuit"
-function variable_scopes(circuit:: Circuit△)::Dict{CircuitNode,BitSet}
+function variable_scopes(circuit:: Circuit)::Dict{CircuitNode,BitSet}
     scope = Dict{CircuitNode,BitSet}()
     scope_set(n::CircuitNode) = scope_set(NodeType(n),n)
     scope_set(::ConstantLeaf, ::CircuitNode) = BitSet()
@@ -185,7 +185,7 @@ function variable_scopes(circuit:: Circuit△)::Dict{CircuitNode,BitSet}
 end
 
 "Is the circuit smooth?"
-function is_smooth(circuit:: Circuit△)::Bool
+function is_smooth(circuit:: Circuit)::Bool
     scope = variable_scopes(circuit)
     is_smooth_node(n::CircuitNode) = is_smooth_node(NodeType(n),n)
     is_smooth_node(::NodeType, ::CircuitNode) = true
@@ -195,7 +195,7 @@ function is_smooth(circuit:: Circuit△)::Bool
 end
 
 "Is the circuit decomposable?"
-function is_decomposable(circuit:: Circuit△)::Bool
+function is_decomposable(circuit:: Circuit)::Bool
     scope = variable_scopes(circuit)
     is_decomposable_node(n::CircuitNode) = is_decomposable_node(NodeType(n),n)
     is_decomposable_node(::NodeType, ::CircuitNode) = true
@@ -205,7 +205,7 @@ function is_decomposable(circuit:: Circuit△)::Bool
 end
 
 "Make the circuit smooth"
-function smooth(circuit::Circuit△)
+function smooth(circuit::Circuit)
     scope = variable_scopes(circuit)
     smoothed = Dict{CircuitNode,CircuitNode}()
     smooth_node(n::CircuitNode) = smooth_node(NodeType(n),n)
@@ -232,7 +232,7 @@ end
 Forget variables from the circuit. 
 Warning: this may or may not destroy the determinism property.
 """
-function forget(is_forgotten::Function, circuit::Circuit△)
+function forget(is_forgotten::Function, circuit::Circuit)
     forgotten = Dict{CircuitNode,CircuitNode}()
     forget_node(n::CircuitNode) = forget_node(NodeType(n),n)
     forget_node(::ConstantLeaf, n::CircuitNode) = n
@@ -260,7 +260,7 @@ false_like(n) = disjoin_like(n)
 
 
 "Remove all constant leafs from the circuit"
-function propagate_constants(circuit::Circuit△)
+function propagate_constants(circuit::Circuit)
     proped = Dict{CircuitNode,CircuitNode}()
     propagate(n::CircuitNode) = propagate(NodeType(n),n)
     propagate(::Leaf, n::CircuitNode) = n
@@ -289,7 +289,7 @@ function propagate_constants(circuit::Circuit△)
 end
 
 "Rebuild a circuit's linear bottom-up order from a new root node"
-function root(root::CircuitNode)::Circuit△
+function root(root::CircuitNode)::Circuit
     seen = Set{CircuitNode}()
     circuit = Vector{CircuitNode}()
     see(n::CircuitNode) = see(NodeType(n),n)
@@ -315,18 +315,18 @@ end
 "Get the origin of the given decorator circuit node"
 @inline (origin(n::DecoratorCircuitNode{O})::O) where {O<:CircuitNode} = n.origin
 "Get the origin of the given decorator circuit"
-@inline origin(circuit::DecoratorCircuit△) = lower_element_type(map(n -> n.origin, circuit))
+@inline origin(circuit::DecoratorCircuit) = lower_element_type(map(n -> n.origin, circuit))
 
 "Get the first origin of the given decorator circuit node of the given type"
 @inline (origin(n::DecoratorCircuitNode{<:O}, ::Type{O})::O) where {O<:CircuitNode} = origin(n)
 "Get the first origin of the given decorator circuit of the given type"
 @inline (origin(n::DecoratorCircuitNode, ::Type{T})::T) where {T<:CircuitNode} = origin(origin(n),T)
-@inline origin(circuit::DecoratorCircuit△, ::Type{T}) where T = lower_element_type(map(n -> origin(n,T), circuit))
+@inline origin(circuit::DecoratorCircuit, ::Type{T}) where T = lower_element_type(map(n -> origin(n,T), circuit))
 
 "Get the origin of the origin of the given decorator circuit node"
 @inline (grand_origin(n::DecoratorCircuitNode{<:DecoratorCircuitNode{O}})::O) where {O} = n.origin.origin
 "Get the origin of the origin the given decorator circuit"
-@inline grand_origin(circuit::DecoratorCircuit△) = origin(origin(circuit))
+@inline grand_origin(circuit::DecoratorCircuit) = origin(origin(circuit))
 
 "Get the type of circuit node contained in this circuit"
-circuitnodetype(circuit::Circuit△)::Type{<:CircuitNode} = eltype(circuit)
+circuitnodetype(circuit::Circuit)::Type{<:CircuitNode} = eltype(circuit)

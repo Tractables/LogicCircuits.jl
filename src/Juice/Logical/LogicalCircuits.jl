@@ -34,10 +34,10 @@ struct ⋁Node <: LogicalInnerNode
 end
 
 "A logical circuit represented as a bottom-up linear order of nodes"
-const LogicalCircuit△ = AbstractVector{<:LogicalCircuitNode}
+const LogicalCircuit = AbstractVector{<:LogicalCircuitNode}
 
 "A unstructured logical circuit represented as a bottom-up linear order of nodes"
-const UnstLogicalCircuit△ = AbstractVector{<:UnstLogicalCircuitNode}
+const UnstLogicalCircuit = AbstractVector{<:UnstLogicalCircuitNode}
 
 #####################
 # traits

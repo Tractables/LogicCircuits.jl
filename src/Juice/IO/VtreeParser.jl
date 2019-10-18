@@ -1,5 +1,5 @@
 
-function load_vtree(file::String)::Vtree△
+function load_vtree(file::String)::Vtree
     return compile_vtree_format_lines(parse_vtree_file(file))
 end
 

@@ -25,7 +25,7 @@ struct VtreeLeafLine <: VtreeFormatLine
     variable::Var
 end
 
-compile_vtree_format_lines(lines::VtreeFormatLines)::Vtree△ = 
+compile_vtree_format_lines(lines::VtreeFormatLines)::Vtree = 
     compile_vtree_format_lines_m(lines)[1]
 
 function compile_vtree_format_lines_m(lines::VtreeFormatLines)

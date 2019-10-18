@@ -46,7 +46,7 @@ end
 """
 Saves a vtree in the given file path.
 """
-function save(vtree::Vtree△, file::AbstractString)
+function save(vtree::Vtree, file::AbstractString)
 
     "1. decide file type and open file"
     if endswith(file,".vtree")
@@ -66,13 +66,13 @@ function save(vtree::Vtree△, file::AbstractString)
         end
 
     "3. saving methods for header, nodes, tailer"
-    function save_vtree_header(vtree::Vtree△, f::VtreeConfigFile)
+    function save_vtree_header(vtree::Vtree, f::VtreeConfigFile)
         vtree_count = length(vtree)
         write(f.file, VTREE_FORMAT)
         write(f.file, "vtree $vtree_count\n")
     end
 
-    function save_vtree_header(vtree::Vtree△, f::VtreeDotFile)
+    function save_vtree_header(vtree::Vtree, f::VtreeDotFile)
         write(f.file,"strict graph vtree { node [shape=point]; splines=false; \n")
     end
 
