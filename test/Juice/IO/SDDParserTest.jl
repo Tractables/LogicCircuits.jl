@@ -14,7 +14,7 @@ import .Juice.IO:
 
   circuit = load_logical_circuit("test/circuits/random.sdd") 
 
-  @test circuit isa UnstLogicalCircuit
+  @test circuit isa UnstLogicalΔ
   @test num_nodes(circuit) == 1676
   @test is_decomposable(circuit)
   @test !is_smooth(circuit)
@@ -24,7 +24,7 @@ import .Juice.IO:
 
   prop_circuit = propagate_constants(circuit)
 
-  @test prop_circuit isa UnstLogicalCircuit
+  @test prop_circuit isa UnstLogicalΔ
   @test num_nodes(prop_circuit) == 1037
   @test is_decomposable(prop_circuit)
   @test !is_smooth(prop_circuit)
@@ -36,7 +36,7 @@ import .Juice.IO:
 
   smooth_circuit = smooth(prop_circuit)
 
-  @test smooth_circuit isa UnstLogicalCircuit
+  @test smooth_circuit isa UnstLogicalΔ
   @test num_nodes(smooth_circuit) == 1861
   @test is_decomposable(smooth_circuit)
   @test is_smooth(smooth_circuit)
@@ -48,7 +48,7 @@ import .Juice.IO:
 
   forgotten_circuit = forget(v -> (v > 16), circuit)
 
-  @test forgotten_circuit isa UnstLogicalCircuit
+  @test forgotten_circuit isa UnstLogicalΔ
   @test num_nodes(forgotten_circuit) == 1648
   @test num_variables(forgotten_circuit) == 16
   @test is_decomposable(forgotten_circuit)
@@ -58,7 +58,7 @@ import .Juice.IO:
 
   random_circuit = smooth(propagate_constants(forgotten_circuit))
 
-  @test random_circuit isa UnstLogicalCircuit
+  @test random_circuit isa UnstLogicalΔ
   @test num_nodes(random_circuit) == 1644
   @test is_decomposable(random_circuit)
   @test is_smooth(random_circuit)
