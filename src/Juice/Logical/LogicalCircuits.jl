@@ -5,6 +5,7 @@
 "Root of the logical circuit node hierarchy"
 abstract type LogicalΔNode <: ΔNode end
 
+"Root of the unstructured logical circuit node hierarchy"
 abstract type UnstLogicalΔNode <: LogicalΔNode end
 
 "A logical leaf node"
@@ -53,25 +54,15 @@ const UnstLogicalΔ = AbstractVector{<:UnstLogicalΔNode}
 # methods
 #####################
 
-"""
-Get the logical literal in a given literal leaf node
-"""
+"Get the logical literal in a given literal leaf node"
 @inline literal(n::LiteralNode)::Lit = n.literal
-@inline literal(n::ΔNode)::Lit = literal(NodeType(n), n)
-@inline literal(::LiteralLeaf, n::ΔNode)::Lit = error("Each `LiteralLeaf` should implement a `literal` method")
 
-"""
-Get the logical constant in a given constant leaf node
-"""
+"Get the logical constant in a given constant leaf node"
 @inline constant(n::TrueNode)::Bool = true
 @inline constant(n::FalseNode)::Bool = false
-@inline constant(n::ΔNode)::Lit = literal(NodeType(n), n)
-@inline constant(::ConstantLeaf, n::ΔNode)::Lit = error("Each `ConstantLeaf` should implement a `constant` method")
 
 "Get the children of a given inner node"
 @inline children(n::LogicalInnerNode) = n.children
-@inline children(n::ΔNode) = children(NodeType(n), n)
-@inline children(::Union{⋀,⋁}, n::ΔNode) = error("Each `⋀` or `⋁` node should implement a `children` method")
 
 "Generate a fully factorized (Naive bayes/logistic regression) circuit over `n` variables"
 function fully_factorized_circuit(n)

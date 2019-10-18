@@ -73,13 +73,16 @@ Base.show(io::IO, c::ΔNode) = print(io, "$(typeof(c))($(hash(c))))")
 # following methods should be defined for all types of circuits
 
 "Get the logical literal in a given literal leaf node"
-function literal end
+@inline literal(n::ΔNode)::Lit = literal(NodeType(n), n)
+@inline literal(::LiteralLeaf, n::ΔNode)::Lit = error("Each `LiteralLeaf` should implement a `literal` method")
 
 "Get the logical constant in a given constant leaf node"
-function constant end
+@inline constant(n::ΔNode)::Bool = literal(NodeType(n), n)
+@inline constant(::ConstantLeaf, n::ΔNode)::Bool = error("Each `ConstantLeaf` should implement a `constant` method")
 
 "Get the children of a given inner node"
-function children end
+@inline children(n::ΔNode) = children(NodeType(n), n)
+@inline children(::Inner, n::ΔNode) = error("Each inner node should implement a `children` method")
 
 # next bunch of methods are derived from literal, constant, children, and the traits
 
