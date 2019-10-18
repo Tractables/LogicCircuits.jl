@@ -30,7 +30,7 @@ abstract type CircuitNode end
 const Circuit = AbstractVector{<:CircuitNode}
 
 "A circuit node that has an origin of type O"
-abstract type DecoratorCircuitNode{O <: CircuitNode} <: CircuitNode end
+abstract type DecoratorCircuitNode{O<:CircuitNode} <: CircuitNode end
 
 "Any circuit that has an origin represented as a bottom-up linear order of nodes"
 const DecoratorCircuit{O} = AbstractVector{<:DecoratorCircuitNode{O}}
@@ -61,15 +61,13 @@ struct ⋀ <: Inner end
 "A trait denoting disjunction nodes of any type"
 struct ⋁ <: Inner end
 
-# "Mapping circuit nodes to their node-type trait"
-# function NodeType end
-
 #####################
 # methods
 #####################
 
 # When you suspect there is a bug but execution halts, it may be because of 
-# pretty printing a huge recursive structure. In that case:
+# pretty printing a huge recursive circuit structure. 
+# To safeguard against that case, we set a default show:
 Base.show(io::IO, c::CircuitNode) = print(io, "$(typeof(c))($(hash(c))))")
 
 # following methods should be defined for all types of circuits
@@ -153,7 +151,7 @@ node_stats(c:: Circuit) = merge(leaf_stats(c), inode_stats(c))
 """
 Compute the size of a tree-unfolding of the DAG circuit. 
 """
-function tree_size(circuit:: Circuit) 
+function tree_size(circuit:: Circuit)::BigInt
     size = Dict{CircuitNode,BigInt}()
     for node in circuit
         if has_children(node)
@@ -257,7 +255,6 @@ true_like(n) = conjoin_like(n)
 
 "Construct a false node in the hierarchy of node n"
 false_like(n) = disjoin_like(n)
-
 
 "Remove all constant leafs from the circuit"
 function propagate_constants(circuit::Circuit)
