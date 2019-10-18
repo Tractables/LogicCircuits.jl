@@ -46,7 +46,7 @@ struct UpFlow⋁Cached{O,F} <: UpFlow⋁{O,F}
     pr::F
 end
 
-const UpFlowCircuit{O,F} = AbstractVector{<:UpFlowΔNode{O,F}}
+const UpFlowΔ{O,F} = AbstractVector{<:UpFlowΔNode{O,F}}
 
 #####################
 # traits
@@ -68,7 +68,7 @@ const flow_opts★ = (max_factors= 2, #only save space using compact nodes when 
                      compact⋁=true)
 
 """Construct a upward flow circuit from a given other circuit"""
-function UpFlowCircuit(circuit::Circuit, m::Int, ::Type{El}, opts = flow_opts★)  where El
+function UpFlowΔ(circuit::Circuit, m::Int, ::Type{El}, opts = flow_opts★)  where El
     # TODO get rid of the arguments above, they are mostly useless
 
     O = circuitnodetype(circuit) # type of node in the origin
@@ -128,12 +128,12 @@ end
     flatmap(c -> pr_factors(c)::Vector{F}, ns, F[])
 end
 
-flow_length(circuit::UpFlowCircuit) = length(pr_factors(circuit[end])[1])
+flow_length(circuit::UpFlowΔ) = length(pr_factors(circuit[end])[1])
 
 #####################
 
 # change the size of the flow vectors throughout this circuit (e.g., change minibatch size)
-function resize_flows(circuit::UpFlowCircuit{F}, size::Int) where {F}
+function resize_flows(circuit::UpFlowΔ{F}, size::Int) where {F}
     # check if resize is needed
     if size != flow_length(circuit)
         for n in circuit
@@ -147,7 +147,7 @@ end
 
 #####################
 
-function pass_up(circuit::UpFlowCircuit{O,F}, data::PlainXData{E}) where {E <: eltype(F)} where {F,O}
+function pass_up(circuit::UpFlowΔ{O,F}, data::PlainXData{E}) where {E <: eltype(F)} where {F,O}
     resize_flows(circuit, num_examples(data))
     for n in circuit
         pass_up_node(n, data)

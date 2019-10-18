@@ -27,7 +27,7 @@ mutable struct AggregateFlow⋁{O,A} <: AggregateFlowInnerNode{O,A}
     aggr_flow_children::Vector{A}
 end
 
-const AggregateFlowCircuit{O,A} = AbstractVector{<:AggregateFlowΔNode{O,A}}
+const AggregateFlowΔ{O,A} = AbstractVector{<:AggregateFlowΔNode{O,A}}
 
 #####################
 # traits
@@ -44,7 +44,7 @@ const AggregateFlowCircuit{O,A} = AbstractVector{<:AggregateFlowΔNode{O,A}}
 #####################
 
 
-function AggregateFlowCircuit(circuit::Circuit, ::Type{A}) where {A}
+function AggregateFlowΔ(circuit::Circuit, ::Type{A}) where {A}
     cache = Dict{ΔNode, AggregateFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)
     
@@ -77,42 +77,42 @@ end
 @inline constant(n::AggregateFlowConstant)::Bool = constant(n.origin)
 @inline children(n::AggregateFlowInnerNode) = n.children
 
-function collect_aggr_flows(afc::AggregateFlowCircuit, batches::XBatches{Bool})
+function collect_aggr_flows(afc::AggregateFlowΔ, batches::XBatches{Bool})
     reset_aggregate_flows(afc)
     accumulate_aggr_flows(afc, batches)
 end
 
-function collect_aggr_flows(fc::FlowCircuit, batches::XBatches{Bool})
-    @assert origin(fc) isa AggregateFlowCircuit
+function collect_aggr_flows(fc::FlowΔ, batches::XBatches{Bool})
+    @assert origin(fc) isa AggregateFlowΔ
     reset_aggregate_flows(origin(fc))
     accumulate_aggr_flows(fc, batches)
 end
 
 # set flow counters to zero
-reset_aggregate_flows(afc::AggregateFlowCircuit) = foreach(n->reset_aggregate_flow(n), afc)
+reset_aggregate_flows(afc::AggregateFlowΔ) = foreach(n->reset_aggregate_flow(n), afc)
 reset_aggregate_flow(::AggregateFlowΔNode) = () # do nothing
 reset_aggregate_flow(n::AggregateFlow⋁{O,A}) where {O,A} = (n.aggr_flow = zero(A) ; n.aggr_flow_children .= zero(A))
 
 const opts_accumulate_flows = (flow_opts★..., compact⋁=false) #keep default options but insist on Bool flows
 
-function accumulate_aggr_flows(afc::AggregateFlowCircuit, batches::XBatches{Bool})
-    fc = FlowCircuit(afc, max_batch_size(batches), Bool, opts_accumulate_flows)
+function accumulate_aggr_flows(afc::AggregateFlowΔ, batches::XBatches{Bool})
+    fc = FlowΔ(afc, max_batch_size(batches), Bool, opts_accumulate_flows)
     accumulate_aggr_flows(fc, batches)
 end
 
-function accumulate_aggr_flows(fc::FlowCircuit, batches::XBatches{Bool})
+function accumulate_aggr_flows(fc::FlowΔ, batches::XBatches{Bool})
     for batch in batches
         accumulate_aggr_flows_batch(fc, batch)
     end
 end
 
-function accumulate_aggr_flows_batch(fc::FlowCircuit, batch::XData{Bool})
+function accumulate_aggr_flows_batch(fc::FlowΔ, batch::XData{Bool})
     # pass a mini-batch through the flow circuit
     pass_up_down(fc, unweighted_data(batch))
     accumulate_aggr_flows_cached(fc, batch)
 end
 
-function accumulate_aggr_flows_cached(fc::FlowCircuit, batch::XData{Bool})
+function accumulate_aggr_flows_cached(fc::FlowΔ, batch::XData{Bool})
     aggregate_data(xd::PlainXData, f::AbstractArray) = sum(f)
     aggregate_data(xd::PlainXData, f::AbstractArray{Bool}) = count(f)
     aggregate_data(xd::WXData, f::AbstractArray) = sum(f .* weights(xd))

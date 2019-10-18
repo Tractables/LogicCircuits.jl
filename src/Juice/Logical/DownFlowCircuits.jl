@@ -46,10 +46,10 @@ struct DownFlow⋁Cached{O,F} <: DownFlow⋁{O,F}
     downflow::DownFlow{F}
 end
 
-const DownFlowCircuit{O,F} = AbstractVector{<:DownFlowΔNode{O,F}}
+const DownFlowΔ{O,F} = AbstractVector{<:DownFlowΔNode{O,F}}
 
 const FlowΔNode{O,F} = DownFlowΔNode{O,F}
-const FlowCircuit{O,F} = AbstractVector{<:FlowΔNode{O,F}}
+const FlowΔ{O,F} = AbstractVector{<:FlowΔNode{O,F}}
 
 #####################
 # traits
@@ -66,7 +66,7 @@ const HasDownFlow = Union{DownFlow⋁Cached,DownFlow⋀Cached}
 #####################
 
 """Construct a downward flow circuit from a given upward flow circuit"""
-function DownFlowCircuit(circuit::UpFlowCircuit{O,F}, opts = flow_opts★)::DownFlowCircuit{O,F} where {O,F}
+function DownFlowΔ(circuit::UpFlowΔ{O,F}, opts = flow_opts★)::DownFlowΔ{O,F} where {O,F}
     
     m = flow_length(circuit)
     fmem  = () -> some_vector(eltype(F), m)
@@ -107,9 +107,9 @@ end
 
 
 """Construct a up and down flow circuit from a given other circuit"""
-function FlowCircuit(circuit::Circuit, m::Int, ::Type{El}, opts = flow_opts★) where El
-    up_flow_circuit = UpFlowCircuit(circuit, m, El, opts)
-    DownFlowCircuit(up_flow_circuit, opts)
+function FlowΔ(circuit::Circuit, m::Int, ::Type{El}, opts = flow_opts★) where El
+    up_flow_circuit = UpFlowΔ(circuit, m, El, opts)
+    DownFlowΔ(up_flow_circuit, opts)
 end
 
 #####################
@@ -133,13 +133,13 @@ end
 pr(n::DownFlowΔNode) = pr(origin(n))
 pr_factors(n::DownFlowΔNode) = pr_factors(origin(n))
 
-flow_length(circuit::DownFlowCircuit) = length(downflow_sinks(circuit[end])[1].downflow)
-origin_flow_length(circuit::DownFlowCircuit) = flow_length(origin(circuit[end]))
+flow_length(circuit::DownFlowΔ) = length(downflow_sinks(circuit[end])[1].downflow)
+origin_flow_length(circuit::DownFlowΔ) = flow_length(origin(circuit[end]))
 
 #####################
 
 # change the size of the flow vectors throughout this circuit (e.g., change minibatch size)
-function resize_flows(circuit::DownFlowCircuit{F}, size::Int) where {F}
+function resize_flows(circuit::DownFlowΔ{F}, size::Int) where {F}
     # check if resize is needed
     if size != flow_length(circuit)
         for n in circuit
@@ -153,7 +153,7 @@ end
 
 #####################
 
-function pass_down(circuit::DownFlowCircuit{O,F}) where {F,O}
+function pass_down(circuit::DownFlowΔ{O,F}) where {F,O}
     resize_flows(circuit, flow_length(origin(circuit)))
     for n in circuit
         reset_downflow_in_progress(n)
@@ -214,7 +214,7 @@ end
 
 #####################
 
-function pass_up_down(circuit::DownFlowCircuit{O,F}, data::XData{E}) where {E <: eltype(F)} where {F,O}
+function pass_up_down(circuit::DownFlowΔ{O,F}, data::XData{E}) where {E <: eltype(F)} where {F,O}
     pass_up(origin(circuit), data)
     pass_down(circuit)
 end

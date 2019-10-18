@@ -21,18 +21,18 @@ LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode,
 fully_factorized_circuit,
 
 # UpFlowCircuits
-UpFlowΔNode, UpFlowCircuit, UpFlowCircuit, UpFlowLeafNode, UpFlowInnerNode,
+UpFlowΔNode, UpFlowΔ, UpFlowΔ, UpFlowLeafNode, UpFlowInnerNode,
 UpFlowLiteral, UpFlowConstant, UpFlow⋀Compact, UpFlow⋀Cached, UpFlow⋁Compact, UpFlow⋁Cached, UpFlow⋀, UpFlow⋁,
 flow_opts★, pass_up, pass_up_node, pr_factors, pr, resize_flows, flow_length,
 
 # DownFlowCircuits
-DownFlowΔNode, DownFlowCircuit, DownFlowCircuit, DownFlowLeaf, DownFlowInnerNode,
+DownFlowΔNode, DownFlowΔ, DownFlowΔ, DownFlowLeaf, DownFlowInnerNode,
 DownFlow⋀Compact, DownFlow⋀Cached, DownFlow⋁Compact, DownFlow⋁Cached, DownFlow⋀, DownFlow⋁,
 HasDownFlow, pass_down, pass_up_down, downflow, reset_downflow_in_progress, downflow_sinks,
-FlowΔNode, FlowCircuit, FlowCircuit,
+FlowΔNode, FlowΔ, FlowΔ,
 
 # AggregateFlowCircuits
-AggregateFlowCircuit, AggregateFlowCircuit, AggregateFlowΔNode, AggregateFlow⋁,
+AggregateFlowΔ, AggregateFlowΔ, AggregateFlowΔNode, AggregateFlow⋁,
 reset_aggregate_flows, accumulate_aggr_flows_batch, accumulate_aggr_flows_cached, opts_accumulate_flows, collect_aggr_flows,
 accumulate_aggr_flows,
 
