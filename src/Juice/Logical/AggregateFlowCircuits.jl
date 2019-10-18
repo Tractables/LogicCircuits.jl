@@ -17,12 +17,12 @@ end
 
 struct AggregateFlow⋀{O,A} <: AggregateFlowInnerNode{O,A}
     origin::O
-    children::Vector{<:AggregateFlowCircuitNode{O,A}}
+    children::Vector{<:AggregateFlowCircuitNode{<:O,A}}
 end
 
 mutable struct AggregateFlow⋁{O,A} <: AggregateFlowInnerNode{O,A}
     origin::O
-    children::Vector{<:AggregateFlowCircuitNode{O,A}}
+    children::Vector{<:AggregateFlowCircuitNode{<:O,A}}
     aggr_flow::A
     aggr_flow_children::Vector{A}
 end
@@ -48,17 +48,18 @@ function AggregateFlowCircuit(circuit::Circuit△, ::Type{A}) where {A}
     cache = Dict{CircuitNode, AggregateFlowCircuitNode}()
     sizehint!(cache, length(circuit)*4÷3)
     
-    af_node(::LiteralLeaf, n::CircuitNode) = AggregateFlowLiteral{A}(n)
-    af_node(::ConstantLeaf, n::CircuitNode) = AggregateFlowConstant{A}(n)
+    O = circuitnodetype(circuit) # type of node in the origin
+    af_node(::LiteralLeaf, n::CircuitNode) = AggregateFlowLiteral{O,A}(n)
+    af_node(::ConstantLeaf, n::CircuitNode) = AggregateFlowConstant{O,A}(n)
 
     af_node(::⋀, n::CircuitNode) = begin
         children = map(c -> cache[c], n.children)
-        AggregateFlow⋀(n, children)
+        AggregateFlow⋀{O,A}(n, children)
     end
 
     af_node(::⋁, n::CircuitNode) = begin
         children = map(c -> cache[c], n.children)
-        AggregateFlow⋁(n, children, zero(A), some_vector(A, num_children(n)))
+        AggregateFlow⋁{O,A}(n, children, zero(A), some_vector(A, num_children(n)))
     end
         
     map(circuit) do node
@@ -90,7 +91,7 @@ end
 # set flow counters to zero
 reset_aggregate_flows(afc::AggregateFlowCircuit△) = foreach(n->reset_aggregate_flow(n), afc)
 reset_aggregate_flow(::AggregateFlowCircuitNode) = () # do nothing
-reset_aggregate_flow(n::AggregateFlow⋁{A}) where A = (n.aggr_flow = zero(A) ; n.aggr_flow_children .= zero(A))
+reset_aggregate_flow(n::AggregateFlow⋁{O,A}) where {O,A} = (n.aggr_flow = zero(A) ; n.aggr_flow_children .= zero(A))
 
 const opts_accumulate_flows = (flow_opts★..., compact⋁=false) #keep default options but insist on Bool flows
 
