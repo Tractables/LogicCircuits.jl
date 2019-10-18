@@ -64,25 +64,6 @@ const UnstLogicalΔ = AbstractVector{<:UnstLogicalΔNode}
 "Get the children of a given inner node"
 @inline children(n::LogicalInnerNode) = n.children
 
-"Generate a fully factorized (Naive bayes/logistic regression) circuit over `n` variables"
-function fully_factorized_circuit(n)
-    lin = LogicalΔNode[]
-    ors = map(1:n) do v
-        pos = LiteralNode( var2lit(v))
-        push!(lin, pos)
-        neg = LiteralNode(-var2lit(v))
-        push!(lin, neg)
-        or = ⋁Node([pos,neg])
-        push!(lin, or)
-        or
-    end
-    and = ⋀Node(ors)
-    push!(lin, and)
-    bias = ⋁Node([and])
-    push!(lin, bias)
-    lin
-end
-
 "Conjoin nodes in the same way as the example"
 function conjoin_like(example::UnstLogicalΔNode, arguments...)
     if isempty(arguments)
@@ -117,8 +98,28 @@ function smooth(node::UnstLogicalΔNode, missing_scope)
         return node
     else
         ors = map(collect(missing_scope)) do v
-            ⋁Node([LiteralNode(var2lit(Var(v))), LiteralNode(-var2lit(Var(v)))])
+            lit = var2lit(Var(v))
+            ⋁Node([LiteralNode(lit), LiteralNode(-lit)])
         end
         return ⋀Node([node, ors...])
     end
+end
+
+"Generate a fully factorized (logistic regression) circuit over `n` variables"
+function fully_factorized_circuit(n)
+    lin = LogicalΔNode[]
+    ors = map(1:n) do v
+        pos = LiteralNode( var2lit(v))
+        push!(lin, pos)
+        neg = LiteralNode(-var2lit(v))
+        push!(lin, neg)
+        or = ⋁Node([pos,neg])
+        push!(lin, or)
+        or
+    end
+    and = ⋀Node(ors)
+    push!(lin, and)
+    bias = ⋁Node([and])
+    push!(lin, bias)
+    lin
 end
