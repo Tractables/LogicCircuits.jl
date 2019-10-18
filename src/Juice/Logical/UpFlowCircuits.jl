@@ -46,7 +46,7 @@ struct UpFlow⋁Cached{O,F} <: UpFlow⋁{O,F}
     pr::F
 end
 
-const UpFlowCircuit△{O,F} = AbstractVector{<:UpFlowCircuitNode{<:O,F}}
+const UpFlowCircuit△{O,F} = AbstractVector{<:UpFlowCircuitNode{O,F}}
 
 #####################
 # traits
@@ -68,7 +68,7 @@ const flow_opts★ = (max_factors= 2, #only save space using compact nodes when 
                      compact⋁=true)
 
 """Construct a upward flow circuit from a given other circuit"""
-function UpFlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts★) where El
+function UpFlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts★)  where El
     # TODO get rid of the arguments above, they are mostly useless
 
     O = circuitnodetype(circuit) # type of node in the origin
@@ -108,13 +108,6 @@ function UpFlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts
         cache[node] = fnode
         fnode
     end
-end
-
-
-"""Construct a up and down flow circuit from a given other circuit"""
-function FlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts★) where El
-    up_flow_circuit = UpFlowCircuit(circuit, m, El, opts)
-    DownFlowCircuit(up_flow_circuit, m, El, opts)
 end
 
 #####################

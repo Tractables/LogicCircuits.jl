@@ -46,10 +46,10 @@ struct DownFlow⋁Cached{O,F} <: DownFlow⋁{O,F}
     downflow::DownFlow{F}
 end
 
-const DownFlowCircuit△{O,F} = AbstractVector{<:DownFlowCircuitNode{<:O,F}}
+const DownFlowCircuit△{O,F} = AbstractVector{<:DownFlowCircuitNode{O,F}}
 
 const FlowCircuitNode{O,F} = DownFlowCircuitNode{O,F}
-const FlowCircuit△{O,F} = AbstractVector{<:FlowCircuitNode{<:O,F}}
+const FlowCircuit△{O,F} = AbstractVector{<:FlowCircuitNode{O,F}}
 
 #####################
 # traits
@@ -66,14 +66,10 @@ const HasDownFlow = Union{DownFlow⋁Cached,DownFlow⋀Cached}
 #####################
 
 """Construct a downward flow circuit from a given upward flow circuit"""
-function DownFlowCircuit(circuit::U, m::Int, ::Type{El}, opts = flow_opts★) where El  where {U <: UpFlowCircuit△}
-    # TODO get rid of the arguments above, they are mostly useless
-
-    O = circuitnodetype(origin(circuit)) # type of node in the origin
-    F = (El == Bool) ? BitVector : Vector{El}
-
-    # m = flow_length(circuit)
-    fmem  = () -> some_vector(El, m) # note: fmem's return type will determine type of all flows in the circuit (should be El)
+function DownFlowCircuit(circuit::UpFlowCircuit△{O,F}, opts = flow_opts★)::DownFlowCircuit△{O,F} where {O,F}
+    
+    m = flow_length(circuit)
+    fmem  = () -> some_vector(eltype(F), m)
     
     cache = Dict{CircuitNode, DownFlowCircuitNode}()
     sizehint!(cache, length(circuit)*4÷3)
@@ -109,6 +105,12 @@ function DownFlowCircuit(circuit::U, m::Int, ::Type{El}, opts = flow_opts★) wh
     end
 end
 
+
+"""Construct a up and down flow circuit from a given other circuit"""
+function FlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts★) where El
+    up_flow_circuit = UpFlowCircuit(circuit, m, El, opts)
+    DownFlowCircuit(up_flow_circuit, opts)
+end
 
 #####################
 # methods

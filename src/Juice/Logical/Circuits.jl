@@ -33,7 +33,7 @@ const Circuit△ = AbstractVector{<:CircuitNode}
 abstract type DecoratorCircuitNode{O <: CircuitNode} <: CircuitNode end
 
 "Any circuit that has an origin represented as a bottom-up linear order of nodes"
-const DecoratorCircuit△ = AbstractVector{<:DecoratorCircuitNode}
+const DecoratorCircuit△{O} = AbstractVector{<:DecoratorCircuitNode{O}}
 
 #####################
 # General traits
