@@ -312,15 +312,20 @@ function root(root::CircuitNode)::Circuit△
     lower_element_type(circuit) # specialize the circuit node type
 end
 
-
+"Get the origin of the given decorator circuit node"
 @inline (origin(n::DecoratorCircuitNode{O})::O) where {O<:CircuitNode} = n.origin
+"Get the origin of the given decorator circuit"
 @inline origin(circuit::DecoratorCircuit△) = lower_element_type(map(n -> n.origin, circuit))
 
+"Get the first origin of the given decorator circuit node of the given type"
 @inline (origin(n::DecoratorCircuitNode{<:O}, ::Type{O})::O) where {O<:CircuitNode} = origin(n)
+"Get the first origin of the given decorator circuit of the given type"
 @inline (origin(n::DecoratorCircuitNode, ::Type{T})::T) where {T<:CircuitNode} = origin(origin(n),T)
 @inline origin(circuit::DecoratorCircuit△, ::Type{T}) where T = lower_element_type(map(n -> origin(n,T), circuit))
 
+"Get the origin of the origin of the given decorator circuit node"
 @inline (grand_origin(n::DecoratorCircuitNode{<:DecoratorCircuitNode{O}})::O) where {O} = n.origin.origin
+"Get the origin of the origin the given decorator circuit"
 @inline grand_origin(circuit::DecoratorCircuit△) = origin(origin(circuit))
 
 "Get the type of circuit node contained in this circuit"
