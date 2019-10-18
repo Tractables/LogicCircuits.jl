@@ -326,3 +326,5 @@ end
 
 "Get the type of circuit node contained in this circuit"
 circuitnodetype(circuit::Circuit△)::Type{<:CircuitNode} = eltype(circuit)
+
+#TODO add a way of retrieving origin by given type
