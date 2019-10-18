@@ -312,20 +312,16 @@ function root(root::CircuitNode)::Circuit△
     lower_element_type(circuit) # specialize the circuit node type
 end
 
-@inline origin(n::DecoratorCircuitNode) = n.origin
-@inline grand_origin(n::DecoratorCircuitNode) = n.origin.origin
 
-"Get the origin nodes as a circuit"
-function origin(circuit::DecoratorCircuit△)
-    lower_element_type(map(n -> n.origin, circuit))
-end
+@inline origin(n::DecoratorCircuitNode{O})::O where O = n.origin
+@inline origin(circuit::DecoratorCircuit△) = lower_element_type(map(n -> n.origin, circuit))
 
-"Get the origin of the origin nodes as a circuit"
-function grand_origin(circuit::DecoratorCircuit△)
-    origin(origin(circuit))
-end
+@inline origin(n::DecoratorCircuitNode{<:O}, ::Type{O})::O where {O<:CircuitNode} = origin(n)
+@inline origin(n::DecoratorCircuitNode, ::Type{T})::T where {T<:CircuitNode} = origin(origin(n),T)
+@inline origin(circuit::DecoratorCircuit△, ::Type{T}) where T = lower_element_type(map(n -> origin(n,T), circuit))
+
+@inline grand_origin(n::DecoratorCircuitNode{DecoratorCircuitNode{O}})::O where O = n.origin.origin
+@inline grand_origin(circuit::DecoratorCircuit△) = origin(origin(circuit))
 
 "Get the type of circuit node contained in this circuit"
 circuitnodetype(circuit::Circuit△)::Type{<:CircuitNode} = eltype(circuit)
-
-#TODO add a way of retrieving origin by given type
