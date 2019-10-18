@@ -313,6 +313,7 @@ function root(root::CircuitNode)::Circuit△
 end
 
 @inline origin(n::DecoratorCircuitNode) = n.origin
+@inline grand_origin(n::DecoratorCircuitNode) = n.origin.origin
 
 "Get the origin nodes as a circuit"
 function origin(circuit::DecoratorCircuit△)
