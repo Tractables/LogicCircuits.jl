@@ -312,6 +312,8 @@ function root(root::CircuitNode)::Circuit△
     lower_element_type(circuit) # specialize the circuit node type
 end
 
+@inline origin(n::DecoratorCircuitNode) = n.origin
+
 "Get the origin nodes as a circuit"
 function origin(circuit::DecoratorCircuit△)
     lower_element_type(map(n -> n.origin, circuit))
