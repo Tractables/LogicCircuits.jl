@@ -33,7 +33,7 @@ const Circuit = AbstractVector{<:ΔNode}
 abstract type DecoratorΔNode{O<:ΔNode} <: ΔNode end
 
 "Any circuit that has an origin represented as a bottom-up linear order of nodes"
-const DecoratorCircuit{O} = AbstractVector{<:DecoratorΔNode{O}}
+const DecoratorΔ{O} = AbstractVector{<:DecoratorΔNode{O}}
 
 #####################
 # General traits
@@ -146,12 +146,12 @@ function leaf_stats(c::Circuit)
 end
 
 "Give count of types and fan-ins of all nodes in the circuit"
-node_stats(c:: Circuit) = merge(leaf_stats(c), inode_stats(c))
+node_stats(c::Circuit) = merge(leaf_stats(c), inode_stats(c))
 
 """
 Compute the size of a tree-unfolding of the DAG circuit. 
 """
-function tree_size(circuit:: Circuit)::BigInt
+function tree_size(circuit::Circuit)::BigInt
     size = Dict{ΔNode,BigInt}()
     for node in circuit
         if has_children(node)
@@ -164,12 +164,12 @@ function tree_size(circuit:: Circuit)::BigInt
 end
 
 "Get the variable scope of the entire circuit"
-function variable_scope(circuit:: Circuit)::BitSet
+function variable_scope(circuit::Circuit)::BitSet
     variable_scopes(circuit)[circuit[end]]
 end
 
 "Get the variable scope of each node in the circuit"
-function variable_scopes(circuit:: Circuit)::Dict{ΔNode,BitSet}
+function variable_scopes(circuit::Circuit)::Dict{ΔNode,BitSet}
     scope = Dict{ΔNode,BitSet}()
     scope_set(n::ΔNode) = scope_set(NodeType(n),n)
     scope_set(::ConstantLeaf, ::ΔNode) = BitSet()
@@ -312,18 +312,18 @@ end
 "Get the origin of the given decorator circuit node"
 @inline (origin(n::DecoratorΔNode{O})::O) where {O<:ΔNode} = n.origin
 "Get the origin of the given decorator circuit"
-@inline origin(circuit::DecoratorCircuit) = lower_element_type(map(n -> n.origin, circuit))
+@inline origin(circuit::DecoratorΔ) = lower_element_type(map(n -> n.origin, circuit))
 
 "Get the first origin of the given decorator circuit node of the given type"
 @inline (origin(n::DecoratorΔNode{<:O}, ::Type{O})::O) where {O<:ΔNode} = origin(n)
 "Get the first origin of the given decorator circuit of the given type"
 @inline (origin(n::DecoratorΔNode, ::Type{T})::T) where {T<:ΔNode} = origin(origin(n),T)
-@inline origin(circuit::DecoratorCircuit, ::Type{T}) where T = lower_element_type(map(n -> origin(n,T), circuit))
+@inline origin(circuit::DecoratorΔ, ::Type{T}) where T = lower_element_type(map(n -> origin(n,T), circuit))
 
 "Get the origin of the origin of the given decorator circuit node"
 @inline (grand_origin(n::DecoratorΔNode{<:DecoratorΔNode{O}})::O) where {O} = n.origin.origin
 "Get the origin of the origin the given decorator circuit"
-@inline grand_origin(circuit::DecoratorCircuit) = origin(origin(circuit))
+@inline grand_origin(circuit::DecoratorΔ) = origin(origin(circuit))
 
 "Get the type of circuit node contained in this circuit"
 circuitnodetype(circuit::Circuit)::Type{<:ΔNode} = eltype(circuit)

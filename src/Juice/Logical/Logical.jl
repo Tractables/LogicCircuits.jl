@@ -13,7 +13,7 @@ LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
 num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable,
 negative, positive, variable, literal, tree_size, variable_scopes, variable_scope, num_variables,
 propagate_constants, root, is_smooth, smooth, num_nodes, num_edges, forget, true_like, false_like, 
-DecoratorCircuit, DecoratorΔNode, origin, grand_origin, circuitnodetype,
+DecoratorΔ, DecoratorΔNode, origin, grand_origin, circuitnodetype,
 
 # LogicalCircuits
 LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalCircuit, UnstLogicalCircuit,
