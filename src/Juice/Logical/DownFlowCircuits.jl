@@ -81,24 +81,24 @@ function DownFlowCircuit(circuit::U, m::Int, ::Type{El}, opts = flow_opts★) wh
     flow_node(::Leaf, n::CircuitNode) = DownFlowLeaf{O,F}(n)
 
     flow_node(::⋀, n::CircuitNode) = begin
-        children = map(c -> cache[c], n.children)
-        @assert length(children)>=2
-        sinks = downflow_sinks(children)
+        n_children = map(c -> cache[c], children(n))
+        @assert length(n_children)>=2
+        sinks = downflow_sinks(n_children)
         if opts.compact⋀ && length(sinks) <= opts.max_factors
-            DownFlow⋀Compact{O,F}(n, children, sinks)
+            DownFlow⋀Compact{O,F}(n, n_children, sinks)
         else
-            DownFlow⋀Cached{O,F}(n, children, DownFlow(fmem(),false))
+            DownFlow⋀Cached{O,F}(n, n_children, DownFlow(fmem(),false))
         end
     end
 
     flow_node(::⋁, n::CircuitNode) = begin
-        children = map(c -> cache[c], n.children)
-        @assert length(children)>=1
-        sinks = downflow_sinks(children)
-        if opts.compact⋁ && length(children)==1 && length(sinks) <= opts.max_factors
-            DownFlow⋁Compact{O,F}(n, children[1], sinks)
+        n_children = map(c -> cache[c], children(n))
+        @assert length(n_children)>=1
+        sinks = downflow_sinks(n_children)
+        if opts.compact⋁ && length(n_children)==1 && length(sinks) <= opts.max_factors
+            DownFlow⋁Compact{O,F}(n, n_children[1], sinks)
         else
-            DownFlow⋁Cached{O,F}(n, children, DownFlow(fmem(),false))
+            DownFlow⋁Cached{O,F}(n, n_children, DownFlow(fmem(),false))
         end
     end
         

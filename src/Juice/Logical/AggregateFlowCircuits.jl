@@ -123,7 +123,7 @@ function accumulate_aggr_flows_cached(fc::FlowCircuit△, batch::XData{Bool})
     
     for n in fc
          # collect flows from mini-batch into aggregate statistics
-        if n isa Flow⋁
+        if n isa DownFlow⋁
             origin = n.origin.origin::AggregateFlow⋁
             additional_flow = aggregate_data(batch,downflow(n))
             origin.aggr_flow += additional_flow
