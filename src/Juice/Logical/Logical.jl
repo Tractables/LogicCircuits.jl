@@ -13,19 +13,23 @@ LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
 num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable,
 negative, positive, variable, literal, tree_size, variable_scopes, variable_scope, num_variables,
 propagate_constants, root, is_smooth, smooth, num_nodes, num_edges, forget, true_like, false_like, 
-DecoratorCircuit△, DecoratorCircuitNode, origin, circuitnodetype,
+DecoratorCircuit△, DecoratorCircuitNode, origin, grand_origin, circuitnodetype,
 
 # LogicalCircuits
 LogicalCircuitNode, UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, UnstLogicalCircuit△,
 LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode,
 fully_factorized_circuit,
 
-# FlowCircuits
-DecoratorCircuitNode, FlowCircuitNode, FlowCircuit, FlowCircuit△, FlowLeafNode, FlowInnerNode,
-FlowLiteral, FlowConstant, Flow⋀Compact, Flow⋀Cached, Flow⋁Compact, Flow⋁Cached, Flow⋀, Flow⋁,
-HasDownFlow,flow_opts★,
-pass_down, pass_up, pass_up_down, pass_up_node, downflow, pr_factors, pr, resize_flows, flow_length,
-reset_downflow_in_progress, downflow_sinks,
+# UpFlowCircuits
+UpFlowCircuitNode, UpFlowCircuit, UpFlowCircuit△, UpFlowLeafNode, UpFlowInnerNode,
+UpFlowLiteral, UpFlowConstant, UpFlow⋀Compact, UpFlow⋀Cached, UpFlow⋁Compact, UpFlow⋁Cached, UpFlow⋀, UpFlow⋁,
+flow_opts★, pass_up, pass_up_node, pr_factors, pr, resize_flows, flow_length,
+
+# DownFlowCircuits
+DownFlowCircuitNode, DownFlowCircuit, DownFlowCircuit△, DownFlowLeaf, DownFlowInnerNode,
+DownFlow⋀Compact, DownFlow⋀Cached, DownFlow⋁Compact, DownFlow⋁Cached, DownFlow⋀, DownFlow⋁,
+HasDownFlow, pass_down, pass_up_down, downflow, reset_downflow_in_progress, downflow_sinks,
+FlowCircuitNode, FlowCircuit△, FlowCircuit,
 
 # AggregateFlowCircuits
 AggregateFlowCircuit, AggregateFlowCircuit△, AggregateFlowCircuitNode, AggregateFlow⋁,
@@ -43,7 +47,8 @@ StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node
 
 include("Circuits.jl")
 include("LogicalCircuits.jl")
-include("FlowCircuits.jl")
+include("UpFlowCircuits.jl")
+include("DownFlowCircuits.jl")
 include("AggregateFlowCircuits.jl")
 include("Vtree.jl")
 include("StructuredLogicalCircuits.jl")

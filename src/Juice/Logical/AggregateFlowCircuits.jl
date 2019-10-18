@@ -123,20 +123,20 @@ function accumulate_aggr_flows_cached(fc::FlowCircuit△, batch::XData{Bool})
     
     for n in fc
          # collect flows from mini-batch into aggregate statistics
-        if n isa Flow⋁
-            origin = n.origin::AggregateFlow⋁
+        if n isa DownFlow⋁
+            orig = grand_origin(n)::AggregateFlow⋁
             additional_flow = aggregate_data(batch,downflow(n))
-            origin.aggr_flow += additional_flow
+            orig.aggr_flow += additional_flow
             # compute aggregate flows for all but the final child
             for i in 1:num_children(n)-1
                 child = n.children[i]
-                child_aggr_flow = aggregate_data_factorized(batch, downflow(n), pr_factors(child)...)
-                origin.aggr_flow_children[i] += child_aggr_flow
+                child_aggr_flow = aggregate_data_factorized(batch, downflow(n), pr_factors(origin(child))...)
+                orig.aggr_flow_children[i] += child_aggr_flow
                 additional_flow -= child_aggr_flow
             end
             # assing the remainder flow to the final child
-            origin.aggr_flow_children[end] += additional_flow
-            @assert isapprox(sum(origin.aggr_flow_children), origin.aggr_flow, rtol=0.0001) "Flow is leaking between parent and children: $(origin.aggr_flow) should equal $(origin.aggr_flow_children)"
+            orig.aggr_flow_children[end] += additional_flow
+            @assert isapprox(sum(orig.aggr_flow_children), orig.aggr_flow, rtol=0.0001) "Flow is leaking between parent and children: $(origin.aggr_flow) should equal $(origin.aggr_flow_children)"
             # no need to normalize flows here: we can leave this to parameter learning code
         end
     end
