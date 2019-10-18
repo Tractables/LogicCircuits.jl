@@ -3,14 +3,9 @@
 #####################
 
 "Representation of downward flows with `in_progress` Bool for effective book keeping"
-mutable struct DownFlow{F}
-    downflow::F
-    in_progress::Bool
-end
 
 abstract type DownFlowCircuitNode{O,F} <: DecoratorCircuitNode{O} end
 abstract type DownFlowInnerNode{O,F} <: DownFlowCircuitNode{O,F} end
-
 struct DownFlowLeafNode{O,F} <: DownFlowCircuitNode{O,F}
     origin::O
 end
@@ -19,6 +14,11 @@ abstract type DownFlow⋀{O,F} <: DownFlowInnerNode{O,F} end
 abstract type DownFlow⋁{O,F} <: DownFlowInnerNode{O,F} end
 
 # use this version of DownFlow⋀ when ⋀ gates are unique to their parent ⋁ to save space (compact=true)
+mutable struct DownFlow{F}
+    downflow::F
+    in_progress::Bool
+end
+
 struct DownFlow⋀Compact{O,F} <: DownFlow⋀{O,F}
     origin::O
     children::Vector{<:DownFlowCircuitNode{<:O,F}}

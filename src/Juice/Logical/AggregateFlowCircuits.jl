@@ -130,7 +130,7 @@ function accumulate_aggr_flows_cached(fc::FlowCircuit△, batch::XData{Bool})
             # compute aggregate flows for all but the final child
             for i in 1:num_children(n)-1
                 child = n.children[i]
-                child_aggr_flow = aggregate_data_factorized(batch, downflow(n), pr_factors(child)...)
+                child_aggr_flow = aggregate_data_factorized(batch, downflow(n), pr_factors(origin(child))...)
                 origin.aggr_flow_children[i] += child_aggr_flow
                 additional_flow -= child_aggr_flow
             end

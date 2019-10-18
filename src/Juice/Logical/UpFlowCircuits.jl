@@ -48,6 +48,8 @@ end
 
 const UpFlowCircuit△{O,F} = AbstractVector{<:UpFlowCircuitNode{<:O,F}}
 
+const FlowCircuitNode{O,F} = DownFlowCircuitNode{UpFlowCircuitNode{O,F},F}
+const FlowCircuit△{O,F} = AbstractVector{<:FlowCircuitNode{<:O,F}}
 
 #####################
 # traits
@@ -69,9 +71,10 @@ const flow_opts★ = (max_factors= 2, #only save space using compact nodes when 
                      compact⋁=true)
 
 """Construct a upward flow circuit from a given other circuit"""
-function UpFlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts★) where El
+function UpFlowCircuit(circuit::UpFlowCircuit△, ::Type{El}, opts = flow_opts★) where El
     # TODO get rid of the arguments above, they are mostly useless
 
+    m = flow_length(circuit)
     O = circuitnodetype(circuit) # type of node in the origin
     F = (El == Bool) ? BitVector : Vector{El}
     fmem  = () -> some_vector(El, m) # note: fmem's return type will determine type of all UpFlows in the circuit (should be El)
@@ -111,6 +114,12 @@ function UpFlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts
     end
 end
 
+
+"""Construct a up and down flow circuit from a given other circuit"""
+function FlowCircuit(circuit::Circuit△, m::Int, ::Type{El}, opts = flow_opts★) where El
+    up_flow_circuit = UpFlowCircuit(circuit, m, El, opts)
+    DownFlowCircuit(up_flow_circuit, El, opts)
+end
 
 #####################
 # methods

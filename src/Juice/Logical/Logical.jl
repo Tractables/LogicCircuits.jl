@@ -20,12 +20,16 @@ LogicalCircuitNode, UnstLogicalCircuitNode, LogicalLeafNode, LogicalCircuit△, 
 LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode,
 fully_factorized_circuit,
 
-# FlowCircuits
-DecoratorCircuitNode, FlowCircuitNode, FlowCircuit, FlowCircuit△, FlowLeafNode, FlowInnerNode,
-FlowLiteral, FlowConstant, Flow⋀Compact, Flow⋀Cached, Flow⋁Compact, Flow⋁Cached, Flow⋀, Flow⋁,
-HasDownFlow,flow_opts★,
-pass_down, pass_up, pass_up_down, pass_up_node, downflow, pr_factors, pr, resize_flows, flow_length,
-reset_downflow_in_progress, downflow_sinks,
+# UpFlowCircuits
+UpFlowCircuitNode, UpFlowCircuit△, UpFlowLeafNode, UpFlowInnerNode,
+UpFlowLiteral, UpFlowConstant, UpFlow⋀Compact, UpFlow⋀Cached, UpFlow⋁Compact, UpFlow⋁Cached, UpFlow⋀, UpFlow⋁,
+flow_opts★, pass_up, pass_up_node, pr_factors, pr, resize_flows, flow_length,
+
+# DownFlowCircuits
+DownFlowCircuitNode, DownFlowCircuit△, DownFlowLeafNode, DownFlowInnerNode,
+DownFlow⋀Compact, DownFlow⋀Cached, DownFlow⋁Compact, DownFlow⋁Cached, DownFlow⋀, DownFlow⋁,
+HasDownFlow, pass_down, pass_up_down, downflow, reset_downflow_in_progress, downflow_sinks,
+FlowCircuitNode,
 
 # AggregateFlowCircuits
 AggregateFlowCircuit, AggregateFlowCircuit△, AggregateFlowCircuitNode, AggregateFlow⋁,
@@ -43,7 +47,8 @@ StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node
 
 include("Circuits.jl")
 include("LogicalCircuits.jl")
-include("FlowCircuits.jl")
+include("UpFlowCircuits.jl")
+include("DownFlowCircuits.jl")
 include("AggregateFlowCircuits.jl")
 include("Vtree.jl")
 include("StructuredLogicalCircuits.jl")
