@@ -27,7 +27,7 @@ const Lit = Int32 # variable with a positive or negative sign
 abstract type ΔNode end
 
 "Any circuit represented as a bottom-up linear order of nodes"
-const Circuit = AbstractVector{<:ΔNode}
+const Δ = AbstractVector{<:ΔNode}
 
 "A circuit node that has an origin of type O"
 abstract type DecoratorΔNode{O<:ΔNode} <: ΔNode end
@@ -113,45 +113,45 @@ function children end
 @inline is_false(::ConstantLeaf, n::ΔNode)::Bool = (constant(n) == false)
 
 "Get the list of inner nodes in a given circuit"
-inodes(c::Circuit) = filter(n -> NodeType(n) isa Inner, c)
+inodes(c::Δ) = filter(n -> NodeType(n) isa Inner, c)
 
 "Get the list of leaf nodes in a given circuit"
-leafnodes(c::Circuit) = filter(n -> NodeType(n) isa Leaf, c)
+leafnodes(c::Δ) = filter(n -> NodeType(n) isa Leaf, c)
 
 "Get the list of conjunction nodes in a given circuit"
-⋀_nodes(c::Circuit) = filter(n -> NodeType(n) isa ⋀, c)
+⋀_nodes(c::Δ) = filter(n -> NodeType(n) isa ⋀, c)
 
 "Get the list of disjunction nodes in a given circuit"
-⋁_nodes(c::Circuit) = filter(n -> NodeType(n) isa ⋁, c)
+⋁_nodes(c::Δ) = filter(n -> NodeType(n) isa ⋁, c)
 
 "Number of nodes in the circuit"
-num_nodes(c::Circuit) = length(c)
+num_nodes(c::Δ) = length(c)
 
 "Number of edges in the circuit"
-num_edges(c::Circuit) = sum(n -> length(children(n)), inodes(c))
+num_edges(c::Δ) = sum(n -> length(children(n)), inodes(c))
 
 "Number of edges in the circuit"
-num_variables(c::Circuit) = length(variable_scope(c))
+num_variables(c::Δ) = length(variable_scope(c))
 
 "Give count of types and fan-ins of inner nodes in the circuit"
-function inode_stats(c::Circuit)
+function inode_stats(c::Δ)
     groups = groupby(e -> (typeof(e),num_children(e)), inodes(c))
     map_values(v -> length(v), groups, Int)
 end
 
 "Give count of types of leaf nodes in the circuit"
-function leaf_stats(c::Circuit)
+function leaf_stats(c::Δ)
     groups = groupby(e -> typeof(e), leafnodes(c))
     map_values(v -> length(v), groups, Int)
 end
 
 "Give count of types and fan-ins of all nodes in the circuit"
-node_stats(c::Circuit) = merge(leaf_stats(c), inode_stats(c))
+node_stats(c::Δ) = merge(leaf_stats(c), inode_stats(c))
 
 """
 Compute the size of a tree-unfolding of the DAG circuit. 
 """
-function tree_size(circuit::Circuit)::BigInt
+function tree_size(circuit::Δ)::BigInt
     size = Dict{ΔNode,BigInt}()
     for node in circuit
         if has_children(node)
@@ -164,12 +164,12 @@ function tree_size(circuit::Circuit)::BigInt
 end
 
 "Get the variable scope of the entire circuit"
-function variable_scope(circuit::Circuit)::BitSet
+function variable_scope(circuit::Δ)::BitSet
     variable_scopes(circuit)[circuit[end]]
 end
 
 "Get the variable scope of each node in the circuit"
-function variable_scopes(circuit::Circuit)::Dict{ΔNode,BitSet}
+function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
     scope = Dict{ΔNode,BitSet}()
     scope_set(n::ΔNode) = scope_set(NodeType(n),n)
     scope_set(::ConstantLeaf, ::ΔNode) = BitSet()
@@ -183,7 +183,7 @@ function variable_scopes(circuit::Circuit)::Dict{ΔNode,BitSet}
 end
 
 "Is the circuit smooth?"
-function is_smooth(circuit:: Circuit)::Bool
+function is_smooth(circuit::Δ)::Bool
     scope = variable_scopes(circuit)
     is_smooth_node(n::ΔNode) = is_smooth_node(NodeType(n),n)
     is_smooth_node(::NodeType, ::ΔNode) = true
@@ -193,7 +193,7 @@ function is_smooth(circuit:: Circuit)::Bool
 end
 
 "Is the circuit decomposable?"
-function is_decomposable(circuit:: Circuit)::Bool
+function is_decomposable(circuit::Δ)::Bool
     scope = variable_scopes(circuit)
     is_decomposable_node(n::ΔNode) = is_decomposable_node(NodeType(n),n)
     is_decomposable_node(::NodeType, ::ΔNode) = true
@@ -203,7 +203,7 @@ function is_decomposable(circuit:: Circuit)::Bool
 end
 
 "Make the circuit smooth"
-function smooth(circuit::Circuit)
+function smooth(circuit::Δ)
     scope = variable_scopes(circuit)
     smoothed = Dict{ΔNode,ΔNode}()
     smooth_node(n::ΔNode) = smooth_node(NodeType(n),n)
@@ -230,7 +230,7 @@ end
 Forget variables from the circuit. 
 Warning: this may or may not destroy the determinism property.
 """
-function forget(is_forgotten::Function, circuit::Circuit)
+function forget(is_forgotten::Function, circuit::Δ)
     forgotten = Dict{ΔNode,ΔNode}()
     forget_node(n::ΔNode) = forget_node(NodeType(n),n)
     forget_node(::ConstantLeaf, n::ΔNode) = n
@@ -257,7 +257,7 @@ true_like(n) = conjoin_like(n)
 false_like(n) = disjoin_like(n)
 
 "Remove all constant leafs from the circuit"
-function propagate_constants(circuit::Circuit)
+function propagate_constants(circuit::Δ)
     proped = Dict{ΔNode,ΔNode}()
     propagate(n::ΔNode) = propagate(NodeType(n),n)
     propagate(::Leaf, n::ΔNode) = n
@@ -286,7 +286,7 @@ function propagate_constants(circuit::Circuit)
 end
 
 "Rebuild a circuit's linear bottom-up order from a new root node"
-function root(root::ΔNode)::Circuit
+function root(root::ΔNode)::Δ
     seen = Set{ΔNode}()
     circuit = Vector{ΔNode}()
     see(n::ΔNode) = see(NodeType(n),n)
@@ -326,4 +326,4 @@ end
 @inline grand_origin(circuit::DecoratorΔ) = origin(origin(circuit))
 
 "Get the type of circuit node contained in this circuit"
-circuitnodetype(circuit::Circuit)::Type{<:ΔNode} = eltype(circuit)
+circuitnodetype(circuit::Δ)::Type{<:ΔNode} = eltype(circuit)

@@ -107,7 +107,7 @@ end
 
 
 """Construct a up and down flow circuit from a given other circuit"""
-function FlowΔ(circuit::Circuit, m::Int, ::Type{El}, opts = flow_opts★) where El
+function FlowΔ(circuit::Δ, m::Int, ::Type{El}, opts = flow_opts★) where El
     up_flow_circuit = UpFlowΔ(circuit, m, El, opts)
     DownFlowΔ(up_flow_circuit, opts)
 end

@@ -68,7 +68,7 @@ const flow_opts★ = (max_factors= 2, #only save space using compact nodes when 
                      compact⋁=true)
 
 """Construct a upward flow circuit from a given other circuit"""
-function UpFlowΔ(circuit::Circuit, m::Int, ::Type{El}, opts = flow_opts★)  where El
+function UpFlowΔ(circuit::Δ, m::Int, ::Type{El}, opts = flow_opts★)  where El
     # TODO get rid of the arguments above, they are mostly useless
 
     O = circuitnodetype(circuit) # type of node in the origin

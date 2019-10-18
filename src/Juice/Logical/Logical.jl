@@ -8,7 +8,7 @@ using ...Utils
 export
 
 # Circuits
-Var, Lit, var2lit, lit2var, ΔNode, Circuit, 
+Var, Lit, var2lit, lit2var, ΔNode, Δ, 
 LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
 num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable,
 negative, positive, variable, literal, tree_size, variable_scopes, variable_scope, num_variables,

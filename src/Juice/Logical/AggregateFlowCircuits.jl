@@ -44,7 +44,7 @@ const AggregateFlowΔ{O,A} = AbstractVector{<:AggregateFlowΔNode{O,A}}
 #####################
 
 
-function AggregateFlowΔ(circuit::Circuit, ::Type{A}) where {A}
+function AggregateFlowΔ(circuit::Δ, ::Type{A}) where {A}
     cache = Dict{ΔNode, AggregateFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)
     
