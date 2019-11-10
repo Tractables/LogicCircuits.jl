@@ -81,8 +81,8 @@ Base.show(io::IO, c::ΔNode) = print(io, "$(typeof(c))($(hash(c))))")
 @inline constant(::ConstantLeaf, n::ΔNode)::Bool = error("Each `ConstantLeaf` should implement a `constant` method")
 
 "Get the children of a given inner node"
-@inline children(n::ΔNode) = children(NodeType(n), n)
-@inline children(::Inner, n::ΔNode) = error("Each inner node should implement a `children` method")
+@inline children(n::ΔNode)::Vector{<:ΔNode} = children(NodeType(n), n)
+@inline children(::Inner, n::ΔNode)::Vector{<:ΔNode} = error("Each inner node should implement a `children` method")
 
 # next bunch of methods are derived from literal, constant, children, and the traits
 
@@ -152,13 +152,13 @@ end
 node_stats(c::Δ) = merge(leaf_stats(c), inode_stats(c))
 
 """
-Compute the size of a tree-unfolding of the DAG circuit. 
+Compute the number of nodes in of a tree-unfolding of the DAG circuit. 
 """
-function tree_size(circuit::Δ)::BigInt
+function tree_num_nodes(circuit::Δ)::BigInt
     size = Dict{ΔNode,BigInt}()
     for node in circuit
         if has_children(node)
-            size[node] = sum(c -> size[c], children(node))
+            size[node] = one(BigInt) + sum(c -> size[c], children(node))
         else
             size[node] = one(BigInt)
         end
