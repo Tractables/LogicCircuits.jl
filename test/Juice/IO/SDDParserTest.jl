@@ -5,9 +5,9 @@ import .Juice.IO:
 
 @testset "SDD file parser tests" begin
 
-  @test parse_sdd_file("circuits/random.sdd") isa CircuitFormatLines
+  @test parse_sdd_file("test/circuits/random.sdd") isa CircuitFormatLines
 
-  circuit = load_logical_circuit("circuits/random.sdd") 
+  circuit = load_logical_circuit("test/circuits/random.sdd") 
 
   @test circuit isa UnstLogicalΔ
   @test num_nodes(circuit) == 1676
