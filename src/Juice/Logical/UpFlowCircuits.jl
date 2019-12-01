@@ -52,10 +52,10 @@ const UpFlowΔ{O,F} = AbstractVector{<:UpFlowΔNode{O,F}}
 # traits
 #####################
 
-@inline NodeType(::Type{<:UpFlowLiteral}) = LiteralLeaf()
-@inline NodeType(::Type{<:UpFlowConstant}) = ConstantLeaf()
-@inline NodeType(::Type{<:UpFlow⋀}) = ⋀()
-@inline NodeType(::Type{<:UpFlow⋁}) = ⋁()
+@inline GateType(::Type{<:UpFlowLiteral}) = LiteralLeaf()
+@inline GateType(::Type{<:UpFlowConstant}) = ConstantLeaf()
+@inline GateType(::Type{<:UpFlow⋀}) = ⋀()
+@inline GateType(::Type{<:UpFlow⋁}) = ⋁()
 
 const HasPr = Union{UpFlow⋁Cached,UpFlow⋀Cached,UpFlowLeafNode}
 
@@ -104,7 +104,7 @@ function UpFlowΔ(circuit::Δ, m::Int, ::Type{El}, opts = flow_opts★)  where E
     end
         
     map(circuit) do node
-        fnode = upflow_node(NodeType(node), node)
+        fnode = upflow_node(GateType(node), node)
         cache[node] = fnode
         fnode
     end

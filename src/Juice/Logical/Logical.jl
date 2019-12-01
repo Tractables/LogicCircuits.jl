@@ -10,7 +10,7 @@ export
 # Circuits
 Var, Lit, var2lit, lit2var, ΔNode, Δ, 
 LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
-num_children, children, NodeType, Inner, Leaf, node_stats, is_decomposable,
+num_children, children, GateType, InnerGate, LeafGate, node_stats, is_decomposable,
 negative, positive, variable, literal, tree_size, variable_scopes, variable_scope, num_variables,
 propagate_constants, root, is_smooth, smooth, num_nodes, num_edges, forget, true_like, false_like, 
 DecoratorΔ, DecoratorΔNode, origin, grand_origin, circuitnodetype,
@@ -45,7 +45,7 @@ StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node,
 # PlainVtree
 PlainVtreeNode, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_variables, PlainVtree,
 order_nodes_leaves_before_parents, construct_top_down, construct_bottom_up,
-isequal, isequal_unordered, left_most_child,path_length,random_vtree,
+isequal, isequal_unordered, left_most_child,path_length, random_vtree,
 
 # SddMgr
 SddMgrNode, SddMgr,

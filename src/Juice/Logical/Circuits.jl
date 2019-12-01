@@ -41,25 +41,31 @@ const DecoratorΔ{O} = AbstractVector{<:DecoratorΔNode{O}}
 
 """
 A trait hierarchy denoting types of nodes
-`NodeType` defines an orthogonal type hierarchy of node types, not circuit types, so we can dispatch on node type regardless of circuit type.
+`GateType` defines an orthogonal type hierarchy of node types, not circuit types, so we can dispatch on node type regardless of circuit type.
 See @ref{https://docs.julialang.org/en/v1/manual/methods/#Trait-based-dispatch-1}
 """
-abstract type NodeType end
+abstract type GateType end
 
-abstract type Leaf <: NodeType end
-abstract type Inner <: NodeType end
+abstract type LeafGate <: GateType end
+abstract type InnerGate <: GateType end
 
 "A trait denoting literal leaf nodes of any type"
-struct LiteralLeaf <: Leaf end
+struct LiteralLeaf <: LeafGate end
 
 "A trait denoting constant leaf nodes of any type"
-struct ConstantLeaf <: Leaf end
+struct ConstantLeaf <: LeafGate end
 
 "A trait denoting conjuction nodes of any type"
-struct ⋀ <: Inner end
+struct ⋀ <: InnerGate end
 
 "A trait denoting disjunction nodes of any type"
-struct ⋁ <: Inner end
+struct ⋁ <: InnerGate end
+
+# map gate type traits to graph node traits
+import ..Utils.NodeType # make available for extension
+@inline NodeType(::Type{CN}) where {CN<:ΔNode} = NodeType(GateType(CN))
+@inline NodeType(::Type{<:LeafGate}) = Leaf()
+@inline NodeType(::Type{<:InnerGate}) = Inner()
 
 #####################
 # methods
@@ -73,59 +79,54 @@ Base.show(io::IO, c::ΔNode) = print(io, "$(typeof(c))($(hash(c))))")
 # following methods should be defined for all types of circuits
 
 "Get the logical literal in a given literal leaf node"
-@inline literal(n::ΔNode)::Lit = literal(NodeType(n), n)
+@inline literal(n::ΔNode)::Lit = literal(GateType(n), n)
 @inline literal(::LiteralLeaf, n::ΔNode)::Lit = error("Each `LiteralLeaf` should implement a `literal` method")
 
 "Get the logical constant in a given constant leaf node"
-@inline constant(n::ΔNode)::Bool = literal(NodeType(n), n)
+@inline constant(n::ΔNode)::Bool = literal(GateType(n), n)
 @inline constant(::ConstantLeaf, n::ΔNode)::Bool = error("Each `ConstantLeaf` should implement a `constant` method")
 
 "Get the children of a given inner node"
-@inline children(n::ΔNode)::Vector{<:ΔNode} = children(NodeType(n), n)
-@inline children(::Inner, n::ΔNode)::Vector{<:ΔNode} = error("Each inner node should implement a `children` method")
+@inline children(n::ΔNode)::Vector{<:ΔNode} = children(GateType(n), n)
+@inline children(::InnerGate, n::ΔNode)::Vector{<:ΔNode} = error("Each inner node should implement a `children` method")
 
 # next bunch of methods are derived from literal, constant, children, and the traits
 
 "Get the logical variable in a given literal leaf node"
-@inline variable(n::ΔNode)::Var = variable(NodeType(n), n)
+@inline variable(n::ΔNode)::Var = variable(GateType(n), n)
 @inline variable(::LiteralLeaf, n::ΔNode)::Var = lit2var(literal(n))
 
 "Get the sign of the literal leaf node"
-@inline positive(n::ΔNode)::Bool = positive(NodeType(n), n)
+@inline positive(n::ΔNode)::Bool = positive(GateType(n), n)
 @inline positive(::LiteralLeaf, n::ΔNode)::Bool = literal(n) >= 0 
 @inline negative(n::ΔNode)::Bool = !positive(n)
 
 "Does the node have children?"
-@inline has_children(n::ΔNode)::Bool = has_children(NodeType(n), n)
-@inline has_children(::Inner, n::ΔNode)::Bool = !isempty(children(n))
-@inline has_children(::Leaf, n::ΔNode)::Bool = false
+@inline has_children(n::ΔNode)::Bool = has_children(GateType(n), n)
+@inline has_children(::InnerGate, n::ΔNode)::Bool = !isempty(children(n))
+@inline has_children(::LeafGate, n::ΔNode)::Bool = false
 
 "Get the number of children of a given inner node"
-@inline num_children(n::ΔNode)::Int = num_children(NodeType(n), n)
-@inline num_children(::Inner, n::ΔNode)::Int = length(children(n))
-@inline num_children(::Leaf, n::ΔNode)::Int = 0
+@inline num_children(n::ΔNode)::Int = num_children(GateType(n), n)
+@inline num_children(::InnerGate, n::ΔNode)::Int = length(children(n))
+@inline num_children(::LeafGate, n::ΔNode)::Int = 0
 
 "Is the circuit syntactically equal to true?"
-@inline is_true(n::ΔNode)::Bool = is_true(NodeType(n), n)
-@inline is_true(::NodeType, n::ΔNode)::Bool = false
+@inline is_true(n::ΔNode)::Bool = is_true(GateType(n), n)
+@inline is_true(::GateType, n::ΔNode)::Bool = false
 @inline is_true(::ConstantLeaf, n::ΔNode)::Bool = (constant(n) == true)
 
 "Is the circuit syntactically equal to false?"
-@inline is_false(n::ΔNode)::Bool = is_false(NodeType(n), n)
-@inline is_false(::NodeType, n::ΔNode)::Bool = false
+@inline is_false(n::ΔNode)::Bool = is_false(GateType(n), n)
+@inline is_false(::GateType, n::ΔNode)::Bool = false
 @inline is_false(::ConstantLeaf, n::ΔNode)::Bool = (constant(n) == false)
 
-"Get the list of inner nodes in a given circuit"
-inodes(c::Δ) = filter(n -> NodeType(n) isa Inner, c)
-
-"Get the list of leaf nodes in a given circuit"
-leafnodes(c::Δ) = filter(n -> NodeType(n) isa Leaf, c)
 
 "Get the list of conjunction nodes in a given circuit"
-⋀_nodes(c::Δ) = filter(n -> NodeType(n) isa ⋀, c)
+⋀_nodes(c::Δ) = filter(n -> GateType(n) isa ⋀, c)
 
 "Get the list of disjunction nodes in a given circuit"
-⋁_nodes(c::Δ) = filter(n -> NodeType(n) isa ⋁, c)
+⋁_nodes(c::Δ) = filter(n -> GateType(n) isa ⋁, c)
 
 "Number of nodes in the circuit"
 num_nodes(c::Δ) = length(c)
@@ -174,10 +175,10 @@ end
 "Get the variable scope of each node in the circuit"
 function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
     scope = Dict{ΔNode,BitSet}()
-    scope_set(n::ΔNode) = scope_set(NodeType(n),n)
+    scope_set(n::ΔNode) = scope_set(GateType(n),n)
     scope_set(::ConstantLeaf, ::ΔNode) = BitSet()
     scope_set(::LiteralLeaf, n::ΔNode) = BitSet(variable(n))
-    scope_set(::Inner, n::ΔNode) = 
+    scope_set(::InnerGate, n::ΔNode) = 
         mapreduce(c -> scope[c], union, children(n))
     for node in circuit
         scope[node] = scope_set(node)
@@ -188,8 +189,8 @@ end
 "Is the circuit smooth?"
 function is_smooth(circuit::Δ)::Bool
     scope = variable_scopes(circuit)
-    is_smooth_node(n::ΔNode) = is_smooth_node(NodeType(n),n)
-    is_smooth_node(::NodeType, ::ΔNode) = true
+    is_smooth_node(n::ΔNode) = is_smooth_node(GateType(n),n)
+    is_smooth_node(::GateType, ::ΔNode) = true
     is_smooth_node(::⋁, n::ΔNode) =
         all(c -> scope[c] == scope[n], children(n))
     all(n -> is_smooth_node(n), circuit)
@@ -198,8 +199,8 @@ end
 "Is the circuit decomposable?"
 function is_decomposable(circuit::Δ)::Bool
     scope = variable_scopes(circuit)
-    is_decomposable_node(n::ΔNode) = is_decomposable_node(NodeType(n),n)
-    is_decomposable_node(::NodeType, ::ΔNode) = true
+    is_decomposable_node(n::ΔNode) = is_decomposable_node(GateType(n),n)
+    is_decomposable_node(::GateType, ::ΔNode) = true
     is_decomposable_node(::⋀, n::ΔNode) =
         disjoint(map(c -> scope[c], children(n))...)
     all(n -> is_decomposable_node(n), circuit)
@@ -209,8 +210,8 @@ end
 function smooth(circuit::Δ)
     scope = variable_scopes(circuit)
     smoothed = Dict{ΔNode,ΔNode}()
-    smooth_node(n::ΔNode) = smooth_node(NodeType(n),n)
-    smooth_node(::Leaf, n::ΔNode) = n
+    smooth_node(n::ΔNode) = smooth_node(GateType(n),n)
+    smooth_node(::LeafGate, n::ΔNode) = n
     function smooth_node(::⋀, n::ΔNode)
         smoothed_children = map(c -> smoothed[c], children(n))
         conjoin_like(n, smoothed_children...)
@@ -235,7 +236,7 @@ Warning: this may or may not destroy the determinism property.
 """
 function forget(is_forgotten::Function, circuit::Δ)
     forgotten = Dict{ΔNode,ΔNode}()
-    forget_node(n::ΔNode) = forget_node(NodeType(n),n)
+    forget_node(n::ΔNode) = forget_node(GateType(n),n)
     forget_node(::ConstantLeaf, n::ΔNode) = n
     forget_node(::LiteralLeaf, n::ΔNode) =
         is_forgotten(variable(n)) ? true_like(n) : n
@@ -262,8 +263,8 @@ false_like(n) = disjoin_like(n)
 "Remove all constant leafs from the circuit"
 function propagate_constants(circuit::Δ)
     proped = Dict{ΔNode,ΔNode}()
-    propagate(n::ΔNode) = propagate(NodeType(n),n)
-    propagate(::Leaf, n::ΔNode) = n
+    propagate(n::ΔNode) = propagate(GateType(n),n)
+    propagate(::LeafGate, n::ΔNode) = n
     function propagate(::⋀, n::ΔNode) 
         proped_children = map(c -> proped[c], children(n))
         if any(c -> is_false(c), proped_children)
@@ -292,14 +293,14 @@ end
 function root(root::ΔNode)::Δ
     seen = Set{ΔNode}()
     circuit = Vector{ΔNode}()
-    see(n::ΔNode) = see(NodeType(n),n)
-    function see(::Leaf, n::ΔNode)
+    see(n::ΔNode) = see(GateType(n),n)
+    function see(::LeafGate, n::ΔNode)
         if n ∉ seen
             push!(seen,n)
             push!(circuit,n)
         end
     end
-    function see(::Inner, n::ΔNode)
+    function see(::InnerGate, n::ΔNode)
         if n ∉ seen
             for child in children(n)
                 see(child)

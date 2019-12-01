@@ -5,13 +5,37 @@
 "Root of the vtree node hiearchy"
 abstract type VtreeNode end
 
-const Vtree = AbstractVector{<:VtreeNode}
+const Vtree{VN<:VtreeNode} = AbstractVector{<:VN}
 
 #############
 # Constructors
 #############
 
-#TODO add some generic constructors (balanced, right-linear, etc.)
+
+# function random_vtree(::Type{VN}, num_variables::Integer; vtree_mode::String="balanced")::Vtree{VN} where {VN <: VtreeNode}
+#     @assert vtree_mode in ["linear", "balanced", "rand"]
+#     vars = Var.(Random.randperm(num_variables))
+    
+#     leaves = map(vars) do v
+#         VN(v)
+#     end
+
+#     vtree = [Vector{VN}(); leaves]
+#     right = popfirst!(vtree)
+#     while !isempty(vtree)
+#         left = popfirst!(vtree)
+#         v = VN(left, right)
+#         if vtree_mode == "linear"
+#             pushfirst!(vtree, v)
+#         elseif vtree_mode == "balanced"
+#             push!(vtree, v)
+#         elseif vtree_mode == "rand"
+#             pushrand!(vtree, v)
+#         end
+#         right = popfirst!(vtree)
+#     end
+#     order_nodes_leaves_before_parents(right)
+# end
 
 #############
 # Methods
@@ -19,3 +43,4 @@ const Vtree = AbstractVector{<:VtreeNode}
 
 variables(v::Vtree) = variables(v[end])
 num_variables(v::Vtree) = num_variables(v[end])
+
