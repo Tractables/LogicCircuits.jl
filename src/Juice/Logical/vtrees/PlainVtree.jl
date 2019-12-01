@@ -2,48 +2,48 @@ using DataStructures
 using Random
 
 #############
-# Vtree
+# PlainVtree
 #############
 
 "Root of the vtree node hiearchy"
-abstract type VtreeNode end
+abstract type PlainVtreeNode <: VtreeNode end
 
-struct VtreeLeafNode <: VtreeNode
+struct PlainVtreeLeafNode <: PlainVtreeNode
     var::Var
 end
 
-mutable struct VtreeInnerNode <: VtreeNode
-    left::VtreeNode
-    right::VtreeNode
+mutable struct PlainVtreeInnerNode <: PlainVtreeNode
+    left::PlainVtreeNode
+    right::PlainVtreeNode
     variables::Vector{Var}
 end
 
-const Vtree = AbstractVector{<:VtreeNode}
+const PlainVtree = AbstractVector{<:PlainVtreeNode}
 
 #####################
 # Constructor
 #####################
 
-function VtreeInnerNode(left::VtreeNode, right::VtreeNode)
+function PlainVtreeInnerNode(left::PlainVtreeNode, right::PlainVtreeNode)
     @assert isempty(intersect(variables(left), variables(right)))
-    VtreeInnerNode(left, right, [variables(left); variables(right)])
+    PlainVtreeInnerNode(left, right, [variables(left); variables(right)])
 end
 
-function VtreeLeafNode(vars::Vector{Var})
+function PlainVtreeLeafNode(vars::Vector{Var})
     @assert length(vars) == 1
-    VtreeLeafNode(vars[1])
+    PlainVtreeLeafNode(vars[1])
 end
 
-isleaf(n::VtreeLeafNode) = true
-isleaf(n::VtreeInnerNode) = false
+isleaf(n::PlainVtreeLeafNode) = true
+isleaf(n::PlainVtreeInnerNode) = false
 
-variables(n::VtreeLeafNode) = [n.var]
-variables(n::VtreeInnerNode) = n.variables
-variables(n::Vtree) = variables(n[end])
+variables(n::PlainVtreeLeafNode) = [n.var]
+variables(n::PlainVtreeInnerNode) = n.variables
+variables(n::PlainVtree) = variables(n[end])
 
-num_variables(n::VtreeLeafNode) = 1
-num_variables(n::VtreeInnerNode) = length(n.variables)
-num_variables(n::Vtree) = num_variables(n[end])
+num_variables(n::PlainVtreeLeafNode) = 1
+num_variables(n::PlainVtreeInnerNode) = length(n.variables)
+num_variables(n::PlainVtree) = num_variables(n[end])
 
 #####################
 # Methods
@@ -53,17 +53,17 @@ num_variables(n::Vtree) = num_variables(n[end])
 Returns the nodes in order of leaves to root.
 Which is basically reverse Breadth First Search from the root.
 """
-function order_nodes_leaves_before_parents(root::VtreeNode)::Vtree
+function order_nodes_leaves_before_parents(root::PlainVtreeNode)::PlainVtree
     # Running BFS
-    visited = Vector{VtreeNode}()
-    queue = Queue{VtreeNode}()
+    visited = Vector{PlainVtreeNode}()
+    queue = Queue{PlainVtreeNode}()
     enqueue!(queue, root)
 
     while !isempty(queue)
         cur = dequeue!(queue)
         push!(visited, cur)
 
-        if cur isa VtreeInnerNode
+        if cur isa PlainVtreeInnerNode
             enqueue!(queue, cur.right)
             enqueue!(queue, cur.left)
         end
@@ -75,8 +75,8 @@ end
 """
 Return the leftmost child.
 """
-function left_most_child(root::VtreeNode)::VtreeLeafNode
-    while !(root isa VtreeLeafNode)
+function left_most_child(root::PlainVtreeNode)::PlainVtreeLeafNode
+    while !(root isa PlainVtreeLeafNode)
         root = root.left
     end
     root
@@ -85,17 +85,17 @@ end
 """
 Order the nodes in preorder
 """
-function pre_order_traverse(root::VtreeNode)::Vtree
+function pre_order_traverse(root::PlainVtreeNode)::PlainVtree
     # Running DFS
-    visited = Vector{VtreeNode}()
-    stack = Stack{VtreeNode}()
+    visited = Vector{PlainVtreeNode}()
+    stack = Stack{PlainVtreeNode}()
     push!(stack, root)
 
     while !isempty(stack)
         cur = pop!(stack)
         push!(visited, cur)
 
-        if cur isa VtreeInnerNode
+        if cur isa PlainVtreeInnerNode
             push!(stack, cur.left)
             push!(stack, cur.right)
         end
@@ -104,37 +104,37 @@ function pre_order_traverse(root::VtreeNode)::Vtree
 end
 
 """
-Construct Vtree top town, using method specified by split_method.
+Construct PlainVtree top town, using method specified by split_method.
 """
-function construct_top_down(vars::Vector{Var}, split_method)::VtreeNode
+function construct_top_down(vars::Vector{Var}, split_method)::PlainVtreeNode
     order_nodes_leaves_before_parents(
         construct_top_down_root(vars,split_method))
 end
 
-function construct_top_down_root(vars::Vector{Var}, split_method)::VtreeNode
+function construct_top_down_root(vars::Vector{Var}, split_method)::PlainVtreeNode
     @assert !isempty(vars) "Cannot construct a vtree with zero variables"
     if length(vars) == 1
-        VtreeLeafNode(vars)
+        PlainVtreeLeafNode(vars)
     else
         (X, Y) = split_method(vars)
         prime = construct_top_down_root(X, split_method)
         sub = construct_top_down_root(Y, split_method)
-        VtreeInnerNode(prime, sub)
+        PlainVtreeInnerNode(prime, sub)
     end
 end
 
 
 """
-Construct Vtree bottom up, using method specified by combine_method!.
+Construct PlainVtree bottom up, using method specified by combine_method!.
 """
-function construct_bottom_up(vars::Vector{Var}, combine_method!)::Vtree
+function construct_bottom_up(vars::Vector{Var}, combine_method!)::PlainVtree
     vars = copy(vars)
-    ln = Vector{VtreeNode}()
-    node_cache = Dict{Var, VtreeNode}() # map from variable to *highest* level node
+    ln = Vector{PlainVtreeNode}()
+    node_cache = Dict{Var, PlainVtreeNode}() # map from variable to *highest* level node
 
     "1. construct leaf node"
     for var in vars
-        n = VtreeLeafNode(var)
+        n = PlainVtreeLeafNode(var)
         node_cache[var] = n
         push!(ln, n)
     end
@@ -143,7 +143,7 @@ function construct_bottom_up(vars::Vector{Var}, combine_method!)::Vtree
     while length(vars) > 1
         matches = combine_method!(vars) # vars are mutable
         for (left, right) in matches
-            n = VtreeInnerNode(node_cache[left], node_cache[right])
+            n = PlainVtreeInnerNode(node_cache[left], node_cache[right])
             node_cache[left] = node_cache[right] = n
             push!(ln, n)
         end
@@ -158,31 +158,31 @@ import Base.isequal
 """
 Compare whether two vtrees are equal
 """
-@inline function isequal(leaf1::VtreeLeafNode, leaf2::VtreeLeafNode)::Bool
+@inline function isequal(leaf1::PlainVtreeLeafNode, leaf2::PlainVtreeLeafNode)::Bool
     return leaf1.var == leaf2.var
 end
 
-function isequal(inner1::VtreeInnerNode, inner2::VtreeInnerNode)::Bool
+function isequal(inner1::PlainVtreeInnerNode, inner2::PlainVtreeInnerNode)::Bool
     return isequal(variables(inner1), variables(inner2)) &&
         isequal(inner1.left, inner2.left) &&
         isequal(inner1.right, inner2.right)
 end
 
-@inline isequal(n1::VtreeInnerNode, n2::VtreeLeafNode) = false
-@inline isequal(n1::VtreeLeafNode, n2::VtreeInnerNode) = false
+@inline isequal(n1::PlainVtreeInnerNode, n2::PlainVtreeLeafNode) = false
+@inline isequal(n1::PlainVtreeLeafNode, n2::PlainVtreeInnerNode) = false
 
-function isequal(vtree1::Vtree, vtree2::Vtree)::Bool
+function isequal(vtree1::PlainVtree, vtree2::PlainVtree)::Bool
     return isequal(vtree1[end], vtree2[end])
 end
 
 """
 Compare whether two vtrees are equal, left right child order does not matter
 """
-function isequal_unordered(vtree1::Vtree, vtree2::Vtree)::Bool
+function isequal_unordered(vtree1::PlainVtree, vtree2::PlainVtree)::Bool
     return isequal_unordered(vtree1[end], vtree2[end])
 end
 
-function isequal_unordered(inner1::VtreeInnerNode, inner2::VtreeInnerNode)::Bool
+function isequal_unordered(inner1::PlainVtreeInnerNode, inner2::PlainVtreeInnerNode)::Bool
     return isequal(variables(inner1), variables(inner2)) &&
                 ((isequal_unordered(inner1.left, inner2.left) &&
                 isequal_unordered(inner1.right, inner2.right)) ||
@@ -190,34 +190,34 @@ function isequal_unordered(inner1::VtreeInnerNode, inner2::VtreeInnerNode)::Bool
                 isequal_unordered(inner1.right, inner2.left)))
 end
 
-@inline function isequal_unordered(leaf1::VtreeLeafNode, leaf2::VtreeLeafNode)::Bool
+@inline function isequal_unordered(leaf1::PlainVtreeLeafNode, leaf2::PlainVtreeLeafNode)::Bool
     return leaf1.var == leaf2.var
 end
 
-@inline isequal_unordered(n1::VtreeInnerNode, n2::VtreeLeafNode) = false
-@inline isequal_unordered(n1::VtreeLeafNode, n2::VtreeInnerNode) = false
+@inline isequal_unordered(n1::PlainVtreeInnerNode, n2::PlainVtreeLeafNode) = false
+@inline isequal_unordered(n1::PlainVtreeLeafNode, n2::PlainVtreeInnerNode) = false
 
 
 """
 Check vtree validation, variables(parent) = variables(left) + variables(right)
 """
-function isvalid(n::VtreeInnerNode)::Bool
+function isvalid(n::PlainVtreeInnerNode)::Bool
     return num_variables(n) == num_variables(n.left) + num_variables(n.right) &&
         isequal(variables(n), union(variables(n.left), variables(n.right))) &&
         isvalid(n.right) &&
         isvalid(n.left)
 end
 
-@inline function isvalid(n::VtreeLeafNode)::Bool true; end
+@inline function isvalid(n::PlainVtreeLeafNode)::Bool true; end
 
-function isvalid(vtree::Vtree)::Bool
+function isvalid(vtree::PlainVtree)::Bool
     return isvalid(vtree[end])
 end
 
 """
 Return the length from vtree inner node `n` to leaf node which contains `var`
 """
-function path_length(n::VtreeInnerNode, var::Var)
+function path_length(n::PlainVtreeInnerNode, var::Var)
     @assert var in variables(n)
     if var in variables(n.left)
         return 1 + path_length(n.left, var)
@@ -226,7 +226,7 @@ function path_length(n::VtreeInnerNode, var::Var)
     end
 end
 
-function path_length(n::VtreeLeafNode, var::Var)
+function path_length(n::PlainVtreeLeafNode, var::Var)
     @assert variables(n) == [var]
     return 0
 end
@@ -246,19 +246,19 @@ function pushrand!(v::AbstractVector{<:Any}, element)
     v
 end
 
-function random_vtree(num_variables::Integer; vtree_mode::String)::Vtree
+function random_vtree(num_variables::Integer; vtree_mode::String)::PlainVtree
     @assert vtree_mode in ["linear", "balanced", "rand"]
     vars = Var.(Random.randperm(num_variables))
     
     leaves = map(vars) do v
-        VtreeLeafNode(v)
+        PlainVtreeLeafNode(v)
     end
 
-    vtree = [Vector{VtreeNode}(); leaves]
+    vtree = [Vector{PlainVtreeNode}(); leaves]
     right = popfirst!(vtree)
     while !isempty(vtree)
         left = popfirst!(vtree)
-        v = VtreeInnerNode(left, right)
+        v = PlainVtreeInnerNode(left, right)
         if vtree_mode == "linear"
             pushfirst!(vtree, v)
         elseif vtree_mode == "balanced"

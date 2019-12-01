@@ -2,7 +2,7 @@
  using .Juice
  using .Juice.IO: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine
 
-@testset "Vtree File Parser Test" begin
+@testset "PlainVtree File Parser Test" begin
     vtree_lines = parse_vtree_file("test/circuits/little_4var.vtree");
     for i = 1:9
         @test vtree_lines[i] isa VtreeCommentLine
@@ -20,10 +20,10 @@
 
     function test_vtree(vtree)
         for i = 1:4
-            @test vtree[i] isa VtreeLeafNode
+            @test vtree[i] isa PlainVtreeLeafNode
         end
         for i = 5:7
-            @test vtree[i] isa VtreeInnerNode
+            @test vtree[i] isa PlainVtreeInnerNode
         end
 
         @test sort(variables(vtree[1])) == [1]

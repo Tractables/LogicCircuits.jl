@@ -36,7 +36,10 @@ reset_aggregate_flows, accumulate_aggr_flows_batch, accumulate_aggr_flows_cached
 accumulate_aggr_flows,
 
 # Vtree
-VtreeNode, VtreeLeafNode, VtreeInnerNode, isleaf, variables, num_variables, Vtree,
+VtreeNode, Vtree,
+
+# PlainVtree
+PlainVtreeNode, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_variables, PlainVtree,
 order_nodes_leaves_before_parents, construct_top_down, construct_bottom_up,
 isequal, isequal_unordered, left_most_child,path_length,random_vtree,
 
@@ -49,7 +52,8 @@ include("LogicalCircuits.jl")
 include("UpFlowCircuits.jl")
 include("DownFlowCircuits.jl")
 include("AggregateFlowCircuits.jl")
-include("Vtree.jl")
+include("vtrees/Vtree.jl")
+include("vtrees/PlainVtree.jl")
 include("StructuredLogicalCircuits.jl")
 
 end

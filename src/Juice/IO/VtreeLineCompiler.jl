@@ -25,23 +25,23 @@ struct VtreeLeafLine <: VtreeFormatLine
     variable::Var
 end
 
-compile_vtree_format_lines(lines::VtreeFormatLines)::Vtree = 
+compile_vtree_format_lines(lines::VtreeFormatLines)::PlainVtree = 
     compile_vtree_format_lines_m(lines)[1]
 
 function compile_vtree_format_lines_m(lines::VtreeFormatLines)
 
     # linearized vtree nodes
-    vtree = Vector{VtreeNode}()
+    vtree = Vector{PlainVtreeNode}()
 
-    # map from index to VtreeNode for input
-    id2node = Dict{UInt32, VtreeNode}()
+    # map from index to PlainVtreeNode for input
+    id2node = Dict{UInt32, PlainVtreeNode}()
 
     function compile(::Union{VtreeHeaderLine,VtreeCommentLine})
         # do nothing
     end
 
     function compile(ln::VtreeLeafLine)
-        n = VtreeLeafNode(ln.variable)
+        n = PlainVtreeLeafNode(ln.variable)
         id2node[ln.node_id] = n
         push!(vtree, n)
     end
@@ -49,7 +49,7 @@ function compile_vtree_format_lines_m(lines::VtreeFormatLines)
     function compile(ln::VtreeInnerLine)
         left_node = id2node[ln.left_id]
         right_node = id2node[ln.right_id]
-        n = VtreeInnerNode(left_node,right_node)
+        n = PlainVtreeInnerNode(left_node,right_node)
         id2node[ln.node_id] = n
         push!(vtree, n)
     end

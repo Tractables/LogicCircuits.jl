@@ -4,7 +4,7 @@
 #####################
 
 "Root of the structure logical circuit node hierarchy"
-abstract type StructLogicalΔNode{V<:VtreeNode} <: LogicalΔNode end
+abstract type StructLogicalΔNode{V<:PlainVtreeNode} <: LogicalΔNode end
 
 "A structured logical leaf node"
 abstract type StructLogicalLeafNode{V} <: StructLogicalΔNode{V} end

@@ -33,6 +33,6 @@ end
 
    circuit, vtree = load_struct_smooth_logical_circuit("test/circuits/mnist-large.circuit", "test/circuits/balanced.vtree")
    @test circuit isa StructLogicalCircuit
-   @test vtree isa Vtree
+   @test vtree isa PlainVtree
    @test is_decomposable(circuit)
 end

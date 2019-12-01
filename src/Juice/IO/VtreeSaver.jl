@@ -46,7 +46,7 @@ end
 """
 Saves a vtree in the given file path.
 """
-function save(vtree::Vtree, file::AbstractString)
+function save(vtree::PlainVtree, file::AbstractString)
 
     "1. decide file type and open file"
     if endswith(file,".vtree")
@@ -57,26 +57,26 @@ function save(vtree::Vtree, file::AbstractString)
         throw("Invalid file type")
     end
 
-    "2. map from VtreeNode to index for output"
-    index_cache = Dict{VtreeNode, UInt32}()
+    "2. map from PlainVtreeNode to index for output"
+    index_cache = Dict{PlainVtreeNode, UInt32}()
     index = -1
-    node2index(n::VtreeNode) =
+    node2index(n::PlainVtreeNode) =
         get!(index_cache, n) do
             index += 1
         end
 
     "3. saving methods for header, nodes, tailer"
-    function save_vtree_header(vtree::Vtree, f::VtreeConfigFile)
+    function save_vtree_header(vtree::PlainVtree, f::VtreeConfigFile)
         vtree_count = length(vtree)
         write(f.file, VTREE_FORMAT)
         write(f.file, "vtree $vtree_count\n")
     end
 
-    function save_vtree_header(vtree::Vtree, f::VtreeDotFile)
+    function save_vtree_header(vtree::PlainVtree, f::VtreeDotFile)
         write(f.file,"strict graph vtree { node [shape=point]; splines=false; \n")
     end
 
-    function save_vtree_node(n::VtreeLeafNode, f)
+    function save_vtree_node(n::PlainVtreeLeafNode, f)
         node_index = node2index(n)
         node_variable = n.var
 
@@ -89,7 +89,7 @@ function save(vtree::Vtree, file::AbstractString)
         end
     end
 
-    function save_vtree_node(n::VtreeInnerNode, f)
+    function save_vtree_node(n::PlainVtreeInnerNode, f)
         node_index = node2index(n)
         left = node2index(n.left)
         right = node2index(n.right)
