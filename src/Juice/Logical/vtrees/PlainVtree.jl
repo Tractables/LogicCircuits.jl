@@ -5,7 +5,7 @@ using Random
 # PlainVtree
 #############
 
-"Root of the vtree node hiearchy"
+"Root of the plain vtree node hierarchy"
 abstract type PlainVtreeNode <: VtreeNode end
 
 struct PlainVtreeLeafNode <: PlainVtreeNode
@@ -34,20 +34,20 @@ function PlainVtreeLeafNode(vars::Vector{Var})
     PlainVtreeLeafNode(vars[1])
 end
 
+#####################
+# Methods
+#####################
+
 isleaf(n::PlainVtreeLeafNode) = true
 isleaf(n::PlainVtreeInnerNode) = false
 
 variables(n::PlainVtreeLeafNode) = [n.var]
 variables(n::PlainVtreeInnerNode) = n.variables
-variables(n::PlainVtree) = variables(n[end])
 
 num_variables(n::PlainVtreeLeafNode) = 1
 num_variables(n::PlainVtreeInnerNode) = length(n.variables)
-num_variables(n::PlainVtree) = num_variables(n[end])
 
-#####################
-# Methods
-#####################
+#TODO generalize and move some of the methods below to Vtree.jl
 
 """
 Returns the nodes in order of leaves to root.
