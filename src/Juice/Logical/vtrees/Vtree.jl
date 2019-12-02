@@ -60,7 +60,7 @@ end
 """
 Construct PlainVtree bottom up, using method specified by combine_method!.
 """
-function bottom_up_vtree(::Type{VN}, vars::Vector{Var}, combine_method!::Function)::PlainVtree
+function bottom_up_vtree(::Type{VN}, vars::Vector{Var}, combine_method!::Function)::Vtree{VN} where {VN <: VtreeNode}
     vars = copy(vars)
     ln = Vector{VN}()
     node_cache = Dict{Var, VN}() # map from variable to *highest* level node
