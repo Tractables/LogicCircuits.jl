@@ -36,6 +36,13 @@ function TrimSddMgrLeafNode(vars::Vector{Var})
 end
 
 #####################
+# Traits
+#####################
+
+@inline NodeType(::TrimSddMgrLeafNode) = Leaf()
+@inline NodeType(::TrimSddMgrInnerNode) = Inner()
+
+#####################
 # Methods
 #####################
 

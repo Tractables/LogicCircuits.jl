@@ -34,6 +34,17 @@ function PlainVtreeLeafNode(vars::Vector{Var})
     PlainVtreeLeafNode(vars[1])
 end
 
+PlainVtreeNode(v::Var) = PlainVtreeLeafNode(v)
+PlainVtreeNode(left::PlainVtreeNode, right::PlainVtreeNode) = PlainVtreeInnerNode(left, right)
+
+
+#####################
+# Traits
+#####################
+
+@inline NodeType(::PlainVtreeLeafNode) = Leaf()
+@inline NodeType(::PlainVtreeInnerNode) = Inner()
+
 #####################
 # Methods
 #####################
@@ -46,31 +57,6 @@ variables(n::PlainVtreeInnerNode) = n.variables
 
 num_variables(n::PlainVtreeLeafNode) = 1
 num_variables(n::PlainVtreeInnerNode) = length(n.variables)
-
-#TODO generalize and move some of the methods below to Vtree.jl
-
-"""
-Returns the nodes in order of leaves to root.
-Which is basically reverse Breadth First Search from the root.
-"""
-function order_nodes_leaves_before_parents(root::PlainVtreeNode)::PlainVtree
-    # Running BFS
-    visited = Vector{PlainVtreeNode}()
-    queue = Queue{PlainVtreeNode}()
-    enqueue!(queue, root)
-
-    while !isempty(queue)
-        cur = dequeue!(queue)
-        push!(visited, cur)
-
-        if cur isa PlainVtreeInnerNode
-            enqueue!(queue, cur.right)
-            enqueue!(queue, cur.left)
-        end
-    end
-
-    reverse(visited)
-end
 
 """
 Return the leftmost child.
@@ -107,7 +93,7 @@ end
 Construct PlainVtree top town, using method specified by split_method.
 """
 function construct_top_down(vars::Vector{Var}, split_method)::PlainVtreeNode
-    order_nodes_leaves_before_parents(
+    root(
         construct_top_down_root(vars,split_method))
 end
 
@@ -150,7 +136,7 @@ function construct_bottom_up(vars::Vector{Var}, combine_method!)::PlainVtree
     end
 
     "3. clean up"
-    order_nodes_leaves_before_parents(ln[end])
+    root(ln[end])
 end
 
 import Base.isequal
@@ -229,45 +215,4 @@ end
 function path_length(n::PlainVtreeLeafNode, var::Var)
     @assert variables(n) == [var]
     return 0
-end
-
-
-"""
-Generate a random vtree, given number of variables
-"""
-function pushrand!(v::AbstractVector{<:Any}, element)
-    len = length(v)
-    i = rand(1:len + 1)
-    if i == len + 1
-        push!(v, element)
-    else
-        splice!(v, i:i, [element, v[i]])
-    end
-    v
-end
-
-function random_vtree(num_variables::Integer; vtree_mode::String)::PlainVtree
-    @assert vtree_mode in ["linear", "balanced", "rand"]
-    vars = Var.(Random.randperm(num_variables))
-    
-    leaves = map(vars) do v
-        PlainVtreeLeafNode(v)
-    end
-
-    vtree = [Vector{PlainVtreeNode}(); leaves]
-    right = popfirst!(vtree)
-    while !isempty(vtree)
-        left = popfirst!(vtree)
-        v = PlainVtreeInnerNode(left, right)
-        if vtree_mode == "linear"
-            pushfirst!(vtree, v)
-        elseif vtree_mode == "balanced"
-            push!(vtree, v)
-        elseif vtree_mode == "rand"
-            pushrand!(vtree, v)
-        end
-        right = popfirst!(vtree)
-    end
-
-    order_nodes_leaves_before_parents(right)
 end
