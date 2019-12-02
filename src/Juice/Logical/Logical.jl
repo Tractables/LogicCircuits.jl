@@ -51,8 +51,7 @@ path_length, random_vtree,
 SddMgrNode, SddMgr,
 
 # TrimSddMgr
-TrimSddMgrNode, TrimSddMgr, compile
-
+TrimSddMgrNode, TrimSddMgr, compile, conjoin, disjoin
 
 include("Circuits.jl")
 include("LogicalCircuits.jl")

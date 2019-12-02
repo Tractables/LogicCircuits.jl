@@ -16,8 +16,8 @@ mutable struct TrimSddMgrLeafNode <: TrimSddMgrNode
 
     TrimSddMgrLeafNode(v::Var) = begin
         this = new(v)
-        this.positive_literal = StructLiteralNode!(var2lit(v), this)
-        this.negative_literal = StructLiteralNode!(-var2lit(v), this)
+        this.positive_literal = StructLiteralNode(var2lit(v), this)
+        this.negative_literal = StructLiteralNode(-var2lit(v), this)
         this
     end    
 
@@ -36,7 +36,7 @@ end
 const TrimSddMgr = AbstractVector{<:TrimSddMgrNode}
 
 # alias structured logical nodes with a trimmed sdd manager vtree
-const TrimSDDNode = StructLogicalΔNode{TrimSddMgrNode}
+const TrimSDDNode = StructLogicalΔNode{<:TrimSddMgrNode}
 const TrimTrue = StructTrueNode{TrimSddMgrNode}
 const TrimFalse = StructFalseNode{TrimSddMgrNode}
 const TrimConstant = StructConstantNode{TrimSddMgrNode}
@@ -116,8 +116,39 @@ end
 """
 Conjoin two SDDs
 """
+@inline conjoin(::TrimFalse, ::TrimTrue)::TrimSDDNode = TrimFalse()
+@inline conjoin(::TrimTrue, ::TrimFalse)::TrimSDDNode = TrimFalse()
+@inline conjoin(s::TrimSDDNode, ::TrimTrue)::TrimSDDNode = s
+@inline conjoin(::TrimSDDNode, ::TrimFalse)::TrimSDDNode = TrimFalse()
+@inline conjoin(::TrimTrue, s::TrimSDDNode)::TrimSDDNode = s
+@inline conjoin(::TrimFalse, ::TrimSDDNode)::TrimSDDNode = TrimFalse()
 
-conjoin(s::TrimSDDNode, ::TrimTrue)::TrimSDDNode = s
-conjoin(s::TrimSDDNode, ::TrimFalse)::TrimSDDNode = TrimFalse()
-conjoin(::TrimTrue, s::TrimSDDNode)::TrimSDDNode = s
-conjoin(::TrimFalse, s::TrimSDDNode, )::TrimSDDNode = TrimFalse()
+function conjoin(s::TrimLiteral, t::TrimLiteral)::TrimSDDNode 
+    if vtree(s) == vtree(t)
+        (s === t) ? TrimTrue() : TrimFalse()
+    else
+        error("not yet implemented")
+    end
+end
+
+@inline Base.:&(s,t) = conjoin(s,t)
+
+"""
+Disjoin two SDDs
+"""
+@inline disjoin(::TrimFalse, ::TrimTrue)::TrimSDDNode = TrimTrue()
+@inline disjoin(::TrimTrue, ::TrimFalse)::TrimSDDNode = TrimTrue()
+@inline disjoin(::TrimSDDNode, ::TrimTrue)::TrimSDDNode = TrimTrue()
+@inline disjoin(s::TrimSDDNode, ::TrimFalse)::TrimSDDNode = s
+@inline disjoin(::TrimTrue, ::TrimSDDNode)::TrimSDDNode = TrimTrue()
+@inline disjoin(::TrimFalse, s::TrimSDDNode)::TrimSDDNode = s
+
+function disjoin(s::TrimLiteral, t::TrimLiteral)::TrimSDDNode 
+    if vtree(s) == vtree(t)
+        (s === t) ? s : TrimTrue()
+    else
+        error("not yet implemented")
+    end
+end
+
+@inline Base.:|(s,t) = disjoin(s,t)

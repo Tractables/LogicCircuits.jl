@@ -44,4 +44,16 @@ using .Utils
     @test is_false(false_c)
     @test constant(false_c) == false
 
+    @test false_c & true_c == false_c
+    @test false_c & notx_c == false_c
+    @test false_c & x_c == false_c
+    @test true_c & notx_c == notx_c
+    @test x_c & notx_c == false_c
+
+    @test false_c | true_c == true_c
+    @test false_c | notx_c == notx_c
+    @test false_c | x_c == x_c
+    @test true_c | notx_c == true_c
+    @test x_c | notx_c == true_c
+
 end
