@@ -44,7 +44,6 @@ const UnstLogicalΔ = AbstractVector{<:UnstLogicalΔNode}
 # traits
 #####################
 
-@inline GateType(instance) = GateType(typeof(instance))
 @inline GateType(::Type{<:LiteralNode}) = LiteralLeaf()
 @inline GateType(::Type{<:ConstantNode}) = ConstantLeaf()
 @inline GateType(::Type{<:⋀Node}) = ⋀()

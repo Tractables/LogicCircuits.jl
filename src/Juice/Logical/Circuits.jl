@@ -24,7 +24,7 @@ const Lit = Int32 # variable with a positive or negative sign
 #####################
 
 "Root of the circuit node hierarchy"
-abstract type ΔNode end
+abstract type ΔNode <: DagNode end
 
 "Any circuit represented as a bottom-up linear order of nodes"
 const Δ = AbstractVector{<:ΔNode}
@@ -61,22 +61,21 @@ struct ⋀ <: InnerGate end
 "A trait denoting disjunction nodes of any type"
 struct ⋁ <: InnerGate end
 
+@inline GateType(instance::ΔNode) = GateType(typeof(instance))
+
 # map gate type traits to graph node traits
 import ..Utils.NodeType # make available for extension
 @inline NodeType(::Type{CN}) where {CN<:ΔNode} = NodeType(GateType(CN))
-@inline NodeType(::Type{<:LeafGate}) = Leaf()
-@inline NodeType(::Type{<:InnerGate}) = Inner()
+@inline NodeType(::LeafGate) = Leaf()
+@inline NodeType(::InnerGate) = Inner()
 
 #####################
 # methods
 #####################
 
-# When you suspect there is a bug but execution halts, it may be because of 
-# pretty printing a huge recursive circuit structure. 
-# To safeguard against that case, we set a default show:
-Base.show(io::IO, c::ΔNode) = print(io, "$(typeof(c))($(hash(c))))")
-
 # following methods should be defined for all types of circuits
+
+import ..Utils.children # make available for extension
 
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::ΔNode)::Lit = literal(GateType(n), n)
@@ -85,10 +84,6 @@ Base.show(io::IO, c::ΔNode) = print(io, "$(typeof(c))($(hash(c))))")
 "Get the logical constant in a given constant leaf node"
 @inline constant(n::ΔNode)::Bool = literal(GateType(n), n)
 @inline constant(::ConstantLeaf, n::ΔNode)::Bool = error("Each `ConstantLeaf` should implement a `constant` method")
-
-"Get the children of a given inner node"
-@inline children(n::ΔNode)::Vector{<:ΔNode} = children(GateType(n), n)
-@inline children(::InnerGate, n::ΔNode)::Vector{<:ΔNode} = error("Each inner node should implement a `children` method")
 
 # next bunch of methods are derived from literal, constant, children, and the traits
 
@@ -101,16 +96,6 @@ Base.show(io::IO, c::ΔNode) = print(io, "$(typeof(c))($(hash(c))))")
 @inline positive(::LiteralLeaf, n::ΔNode)::Bool = literal(n) >= 0 
 @inline negative(n::ΔNode)::Bool = !positive(n)
 
-"Does the node have children?"
-@inline has_children(n::ΔNode)::Bool = has_children(GateType(n), n)
-@inline has_children(::InnerGate, n::ΔNode)::Bool = !isempty(children(n))
-@inline has_children(::LeafGate, n::ΔNode)::Bool = false
-
-"Get the number of children of a given inner node"
-@inline num_children(n::ΔNode)::Int = num_children(GateType(n), n)
-@inline num_children(::InnerGate, n::ΔNode)::Int = length(children(n))
-@inline num_children(::LeafGate, n::ΔNode)::Int = 0
-
 "Is the circuit syntactically equal to true?"
 @inline is_true(n::ΔNode)::Bool = is_true(GateType(n), n)
 @inline is_true(::GateType, n::ΔNode)::Bool = false
@@ -121,51 +106,15 @@ Base.show(io::IO, c::ΔNode) = print(io, "$(typeof(c))($(hash(c))))")
 @inline is_false(::GateType, n::ΔNode)::Bool = false
 @inline is_false(::ConstantLeaf, n::ΔNode)::Bool = (constant(n) == false)
 
-
 "Get the list of conjunction nodes in a given circuit"
 ⋀_nodes(c::Δ) = filter(n -> GateType(n) isa ⋀, c)
 
 "Get the list of disjunction nodes in a given circuit"
 ⋁_nodes(c::Δ) = filter(n -> GateType(n) isa ⋁, c)
 
-"Number of nodes in the circuit"
-num_nodes(c::Δ) = length(c)
-
-"Number of edges in the circuit"
-num_edges(c::Δ) = sum(n -> length(children(n)), inodes(c))
-
-"Number of edges in the circuit"
+"Number of variables in the circuit"
 num_variables(c::Δ) = length(variable_scope(c))
 
-"Give count of types and fan-ins of inner nodes in the circuit"
-function inode_stats(c::Δ)
-    groups = groupby(e -> (typeof(e),num_children(e)), inodes(c))
-    map_values(v -> length(v), groups, Int)
-end
-
-"Give count of types of leaf nodes in the circuit"
-function leaf_stats(c::Δ)
-    groups = groupby(e -> typeof(e), leafnodes(c))
-    map_values(v -> length(v), groups, Int)
-end
-
-"Give count of types and fan-ins of all nodes in the circuit"
-node_stats(c::Δ) = merge(leaf_stats(c), inode_stats(c))
-
-"""
-Compute the number of nodes in of a tree-unfolding of the DAG circuit. 
-"""
-function tree_num_nodes(circuit::Δ)::BigInt
-    size = Dict{ΔNode,BigInt}()
-    for node in circuit
-        if has_children(node)
-            size[node] = one(BigInt) + sum(c -> size[c], children(node))
-        else
-            size[node] = one(BigInt)
-        end
-    end
-    size[circuit[end]]
-end
 
 "Get the variable scope of the entire circuit"
 function variable_scope(circuit::Δ)::BitSet
@@ -287,30 +236,6 @@ function propagate_constants(circuit::Δ)
         proped[node] = propagate(node)
     end
     root(proped[circuit[end]])
-end
-
-"Rebuild a circuit's linear bottom-up order from a new root node"
-function root(root::ΔNode)::Δ
-    seen = Set{ΔNode}()
-    circuit = Vector{ΔNode}()
-    see(n::ΔNode) = see(GateType(n),n)
-    function see(::LeafGate, n::ΔNode)
-        if n ∉ seen
-            push!(seen,n)
-            push!(circuit,n)
-        end
-    end
-    function see(::InnerGate, n::ΔNode)
-        if n ∉ seen
-            for child in children(n)
-                see(child)
-            end
-            push!(seen,n)
-            push!(circuit,n)
-        end
-    end
-    see(root)
-    lower_element_type(circuit) # specialize the circuit node type
 end
 
 "Get the origin of the given decorator circuit node"

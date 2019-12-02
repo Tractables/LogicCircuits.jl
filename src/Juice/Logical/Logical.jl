@@ -10,9 +10,9 @@ export
 # Circuits
 Var, Lit, var2lit, lit2var, ΔNode, Δ, 
 LiteralLeaf, ConstantLeaf, ⋁, ⋀, ⋁_nodes,
-num_children, children, GateType, InnerGate, LeafGate, node_stats, is_decomposable,
+GateType, InnerGate, LeafGate, is_decomposable,
 negative, positive, variable, literal, tree_size, variable_scopes, variable_scope, num_variables,
-propagate_constants, root, is_smooth, smooth, num_nodes, num_edges, forget, true_like, false_like, 
+propagate_constants, is_smooth, smooth, forget, true_like, false_like, 
 DecoratorΔ, DecoratorΔNode, origin, grand_origin, circuitnodetype,
 
 # LogicalCircuits
