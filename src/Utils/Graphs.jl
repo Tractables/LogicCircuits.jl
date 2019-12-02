@@ -120,3 +120,37 @@ end
 
 "Get the type of node contained in this graph"
 grapheltype(circuit::DiGraph)::Type{<:Node} = eltype(circuit)
+
+"Is one node equal to another locally, ignoring children?"
+function isequal_local end
+
+import Base.isequal
+"Is one ordered tree equal to another?"
+isequal(t1::Tree, t2::Tree)::Bool = 
+    isequal(t1[end], t2[end])
+isequal(n1::TreeNode, n2::TreeNode)::Bool = 
+    isequal_local(n1,n2) && isequal(NodeType(n1), NodeType(n2), n1, n2)
+isequal(::Leaf, ::Leaf, ::TreeNode, ::TreeNode)::Bool = true
+function isequal(::Inner, ::Inner, n1::TreeNode, n2::TreeNode)::Bool
+    foreach(children(n1), children(n2)) do c1, c2 # we need all to support varagrs!
+        if !isequal(c1, c2)
+            return false
+        end
+    end
+    return true
+end
+
+"Is one unordered tree equal to another?"
+isequal_unordered(t1::Tree, t2::Tree)::Bool = 
+    isequal_unordered(t1[end], t2[end])
+isequal(n1::TreeNode, n2::TreeNode)::Bool = 
+    isequal_local(n1,n2) && isequal_unordered(NodeType(n1), NodeType(n2), n1, n2)
+isequal_unordered(::Leaf, ::Leaf, ::TreeNode, ::TreeNode)::Bool = true
+
+function isequal_unordered(::Inner, ::Inner, n1::TreeNode, n2::TreeNode)::Bool
+    @assert num_children(n1) == 2 && num_children(n2) == 2 "`isequal_unordered` is only implemented for binary trees"
+    c1 = children(n1)
+    c2 = children(n2)
+    return ((isequal_unordered(c1[1],c2[1]) &&  isequal_unordered(c1[2],c2[2])) 
+            || (isequal_unordered(c1[1],c2[2]) && isequal_unordered(c1[2],c2[1])))
+end
