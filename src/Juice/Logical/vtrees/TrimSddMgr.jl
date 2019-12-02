@@ -21,23 +21,28 @@ const XYPartition = Tuple{Element,Vararg{Element}}
 const Unique⋁Cache = Dict{XYPartition,Trim⋁}
 
 mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
+
     left::TrimSddMgrNode
     right::TrimSddMgrNode
     
     parent::Union{TrimSddMgrInnerNode, Nothing}
+    descendents::Vector{TrimSddMgrNode}
 
     variables::Vector{Var}
     unique⋁cache::Unique⋁Cache
+
     TrimSddMgrInnerNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = begin
         @assert isempty(intersect(variables(left), variables(right)))
         this = new(left, right, 
             nothing, 
+            [descendents(left); descendents(right)], 
             [variables(left); variables(right)], 
             Unique⋁Cache())
         left.parent = this
         right.parent = this
         this
     end
+
 end
 
 mutable struct TrimSddMgrLeafNode <: TrimSddMgrNode
@@ -82,9 +87,13 @@ TrimSddMgrNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = TrimSddMgrInnerNod
 
 @inline children(n::TrimSddMgrInnerNode) = [n.left, n.right]
 
-variables(n::TrimSddMgrLeafNode) = [n.var]
-variables(n::TrimSddMgrInnerNode) = n.variables
+@inline variables(n::TrimSddMgrLeafNode) = [n.var]
+@inline variables(n::TrimSddMgrInnerNode) = n.variables
 
+@inline parent(n::TrimSddMgrNode)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
+
+@inline descendents(n::TrimSddMgrLeafNode)::Vector{TrimSddMgrNode} = []
+@inline descendents(n::TrimSddMgrInnerNode)::Vector{TrimSddMgrNode} = n.descendents
 
 """
 Compile a given variable, literal, or constant

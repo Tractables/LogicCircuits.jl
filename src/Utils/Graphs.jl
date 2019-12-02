@@ -217,3 +217,25 @@ function right_most_child(root::DagNode)::DagNode
     end
     root
 end
+
+"""
+Find the least common ancestor (assumes the graph has a parent pointer and a list of descendents)
+"""
+lca(v::DagNode)::DagNode = v
+lca(v::DagNode, w::DagNode)::DagNode = begin
+    if v == w 
+        return v
+    end
+    if w ∈ descendents(v)
+        return v
+    end
+    candidate::Union{DagNode,Nothing} = w
+    while issomething(candidate)
+        if v ∈ descendents(candidate)
+            return candidate
+        end
+        candidate = parent(candidate)
+    end
+    error("First argument is not contained in the root of second argument. There is no LCA.")
+end
+lca(v::DagNode, w::DagNode, u::DagNode, r::DagNode...)::DagNode = lca(lca(v,w), u, r...)
