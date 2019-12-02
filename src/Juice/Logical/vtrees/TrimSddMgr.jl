@@ -46,7 +46,7 @@ end
 # Methods
 #####################
 
-#TODO move some of these to a trait pattern similar to logical circuits
+@inline children(n::TrimSddMgrInnerNode) = [n.left, n.right]
 
 isleaf(n::TrimSddMgrLeafNode) = true
 isleaf(n::TrimSddMgrInnerNode) = false

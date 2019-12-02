@@ -49,6 +49,8 @@ PlainVtreeNode(left::PlainVtreeNode, right::PlainVtreeNode) = PlainVtreeInnerNod
 # Methods
 #####################
 
+@inline children(n::PlainVtreeInnerNode) = [n.left, n.right]
+
 isleaf(n::PlainVtreeLeafNode) = true
 isleaf(n::PlainVtreeInnerNode) = false
 
