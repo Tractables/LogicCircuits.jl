@@ -38,6 +38,8 @@ struct Struct⋁Node{V} <: StructLogicalInnerNode{V}
     vtree::V # could be leaf or inner
 end
 
+HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
+
 "A structured logical circuit represented as a bottom-up linear order of nodes"
 const StructLogicalCircuit{V} = AbstractVector{<:StructLogicalΔNode{V}}
 
@@ -58,3 +60,5 @@ const StructLogicalCircuit{V} = AbstractVector{<:StructLogicalΔNode{V}}
 @inline constant(n::StructTrueNode)::Bool = true
 @inline constant(n::StructFalseNode)::Bool = false
 @inline children(n::StructLogicalInnerNode) = n.children
+
+@inline vtree(n::HasVtree) = n.vtree

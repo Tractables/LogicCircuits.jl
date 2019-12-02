@@ -40,7 +40,7 @@ VtreeNode, Vtree,
 
 # StructuredLogicalCircuits
 StructLogicalΔNode, StructLogicalLeafNode, StructLogicalCircuit,
-StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node,
+StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node, vtree,
 
 # PlainVtree
 PlainVtreeNode, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_variables, PlainVtree,
@@ -51,7 +51,7 @@ path_length, random_vtree,
 SddMgrNode, SddMgr,
 
 # TrimSddMgr
-TrimSddMgrNode, TrimSddMgr
+TrimSddMgrNode, TrimSddMgr, compile
 
 
 include("Circuits.jl")
