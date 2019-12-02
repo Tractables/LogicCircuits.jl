@@ -61,55 +61,6 @@ num_variables(n::PlainVtreeLeafNode) = 1
 num_variables(n::PlainVtreeInnerNode) = length(n.variables)
 
 
-"""
-Construct PlainVtree top town, using method specified by split_method.
-"""
-function construct_top_down(vars::Vector{Var}, split_method)::PlainVtreeNode
-    root(
-        construct_top_down_root(vars,split_method))
-end
-
-function construct_top_down_root(vars::Vector{Var}, split_method)::PlainVtreeNode
-    @assert !isempty(vars) "Cannot construct a vtree with zero variables"
-    if length(vars) == 1
-        PlainVtreeLeafNode(vars)
-    else
-        (X, Y) = split_method(vars)
-        prime = construct_top_down_root(X, split_method)
-        sub = construct_top_down_root(Y, split_method)
-        PlainVtreeInnerNode(prime, sub)
-    end
-end
-
-
-"""
-Construct PlainVtree bottom up, using method specified by combine_method!.
-"""
-function construct_bottom_up(vars::Vector{Var}, combine_method!)::PlainVtree
-    vars = copy(vars)
-    ln = Vector{PlainVtreeNode}()
-    node_cache = Dict{Var, PlainVtreeNode}() # map from variable to *highest* level node
-
-    "1. construct leaf node"
-    for var in vars
-        n = PlainVtreeLeafNode(var)
-        node_cache[var] = n
-        push!(ln, n)
-    end
-
-    "2. construct inner node"
-    while length(vars) > 1
-        matches = combine_method!(vars) # vars are mutable
-        for (left, right) in matches
-            n = PlainVtreeInnerNode(node_cache[left], node_cache[right])
-            node_cache[left] = node_cache[right] = n
-            push!(ln, n)
-        end
-    end
-
-    "3. clean up"
-    root(ln[end])
-end
 
 import ..Utils.isequal_local
 """

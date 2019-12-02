@@ -36,6 +36,56 @@ function random_vtree(::Type{VN}, num_variables::Integer; vtree_mode::String="ba
     root(right)
 end
 
+
+"""
+Construct PlainVtree top town, using method specified by split_method.
+"""
+function top_down_vtree(::Type{VN}, vars::Vector{Var}, split_method::Function)::Vtree{VN} where {VN <: VtreeNode}
+    root(top_down_root(VN, vars, split_method))
+end
+
+function top_down_root(::Type{VN}, vars::Vector{Var}, split_method::Function)::VN  where {VN <: VtreeNode}
+    @assert !isempty(vars) "Cannot construct a vtree with zero variables"
+    if length(vars) == 1
+        VN(vars[1])
+    else
+        (X, Y) = split_method(vars)
+        prime = top_down_root(VN, X, split_method)
+        sub = top_down_root(VN, Y, split_method)
+        VN(prime, sub)
+    end
+end
+
+
+"""
+Construct PlainVtree bottom up, using method specified by combine_method!.
+"""
+function bottom_up_vtree(::Type{VN}, vars::Vector{Var}, combine_method!::Function)::PlainVtree
+    vars = copy(vars)
+    ln = Vector{VN}()
+    node_cache = Dict{Var, VN}() # map from variable to *highest* level node
+
+    "1. construct leaf node"
+    for var in vars
+        n = VN(var)
+        node_cache[var] = n
+        push!(ln, n)
+    end
+
+    "2. construct inner node"
+    while length(vars) > 1
+        matches = combine_method!(vars) # vars are mutable
+        for (left, right) in matches
+            n = VN(node_cache[left], node_cache[right])
+            node_cache[left] = node_cache[right] = n
+            push!(ln, n)
+        end
+    end
+
+    "3. clean up"
+    root(ln[end])
+end
+
 #############
 # Methods
 #############
@@ -80,5 +130,3 @@ function path_length(::Leaf, n::VtreeNode, var::Var)::Int
     @assert variables(n) == [var]
     return 0
 end
-
-
