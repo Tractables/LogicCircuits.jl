@@ -2,20 +2,54 @@ using DataStructures
 using Random
 
 #############
-# TrimSddMgrNode
+# Trimmed SDD types and structs
 #############
 
 "Root of the trimmed SDD manager node hierarchy"
 abstract type TrimSddMgrNode <: SddMgrNode end
 
+# alias structured logical nodes with a trimmed sdd manager vtree
+const TrimSDDNode = StructLogicalΔNode{<:TrimSddMgrNode}
+const TrimTrue = StructTrueNode{TrimSddMgrNode}
+const TrimFalse = StructFalseNode{TrimSddMgrNode}
+const TrimConstant = StructConstantNode{TrimSddMgrNode}
+const Trim⋁ = Struct⋁Node{<:TrimSddMgrNode}
+
+# alias SDD terminology
+const Element = Tuple{TrimSDDNode,TrimSDDNode}
+const XYPartition = Tuple{Element,Vararg{Element}}
+const Unique⋁Cache = Dict{XYPartition,Trim⋁}
+
+mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
+    left::TrimSddMgrNode
+    right::TrimSddMgrNode
+    
+    parent::Union{TrimSddMgrInnerNode, Nothing}
+
+    variables::Vector{Var}
+    unique⋁cache::Unique⋁Cache
+    TrimSddMgrInnerNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = begin
+        @assert isempty(intersect(variables(left), variables(right)))
+        this = new(left, right, 
+            nothing, 
+            [variables(left); variables(right)], 
+            Unique⋁Cache())
+        left.parent = this
+        right.parent = this
+        this
+    end
+end
+
 mutable struct TrimSddMgrLeafNode <: TrimSddMgrNode
 
     var::Var
+    parent::Union{TrimSddMgrInnerNode, Nothing}
+
     positive_literal::StructLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral
     negative_literal::StructLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral
 
     TrimSddMgrLeafNode(v::Var) = begin
-        this = new(v)
+        this = new(v, nothing)
         this.positive_literal = StructLiteralNode(var2lit(v), this)
         this.negative_literal = StructLiteralNode(-var2lit(v), this)
         this
@@ -23,24 +57,10 @@ mutable struct TrimSddMgrLeafNode <: TrimSddMgrNode
 
 end
 
-mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
-    left::TrimSddMgrNode
-    right::TrimSddMgrNode
-    variables::Vector{Var}
-    TrimSddMgrInnerNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = begin
-        @assert isempty(intersect(variables(left), variables(right)))
-        new(left, right, [variables(left); variables(right)])
-    end
-end
+const TrimLiteral = StructLiteralNode{TrimSddMgrLeafNode}
 
 const TrimSddMgr = AbstractVector{<:TrimSddMgrNode}
 
-# alias structured logical nodes with a trimmed sdd manager vtree
-const TrimSDDNode = StructLogicalΔNode{<:TrimSddMgrNode}
-const TrimTrue = StructTrueNode{TrimSddMgrNode}
-const TrimFalse = StructFalseNode{TrimSddMgrNode}
-const TrimConstant = StructConstantNode{TrimSddMgrNode}
-const TrimLiteral = StructLiteralNode{TrimSddMgrLeafNode}
 
 #####################
 # Constructor
@@ -168,3 +188,11 @@ function negate(s::TrimLiteral)::TrimLiteral
 end
 
 @inline Base.:!(s) = negate(s)
+
+"""
+Construct a unique decision gate for the given vtree
+"""
+function unique⋁(xy::XYPartition)::Trim⋁
+    mgr = lca(xy)
+    # mgr.
+end
