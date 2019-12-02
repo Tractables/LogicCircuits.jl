@@ -116,12 +116,12 @@ end
 """
 Conjoin two SDDs
 """
-@inline conjoin(::TrimFalse, ::TrimTrue)::TrimSDDNode = TrimFalse()
-@inline conjoin(::TrimTrue, ::TrimFalse)::TrimSDDNode = TrimFalse()
+@inline conjoin(::TrimFalse, ::TrimTrue)::TrimFalse = TrimFalse()
+@inline conjoin(::TrimTrue, ::TrimFalse)::TrimFalse = TrimFalse()
 @inline conjoin(s::TrimSDDNode, ::TrimTrue)::TrimSDDNode = s
-@inline conjoin(::TrimSDDNode, ::TrimFalse)::TrimSDDNode = TrimFalse()
+@inline conjoin(::TrimSDDNode, ::TrimFalse)::TrimFalse = TrimFalse()
 @inline conjoin(::TrimTrue, s::TrimSDDNode)::TrimSDDNode = s
-@inline conjoin(::TrimFalse, ::TrimSDDNode)::TrimSDDNode = TrimFalse()
+@inline conjoin(::TrimFalse, ::TrimSDDNode)::TrimFalse = TrimFalse()
 
 function conjoin(s::TrimLiteral, t::TrimLiteral)::TrimSDDNode 
     if vtree(s) == vtree(t)
@@ -136,11 +136,11 @@ end
 """
 Disjoin two SDDs
 """
-@inline disjoin(::TrimFalse, ::TrimTrue)::TrimSDDNode = TrimTrue()
-@inline disjoin(::TrimTrue, ::TrimFalse)::TrimSDDNode = TrimTrue()
-@inline disjoin(::TrimSDDNode, ::TrimTrue)::TrimSDDNode = TrimTrue()
+@inline disjoin(::TrimFalse, ::TrimTrue)::TrimTrue = TrimTrue()
+@inline disjoin(::TrimTrue, ::TrimFalse)::TrimTrue = TrimTrue()
+@inline disjoin(::TrimSDDNode, ::TrimTrue)::TrimTrue = TrimTrue()
 @inline disjoin(s::TrimSDDNode, ::TrimFalse)::TrimSDDNode = s
-@inline disjoin(::TrimTrue, ::TrimSDDNode)::TrimSDDNode = TrimTrue()
+@inline disjoin(::TrimTrue, ::TrimSDDNode)::TrimTrue = TrimTrue()
 @inline disjoin(::TrimFalse, s::TrimSDDNode)::TrimSDDNode = s
 
 function disjoin(s::TrimLiteral, t::TrimLiteral)::TrimSDDNode 
@@ -152,3 +152,19 @@ function disjoin(s::TrimLiteral, t::TrimLiteral)::TrimSDDNode
 end
 
 @inline Base.:|(s,t) = disjoin(s,t)
+
+"""
+Negate an SDD
+"""
+@inline negate(::TrimFalse)::TrimTrue = TrimTrue()
+@inline negate(::TrimTrue)::TrimFalse = TrimFalse()
+
+function negate(s::TrimLiteral)::TrimLiteral 
+    if positive(s) 
+        vtree(s).negative_literal
+    else
+        vtree(s).positive_literal
+    end
+end
+
+@inline Base.:!(s) = negate(s)
