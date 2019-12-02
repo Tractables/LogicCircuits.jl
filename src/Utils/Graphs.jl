@@ -117,3 +117,6 @@ function root(root::DagNode)::Dag
     see(root)
     lower_element_type(dag) # specialize the dag node type
 end
+
+"Get the type of node contained in this graph"
+grapheltype(circuit::DiGraph)::Type{<:Node} = eltype(circuit)

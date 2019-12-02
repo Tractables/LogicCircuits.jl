@@ -48,7 +48,7 @@ function AggregateFlowΔ(circuit::Δ, ::Type{A}) where {A}
     cache = Dict{ΔNode, AggregateFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)
     
-    O = circuitnodetype(circuit) # type of node in the origin
+    O = grapheltype(circuit) # type of node in the origin
     af_node(::LiteralLeaf, n::ΔNode) = AggregateFlowLiteral{O,A}(n)
     af_node(::ConstantLeaf, n::ΔNode) = AggregateFlowConstant{O,A}(n)
 

@@ -254,5 +254,3 @@ end
 "Get the origin of the origin the given decorator circuit"
 @inline grand_origin(circuit::DecoratorΔ) = origin(origin(circuit))
 
-"Get the type of circuit node contained in this circuit"
-circuitnodetype(circuit::Δ)::Type{<:ΔNode} = eltype(circuit)

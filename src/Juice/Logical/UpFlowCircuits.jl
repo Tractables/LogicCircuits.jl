@@ -71,7 +71,7 @@ const flow_opts★ = (max_factors= 2, #only save space using compact nodes when 
 function UpFlowΔ(circuit::Δ, m::Int, ::Type{El}, opts = flow_opts★)  where El
     # TODO get rid of the arguments above, they are mostly useless
 
-    O = circuitnodetype(circuit) # type of node in the origin
+    O = grapheltype(circuit) # type of node in the origin
     F = (El == Bool) ? BitVector : Vector{El}
     fmem  = () -> some_vector(El, m) # note: fmem's return type will determine type of all UpFlows in the circuit (should be El)
     
