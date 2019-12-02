@@ -11,13 +11,13 @@ abstract type TrimSddMgrNode <: SddMgrNode end
 mutable struct TrimSddMgrLeafNode <: TrimSddMgrNode
 
     var::Var
-    positive_literal::StructLiteralNode
-    negative_literal::StructLiteralNode
+    positive_literal::StructLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral
+    negative_literal::StructLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral
 
     TrimSddMgrLeafNode(v::Var) = begin
         this = new(v)
-        this.positive_literal = StructLiteralNode(var2lit(v), this)
-        this.negative_literal = StructLiteralNode(-var2lit(v), this)
+        this.positive_literal = StructLiteralNode!(var2lit(v), this)
+        this.negative_literal = StructLiteralNode!(-var2lit(v), this)
         this
     end    
 
@@ -34,6 +34,13 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
 end
 
 const TrimSddMgr = AbstractVector{<:TrimSddMgrNode}
+
+# alias structured logical nodes with a trimmed sdd manager vtree
+const TrimSDDNode = StructLogicalΔNode{TrimSddMgrNode}
+const TrimTrue = StructTrueNode{TrimSddMgrNode}
+const TrimFalse = StructFalseNode{TrimSddMgrNode}
+const TrimConstant = StructConstantNode{TrimSddMgrNode}
+const TrimLiteral = StructLiteralNode{TrimSddMgrLeafNode}
 
 #####################
 # Constructor
@@ -58,17 +65,18 @@ TrimSddMgrNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = TrimSddMgrInnerNod
 variables(n::TrimSddMgrLeafNode) = [n.var]
 variables(n::TrimSddMgrInnerNode) = n.variables
 
+
 """
 Compile a given variable, literal, or constant
 """
-compile(mgr::TrimSddMgr, x::Union{Var,Lit})::StructLiteralNode = compile(mgr[end], x)
+compile(mgr::TrimSddMgr, x::Union{Var,Lit})::TrimLiteral = compile(mgr[end], x)
 
-function compile(n::TrimSddMgrLeafNode, v::Var)::StructLiteralNode
+function compile(n::TrimSddMgrLeafNode, v::Var)::TrimLiteral
     @assert n.var == v
     n.positive_literal
 end
 
-function compile(n::TrimSddMgrInnerNode, v::Var)::StructLiteralNode
+function compile(n::TrimSddMgrInnerNode, v::Var)::TrimLiteral
     if v in variables(n.left)
         compile(n.left, v)
     elseif v in variables(n.right)
@@ -78,7 +86,7 @@ function compile(n::TrimSddMgrInnerNode, v::Var)::StructLiteralNode
     end
 end
 
-function compile(n::TrimSddMgrLeafNode, l::Lit)::StructLiteralNode
+function compile(n::TrimSddMgrLeafNode, l::Lit)::TrimLiteral
     @assert n.var == lit2var(l)
     if l>0 # positive literal
         n.positive_literal
@@ -87,7 +95,7 @@ function compile(n::TrimSddMgrLeafNode, l::Lit)::StructLiteralNode
     end
 end
 
-function compile(n::TrimSddMgrInnerNode, l::Lit)::StructLiteralNode
+function compile(n::TrimSddMgrInnerNode, l::Lit)::TrimLiteral
     if lit2var(l) in variables(n.left)
         compile(n.left, l)
     elseif lit2var(l) in variables(n.right)
@@ -97,10 +105,6 @@ function compile(n::TrimSddMgrInnerNode, l::Lit)::StructLiteralNode
     end
 end
 
-const TrimTrue = StructTrueNode{TrimSddMgrNode}
-const TrimFalse = StructFalseNode{TrimSddMgrNode}
-const TrimConstant = StructConstantNode{TrimSddMgrNode}
-
 function compile(::Union{<:TrimSddMgr,<:TrimSddMgrNode}, constant::Bool)::TrimConstant
     if constant == true
         TrimTrue()
@@ -108,3 +112,12 @@ function compile(::Union{<:TrimSddMgr,<:TrimSddMgrNode}, constant::Bool)::TrimCo
         TrimFalse()
     end
 end
+
+"""
+Conjoin two SDDs
+"""
+
+conjoin(s::TrimSDDNode, ::TrimTrue)::TrimSDDNode = s
+conjoin(s::TrimSDDNode, ::TrimFalse)::TrimSDDNode = TrimFalse()
+conjoin(::TrimTrue, s::TrimSDDNode)::TrimSDDNode = s
+conjoin(::TrimFalse, s::TrimSDDNode, )::TrimSDDNode = TrimFalse()
