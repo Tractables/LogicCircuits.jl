@@ -60,36 +60,6 @@ variables(n::PlainVtreeInnerNode) = n.variables
 num_variables(n::PlainVtreeLeafNode) = 1
 num_variables(n::PlainVtreeInnerNode) = length(n.variables)
 
-"""
-Return the leftmost child.
-"""
-function left_most_child(root::PlainVtreeNode)::PlainVtreeLeafNode
-    while !(root isa PlainVtreeLeafNode)
-        root = root.left
-    end
-    root
-end
-
-"""
-Order the nodes in preorder
-"""
-function pre_order_traverse(root::PlainVtreeNode)::PlainVtree
-    # Running DFS
-    visited = Vector{PlainVtreeNode}()
-    stack = Stack{PlainVtreeNode}()
-    push!(stack, root)
-
-    while !isempty(stack)
-        cur = pop!(stack)
-        push!(visited, cur)
-
-        if cur isa PlainVtreeInnerNode
-            push!(stack, cur.left)
-            push!(stack, cur.right)
-        end
-    end
-    reverse(visited)
-end
 
 """
 Construct PlainVtree top town, using method specified by split_method.

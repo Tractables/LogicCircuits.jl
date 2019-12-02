@@ -45,7 +45,7 @@ StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node,
 # PlainVtree
 PlainVtreeNode, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_variables, PlainVtree,
 construct_top_down, construct_bottom_up,
-isequal, isequal_unordered, left_most_child,path_length, random_vtree,
+path_length, random_vtree,
 
 # SddMgr
 SddMgrNode, SddMgr,

@@ -137,6 +137,27 @@ function root(root::TreeNode)::Tree
     lower_element_type(reverse(visited))
 end
 
+"""
+Order the nodes in preorder
+"""
+function pre_order_traverse(root::TreeNode)::Tree
+    # Running DFS
+    visited = Vector{TreeNode}()
+    stack = Stack{TreeNode}()
+    push!(stack, root)
+
+    while !isempty(stack)
+        cur = pop!(stack)
+        push!(visited, cur)
+
+        if NodeType(cur) isa Inner	
+            push!(stack, cur.left)
+            push!(stack, cur.right)
+        end
+    end
+    lower_element_type(reverse(visited))
+end
+
 "Get the type of node contained in this graph"
 grapheltype(circuit::DiGraph)::Type{<:Node} = eltype(circuit)
 
@@ -172,4 +193,24 @@ function isequal_unordered(::Inner, ::Inner, n1::TreeNode, n2::TreeNode)::Bool
     c2 = children(n2)
     return ((isequal_unordered(c1[1],c2[1]) &&  isequal_unordered(c1[2],c2[2])) 
             || (isequal_unordered(c1[1],c2[2]) && isequal_unordered(c1[2],c2[1])))
+end
+
+"""
+Return the leftmost child.
+"""
+function left_most_child(root::DagNode)::DagNode
+    while !(NodeType(root) isa Leaf)
+        root = children(root)[1]
+    end
+    root
+end
+
+"""
+Return the rightmost child.
+"""
+function right_most_child(root::DagNode)::DagNode
+    while !(NodeType(root) isa Leaf)
+        root = children(root)[end]
+    end
+    root
 end
