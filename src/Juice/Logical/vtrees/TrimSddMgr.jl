@@ -59,16 +59,16 @@ variables(n::TrimSddMgrLeafNode) = [n.var]
 variables(n::TrimSddMgrInnerNode) = n.variables
 
 """
-Compile given variable or literal
+Compile a given variable, literal, or constant
 """
-compile(mgr::TrimSddMgr, x) = compile(mgr[end], x)
+compile(mgr::TrimSddMgr, x::Union{Var,Lit})::StructLiteralNode = compile(mgr[end], x)
 
-function compile(n::TrimSddMgrLeafNode, v::Var)
+function compile(n::TrimSddMgrLeafNode, v::Var)::StructLiteralNode
     @assert n.var == v
     n.positive_literal
 end
 
-function compile(n::TrimSddMgrInnerNode, v::Var)
+function compile(n::TrimSddMgrInnerNode, v::Var)::StructLiteralNode
     if v in variables(n.left)
         compile(n.left, v)
     elseif v in variables(n.right)
@@ -78,7 +78,7 @@ function compile(n::TrimSddMgrInnerNode, v::Var)
     end
 end
 
-function compile(n::TrimSddMgrLeafNode, l::Lit)
+function compile(n::TrimSddMgrLeafNode, l::Lit)::StructLiteralNode
     @assert n.var == lit2var(l)
     if l>0 # positive literal
         n.positive_literal
@@ -87,12 +87,24 @@ function compile(n::TrimSddMgrLeafNode, l::Lit)
     end
 end
 
-function compile(n::TrimSddMgrInnerNode, l::Lit)
+function compile(n::TrimSddMgrInnerNode, l::Lit)::StructLiteralNode
     if lit2var(l) in variables(n.left)
         compile(n.left, l)
     elseif lit2var(l) in variables(n.right)
         compile(n.right, l)
     else 
         error("$v is not contained in this vtree")
+    end
+end
+
+const TrimTrue = StructTrueNode{TrimSddMgrNode}
+const TrimFalse = StructFalseNode{TrimSddMgrNode}
+const TrimConstant = StructConstantNode{TrimSddMgrNode}
+
+function compile(::Union{<:TrimSddMgr,<:TrimSddMgrNode}, constant::Bool)::TrimConstant
+    if constant == true
+        TrimTrue()
+    else
+        TrimFalse()
     end
 end

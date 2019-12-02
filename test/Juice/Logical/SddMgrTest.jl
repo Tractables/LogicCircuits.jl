@@ -2,7 +2,8 @@ using Test
 using .Juice.Logical
 using .Utils
 
-@testset "SDD Manager Construction" begin
+@testset "Trimmed SDD Test" begin
+
     num_vars = 8
     mgr = random_vtree(TrimSddMgrNode, num_vars)
     
@@ -32,5 +33,15 @@ using .Utils
     @test vtree(notx_c) ∈ mgr
     @test negative(notx_c)
     @test notx_c == compile(mgr, notx)
+
+    true_c = compile(mgr, true)
+    
+    @test is_true(true_c)
+    @test constant(true_c) == true
+    
+    false_c = compile(mgr, false)
+    
+    @test is_false(false_c)
+    @test constant(false_c) == false
 
 end
