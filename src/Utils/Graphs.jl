@@ -1,3 +1,4 @@
+using DataStructures
 
 #####################
 # Nodes and Graphs
@@ -116,6 +117,24 @@ function root(root::DagNode)::Dag
     end
     see(root)
     lower_element_type(dag) # specialize the dag node type
+end
+
+# this version of `root` is specialized for trees and is more BFS than the general version above. Some unit tests are sensitive to the order, unfortunately
+function root(root::TreeNode)::Tree	
+    # Running BFS	
+    visited = Vector{TreeNode}()	
+    queue = Queue{TreeNode}()	
+    enqueue!(queue, root)	
+    while !isempty(queue)	
+        cur = dequeue!(queue)	
+        push!(visited, cur)	
+
+        if NodeType(cur) isa Inner	
+            enqueue!(queue, cur.right)	
+            enqueue!(queue, cur.left)	
+        end	
+    end	
+    lower_element_type(reverse(visited))
 end
 
 "Get the type of node contained in this graph"
