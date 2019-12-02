@@ -53,6 +53,9 @@ num_nodes(c::DiGraph) = length(c)
 "Number of edges in the graph"
 num_edges(c::DiGraph) = sum(n -> num_children(n), c)
 
+isleaf(n::Node) = NodeType(n) isa Leaf
+isinner(n::Node) = NodeType(n) isa Inner
+
 "Get the list of inner nodes in a given graph"
 inodes(c::DiGraph) = filter(n -> NodeType(n) isa Inner, c)
 

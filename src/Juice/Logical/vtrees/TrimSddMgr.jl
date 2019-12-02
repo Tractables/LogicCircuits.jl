@@ -35,6 +35,9 @@ function TrimSddMgrLeafNode(vars::Vector{Var})
     PlainVtreeLeafNode(vars[1])
 end
 
+TrimSddMgrNode(v::Var) = TrimSddMgrLeafNode(v)
+TrimSddMgrNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = TrimSddMgrInnerNode(left, right)
+
 #####################
 # Traits
 #####################
@@ -48,11 +51,5 @@ end
 
 @inline children(n::TrimSddMgrInnerNode) = [n.left, n.right]
 
-isleaf(n::TrimSddMgrLeafNode) = true
-isleaf(n::TrimSddMgrInnerNode) = false
-
 variables(n::TrimSddMgrLeafNode) = [n.var]
 variables(n::TrimSddMgrInnerNode) = n.variables
-
-num_variables(n::TrimSddMgrLeafNode) = 1
-num_variables(n::TrimSddMgrInnerNode) = length(n.variables)

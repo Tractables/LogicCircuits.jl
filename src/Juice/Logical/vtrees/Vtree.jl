@@ -36,7 +36,6 @@ function random_vtree(::Type{VN}, num_variables::Integer; vtree_mode::String="ba
     root(right)
 end
 
-
 """
 Construct PlainVtree top town, using method specified by split_method.
 """
@@ -93,6 +92,9 @@ end
 variables(v::Vtree) = variables(v[end])
 num_variables(v::Vtree) = num_variables(v[end])
 
+num_variables(n::VtreeNode) = num_variables(NodeType(n), n::VtreeNode) 
+num_variables(::Leaf, ::VtreeNode) = 1
+num_variables(::Inner, n::VtreeNode) = length(variables(n))
 
 """
 Check vtree validation, variables(parent) = variables(left) + variables(right)

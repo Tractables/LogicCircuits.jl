@@ -51,16 +51,8 @@ PlainVtreeNode(left::PlainVtreeNode, right::PlainVtreeNode) = PlainVtreeInnerNod
 
 @inline children(n::PlainVtreeInnerNode) = [n.left, n.right]
 
-isleaf(n::PlainVtreeLeafNode) = true
-isleaf(n::PlainVtreeInnerNode) = false
-
 variables(n::PlainVtreeLeafNode) = [n.var]
 variables(n::PlainVtreeInnerNode) = n.variables
-
-num_variables(n::PlainVtreeLeafNode) = 1
-num_variables(n::PlainVtreeInnerNode) = length(n.variables)
-
-
 
 import ..Utils.isequal_local
 """
