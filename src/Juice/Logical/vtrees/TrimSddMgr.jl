@@ -107,11 +107,12 @@ end
 
 parentlca(p::TrimSDDNode, s::TrimSDDNode)::TrimSddMgrInnerNode = 
     lca(parent(vtree(p)), parent(vtree(s)))
-parentlca(p::TrimSDDNode, s::TrimConstant)::TrimSddMgrInnerNode = 
-        parent(vtree(p))
-parentlca(p::TrimConstant, s::TrimSDDNode)::TrimSddMgrInnerNode = 
-        parent(vtree(p))
-#TODO problem: (T,T) or (T,F)?????
+parentlca(p::TrimSDDNode, ::TrimConstant)::TrimSddMgrInnerNode = 
+    parent(vtree(p))
+parentlca(::TrimConstant, s::TrimSDDNode)::TrimSddMgrInnerNode = 
+    parent(vtree(s))
+parentlca(::TrimConstant, ::TrimConstant)::TrimSddMgrInnerNode = 
+    error("This XY partition should have been trimmed!")
 
 """
 Get the canonical compilation of the given XY Partition
@@ -156,7 +157,7 @@ Construct a unique decision gate for the given vtree
 function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Trim⋁
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
     get!(mgr.unique⋁cache, xy) do 
-        ands = [Trim⋀([e[1], e[2]], mgr) for e in xy]
+        ands = [Trim⋀(TrimSDDNode[e[1], e[2]], mgr) for e in xy]
         Trim⋁(ands, mgr)
     end
 end
