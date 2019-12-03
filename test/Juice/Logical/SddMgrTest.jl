@@ -84,13 +84,13 @@ using .Utils
     n2 = canonicalize(p4)
     @test n1 === n2
 
-    t1 = v1 & v3
-    t2 = v3 & v1
+    # t1 = v1 & v3
+    # t2 = v3 & v1
 
-    @test t1 === t2
+    # @test t1 === t2
 
-    c1 = v1 | v3
-    c2 = v3 | v1
+    # c1 = v1 | v3
+    # c2 = v3 | v1
 
-    @test c1 === c2
+    # @test c1 === c2
 end
