@@ -4,8 +4,8 @@ using .Utils
 
 @testset "Trimmed SDD Test" begin
 
-    num_vars = 8
-    mgr = random_vtree(TrimSddMgrNode, num_vars)
+    num_vars = 7
+    mgr = balanced_vtree(TrimSddMgrNode, num_vars)
     
     @test num_variables(mgr) == num_vars
     @test num_nodes(mgr) == 2*num_vars-1

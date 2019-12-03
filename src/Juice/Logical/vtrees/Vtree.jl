@@ -11,6 +11,22 @@ const Vtree{VN<:VtreeNode} = AbstractVector{<:VN}
 # Constructors
 #############
 
+"Construct a balanced vtree"
+function balanced_vtree(::Type{VN}, num_vars::Int)::Vtree{VN} where {VN <: VtreeNode}
+    return root(balanced_vtree_root(VN, 1, num_vars))
+end
+
+"Construct a balanced vtree root node"
+function balanced_vtree_root(::Type{VN}, first::Int, last::Int)::VN where VN
+    @assert last >= first "Must have $last >= $first"
+    if last == first
+        return VN(Var(first))
+    else
+        return VN(balanced_vtree_root(VN, first, first+(last-first+1)÷2-1), 
+                  balanced_vtree_root(VN, first+(last-first+1)÷2, last))
+    end
+end
+
 function random_vtree(::Type{VN}, num_variables::Integer; vtree_mode::String="balanced")::Vtree{VN} where {VN <: VtreeNode}
     @assert vtree_mode in ["linear", "balanced", "rand"]
     vars = Var.(Random.randperm(num_variables))
@@ -54,7 +70,6 @@ function top_down_root(::Type{VN}, vars::Vector{Var}, split_method::Function)::V
         VN(prime, sub)
     end
 end
-
 
 """
 Construct PlainVtree bottom up, using method specified by combine_method!.

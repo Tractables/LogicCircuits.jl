@@ -36,7 +36,7 @@ reset_aggregate_flows, accumulate_aggr_flows_batch, accumulate_aggr_flows_cached
 accumulate_aggr_flows,
 
 # Vtree
-VtreeNode, Vtree,
+VtreeNode, Vtree, balanced_vtree, top_down_vtree, bottom_up_vtree,
 
 # StructuredLogicalCircuits
 StructLogicalΔNode, StructLogicalLeafNode, StructLogicalCircuit,
@@ -44,7 +44,6 @@ StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node, vtree,
 
 # PlainVtree
 PlainVtreeNode, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_variables, PlainVtree,
-top_down_vtree, bottom_up_vtree,
 path_length, random_vtree,
 
 # SddMgr

@@ -14,10 +14,11 @@ const TrimTrue = StructTrueNode{TrimSddMgrNode}
 const TrimFalse = StructFalseNode{TrimSddMgrNode}
 const TrimConstant = StructConstantNode{TrimSddMgrNode}
 const Trim⋁ = Struct⋁Node{<:TrimSddMgrNode}
+const Trim⋀ = Struct⋀Node{<:TrimSddMgrNode}
 
 # alias SDD terminology
 const Element = Tuple{TrimSDDNode,TrimSDDNode}
-const XYPartition = Tuple{Element,Vararg{Element}}
+const XYPartition = Set{Element}
 const Unique⋁Cache = Dict{XYPartition,Trim⋁}
 
 mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
@@ -96,23 +97,59 @@ TrimSddMgrNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = TrimSddMgrInnerNod
 @inline descendents(n::TrimSddMgrInnerNode)::Vector{TrimSddMgrNode} = n.descendents
 
 """
+Canonicalize the given XY Partition
+"""
+function canonicalize(xy::XYPartition)::Trim⋁
+    unique⋁(trim(compress(xy)))
+end
+
+"""
+Trim a given XY Partition
+"""
+function trim(xy::XYPartition)::XYPartition
+    if length(xy) == 1 && (xy[1][1] === TrimTrue())
+        return xy[1][2]
+    elseif length(xy) == 2 && (xy[1][2] === TrimTrue()) && (xy[2][2] === TrimFalse())
+        return xy[1][1]
+    elseif length(xy) == 2 && (xy[2][2] === TrimTrue()) && (xy[1][2] === TrimFalse())
+        return xy[2][1]
+    else 
+        return xy
+    end
+end
+
+"""
+Compress a given XY Partition
+"""
+function compress(xy::XYPartition)::XYPartition
+    sub2primes = groupby(e -> e[2], xy)
+    elements = map(sub2primes) do (sub,primes)
+        prime = reduce((p,q) -> disjoin(p,q), primes)
+        (prime, sub)
+    end
+    Set(elements)
+end
+
+"""
+Construct a unique decision gate for the given vtree
+"""
+function unique⋁(xy::XYPartition)::Trim⋁
+    # find the appropriate vtree node to canonicalize with (assuming the XY partition is already compressed and trimmed)
+    element_vtrees = map(e -> lca(parent(vtree(e[1]), parent(vtree(e[2])))), xy)
+    mgr = lca(element_vtrees)
+    get!(mgr.unique⋁cache, xy) do 
+        ands = map(e -> Trim⋀([e[1], e[2]], mgr))
+        Trim⋁(ands, mgr)
+    end
+end
+
+"""
 Compile a given variable, literal, or constant
 """
 compile(mgr::TrimSddMgr, x::Union{Var,Lit})::TrimLiteral = compile(mgr[end], x)
 
-function compile(n::TrimSddMgrLeafNode, v::Var)::TrimLiteral
-    @assert n.var == v
-    n.positive_literal
-end
-
-function compile(n::TrimSddMgrInnerNode, v::Var)::TrimLiteral
-    if v in variables(n.left)
-        compile(n.left, v)
-    elseif v in variables(n.right)
-        compile(n.right, v)
-    else 
-        error("$v is not contained in this vtree")
-    end
+function compile(n::TrimSddMgrNode, v::Var)::TrimLiteral
+    compile(n,var2lit(v))
 end
 
 function compile(n::TrimSddMgrLeafNode, l::Lit)::TrimLiteral
@@ -197,11 +234,3 @@ function negate(s::TrimLiteral)::TrimLiteral
 end
 
 @inline Base.:!(s) = negate(s)
-
-"""
-Construct a unique decision gate for the given vtree
-"""
-function unique⋁(xy::XYPartition)::Trim⋁
-    mgr = lca(xy)
-    # mgr.
-end
