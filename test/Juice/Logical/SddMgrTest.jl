@@ -13,8 +13,6 @@ using .Utils
     @test mgr isa TrimSddMgr
 
     x = Var(1)
-    y = Var(2)
-    z = Var(3)
     
     x_c = compile(mgr, x)
 
@@ -34,12 +32,12 @@ using .Utils
     @test negative(notx_c)
     @test notx_c == compile(mgr, notx)
 
-    true_c = compile(mgr, true)
+    true_c = compile(true)
     
     @test is_true(true_c)
     @test constant(true_c) == true
     
-    false_c = compile(mgr, false)
+    false_c = compile(false)
     
     @test is_false(false_c)
     @test constant(false_c) == false
@@ -60,5 +58,21 @@ using .Utils
     @test false_c | x_c == x_c
     @test true_c | notx_c == true_c
     @test x_c | notx_c == true_c
+
+
+    # v1 = compile(mgr, Var(1))
+    # v3 = compile(mgr, Var(3))
+    # v7 = compile(mgr, Var(7))
+
+    # p1 = XYPartition(Element(true_c,v3))
+    # @test trim(p1) === v3
+    # p2 = XYPartition(Element(v1,true_c), Element(!v1,false_c))
+    # @test trim(p2) === v1
+
+    # p3 = XYPartition(Element(v1,v3), Element(!v1,v7))
+    # n1 = canonicalize(p3)
+    # p4 = XYPartition(Element(!v1,v7), Element(v1,v3))
+    # n2 = canonicalize(p4)
+    # @test n1 === n2
 
 end

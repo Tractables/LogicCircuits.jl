@@ -50,7 +50,9 @@ path_length, random_vtree,
 SddMgrNode, SddMgr,
 
 # TrimSddMgr
-TrimSddMgrNode, TrimSddMgr, compile, conjoin, disjoin
+TrimSddMgrNode, TrimSddMgr, XYPartition, Element,
+trim, compress, unique⋁, canonicalize, 
+compile, conjoin, disjoin, negate
 
 include("Circuits.jl")
 include("LogicalCircuits.jl")

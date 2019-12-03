@@ -108,14 +108,16 @@ Trim a given XY Partition
 """
 function trim(xy::XYPartition)::XYPartition
     if length(xy) == 1 && (xy[1][1] === TrimTrue())
-        return xy[1][2]
-    elseif length(xy) == 2 && (xy[1][2] === TrimTrue()) && (xy[2][2] === TrimFalse())
-        return xy[1][1]
-    elseif length(xy) == 2 && (xy[2][2] === TrimTrue()) && (xy[1][2] === TrimFalse())
-        return xy[2][1]
-    else 
-        return xy
+        return first(xy)[2]
+    elseif length(xy) == 2 
+        l = [xy...]
+        if (l[1][2] === TrimTrue()) && (l[2][2] === TrimFalse())
+            return l[1][1]
+        elseif (l[2][2] === TrimTrue()) && (l[1][2] === TrimFalse())
+            return l[2][1]
+        end
     end
+    return xy
 end
 
 """
@@ -171,7 +173,7 @@ function compile(n::TrimSddMgrInnerNode, l::Lit)::TrimLiteral
     end
 end
 
-function compile(::Union{<:TrimSddMgr,<:TrimSddMgrNode}, constant::Bool)::TrimConstant
+function compile(constant::Bool)::TrimConstant
     if constant == true
         TrimTrue()
     else
