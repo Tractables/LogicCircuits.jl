@@ -92,12 +92,26 @@ TrimSddMgrNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = TrimSddMgrInnerNod
 @inline variables(n::TrimSddMgrLeafNode) = [n.var]
 @inline variables(n::TrimSddMgrInnerNode) = n.variables
 
-import ..Utils: parent, descendents # make available for extension
+import ..Utils: parent, descendents, lca # make available for extension
 
 @inline parent(n::TrimSddMgrNode)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
 
 @inline descendents(n::TrimSddMgrLeafNode)::Vector{TrimSddMgrNode} = []
 @inline descendents(n::TrimSddMgrInnerNode)::Vector{TrimSddMgrNode} = n.descendents
+
+function lca(xy::XYPartition)::TrimSddMgrInnerNode
+    @assert !isempty(xy)
+    element_vtrees = [parentlca(e[1],e[2]) for e in xy]
+    return lca(element_vtrees...)
+end
+
+parentlca(p::TrimSDDNode, s::TrimSDDNode)::TrimSddMgrInnerNode = 
+    lca(parent(vtree(p)), parent(vtree(s)))
+parentlca(p::TrimSDDNode, s::TrimConstant)::TrimSddMgrInnerNode = 
+        parent(vtree(p))
+parentlca(p::TrimConstant, s::TrimSDDNode)::TrimSddMgrInnerNode = 
+        parent(vtree(p))
+#TODO problem: (T,T) or (T,F)?????
 
 """
 Get the canonical compilation of the given XY Partition
@@ -139,11 +153,8 @@ end
 """
 Construct a unique decision gate for the given vtree
 """
-function unique⋁(xy::XYPartition)::Trim⋁
-    @assert !isempty(xy)
-    # find the appropriate vtree node to canonicalize with (assuming the XY partition is already compressed and trimmed)
-    element_vtrees = [lca(parent(vtree(e[1])), parent(vtree(e[2]))) for e in xy]
-    mgr = lca(element_vtrees...)
+function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Trim⋁
+    #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
     get!(mgr.unique⋁cache, xy) do 
         ands = [Trim⋀([e[1], e[2]], mgr) for e in xy]
         Trim⋁(ands, mgr)
@@ -200,9 +211,17 @@ function conjoin(s::TrimLiteral, t::TrimLiteral)::TrimSDDNode
     if vtree(s) == vtree(t)
         (s === t) ? TrimTrue() : TrimFalse()
     else
-        error("not yet implemented")
+        mgr = parentlca(s,t)
+        if variable(s) ∈ variables(mgr.left)
+            xy = XYPartition([Element(s,t)])
+        else
+            xy = XYPartition([Element(t,s)])
+        end
+        unique⋁(xy, mgr)
     end
 end
+
+
 
 @inline Base.:&(s,t) = conjoin(s,t)
 
@@ -220,7 +239,13 @@ function disjoin(s::TrimLiteral, t::TrimLiteral)::TrimSDDNode
     if vtree(s) == vtree(t)
         (s === t) ? s : TrimTrue()
     else
-        error("not yet implemented")
+        mgr = parentlca(s,t)
+        if variable(s) ∈ variables(mgr.left)
+            xy = XYPartition([Element(s,TrimTrue()),Element(!s,t)])
+        else
+            xy = XYPartition([Element(t,TrimTrue()),Element(!t,s)])
+        end
+        unique⋁(xy, mgr)
     end
 end
 
