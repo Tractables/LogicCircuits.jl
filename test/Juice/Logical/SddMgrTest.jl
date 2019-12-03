@@ -13,14 +13,24 @@ using .Utils
     @test mgr isa TrimSddMgr
 
     x = Var(1)
+    y = Var(2)
     
     x_c = compile(mgr, x)
+    y_c = compile(mgr, y)
+
+    @test x_c != y_c 
 
     @test variable(x_c) == x
     @test literal(x_c) == var2lit(x)
     @test vtree(x_c) ∈ mgr
     @test positive(x_c)
     @test x_c == compile(mgr, x)
+
+    @test variable(y_c) == y
+    @test literal(y_c) == var2lit(y)
+    @test vtree(y_c) ∈ mgr
+    @test positive(y_c)
+    @test y_c == compile(mgr, y)
 
     notx = -var2lit(x)
 
@@ -59,20 +69,19 @@ using .Utils
     @test true_c | notx_c == true_c
     @test x_c | notx_c == true_c
 
+    v1 = compile(mgr, Var(1))
+    v3 = compile(mgr, Var(3))
+    v7 = compile(mgr, Var(7))
 
-    # v1 = compile(mgr, Var(1))
-    # v3 = compile(mgr, Var(3))
-    # v7 = compile(mgr, Var(7))
+    p1 = XYPartition([Element(true_c,v3)])
+    @test canonicalize(p1) === v3
+    p2 = XYPartition([Element(v1,true_c), Element(!v1,false_c)])
+    @test canonicalize(p2) === v1
 
-    # p1 = XYPartition(Element(true_c,v3))
-    # @test trim(p1) === v3
-    # p2 = XYPartition(Element(v1,true_c), Element(!v1,false_c))
-    # @test trim(p2) === v1
-
-    # p3 = XYPartition(Element(v1,v3), Element(!v1,v7))
-    # n1 = canonicalize(p3)
-    # p4 = XYPartition(Element(!v1,v7), Element(v1,v3))
-    # n2 = canonicalize(p4)
-    # @test n1 === n2
+    p3 = XYPartition([Element(v1,v3), Element(!v1,v7)])
+    n1 = canonicalize(p3)
+    p4 = XYPartition([Element(!v1,v7), Element(v1,v3)])
+    n2 = canonicalize(p4)
+    @test n1 === n2
 
 end

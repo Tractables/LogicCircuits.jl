@@ -239,3 +239,6 @@ lca(v::DagNode, w::DagNode)::DagNode = begin
     error("First argument is not contained in the root of second argument. There is no LCA.")
 end
 lca(v::DagNode, w::DagNode, u::DagNode, r::DagNode...)::DagNode = lca(lca(v,w), u, r...)
+
+function descendents end
+function parent end

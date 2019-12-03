@@ -51,7 +51,7 @@ SddMgrNode, SddMgr,
 
 # TrimSddMgr
 TrimSddMgrNode, TrimSddMgr, XYPartition, Element,
-trim, compress, unique⋁, canonicalize, 
+compress, unique⋁, canonicalize, 
 compile, conjoin, disjoin, negate
 
 include("Circuits.jl")

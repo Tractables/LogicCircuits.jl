@@ -9,15 +9,16 @@ using Random
 abstract type TrimSddMgrNode <: SddMgrNode end
 
 # alias structured logical nodes with a trimmed sdd manager vtree
-const TrimSDDNode = StructLogicalΔNode{<:TrimSddMgrNode}
 const TrimTrue = StructTrueNode{TrimSddMgrNode}
 const TrimFalse = StructFalseNode{TrimSddMgrNode}
 const TrimConstant = StructConstantNode{TrimSddMgrNode}
-const Trim⋁ = Struct⋁Node{<:TrimSddMgrNode}
-const Trim⋀ = Struct⋀Node{<:TrimSddMgrNode}
+const Trim⋁ = Struct⋁Node{TrimSddMgrNode}
+const Trim⋀ = Struct⋀Node{TrimSddMgrNode}
+const TrimSDDNode = StructLogicalΔNode{<:TrimSddMgrNode} # would this be better?: Union{TrimTrue,TrimFalse,TrimConstant,Trim⋁,Trim⋀}
 
 # alias SDD terminology
 const Element = Tuple{TrimSDDNode,TrimSDDNode}
+Element(prime::TrimSDDNode, sub::TrimSDDNode)::Element = (prime, sub) 
 const XYPartition = Set{Element}
 const Unique⋁Cache = Dict{XYPartition,Trim⋁}
 
@@ -36,7 +37,7 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
         @assert isempty(intersect(variables(left), variables(right)))
         this = new(left, right, 
             nothing, 
-            [descendents(left); descendents(right)], 
+            [descendents(left); descendents(right); left ; right], 
             [variables(left); variables(right)], 
             Unique⋁Cache())
         left.parent = this
@@ -91,23 +92,22 @@ TrimSddMgrNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = TrimSddMgrInnerNod
 @inline variables(n::TrimSddMgrLeafNode) = [n.var]
 @inline variables(n::TrimSddMgrInnerNode) = n.variables
 
+import ..Utils: parent, descendents # make available for extension
+
 @inline parent(n::TrimSddMgrNode)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
 
 @inline descendents(n::TrimSddMgrLeafNode)::Vector{TrimSddMgrNode} = []
 @inline descendents(n::TrimSddMgrInnerNode)::Vector{TrimSddMgrNode} = n.descendents
 
 """
-Canonicalize the given XY Partition
+Get the canonical compilation of the given XY Partition
 """
-function canonicalize(xy::XYPartition)::Trim⋁
-    unique⋁(trim(compress(xy)))
-end
-
-"""
-Trim a given XY Partition
-"""
-function trim(xy::XYPartition)::XYPartition
-    if length(xy) == 1 && (xy[1][1] === TrimTrue())
+function canonicalize(xy::XYPartition)::TrimSDDNode
+    @assert !isempty(xy)
+    # compress
+    xy = compress(xy)
+    # trim
+    if length(xy) == 1 && (first(xy)[1] === TrimTrue())
         return first(xy)[2]
     elseif length(xy) == 2 
         l = [xy...]
@@ -117,30 +117,35 @@ function trim(xy::XYPartition)::XYPartition
             return l[2][1]
         end
     end
-    return xy
+    # get unique node representation
+    return unique⋁(xy)
 end
 
 """
-Compress a given XY Partition
+Compress a given XY Partition (merge elements with identical subs)
 """
 function compress(xy::XYPartition)::XYPartition
-    sub2primes = groupby(e -> e[2], xy)
-    elements = map(sub2primes) do (sub,primes)
-        prime = reduce((p,q) -> disjoin(p,q), primes)
-        (prime, sub)
+    @assert !isempty(xy)
+    sub2elems = groupby(e -> e[2], xy)
+    #TODO avoid making a new partition if existing one is unchanged
+    compressed_elements = XYPartition()
+    for (sub,elements) in sub2elems
+        prime = mapreduce(e -> e[1], (p1,p2) -> disjoin(p1,p2), elements)
+        push!(compressed_elements, (prime, sub))
     end
-    Set(elements)
+    return compressed_elements
 end
 
 """
 Construct a unique decision gate for the given vtree
 """
 function unique⋁(xy::XYPartition)::Trim⋁
+    @assert !isempty(xy)
     # find the appropriate vtree node to canonicalize with (assuming the XY partition is already compressed and trimmed)
-    element_vtrees = map(e -> lca(parent(vtree(e[1]), parent(vtree(e[2])))), xy)
-    mgr = lca(element_vtrees)
+    element_vtrees = [lca(parent(vtree(e[1])), parent(vtree(e[2]))) for e in xy]
+    mgr = lca(element_vtrees...)
     get!(mgr.unique⋁cache, xy) do 
-        ands = map(e -> Trim⋀([e[1], e[2]], mgr))
+        ands = [Trim⋀([e[1], e[2]], mgr) for e in xy]
         Trim⋁(ands, mgr)
     end
 end
