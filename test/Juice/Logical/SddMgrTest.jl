@@ -86,12 +86,16 @@ using .Utils
     @test false_c & x_c == false_c
     @test true_c & notx_c == notx_c
     @test x_c & notx_c == false_c
+    @test true_c & true_c == true_c
+    @test false_c & false_c == false_c
 
     @test false_c | true_c == true_c
     @test false_c | notx_c == notx_c
     @test false_c | x_c == x_c
     @test true_c | notx_c == true_c
     @test x_c | notx_c == true_c
+    @test true_c | true_c == true_c
+    @test false_c | false_c == false_c
 
     v1 = compile(mgr, Var(1))
     v3 = compile(mgr, Var(3))
@@ -117,4 +121,15 @@ using .Utils
     c2 = v3 | v1
 
     @test c1 === c2
+
+    f1 = (c1 & c2)
+
+    @test f1 === (c2 & c1)
+    @test f1 === (c1 & c2 & c2)
+    @test f1 === (c1 & c2 & c2 & true_c)
+
+    @test (v3 | v7) !== false_c
+    @test (v3 | v7) & (!v3 | v7) !== false_c
+    @test (v3 | v7) & (!v3 | v7) & (v3 | !v7) !== false_c
+    @test (v3 | v7) & (!v3 | v7) & (v3 | !v7) & (!v3 | !v7) === false_c
 end
