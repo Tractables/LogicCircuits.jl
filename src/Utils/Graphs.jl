@@ -226,12 +226,12 @@ lca(v::DagNode, w::DagNode)::DagNode = begin
     if v == w 
         return v
     end
-    if w ∈ descendents(v)
+    if descends_from(w,v)
         return v
     end
     candidate::Union{DagNode,Nothing} = w
     while issomething(candidate)
-        if v ∈ descendents(candidate)
+        if descends_from(v,candidate)
             return candidate
         end
         candidate = parent(candidate)
@@ -239,3 +239,6 @@ lca(v::DagNode, w::DagNode)::DagNode = begin
     error("First argument is not contained in the root of second argument. There is no LCA.")
 end
 lca(v::DagNode, w::DagNode, u::DagNode, r::DagNode...)::DagNode = lca(lca(v,w), u, r...)
+
+function descends_from end
+function parent end
