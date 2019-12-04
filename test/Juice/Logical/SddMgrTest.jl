@@ -102,7 +102,11 @@ using .Utils
     @test !x_c | !x_c == !x_c
 
     v1 = compile(mgr, Var(1))
+    v2 = compile(mgr, Var(2))
     v3 = compile(mgr, Var(3))
+    v4 = compile(mgr, Var(4))
+    v5 = compile(mgr, Var(5))
+    v6 = compile(mgr, Var(6))
     v7 = compile(mgr, Var(7))
 
     p1 = XYPartition([Element(true_c,v3)])
@@ -152,4 +156,15 @@ using .Utils
 
     @test f2 & !f2 === false_c
     @test f2 | !f2 === true_c
+
+    f3 = (v1 | !v3 | v5) & (!v2 | !v3 | v7) & (v2 | !v6 | !v5) & (v1 | v2 | v3) & (!v5 | v6 | v7) & (v2 | !v3 | !v6) & (!v1 | !v6 | !v7) 
+
+    @test f3 & !f3 === false_c
+    @test f3 | !f3 === true_c
+    @test f3 & !(v2 | !v6 | !v5) === false_c
+
+    f4 = ((v1 | !v3 | v5) & (!v5 | v6 | v7| v1) & (!v5 | v6 | v7)  & (!v1 | !v6 | !v7)  & (!v2 | !v3 | v7)) & ((v2 | !v3 | !v6)  & (v2 | !v6 | !v5) & (v1 | v2 | v3) & (v1 | v2 | v3 | !v6) )
+
+    @test f3 === f4
+
 end
