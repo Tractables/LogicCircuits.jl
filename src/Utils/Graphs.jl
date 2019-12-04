@@ -226,12 +226,12 @@ lca(v::DagNode, w::DagNode)::DagNode = begin
     if v == w 
         return v
     end
-    if w ∈ descendents(v)
+    if descends_from(w,v)
         return v
     end
     candidate::Union{DagNode,Nothing} = w
     while issomething(candidate)
-        if v ∈ descendents(candidate)
+        if descends_from(v,candidate)
             return candidate
         end
         candidate = parent(candidate)
@@ -240,5 +240,5 @@ lca(v::DagNode, w::DagNode)::DagNode = begin
 end
 lca(v::DagNode, w::DagNode, u::DagNode, r::DagNode...)::DagNode = lca(lca(v,w), u, r...)
 
-function descendents end
+function descends_from end
 function parent end
