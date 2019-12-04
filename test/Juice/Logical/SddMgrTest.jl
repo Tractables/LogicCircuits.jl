@@ -12,6 +12,30 @@ using .Utils
     @test num_edges(mgr) == 2*num_vars-2
     @test mgr isa TrimSddMgr
 
+    @test descends_from(mgr[1], mgr[end])
+    @test descends_from(mgr[end].left, mgr[end])
+    @test descends_from(mgr[end].right, mgr[end])
+    @test descends_left_from(mgr[end].left, mgr[end])
+    @test descends_left_from(mgr[end].left.left, mgr[end])
+    @test descends_left_from(mgr[end].left.right, mgr[end])
+    @test descends_right_from(mgr[end].right, mgr[end])
+    @test descends_right_from(mgr[end].right.right, mgr[end])
+    @test descends_right_from(mgr[end].right.left, mgr[end])
+
+    @test !descends_from(mgr[end], mgr[1])
+    @test !descends_left_from(mgr[end].right, mgr[end])
+    @test !descends_left_from(mgr[end].right.left, mgr[end])
+    @test !descends_left_from(mgr[end].right.right, mgr[end])
+    @test !descends_left_from(mgr[end], mgr[end])
+    @test !descends_left_from(mgr[end], mgr[end].left)
+    @test !descends_left_from(mgr[end], mgr[end].right)
+    @test !descends_right_from(mgr[end].left, mgr[end])
+    @test !descends_right_from(mgr[end].left.right, mgr[end])
+    @test !descends_right_from(mgr[end].left.left, mgr[end])
+    @test !descends_right_from(mgr[end], mgr[end])
+    @test !descends_right_from(mgr[end], mgr[end].left)
+    @test !descends_right_from(mgr[end], mgr[end].right)
+
     x = Var(1)
     y = Var(2)
     
