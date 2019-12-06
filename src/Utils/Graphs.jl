@@ -163,6 +163,7 @@ end
 
 "Get the type of node contained in this graph"
 grapheltype(circuit::DiGraph)::Type{<:Node} = eltype(circuit)
+grapheltype(::Type{T}) where {T<:DiGraph} = eltype(T)
 
 "Is one node equal to another locally, ignoring children?"
 function isequal_local end

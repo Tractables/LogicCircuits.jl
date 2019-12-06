@@ -48,7 +48,7 @@ PlainVtreeNode, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_
 path_length, random_vtree,
 
 # SddMgr
-SddMgrNode, SddMgr,
+SddMgrNode, SddMgr, SddNode, Sdd, sdd_size, sdd_num_nodes,
 
 # TrimSddMgr
 TrimSddMgrNode, TrimSddMgr, XYPartition, Element,
