@@ -186,7 +186,7 @@ end
 "Is one unordered tree equal to another?"
 isequal_unordered(t1::Tree, t2::Tree)::Bool = 
     isequal_unordered(t1[end], t2[end])
-isequal(n1::TreeNode, n2::TreeNode)::Bool = 
+isequal_unordered(n1::TreeNode, n2::TreeNode)::Bool = 
     isequal_local(n1,n2) && isequal_unordered(NodeType(n1), NodeType(n2), n1, n2)
 isequal_unordered(::Leaf, ::Leaf, ::TreeNode, ::TreeNode)::Bool = true
 
