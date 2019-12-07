@@ -73,6 +73,7 @@ using .Juice.Utils
     @test notx_c == compile(mgr, notx)
 
     true_c = compile(true)
+
     
     @test is_true(true_c)
     @test constant(true_c) == true
@@ -106,6 +107,9 @@ using .Juice.Utils
     @test false_c | false_c == false_c
     @test x_c | x_c == x_c
     @test !x_c | !x_c == !x_c
+
+    @test model_count(root(true_c),num_vars) == BigInt(2)^(num_vars)
+    @test model_count(root(false_c),num_vars) == BigInt(0)
 
     v1 = compile(mgr, Var(1))
     v2 = compile(mgr, Var(2))
