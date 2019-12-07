@@ -16,20 +16,30 @@ function validate(::⋁, n::SddNode)
    size = num_children(n)
    primes = compile(false)
    for i = 1:size
-   element = children(n)[i]
-   # has alternating layers
-   @test GateType(element) isa ⋀
-   for j = i+1:size
-      other_element = children(n)[j]
-      # is deterministic
-      @test is_false(prime(element) & prime(other_element))
-      # is compressed
-      @test sub(element) !== sub(other_element)
-   end
-   primes = primes | prime(element)
+      element = children(n)[i]
+      # has alternating layers
+      @test GateType(element) isa ⋀
+      for j = i+1:size
+         other_element = children(n)[j]
+         # is deterministic
+         @test is_false(prime(element) & prime(other_element))
+         # is compressed
+         @test sub(element) !== sub(other_element)
+      end
+      primes = primes | prime(element)
    end
    # is exhaustive
    @test primes === compile(true)
+   # cannot be trimmed to the sub
+   @test size >= 1
+   # cannot be trimmed to the prime
+   if size == 2
+      e1 = children(n)[1]
+      e2 = children(n)[2]
+      has_false_sub = (is_false(sub(e1)) || is_false(sub(e2)))
+      has_true_sub = (is_true(sub(e1)) || is_true(sub(e2)))
+      @test !(has_false_sub && has_true_sub)
+   end
 end
 
 function validate(::⋀, n::SddNode)
