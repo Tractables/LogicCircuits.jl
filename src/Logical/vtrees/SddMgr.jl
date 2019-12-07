@@ -32,3 +32,24 @@ end
 
 sdd_size(sdd) = length(⋀_nodes(sdd)) # defined as the number of `elements`
 sdd_num_nodes(sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
+
+function compile_clause(mgr, clause)
+    literals = children(clause)
+    clauseΔ = compile(mgr, literal(literals[1]))
+    for l in literals[2:end]
+       clauseΔ = clauseΔ | compile(mgr, literal(l))
+    end
+    clauseΔ
+ end
+ 
+ function compile_cnf(mgr, cnf, progress=false) 
+    cnfΔ = compile(true)
+    i = 0
+    for clause in children(cnf[end])
+       i = i+1
+       cnfΔ = cnfΔ & compile_clause(mgr, clause)
+       progress && println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(root(cnfΔ)))
+    end
+    cnfΔ = root(cnfΔ)
+    cnfΔ
+ end

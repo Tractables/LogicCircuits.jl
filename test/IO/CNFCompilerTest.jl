@@ -4,44 +4,29 @@ import .Juice.IO:
    load_cnf, load_dnf
 
 
-function compile_clause(mgr, clause)
-   literals = children(clause)
-   clauseΔ = compile(mgr, literal(literals[1]))
-   for l in literals[2:end]
-      clauseΔ = clauseΔ | compile(mgr, literal(l))
-   end
-   clauseΔ
-end
-
-function compile_cnf(mgr, cnf) 
-   cnfΔ = compile(true)
-   i = 0
-   for clause in children(cnf[end])
-      i = i+1
-      cnfΔ = cnfΔ & compile_clause(mgr, clause)
-      # println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(root(cnfΔ)))
-   end
-   cnfΔ = root(cnfΔ)
-   println("Final number of edges: ", num_edges(cnfΔ))
-   println("Final SDD size: ", sdd_size(cnfΔ))
-   println("Final SDD node count: ", sdd_num_nodes(cnfΔ))
-   println("Final SDD model count: ", model_count(cnfΔ))
-   cnfΔ
-end
-
 @testset "CNF file parser tests" begin
 
-   # circuit = load_cnf("test/circuits/8.cnf")
-   cnf = load_cnf("test/cnfs/easy/count_mince.cnf")
-   vtree = load_vtree("test/cnfs/easy/count_mince.min.vtree");
+   cnfs = [ ("easy","C17_mince",32),
+            ("easy","majority_mince",32),
+            ("easy","b1_mince",8),
+            ("easy","cm152a_mince",2048),
+            ("iscas89","s208.1.scan",262144)]
+      
+   for (suite, name, count) in cnfs
 
-   f() = begin
+      cnf = load_cnf("test/cnfs/$suite/$name.cnf")
+      vtree = load_vtree("test/cnfs/$suite/$name.min.vtree");
+
       mgr = SddMgr(TrimSddMgr, vtree)
-      @time compile_cnf(mgr, cnf)
-   end
+      # cnfΔ = @time compile_cnf(mgr, cnf)
+      cnfΔ = compile_cnf(mgr, cnf)
 
-   f()
-   # f()
-   # f()
+      # println("Final number of edges: ", num_edges(cnfΔ))
+      # println("Final SDD size: ", sdd_size(cnfΔ))
+      # println("Final SDD node count: ", sdd_num_nodes(cnfΔ))
+      # println("Final SDD model count: ", model_count(cnfΔ))
+
+      @test model_count(cnfΔ) == count
+   end
 
 end
