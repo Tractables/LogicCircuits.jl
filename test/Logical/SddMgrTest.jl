@@ -134,7 +134,7 @@ using .Juice.Utils
     t2 = v3 & v1
 
     @test t1 === t2
-    @test model_count(root(t1),num_vars) == BigInt(2)^(num_vars-2) * 3
+    @test model_count(root(t1),num_vars) == BigInt(2)^(num_vars-2)
 
     @test model_count(root(v1 & v2 & v6),num_vars) == BigInt(2)^(num_vars-3)
 
@@ -142,6 +142,7 @@ using .Juice.Utils
     c2 = v3 | v1
 
     @test c1 === c2
+    @test model_count(root(c1),num_vars) == BigInt(2)^(num_vars-2) * 3
 
     f1 = (c1 & c2)
 
