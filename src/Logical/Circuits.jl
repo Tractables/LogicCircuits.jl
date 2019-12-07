@@ -1,3 +1,5 @@
+using Random
+
 #####################
 # General logic
 #####################
@@ -117,12 +119,16 @@ num_variables(c::Δ) = length(variable_scope(c))
 
 "Get the probability that a random world satisties the circuit"
 function sat_prob(circuit::Δ)::Rational{BigInt}
-    half = BigInt(1) // BigInt(2)
+    sat_prob(circuit, v -> BigInt(1) // BigInt(2))
+end
+
+function sat_prob(circuit::Δ, varprob::Function)::Rational{BigInt}
     prob = Dict{ΔNode,Rational{BigInt}}()
     do_prob(n::ΔNode) = do_prob(GateType(n),n)
     do_prob(::ConstantLeaf, n::ΔNode) = 
         is_true(n) ? BigInt(1) : BigInt(0)
-    do_prob(::LiteralLeaf, n::ΔNode) = half
+    do_prob(::LiteralLeaf, n::ΔNode) = 
+        positive(n) ? varprob(variable(n)) : 1 .- varprob(variable(n))
     do_prob(::⋁, n::ΔNode) = 
         mapreduce(c -> prob[c], +, children(n))
     do_prob(::⋀, n::ΔNode) = 
@@ -141,6 +147,29 @@ end
 
 #TODO try to see whether these circuit traversal methods could be done through some higher-order functions without a performance penalty.
 
+const Signature = Vector{Rational{BigInt}}
+
+"Get a signature for each node using probabilistic equivalence checking"
+function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,ΔNode},Signature}
+    # uses probability instead of integers to circumvent smoothing, no mod though
+    signs = Dict{Union{Var,ΔNode},Signature}()
+    prime = 7919 #TODO set as smallest prime larger than num_variables
+    randprob() = BigInt(1) .// rand(1:prime,k)
+    do_signs(v::Var) = get!(randprob, signs, v)
+    do_signs(n::ΔNode) = do_signs(GateType(n),n)
+    do_signs(::ConstantLeaf, n::ΔNode) = 
+        is_true(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)
+    do_signs(::LiteralLeaf, n::ΔNode) =
+        positive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))
+    do_signs(::⋁, n::ΔNode) = 
+        mapreduce(c -> signs[c], (x,y) -> (x .+ y), children(n))
+    do_signs(::⋀, n::ΔNode) = 
+        mapreduce(c -> signs[c], (x,y) -> (x .* y), children(n))
+    for node in circuit
+        signs[node] = do_signs(node)
+    end
+    signs
+end
 
 "Get the variable scope of the entire circuit"
 function variable_scope(circuit::Δ)::BitSet

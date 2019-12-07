@@ -107,6 +107,17 @@ import ..Utils: parent, descends_from, lca # make available for extension
 
 @inline parent(n::TrimSddMgrNode)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
 
+
+Base.show(io::IO, c::TrimTrue) = print(io, "⊤")
+Base.show(io::IO, c::TrimFalse) = print(io, "⊥")
+Base.show(io::IO, c::TrimLiteral) = print(io, literal(c))
+Base.show(io::IO, c::Trim⋁) = begin
+    recshow(c::Union{TrimConstant,TrimLiteral}) = "$c"
+    recshow(c::Trim⋁) = "D$(hash(c))"
+    elems = ["($(recshow(prime(e))),$(recshow(sub(e))))" for e in children(c)]
+    print(io, "[$(join(elems,','))]")
+end
+
 #TODO replace this by a bitset subset check on the set of variables
 @inline descends_from(n::TrimSddNode, m::TrimSddNode) = descends_from(vtree(n), vtree(m))
 @inline descends_from(::TrimSddMgrNode, ::TrimSddMgrLeafNode) = false

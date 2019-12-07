@@ -6,6 +6,7 @@ function validate(sdd::Sdd)
     end
     #TODO make one of these for structured decomposability
     @assert is_decomposable(sdd)
+    is_unique(sdd, 5)
  end
    
 function validate(n::SddNode)
@@ -60,4 +61,18 @@ end
 
 function validate(::ConstantLeaf, ::SddNode)
    # nothing to check?
+end
+
+function is_unique(sdd::Sdd, k::Int)
+   signatures = prob_equiv_signature(sdd, k)
+   decision_nodes_by_signature = groupby(n -> signatures[n], ⋁_nodes(sdd))
+   for (signature, nodes) in decision_nodes_by_signature
+      if length(nodes) > 1
+         println("Equivalent Nodes:")
+         for node in nodes
+            println("  - Node: $node Pr: $(sat_prob(node2dag(node)))")
+         end
+      end
+      @test length(nodes) == 1
+   end
 end
