@@ -74,6 +74,8 @@ const TrimLiteral = StructLiteralNode{TrimSddMgrLeafNode}
 const TrimSddMgr = AbstractVector{<:TrimSddMgrNode}
 const TrimSdd = AbstractVector{<:TrimSddNode}
 
+Base.eltype(::Type{TrimSdd}) = TrimSddNode
+
 
 #####################
 # Constructor

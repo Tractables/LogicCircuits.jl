@@ -99,9 +99,9 @@ function tree_num_nodes(dag::Dag)::BigInt
 end
 
 "Rebuild a DAG's linear bottom-up order from a new root node"
-function root(root::DagNode)::Dag
+function node2dag(r::DagNode, ::Type{D})::D where {D<:Dag}
     seen = Set{DagNode}()
-    dag = Vector{DagNode}()
+    dag = Vector{eltype(D)}()
     see(n::DagNode) = see(NodeType(n),n)
     function see(::Leaf, n::DagNode)
         if n ∉ seen
@@ -118,12 +118,18 @@ function root(root::DagNode)::Dag
             push!(dag,n)
         end
     end
-    see(root)
-    lower_element_type(dag) # specialize the dag node type
+    see(r)
+    dag
+end
+
+@inline dag2node(dag::Dag)::DagNode = dag[end]
+
+function node2dag(r::DagNode)::Dag
+    lower_element_type(node2dag(r,Dag)) # specialize the dag node type
 end
 
 # this version of `root` is specialized for trees and is more BFS than the general version above. Some unit tests are sensitive to the order, unfortunately
-function root(root::TreeNode)::Tree	
+function node2dag(root::TreeNode)::Tree	
     # Running BFS	
     visited = Vector{TreeNode}()	
     queue = Queue{TreeNode}()	

@@ -61,10 +61,10 @@ using .Juice.Utils
 
     notx_c = compile(mgr,notx)
 
-    @test sat_prob(root(x_c)) == 1//2
-    @test sat_prob(root(notx_c)) == 1//2
-    @test model_count(root(x_c),num_vars) == BigInt(2)^(num_vars-1)
-    @test model_count(root(notx_c),num_vars) == BigInt(2)^(num_vars-1)
+    @test sat_prob(node2dag(x_c)) == 1//2
+    @test sat_prob(node2dag(notx_c)) == 1//2
+    @test model_count(node2dag(x_c),num_vars) == BigInt(2)^(num_vars-1)
+    @test model_count(node2dag(notx_c),num_vars) == BigInt(2)^(num_vars-1)
 
     @test variable(notx_c) == x
     @test literal(notx_c) == notx
@@ -108,8 +108,8 @@ using .Juice.Utils
     @test x_c | x_c == x_c
     @test !x_c | !x_c == !x_c
 
-    @test model_count(root(true_c),num_vars) == BigInt(2)^(num_vars)
-    @test model_count(root(false_c),num_vars) == BigInt(0)
+    @test model_count(node2dag(true_c),num_vars) == BigInt(2)^(num_vars)
+    @test model_count(node2dag(false_c),num_vars) == BigInt(0)
 
     v1 = compile(mgr, Var(1))
     v2 = compile(mgr, Var(2))
@@ -134,15 +134,15 @@ using .Juice.Utils
     t2 = v3 & v1
 
     @test t1 === t2
-    @test model_count(root(t1),num_vars) == BigInt(2)^(num_vars-2)
+    @test model_count(node2dag(t1),num_vars) == BigInt(2)^(num_vars-2)
 
-    @test model_count(root(v1 & v2 & v6),num_vars) == BigInt(2)^(num_vars-3)
+    @test model_count(node2dag(v1 & v2 & v6),num_vars) == BigInt(2)^(num_vars-3)
 
     c1 = v1 | v3
     c2 = v3 | v1
 
     @test c1 === c2
-    @test model_count(root(c1),num_vars) == BigInt(2)^(num_vars-2) * 3
+    @test model_count(node2dag(c1),num_vars) == BigInt(2)^(num_vars-2) * 3
 
     f1 = (c1 & c2)
 

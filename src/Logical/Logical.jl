@@ -53,7 +53,7 @@ SddMgrNode, SddMgr, SddNode, Sdd, sdd_size, sdd_num_nodes,
 compile_cnf, compile_clause, validate,
 
 # TrimSddMgr
-TrimSddMgrNode, TrimSddMgr, XYPartition, Element,
+TrimSddMgrNode, TrimSddMgr, XYPartition, Element, TrimSdd, TrimSddNode,
 compress, unique⋁, canonicalize, 
 compile, conjoin, disjoin, negate
 

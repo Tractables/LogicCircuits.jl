@@ -19,7 +19,7 @@ import .Juice.IO:
 
       mgr = SddMgr(TrimSddMgr, vtree)
       # cnfΔ = @time compile_cnf(mgr, cnf)
-      cnfΔ = compile_cnf(mgr, cnf)
+      cnfΔ = node2dag(compile_cnf(mgr, cnf), TrimSdd)
 
       # println("Final number of edges: ", num_edges(cnfΔ))
       # println("Final SDD size: ", sdd_size(cnfΔ))
@@ -27,6 +27,9 @@ import .Juice.IO:
       # println("Final SDD model count: ", model_count(cnfΔ))
 
       @test model_count(cnfΔ) == count
+
+      validate(cnfΔ)
+
    end
 
 end

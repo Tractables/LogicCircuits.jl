@@ -9,12 +9,14 @@ const SddMgr = AbstractVector{<:SddMgrNode}
 const SddNode = StructLogicalΔNode{<:SddMgrNode}
 const Sdd = AbstractVector{<:SddNode}
 
+Base.eltype(::Type{Sdd}) = SddNode
+
 #############
 # Methods
 #############
 
 function SddMgr(::Type{T}, vtree::Vtree)::T where {T<:SddMgr}
-    root(SddMgr(TrimSddMgrNode, vtree[end]))
+    node2dag(SddMgr(TrimSddMgrNode, vtree[end]))
 end
 
 function SddMgr(::Type{T}, vtree::VtreeNode)::T where {T<:SddMgrNode}
@@ -77,7 +79,12 @@ function validate(::LeafGate, ::SddNode)
     # no op
 end
 
-function compile_clause(mgr, clause)
+function compile_clause(mgr::SddMgr, clause::Δ)::SddNode
+    compile_clause(mgr, cnf[end])
+ end
+
+function compile_clause(mgr::SddMgr, clause::ΔNode)::SddNode
+    @assert GateType(clause) isa ⋁
     literals = children(clause)
     clauseΔ = compile(mgr, literal(literals[1]))
     for l in literals[2:end]
@@ -86,14 +93,18 @@ function compile_clause(mgr, clause)
     clauseΔ
  end
  
- function compile_cnf(mgr, cnf, progress=false) 
+ function compile_cnf(mgr::SddMgr, cnf::Δ, progress=false)::SddNode
+    compile_cnf(mgr, cnf[end], progress)
+ end
+
+ function compile_cnf(mgr::SddMgr, cnf::ΔNode, progress=false)::SddNode
+    @assert GateType(cnf) isa ⋀
     cnfΔ = compile(true)
     i = 0
-    for clause in children(cnf[end])
+    for clause in children(cnf)
        i = i+1
        cnfΔ = cnfΔ & compile_clause(mgr, clause)
-       progress && println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(root(cnfΔ)))
+       progress && println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(node2dag(cnfΔ)))
     end
-    cnfΔ = root(cnfΔ)
     cnfΔ
  end

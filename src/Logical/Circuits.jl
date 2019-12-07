@@ -202,7 +202,7 @@ function smooth(circuit::Δ)
     for node in circuit
         smoothed[node] = smooth_node(node)
     end
-    root(smoothed[circuit[end]])
+    node2dag(smoothed[circuit[end]])
 end
 
 """
@@ -226,7 +226,7 @@ function forget(is_forgotten::Function, circuit::Δ)
     for node in circuit
         forgotten[node] = forget_node(node)
     end
-    root(forgotten[circuit[end]])
+    node2dag(forgotten[circuit[end]])
 end
 
 "Construct a true node in the hierarchy of node n"
@@ -261,7 +261,7 @@ function propagate_constants(circuit::Δ)
     for node in circuit
         proped[node] = propagate(node)
     end
-    root(proped[circuit[end]])
+    node2dag(proped[circuit[end]])
 end
 
 "Get the origin of the given decorator circuit node"
