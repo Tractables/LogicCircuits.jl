@@ -28,7 +28,7 @@ import .Juice.IO:
 
       @test model_count(cnfΔ) == count
 
-      validate(cnfΔ)
+      validate(cnfΔ::Dag)
 
    end
 

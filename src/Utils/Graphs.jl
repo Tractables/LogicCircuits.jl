@@ -12,6 +12,10 @@ const DiGraph = AbstractVector{<:Node}
 const Dag = AbstractVector{<:DagNode}
 const Tree = AbstractVector{<:TreeNode}
 
+Base.eltype(::Type{DiGraph}) = Node
+Base.eltype(::Type{Dag}) = DagNode
+Base.eltype(::Type{Tree}) = TreeNode
+
 #####################
 # traits
 #####################
@@ -99,6 +103,10 @@ function tree_num_nodes(dag::Dag)::BigInt
 end
 
 "Rebuild a DAG's linear bottom-up order from a new root node"
+function node2dag(r::DagNode)::Dag
+    lower_element_type(node2dag(r,Dag)) # specialize the dag node type
+end
+
 function node2dag(r::DagNode, ::Type{D})::D where {D<:Dag}
     seen = Set{DagNode}()
     dag = Vector{eltype(D)}()
@@ -124,9 +132,6 @@ end
 
 @inline dag2node(dag::Dag)::DagNode = dag[end]
 
-function node2dag(r::DagNode)::Dag
-    lower_element_type(node2dag(r,Dag)) # specialize the dag node type
-end
 
 # this version of `root` is specialized for trees and is more BFS than the general version above. Some unit tests are sensitive to the order, unfortunately
 function node2dag(root::TreeNode)::Tree	
