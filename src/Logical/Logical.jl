@@ -50,7 +50,7 @@ path_length, random_vtree,
 
 # SddMgr
 SddMgrNode, SddMgr, SddNode, Sdd, sdd_size, sdd_num_nodes,
-compile_cnf, compile_clause,
+compile_cnf, compile_clause, validate,
 
 # TrimSddMgr
 TrimSddMgrNode, TrimSddMgr, XYPartition, Element,
