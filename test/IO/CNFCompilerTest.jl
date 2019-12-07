@@ -25,6 +25,7 @@ function compile_cnf(mgr, cnf)
    println("Final number of edges: ", num_edges(cnfΔ))
    println("Final SDD size: ", sdd_size(cnfΔ))
    println("Final SDD node count: ", sdd_num_nodes(cnfΔ))
+   println("Final SDD model count: ", model_count(cnfΔ))
    cnfΔ
 end
 

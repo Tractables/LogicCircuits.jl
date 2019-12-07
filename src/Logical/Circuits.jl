@@ -134,8 +134,9 @@ function sat_prob(circuit::Δ)::Rational{BigInt}
 end
 
 "Get the model count of the circuit"
-function model_count(circuit::Δ)::BigInt
-    BigInt(sat_prob(circuit) * BigInt(2)^num_variables(circuit))
+function model_count(circuit::Δ, num_vars_in_scope::Int = num_variables(circuit))::BigInt
+    # note that num_vars_in_scope can be more than num_variables(circuit)
+    BigInt(sat_prob(circuit) * BigInt(2)^num_vars_in_scope)
 end
 
 #TODO try to see whether these circuit traversal methods could be done through some higher-order functions without a performance penalty.

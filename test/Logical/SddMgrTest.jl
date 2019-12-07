@@ -1,6 +1,6 @@
 using Test
 using .Juice.Logical
-using .Utils
+using .Juice.Utils
 
 @testset "Trimmed SDD Test" begin
 
@@ -63,6 +63,8 @@ using .Utils
 
     @test sat_prob(root(x_c)) == 1//2
     @test sat_prob(root(notx_c)) == 1//2
+    @test model_count(root(x_c),num_vars) == BigInt(2)^(num_vars-1)
+    @test model_count(root(notx_c),num_vars) == BigInt(2)^(num_vars-1)
 
     @test variable(notx_c) == x
     @test literal(notx_c) == notx
@@ -128,6 +130,9 @@ using .Utils
     t2 = v3 & v1
 
     @test t1 === t2
+    @test model_count(root(t1),num_vars) == BigInt(2)^(num_vars-2) * 3
+
+    @test model_count(root(v1 & v2 & v6),num_vars) == BigInt(2)^(num_vars-3)
 
     c1 = v1 | v3
     c2 = v3 | v1
