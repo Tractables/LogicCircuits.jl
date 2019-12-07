@@ -115,6 +115,31 @@ import ..Utils.children # make available for extension
 "Number of variables in the circuit"
 num_variables(c::Δ) = length(variable_scope(c))
 
+"Get the probability that a random world satisties the circuit"
+function sat_prob(circuit::Δ)::Rational{BigInt}
+    half = BigInt(1) // BigInt(2)
+    prob = Dict{ΔNode,Rational{BigInt}}()
+    do_prob(n::ΔNode) = do_prob(GateType(n),n)
+    do_prob(::ConstantLeaf, n::ΔNode) = 
+        is_true(n) ? BigInt(1) : BigInt(0)
+    do_prob(::LiteralLeaf, n::ΔNode) = half
+    do_prob(::⋁, n::ΔNode) = 
+        mapreduce(c -> prob[c], +, children(n))
+    do_prob(::⋀, n::ΔNode) = 
+        mapreduce(c -> prob[c], *, children(n))
+    for node in circuit
+        prob[node] = do_prob(node)
+    end
+    prob[circuit[end]]
+end
+
+"Get the model count of the circuit"
+function model_count(circuit::Δ)::BigInt
+    BigInt(sat_prob(circuit) * BigInt(2)^num_variables(circuit))
+end
+
+#TODO try to see whether these circuit traversal methods could be done through some higher-order functions without a performance penalty.
+
 
 "Get the variable scope of the entire circuit"
 function variable_scope(circuit::Δ)::BitSet

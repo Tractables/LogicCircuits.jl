@@ -56,9 +56,13 @@ using .Utils
     @test positive(y_c)
     @test y_c == compile(mgr, y)
 
+
     notx = -var2lit(x)
 
     notx_c = compile(mgr,notx)
+
+    @test sat_prob(root(x_c)) == 1//2
+    @test sat_prob(root(notx_c)) == 1//2
 
     @test variable(notx_c) == x
     @test literal(notx_c) == notx
