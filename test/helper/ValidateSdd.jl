@@ -40,6 +40,7 @@ function validate(::⋁, n::SddNode)
       has_true_sub = (is_true(sub(e1)) || is_true(sub(e2)))
       @test !(has_false_sub && has_true_sub)
    end
+   @test NodeType(vtree(n)) isa Inner
 end
 
 function validate(::⋀, n::SddNode)
@@ -48,6 +49,9 @@ function validate(::⋀, n::SddNode)
    @test !(GateType(sub(n)) isa ⋀)
    # has no false prime
    @test !is_false(prime(n))
+   @test NodeType(vtree(n)) isa Inner 
+   @assert GateType(prime(n)) isa ConstantLeaf || descends_left_from(prime(n), n)
+   @assert GateType(sub(n)) isa ConstantLeaf || descends_right_from(sub(n), n)
 end
 
 function validate(::LeafGate, ::SddNode)

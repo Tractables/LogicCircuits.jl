@@ -147,6 +147,11 @@ function variable_scope(circuit::Δ)::BitSet
     variable_scopes(circuit)[circuit[end]]
 end
 
+"Get the variable scope of the circuit node"
+function variable_scope(node::ΔNode)::BitSet
+    variable_scopes(node2dag(node))[node]
+end
+
 "Get the variable scope of each node in the circuit"
 function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
     scope = Dict{ΔNode,BitSet}()
