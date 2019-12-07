@@ -3,6 +3,7 @@ using .Juice
 import .Juice.IO:
    load_cnf, load_dnf
 
+include("../helper/ValidateSdd.jl")
 
 @testset "CNF file parser tests" begin
 

@@ -35,50 +35,6 @@ end
 sdd_size(sdd) = length(⋀_nodes(sdd)) # defined as the number of `elements`
 sdd_num_nodes(sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
 
-function validate(sdd::Sdd)
-    for n in sdd
-        validate(n)
-    end
-    #TODO make one of these for structured decomposability
-    @assert is_decomposable(sdd)
-end
-
-function validate(n::SddNode)
-    validate(GateType(n), n)
-end
-
-function validate(::⋁, n::SddNode)
-    size = num_children(n)
-    primes = compile(false)
-    for i = 1:size
-        element = children(n)[i]
-        # has alternating layers
-        @assert GateType(element) isa ⋀
-        for j = i+1:size
-            other_element = children(n)[j]
-            # is deterministic
-            @assert is_false(prime(element) & prime(other_element))
-            # is compressed
-            @assert sub(element) !== sub(other_element)
-        end
-        primes = primes | prime(element)
-    end
-    # is exhaustive
-    @assert primes === compile(true)
-end
-
-function validate(::⋀, n::SddNode)
-    @assert num_children(n) == 2
-    @assert !(GateType(prime(n)) isa ⋀)
-    @assert !(GateType(sub(n)) isa ⋀)
-    # has no false prime
-    @assert !is_false(prime(n))
-end
-
-function validate(::LeafGate, ::SddNode)
-    # no op
-end
-
 function compile_clause(mgr::SddMgr, clause::Δ)::SddNode
     compile_clause(mgr, cnf[end])
  end
