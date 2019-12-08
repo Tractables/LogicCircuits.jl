@@ -39,7 +39,7 @@ function compile_clause(mgr::SddMgr, clause::Δ)::SddNode
     compile_clause(mgr, cnf[end])
  end
 
-function compile_clause(mgr::SddMgr, clause::ΔNode)::SddNode
+function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     @assert GateType(clause) isa ⋁
     literals = children(clause)
     clauseΔ = compile(mgr, literal(literals[1]))
@@ -49,11 +49,21 @@ function compile_clause(mgr::SddMgr, clause::ΔNode)::SddNode
     clauseΔ
  end
  
- function compile_cnf(mgr::SddMgr, cnf::Δ, progress=false)::SddNode
-    compile_cnf(mgr, cnf[end], progress)
+ function compile_cnf(mgr::SddMgr, cnf::Δ, strategy="tree", progress=false)::SddNode
+    compile_cnf(mgr, cnf[end], strategy, progress)
  end
 
- function compile_cnf(mgr::SddMgr, cnf::ΔNode, progress=false)::SddNode
+ function compile_cnf(mgr::SddMgr, cnf::ΔNode, strategy="tree", progress=false)::SddNode
+    if strategy == "naive"
+        compile_cnf_naive(mgr, cnf, progress)
+    elseif strategy == "tree"
+        compile_cnf_tree(mgr, cnf, progress)
+    else
+        error("Invalid compilation strategy")
+    end
+ end
+
+ function compile_cnf_naive(mgr::SddMgr, cnf::ΔNode, progress=false)::SddNode
     @assert GateType(cnf) isa ⋀
     cnfΔ = compile(true)
     i = 0
@@ -63,4 +73,37 @@ function compile_clause(mgr::SddMgr, clause::ΔNode)::SddNode
        progress && println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(node2dag(cnfΔ)))
     end
     cnfΔ
+ end
+
+ function compile_cnf_tree(mgr::SddMgr, cnf::ΔNode, progress=false)::SddNode
+    @assert GateType(cnf) isa ⋀
+    compile_cnf_tree(NodeType(mgr[end]), mgr[end], children(cnf), variable_scopes(cnf), progress)
+ end
+
+ function compile_cnf_tree(::Inner, mgr::SddMgrNode, clauses::Vector{<:ΔNode}, 
+                           scopes::Dict{ΔNode,BitSet}, progress=false)::SddNode
+    left_clauses = filter(c -> scopes[c] ⊆ variables(mgr.left), clauses)
+    leftΔ = compile_cnf_tree(NodeType(mgr.left), mgr.left, left_clauses, scopes, progress)
+    right_clauses = filter(c -> scopes[c] ⊆ variables(mgr.right), clauses)
+    rightΔ = compile_cnf_tree(NodeType(mgr.right), mgr.right, right_clauses, scopes, progress)
+    joinΔ = leftΔ & rightΔ
+    mixed_clauses = setdiff(clauses, left_clauses, right_clauses)
+    # left_degree(c) = begin
+    #     # length(scopes[c] ∩ variables(mgr.left)) #- length(scopes[c] ∩ variables(mgr.right))
+    #     -num_children(c)
+    # end
+    # sort!(mixed_clauses, by = left_degree)
+    for clause in mixed_clauses
+        joinΔ = joinΔ & compile_clause(mgr, clause)
+    end
+    joinΔ
+ end
+
+ function compile_cnf_tree(::Leaf, mgr::SddMgrNode, clauses::Vector{<:ΔNode}, 
+                            scopes::Dict{ΔNode,BitSet}, progress=false)::SddNode
+    joinΔ = compile(true)
+    for clause in clauses
+        joinΔ = joinΔ & compile_clause(mgr, clause)
+    end
+    joinΔ #TODO make foldr
  end
