@@ -39,7 +39,7 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
     disjoin_cache::ApplyCache
 
     TrimSddMgrInnerNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = begin
-        @assert isempty(intersect(variables(left), variables(right)))
+        # @assert isempty(intersect(variables(left), variables(right)))
         this = new(left, right, 
             nothing, 
             [descendents(left); descendents(right); left ; right], 
@@ -135,8 +135,8 @@ end
 @inline descendents(n::TrimSddMgrInnerNode) = n.descendents
 
 function lca(xy::XYPartition)::TrimSddMgrInnerNode
-    @assert !isempty(xy)
-    @assert all(e -> (prime(e) !== TrimFalse()), xy)
+    # @assert !isempty(xy)
+    # @assert all(e -> (prime(e) !== TrimFalse()), xy)
     element_vtrees = [parentlca(prime(e),sub(e)) for e in xy]
     return lca(element_vtrees...)
 end
@@ -154,7 +154,7 @@ parentlca(p::TrimConstant, s::TrimConstant)::TrimSddMgrInnerNode =
 Get the canonical compilation of the given XY Partition
 """
 function canonicalize(xy::XYPartition)::TrimSddNode
-    @assert !isempty(xy)
+    # @assert !isempty(xy)
     return canonicalize_compressed(compress(remove_false_primes(xy)))
 end
 
@@ -166,7 +166,7 @@ end
 Get the canonical compilation of the given compressed XY Partition
 """
 function canonicalize_compressed(xy::XYPartition)::TrimSddNode
-    @assert !isempty(xy)
+    # @assert !isempty(xy)
     # trim
     if length(xy) == 1 && (prime(first(xy)) === TrimTrue())
         return sub(first(xy))
@@ -186,7 +186,7 @@ end
 Compress a given XY Partition (merge elements with identical subs)
 """
 function compress(xy::XYPartition)::XYPartition
-    @assert !isempty(xy)
+    # @assert !isempty(xy)
     sub2elems = groupby(e -> sub(e), xy)
     #TODO avoid making a new partition if existing one is unchanged
     compressed_elements = XYPartition()
@@ -218,7 +218,7 @@ function compile(n::TrimSddMgrNode, v::Var)::TrimLiteral
 end
 
 function compile(n::TrimSddMgrLeafNode, l::Lit)::TrimLiteral
-    @assert n.var == lit2var(l)
+    # @assert n.var == lit2var(l)
     if l>0 # positive literal
         n.positive_literal
     else
@@ -303,7 +303,7 @@ function conjoin_descendent(d::TrimSddNode, n::TrimSddNode)::TrimSddNode
             elements = Element[Element(conjoin(prime(e),d), sub(e)) for e in children(n)]
             push!(elements, Element(!d, TrimFalse()))
         else 
-            @assert descends_right_from(d, n)
+            # @assert descends_right_from(d, n)
             elements = Element[Element(prime(e),conjoin(sub(e),d)) for e in children(n)]
         end
         #TODO are there cases where we don't need all of compress-trim-unique?
@@ -315,16 +315,16 @@ end
 Conjoin two SDDs in separate parts of the vtree
 """
 function conjoin_indep(s::TrimSddNode, t::TrimSddNode)::Trim⋁
-    @assert GateType(s)!=ConstantLeaf() && GateType(t)!=ConstantLeaf()
+    # @assert GateType(s)!=ConstantLeaf() && GateType(t)!=ConstantLeaf()
     mgr = parentlca(s,t)
-    @assert vtree(s) != mgr && vtree(t) != mgr
+    # @assert vtree(s) != mgr && vtree(t) != mgr
     get!(mgr.conjoin_cache, (s,t)) do 
         if descends_left_from(vtree(s), mgr)
-            @assert descends_right_from(vtree(t), mgr)
+            # @assert descends_right_from(vtree(t), mgr)
             elements = Element[Element(s,t),Element(!s,TrimFalse())]
         else 
-            @assert descends_left_from(vtree(t), mgr)
-            @assert descends_right_from(vtree(s), mgr)
+            # @assert descends_left_from(vtree(t), mgr)
+            # @assert descends_right_from(vtree(s), mgr)
             elements = Element[Element(t,s),Element(!t,TrimFalse())]
         end
         # TODO: the XY partition must already be compressed and trimmed
@@ -394,7 +394,7 @@ function disjoin_descendent(d::TrimSddNode, n::TrimSddNode)::TrimSddNode
             elements = Element[Element(conjoin(prime(e),not_d), sub(e)) for e in children(n)]
             push!(elements,Element(d, TrimTrue()))
         else 
-            @assert descends_right_from(d, n)
+            # @assert descends_right_from(d, n)
             elements = Element[Element(prime(e),disjoin(sub(e),d)) for e in children(n)]
         end
         #TODO are there cases where we don't need all of compress-trim-unique?
@@ -406,16 +406,16 @@ end
 Disjoin two SDDs in separate parts of the vtree
 """
 function disjoin_indep(s::TrimSddNode, t::TrimSddNode)::Trim⋁
-    @assert GateType(s)!=ConstantLeaf() && GateType(t)!=ConstantLeaf()
+    # @assert GateType(s)!=ConstantLeaf() && GateType(t)!=ConstantLeaf()
     mgr = parentlca(s,t)
-    @assert vtree(s) != mgr && vtree(t) != mgr
+    # @assert vtree(s) != mgr && vtree(t) != mgr
     get!(mgr.disjoin_cache, (s,t)) do 
         if descends_left_from(vtree(s), mgr)
-            @assert descends_right_from(vtree(t), mgr)
+            # @assert descends_right_from(vtree(t), mgr)
             elements = Element[Element(s,TrimTrue()),Element(!s,t)]
         else 
-            @assert descends_left_from(vtree(t), mgr)
-            @assert descends_right_from(vtree(s), mgr)
+            # @assert descends_left_from(vtree(t), mgr)
+            # @assert descends_right_from(vtree(s), mgr)
             elements = Element[Element(t,TrimTrue()),Element(!t,s)]
         end
         # TODO: the XY partition must already be compressed and trimmed

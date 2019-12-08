@@ -171,14 +171,18 @@ function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,ΔNode},Signa
     signs
 end
 
+"Get the variable scope of the circuit node"
+function variable_scope(root::ΔNode)::BitSet
+    variable_scopes(root)[root]
+end
+
 "Get the variable scope of the entire circuit"
 function variable_scope(circuit::Δ)::BitSet
     variable_scopes(circuit)[circuit[end]]
 end
 
-"Get the variable scope of the circuit node"
-function variable_scope(node::ΔNode)::BitSet
-    variable_scopes(node2dag(node))[node]
+function variable_scopes(root::ΔNode)::Dict{ΔNode,BitSet}
+    variable_scopes(node2dag(root))
 end
 
 "Get the variable scope of each node in the circuit"
