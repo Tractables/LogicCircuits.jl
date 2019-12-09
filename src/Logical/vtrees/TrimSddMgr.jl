@@ -155,10 +155,10 @@ Get the canonical compilation of the given XY Partition
 """
 function canonicalize(xy::XYPartition)::TrimSddNode
     # @assert !isempty(xy)
-    return canonicalize_compressed(compress(remove_false_primes(xy)))
+    return canonicalize_compressed(compress(xy))
 end
 
-function remove_false_primes(xy::XYPartition)::XYPartition
+@inline function remove_false_primes(xy)
     return filter(e -> (prime(e) !== TrimFalse()), xy)
 end
 
@@ -287,7 +287,10 @@ function conjoin_cartesian(s::TrimSddNode, t::TrimSddNode)::TrimSddNode
     get!(vtree(s).conjoin_cache, (s,t)) do 
         elements = Vector{Element}()
         for e1 in children(s), e2 in children(t)
-            push!(elements, Element(conjoin(prime(e1),prime(e2)), conjoin(sub(e1),sub(e2))))
+            newprime = conjoin(prime(e1),prime(e2))
+            if newprime != TrimFalse()
+                push!(elements, Element(newprime, conjoin(sub(e1),sub(e2))))
+            end
         end
         #TODO are there cases where we don't need all of compress-trim-unique?
         canonicalize(XYPartition(elements))
@@ -301,6 +304,7 @@ function conjoin_descendent(d::TrimSddNode, n::TrimSddNode)::TrimSddNode
     get!(vtree(n).conjoin_cache, (d,n)) do 
         if descends_left_from(d, n)
             elements = Element[Element(conjoin(prime(e),d), sub(e)) for e in children(n)]
+            elements = remove_false_primes(elements)
             push!(elements, Element(!d, TrimFalse()))
         else 
             # @assert descends_right_from(d, n)
@@ -377,7 +381,10 @@ function disjoin_cartesian(s::TrimSddNode, t::TrimSddNode)::TrimSddNode
     get!(vtree(s).disjoin_cache, (s,t)) do 
         elements = Vector{Element}()
         for e1 in children(s), e2 in children(t)
-            push!(elements, Element(conjoin(prime(e1),prime(e2)), disjoin(sub(e1),sub(e2))))
+            newprime = conjoin(prime(e1),prime(e2))
+            if newprime != TrimFalse()
+                push!(elements, Element(newprime, disjoin(sub(e1),sub(e2))))
+            end
         end
         #TODO are there cases where we don't need all of compress-trim-unique?
         canonicalize(XYPartition(elements))
@@ -392,6 +399,7 @@ function disjoin_descendent(d::TrimSddNode, n::TrimSddNode)::TrimSddNode
         if descends_left_from(d, n)
             not_d = !d
             elements = Element[Element(conjoin(prime(e),not_d), sub(e)) for e in children(n)]
+            elements = remove_false_primes(elements)
             push!(elements,Element(d, TrimTrue()))
         else 
             # @assert descends_right_from(d, n)
