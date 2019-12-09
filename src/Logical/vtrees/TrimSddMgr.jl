@@ -281,10 +281,21 @@ function conjoin_cartesian(s::TrimSddNode, t::TrimSddNode)::TrimSddNode
     #TODO order s and t by memory location.
     get!(vtree(s).conjoin_cache, (s,t)) do 
         elements = Vector{Element}()
+        done1 = Set{TrimSddNode}() # primes that have been subsumed
+        done2 = Set{TrimSddNode}() # primes that have been subsumed
         for e1 in children(s), e2 in children(t)
-            newprime = conjoin(prime(e1),prime(e2))
-            if newprime != TrimFalse()
-                push!(elements, Element(newprime, conjoin(sub(e1),sub(e2))))
+            if !(e1 in done1) && !(e2 in done2) 
+                newprime = conjoin(prime(e1),prime(e2))
+                if newprime != TrimFalse()
+                    push!(elements, Element(newprime, conjoin(sub(e1),sub(e2))))
+                end
+                if newprime === prime(e1)
+                    # e1 |= e2 and therefore e1 will be mutex with all other t-primes
+                    push!(done1,e1)
+                elseif newprime === prime(e2)
+                    # e2 |= e1 and therefore e2 will be mutex with all other s-primes
+                    push!(done2,e2)
+                end
             end
         end
         #TODO are there cases where we don't need all of compress-trim-unique?
@@ -374,10 +385,21 @@ function disjoin_cartesian(s::TrimSddNode, t::TrimSddNode)::TrimSddNode
     end
     get!(vtree(s).disjoin_cache, (s,t)) do 
         elements = Vector{Element}()
+        done1 = Set{TrimSddNode}() # primes that have been subsumed
+        done2 = Set{TrimSddNode}() # primes that have been subsumed
         for e1 in children(s), e2 in children(t)
-            newprime = conjoin(prime(e1),prime(e2))
-            if newprime != TrimFalse()
-                push!(elements, Element(newprime, disjoin(sub(e1),sub(e2))))
+            if !(e1 in done1) && !(e2 in done2) 
+                newprime = conjoin(prime(e1),prime(e2))
+                if newprime != TrimFalse()
+                    push!(elements, Element(newprime, disjoin(sub(e1),sub(e2))))
+                end
+                if newprime === prime(e1)
+                    # e1 |= e2 and therefore e1 will be mutex with all other t-primes
+                    push!(done1,e1)
+                elseif newprime === prime(e2)
+                    # e2 |= e1 and therefore e2 will be mutex with all other s-primes
+                    push!(done2,e2)
+                end
             end
         end
         #TODO are there cases where we don't need all of compress-trim-unique?
