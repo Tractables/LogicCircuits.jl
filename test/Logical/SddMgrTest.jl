@@ -181,6 +181,4 @@ using .Juice.Utils
 
     @test f3 === f4
 
-    validate(f3)
-
 end

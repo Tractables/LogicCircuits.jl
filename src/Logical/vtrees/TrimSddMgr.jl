@@ -105,6 +105,7 @@ import ..Utils: parent, descends_from, lca # make available for extension
 
 @inline parent(n::TrimSddMgrNode)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
 
+@inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (s,t) : (t,s)
 
 Base.show(io::IO, c::TrimTrue) = print(io, "⊤")
 Base.show(io::IO, c::TrimFalse) = print(io, "⊥")
@@ -278,7 +279,7 @@ function conjoin_cartesian(s::TrimSddNode, t::TrimSddNode)::TrimSddNode
     if s === t
         return s
     end
-    #TODO order s and t by memory location.
+    (s,t) = pointer_sort(s,t)
     get!(vtree(s).conjoin_cache, (s,t)) do 
         elements = Vector{Element}()
         done1 = Set{TrimSddNode}() # primes that have been subsumed
@@ -328,6 +329,7 @@ function conjoin_indep(s::TrimSddNode, t::TrimSddNode)::Trim⋁
     # @assert GateType(s)!=ConstantLeaf() && GateType(t)!=ConstantLeaf()
     mgr = parentlca(s,t)
     # @assert vtree(s) != mgr && vtree(t) != mgr
+    (s,t) = pointer_sort(s,t)
     get!(mgr.conjoin_cache, (s,t)) do 
         if descends_left_from(vtree(s), mgr)
             # @assert descends_right_from(vtree(t), mgr)
@@ -383,6 +385,7 @@ function disjoin_cartesian(s::TrimSddNode, t::TrimSddNode)::TrimSddNode
     if s === t
         return s
     end
+    (s,t) = pointer_sort(s,t)
     get!(vtree(s).disjoin_cache, (s,t)) do 
         elements = Vector{Element}()
         done1 = Set{TrimSddNode}() # primes that have been subsumed
@@ -433,6 +436,7 @@ function disjoin_indep(s::TrimSddNode, t::TrimSddNode)::Trim⋁
     # @assert GateType(s)!=ConstantLeaf() && GateType(t)!=ConstantLeaf()
     mgr = parentlca(s,t)
     # @assert vtree(s) != mgr && vtree(t) != mgr
+    (s,t) = pointer_sort(s,t)
     get!(mgr.disjoin_cache, (s,t)) do 
         if descends_left_from(vtree(s), mgr)
             # @assert descends_right_from(vtree(t), mgr)
