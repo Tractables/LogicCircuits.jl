@@ -30,9 +30,8 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
     right::TrimSddMgrNode
     
     parent::Union{TrimSddMgrInnerNode, Nothing}
-    descendents::Vector{TrimSddMgrNode} #TODO define on BitSet instead
 
-    variables::Vector{Var} #TODO make BitSet
+    variables::BitSet
     unique⋁cache::Unique⋁Cache
 
     conjoin_cache::ApplyCache
@@ -42,8 +41,7 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgrNode
         # @assert isempty(intersect(variables(left), variables(right)))
         this = new(left, right, 
             nothing, 
-            [descendents(left); descendents(right); left ; right], 
-            [variables(left); variables(right)], 
+            union(variables(left), variables(right)), 
             Unique⋁Cache(), ApplyCache(), ApplyCache())
         left.parent = this
         right.parent = this
@@ -97,8 +95,8 @@ TrimSddMgrNode(left::TrimSddMgrNode, right::TrimSddMgrNode) = TrimSddMgrInnerNod
 
 @inline children(n::TrimSddMgrInnerNode) = [n.left, n.right]
 
-@inline variables(n::TrimSddMgrLeafNode) = [n.var]
-@inline variables(n::TrimSddMgrInnerNode) = n.variables
+@inline variables(n::TrimSddMgrLeafNode)::BitSet = BitSet(n.var)
+@inline variables(n::TrimSddMgrInnerNode)::BitSet = n.variables
 
 import ..Utils: parent, descends_from, lca # make available for extension
 
@@ -121,7 +119,7 @@ end
 #TODO replace this by a bitset subset check on the set of variables
 @inline descends_from(n::TrimSddNode, m::TrimSddNode) = descends_from(vtree(n), vtree(m))
 @inline descends_from(::TrimSddMgrNode, ::TrimSddMgrLeafNode) = false
-@inline descends_from(n::TrimSddMgrNode, m::TrimSddMgrInnerNode) = n ∈ m.descendents
+@inline descends_from(n::TrimSddMgrNode, m::TrimSddMgrInnerNode) = variables(n) ⊆ variables(m)
 
 @inline descends_left_from(n::TrimSddNode, m::TrimSddNode)::Bool = descends_left_from(vtree(n), vtree(m))
 @inline descends_left_from(n::TrimSddMgrNode, m::TrimSddMgrInnerNode)::Bool = (n === m.left) || descends_from(n, m.left)
@@ -130,9 +128,6 @@ end
 @inline descends_right_from(n::TrimSddNode, m::TrimSddNode)::Bool = descends_right_from(vtree(n), vtree(m))
 @inline descends_right_from(n::TrimSddMgrNode, m::TrimSddMgrInnerNode)::Bool = (n === m.right) || descends_from(n,m.right)
 @inline descends_right_from(::TrimSddMgrNode, ::TrimSddMgrLeafNode)::Bool = false
-
-@inline descendents(::TrimSddMgrLeafNode) = []
-@inline descendents(n::TrimSddMgrInnerNode) = n.descendents
 
 function lca(xy::XYPartition)::TrimSddMgrInnerNode
     # @assert !isempty(xy)
