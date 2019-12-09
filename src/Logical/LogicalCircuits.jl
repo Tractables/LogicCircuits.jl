@@ -108,6 +108,7 @@ end
 function fully_factorized_circuit(n)
     lin = LogicalΔNode[]
     ors = map(1:n) do v
+        v = Var(v)
         pos = LiteralNode( var2lit(v))
         push!(lin, pos)
         neg = LiteralNode(-var2lit(v))

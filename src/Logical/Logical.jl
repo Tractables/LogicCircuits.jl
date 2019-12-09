@@ -19,7 +19,7 @@ model_count, sat_prob, prob_equiv_signature,
 
 # LogicalCircuits
 LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ,
-LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode,
+LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, fully_factorized_circuit,
 
 # UpFlowCircuits
 UpFlowΔNode, UpFlowΔ, UpFlowΔ, UpFlowLeafNode, UpFlowInnerNode,
