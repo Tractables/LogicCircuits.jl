@@ -153,8 +153,19 @@ function canonicalize(xy::XYPartition)::TrimSddNode
     return canonicalize_compressed(compress(xy))
 end
 
-@inline function remove_false_primes(xy)
-    return filter(e -> (prime(e) !== TrimFalse()), xy)
+"""
+Compress a given XY Partition (merge elements with identical subs)
+"""
+function compress(xy::XYPartition)::XYPartition
+    # @assert !isempty(xy)
+    sub2elems = groupby(e -> sub(e), xy)
+    #TODO avoid making a new partition if existing one is unchanged
+    compressed_elements = XYPartition()
+    for (subnode,elements) in sub2elems
+        primenode = mapreduce(e -> prime(e), (p1, p2) -> disjoin(p1, p2), elements)
+        push!(compressed_elements, (primenode, subnode))
+    end
+    return compressed_elements
 end
 
 """
@@ -177,19 +188,8 @@ function canonicalize_compressed(xy::XYPartition)::TrimSddNode
     return unique⋁(xy)
 end
 
-"""
-Compress a given XY Partition (merge elements with identical subs)
-"""
-function compress(xy::XYPartition)::XYPartition
-    # @assert !isempty(xy)
-    sub2elems = groupby(e -> sub(e), xy)
-    #TODO avoid making a new partition if existing one is unchanged
-    compressed_elements = XYPartition()
-    for (subnode,elements) in sub2elems
-        primenode = mapreduce(e -> prime(e), (p1, p2) -> disjoin(p1, p2), elements)
-        push!(compressed_elements, (primenode, subnode))
-    end
-    return compressed_elements
+@inline function remove_false_primes(xy)
+    return filter(e -> (prime(e) !== TrimFalse()), xy)
 end
 
 """
@@ -327,8 +327,7 @@ function conjoin_indep(s::TrimSddNode, t::TrimSddNode)::Trim⋁
             elements = Element[Element(t,s),Element(!t,TrimFalse())]
         end
         # TODO: the XY partition must already be compressed and trimmed
-        # unique⋁(XYPartition(elements), mgr)
-        canonicalize(XYPartition(elements))
+        unique⋁(XYPartition(elements), mgr)
     end
 end
 
@@ -422,8 +421,7 @@ function disjoin_indep(s::TrimSddNode, t::TrimSddNode)::Trim⋁
             elements = Element[Element(t,TrimTrue()),Element(!t,s)]
         end
         # TODO: the XY partition must already be compressed and trimmed
-        # unique⋁(XYPartition(elements), mgr)
-        canonicalize(XYPartition(elements))
+        unique⋁(XYPartition(elements), mgr)
     end
 end
 
