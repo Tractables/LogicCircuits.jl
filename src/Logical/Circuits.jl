@@ -317,10 +317,3 @@ end
 @inline (grand_origin(n::DecoratorΔNode{<:DecoratorΔNode{O}})::O) where {O} = n.origin.origin
 "Get the origin of the origin the given decorator circuit"
 @inline grand_origin(circuit::DecoratorΔ) = origin(origin(circuit))
-
-# alias some SDD terminology: primes and subs
-@inline prime(n::ΔNode)::ΔNode = prime(GateType(n), n)
-@inline prime(::⋀, n::ΔNode)::ΔNode = children(n)[1]
-
-@inline sub(n::ΔNode)::ΔNode = sub(GateType(n), n)
-@inline sub(::⋀, n::ΔNode)::ΔNode = children(n)[2]

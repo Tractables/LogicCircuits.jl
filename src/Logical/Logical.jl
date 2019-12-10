@@ -48,8 +48,13 @@ StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node, vtree,
 PlainVtreeNode, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_variables, PlainVtree,
 path_length, random_vtree,
 
+# Sdd
+SddMgrNode, SddMgr, 
+SddNode, SddLeafNode, SddCircuit,
+SddLiteralNode, SddConstantNode, Sdd⋁Node, Sdd⋀Node,
+
 # SddMgr
-SddMgrNode, SddMgr, SddNode, Sdd, sdd_size, sdd_num_nodes,
+sdd_size, sdd_num_nodes,
 compile_cnf, compile_clause, validate,
 
 # TrimSddMgr
@@ -67,6 +72,7 @@ include("vtrees/Vtree.jl")
 include("StructuredLogicalCircuits.jl")
 
 include("vtrees/PlainVtree.jl")
+include("Sdd.jl")
 include("vtrees/SddMgr.jl")
 include("vtrees/TrimSddMgr.jl")
 

@@ -9,12 +9,12 @@ using Random
 abstract type TrimSddMgrNode <: SddMgrNode end
 
 # alias structured logical nodes with a trimmed sdd manager vtree
-const TrimTrue = StructTrueNode{TrimSddMgrNode}
-const TrimFalse = StructFalseNode{TrimSddMgrNode}
-const TrimConstant = StructConstantNode{TrimSddMgrNode}
-const Trim⋁ = Struct⋁Node{TrimSddMgrNode}
-const Trim⋀ = Struct⋀Node{TrimSddMgrNode}
-const TrimSddNode = StructLogicalΔNode{<:TrimSddMgrNode} # would this be better?: Union{TrimTrue,TrimFalse,TrimConstant,Trim⋁,Trim⋀}
+const TrimTrue = SddTrueNode{TrimSddMgrNode}
+const TrimFalse = SddFalseNode{TrimSddMgrNode}
+const TrimConstant = SddConstantNode{TrimSddMgrNode}
+const Trim⋁ = Sdd⋁Node{TrimSddMgrNode}
+const Trim⋀ = Sdd⋀Node{TrimSddMgrNode}
+const TrimSddNode = SddNode{<:TrimSddMgrNode} # would this be better?: Union{TrimTrue,TrimFalse,TrimConstant,Trim⋁,Trim⋀}
 
 # alias SDD terminology
 const Element = Tuple{TrimSddNode,TrimSddNode}
@@ -55,19 +55,19 @@ mutable struct TrimSddMgrLeafNode <: TrimSddMgrNode
     var::Var
     parent::Union{TrimSddMgrInnerNode, Nothing}
 
-    positive_literal::StructLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral
-    negative_literal::StructLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral
+    positive_literal::SddLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral
+    negative_literal::SddLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral
 
     TrimSddMgrLeafNode(v::Var) = begin
         this = new(v, nothing)
-        this.positive_literal = StructLiteralNode(var2lit(v), this)
-        this.negative_literal = StructLiteralNode(-var2lit(v), this)
+        this.positive_literal = SddLiteralNode(var2lit(v), this)
+        this.negative_literal = SddLiteralNode(-var2lit(v), this)
         this
     end    
 
 end
 
-const TrimLiteral = StructLiteralNode{TrimSddMgrLeafNode}
+const TrimLiteral = SddLiteralNode{TrimSddMgrLeafNode}
 
 const TrimSddMgr = AbstractVector{<:TrimSddMgrNode}
 const TrimSdd = AbstractVector{<:TrimSddNode}
@@ -199,7 +199,7 @@ Construct a unique decision gate for the given vtree
 function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Trim⋁
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
     get!(mgr.unique⋁cache, xy) do 
-        ands = [Trim⋀(TrimSddNode[prime(e), sub(e)], mgr) for e in xy]
+        ands = [Trim⋀(prime(e), sub(e), mgr) for e in xy]
         Trim⋁(ands, mgr)
     end
 end

@@ -1,15 +1,4 @@
-#############
-# SddMgrNode
-#############
 
-"Root of the SDD manager node hierarchy"
-abstract type SddMgrNode <: VtreeNode end
-const SddMgr = AbstractVector{<:SddMgrNode}
-
-const SddNode = StructLogicalΔNode{<:SddMgrNode}
-const Sdd = AbstractVector{<:SddNode}
-
-Base.eltype(::Type{Sdd}) = SddNode
 
 #############
 # Methods
