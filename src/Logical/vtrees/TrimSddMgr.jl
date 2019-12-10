@@ -309,6 +309,7 @@ function conjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
             end
         end
         product = vec([(e1,e2) for e1 in elems1, e2 in elems2])
+        #TODO sort product by probability of subsumes
         while !isempty(product)
             (e1, e2) = pop!(product)
             newprime = conjoin(prime(e1),prime(e2))
