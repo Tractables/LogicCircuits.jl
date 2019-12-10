@@ -107,16 +107,6 @@ import ..Utils: parent, descends_from, lca # make available for extension
 
 @inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (s,t) : (t,s)
 
-Base.show(io::IO, c::TrimTrue) = print(io, "⊤")
-Base.show(io::IO, c::TrimFalse) = print(io, "⊥")
-Base.show(io::IO, c::TrimLiteral) = print(io, literal(c))
-Base.show(io::IO, c::Trim⋁) = begin
-    recshow(c::Union{TrimConstant,TrimLiteral}) = "$c"
-    recshow(c::Trim⋁) = "D$(hash(c))"
-    elems = ["($(recshow(prime(e))),$(recshow(sub(e))))" for e in children(c)]
-    print(io, "[$(join(elems,','))]")
-end
-
 #TODO replace this by a bitset subset check on the set of variables
 @inline descends_from(n::TrimNode, m::TrimNode) = descends_from(vtree(n), vtree(m))
 @inline descends_from(::TrimMgrNode, ::TrimSddMgrLeafNode) = false
@@ -282,34 +272,58 @@ end
 """
 Conjoin two SDDs when they respect the same vtree node
 """
-function conjoin_cartesian(s::TrimNode, t::TrimNode)::TrimNode
-    if s === t
-        return s
-    elseif s == !t
+function conjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
+    if n1 === n2
+        return n1
+    elseif n1 == !n2
         return TrimFalse()
     end
-    (s,t) = pointer_sort(s,t)
-    get!(vtree(s).conjoin_cache, (s,t)) do 
-        elements = Vector{Element}()
-        done1 = Set{TrimNode}() # primes that have been subsumed
-        done2 = Set{TrimNode}() # primes that have been subsumed
-        for e1 in children(s), e2 in children(t)
-            if !(e1 in done1) && !(e2 in done2) 
-                newprime = conjoin(prime(e1),prime(e2))
-                if newprime != TrimFalse()
-                    push!(elements, Element(newprime, conjoin(sub(e1),sub(e2))))
-                end
-                if newprime === prime(e1)
-                    # e1 |= e2 and therefore e1 will be mutex with all other t-primes
-                    push!(done1,e1)
-                elseif newprime === prime(e2)
-                    # e2 |= e1 and therefore e2 will be mutex with all other s-primes
-                    push!(done2,e2)
+    (n1,n2) = pointer_sort(n1,n2)
+
+    get!(vtree(n1).conjoin_cache, (n1,n2)) do 
+        elems_prod = Vector{Element}()
+        elems1 = copy(children(n1))
+        elems2 = copy(children(n2))
+        for e1 in elems1
+            for e2 in elems2
+                if prime(e1) === prime(e2)
+                    push!(elems_prod, Element(prime(e1), conjoin(sub(e1),sub(e2))))
+                    filter!(e -> prime(e) !== prime(e1), elems1)
+                    filter!(e -> prime(e) !== prime(e1), elems2)
+                    break # go to next e1
+                elseif prime(e1) === !prime(e2)
+                    for e3 in elems2
+                        if e3 !== e2
+                            push!(elems_prod, Element(prime(e3), conjoin(sub(e3),sub(e1))))
+                        end
+                    end
+                    for e4 in elems1
+                        if e4 !== e1
+                            push!(elems_prod, Element(prime(e4), conjoin(sub(e4),sub(e2))))
+                        end
+                    end
+                    filter!(e -> prime(e) !== prime(e1), elems1)
+                    filter!(e -> prime(e) !== prime(e2), elems2)
+                    break # go to next e1
                 end
             end
         end
-        #TODO are there cases where we don't need all of compress-trim-unique?
-        canonicalize(XYPartition(elements))
+        product = vec([(e1,e2) for e1 in elems1, e2 in elems2])
+        while !isempty(product)
+            (e1, e2) = pop!(product)
+            newprime = conjoin(prime(e1),prime(e2))
+            if newprime != TrimFalse()
+                push!(elems_prod, Element(newprime, conjoin(sub(e1),sub(e2))))
+            end
+            if newprime === prime(e1)
+                # p1 |= p2 and therefore p1 will be mutex with all other p2-primes
+                filter!(p -> prime(p[1]) !== prime(e1), product)
+            elseif newprime === prime(e2)
+                # p2 |= p1 and therefore p2 will be mutex with all other p1-primes
+                filter!(p -> prime(p[2]) !== prime(e2), product)
+            end
+        end
+        canonicalize(XYPartition(elems_prod))
     end
 end
 
@@ -390,34 +404,58 @@ end
 """
 Disjoin two SDDs when they respect the same vtree node
 """
-function disjoin_cartesian(s::TrimNode, t::TrimNode)::TrimNode
-    if s === t
-        return s
-    elseif s == !t
+function disjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
+    if n1 === n2
+        return n1
+    elseif n1 == !n2
         return TrimTrue()
     end
-    (s,t) = pointer_sort(s,t)
-    get!(vtree(s).disjoin_cache, (s,t)) do 
-        elements = Vector{Element}()
-        done1 = Set{TrimNode}() # primes that have been subsumed
-        done2 = Set{TrimNode}() # primes that have been subsumed
-        for e1 in children(s), e2 in children(t)
-            if !(e1 in done1) && !(e2 in done2) 
-                newprime = conjoin(prime(e1),prime(e2))
-                if newprime != TrimFalse()
-                    push!(elements, Element(newprime, disjoin(sub(e1),sub(e2))))
-                end
-                if newprime === prime(e1)
-                    # e1 |= e2 and therefore e1 will be mutex with all other t-primes
-                    push!(done1,e1)
-                elseif newprime === prime(e2)
-                    # e2 |= e1 and therefore e2 will be mutex with all other s-primes
-                    push!(done2,e2)
+    (n1,n2) = pointer_sort(n1,n2)
+
+    get!(vtree(n1).disjoin_cache, (n1,n2)) do 
+        elems_prod = Vector{Element}()
+        elems1 = copy(children(n1))
+        elems2 = copy(children(n2))
+        for e1 in elems1
+            for e2 in elems2
+                if prime(e1) === prime(e2)
+                    push!(elems_prod, Element(prime(e1), disjoin(sub(e1),sub(e2))))
+                    filter!(e -> prime(e) !== prime(e1), elems1)
+                    filter!(e -> prime(e) !== prime(e2), elems2)
+                    break # go to next e1
+                elseif prime(e1) === !prime(e2)
+                    for e3 in elems2
+                        if e3 !== e2
+                            push!(elems_prod, Element(prime(e3), disjoin(sub(e3),sub(e1))))
+                        end
+                    end
+                    for e4 in elems1
+                        if e4 !== e1
+                            push!(elems_prod, Element(prime(e4), disjoin(sub(e4),sub(e2))))
+                        end
+                    end
+                    filter!(e -> prime(e) !== prime(e1), elems1)
+                    filter!(e -> prime(e) !== prime(e2), elems2)
+                    break # go to next e1
                 end
             end
         end
-        #TODO are there cases where we don't need all of compress-trim-unique?
-        canonicalize(XYPartition(elements))
+        product = vec([(e1,e2) for e1 in elems1, e2 in elems2])
+        while !isempty(product)
+            (e1, e2) = pop!(product)
+            newprime = conjoin(prime(e1),prime(e2))
+            if newprime != TrimFalse()
+                push!(elems_prod, Element(newprime, disjoin(sub(e1),sub(e2))))
+            end
+            if newprime === prime(e1)
+                # p1 |= p2 and therefore p1 will be mutex with all other p2-primes
+                filter!(p -> prime(p[1]) !== prime(e1), product)
+            elseif newprime === prime(e2)
+                # p2 |= p1 and therefore p2 will be mutex with all other p1-primes
+                filter!(p -> prime(p[2]) !== prime(e2), product)
+            end
+        end
+        canonicalize(XYPartition(elems_prod))
     end
 end
 

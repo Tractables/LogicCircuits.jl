@@ -81,3 +81,17 @@ Base.eltype(::Type{Sdd}) = SddNode
 # alias some SDD terminology: primes and subs
 @inline prime(n::Sdd⋀Node)::SddNode = n.prime
 @inline sub(n::Sdd⋀Node)::SddNode = n.sub
+
+
+Base.show(io::IO, c::SddTrueNode) = print(io, "⊤")
+Base.show(io::IO, c::SddFalseNode) = print(io, "⊥")
+Base.show(io::IO, c::SddLiteralNode) = print(io, literal(c))
+Base.show(io::IO, c::Sdd⋀Node) = begin
+    recshow(c::Union{SddConstantNode,SddLiteralNode}) = "$c"
+    recshow(c::Sdd⋁Node) = "D$(hash(c))"
+    print(io, "($(recshow(prime(c))),$(recshow(sub(c))))")
+end
+Base.show(io::IO, c::Sdd⋁Node) = begin
+    elems = ["$e" for e in children(c)]
+    print(io, "[$(join(elems,','))]")
+end
