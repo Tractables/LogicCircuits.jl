@@ -50,7 +50,7 @@ end
 SddHasVtree = Union{Sdd⋁Node,Sdd⋀Node,SddLiteralNode}
 
 "A structured logical circuit represented as a bottom-up linear order of nodes"
-const Sdd{V} = AbstractVector{<:SddNode{V}}
+const Sdd{V} = AbstractVector{<:SddNode{<:V}} where {V <: SddMgrNode}
 
 Base.eltype(::Type{Sdd}) = SddNode
 

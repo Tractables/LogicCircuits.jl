@@ -181,4 +181,10 @@ using Juice.Utils
 
     @test f3 === f4
 
+    fΔ = node2dag(f4, TrimSdd)
+
+    @test TrimSdd <: Sdd
+    @test fΔ isa TrimSdd
+    @test fΔ isa Sdd
+
 end

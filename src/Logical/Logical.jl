@@ -50,7 +50,7 @@ path_length, random_vtree,
 
 # Sdd
 SddMgrNode, SddMgr, 
-SddNode, SddLeafNode, SddCircuit,
+SddNode, SddLeafNode, SddCircuit, Sdd,
 SddLiteralNode, SddConstantNode, Sdd⋁Node, Sdd⋀Node,
 
 # SddMgr

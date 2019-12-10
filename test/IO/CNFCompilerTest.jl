@@ -25,14 +25,14 @@ include("../helper/ValidateSdd.jl")
       cnfΔ = node2dag(compile_cnf(mgr, cnf), TrimSdd)
 
       # println("Sdd size: ", sdd_size(cnfΔ))
-
       # println(node_stats(cnfΔ))
+      # println("Final SDD model count: ", model_count(cnfΔ))
+
+      validate(cnfΔ)
 
       @test model_count(cnfΔ) == count
       @test sdd_size(cnfΔ) == size
       @test sdd_num_nodes(cnfΔ) == nodes
-
-      validate(cnfΔ::Dag)
 
    end
 
