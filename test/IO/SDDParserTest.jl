@@ -1,5 +1,5 @@
 using Test
-using .Juice
+using Juice
 import .Juice.IO: 
    parse_sdd_file, CircuitFormatLines
 

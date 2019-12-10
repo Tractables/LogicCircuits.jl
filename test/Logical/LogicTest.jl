@@ -1,5 +1,5 @@
 using Test
-using .Juice
+using Juice
 
 @testset "Decomposability tests" begin
     file = "test/circuits/little_4var.psdd"

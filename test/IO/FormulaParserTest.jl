@@ -1,5 +1,5 @@
 using Test
-using .Juice
+using Juice
 import .Juice.IO:
    load_cnf, load_dnf
 
