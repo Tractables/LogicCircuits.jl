@@ -21,7 +21,8 @@ function SddMgr(::Type{T}, ::Leaf, vtree::VtreeNode)::T where {T<:SddMgrNode}
     T(first(variables(vtree)))
 end
 
-sdd_size(sdd::Sdd) = length(⋀_nodes(sdd)) # defined as the number of `elements`
+sdd_size(sdd::Sdd) = sum(n -> num_children(n), ⋁_nodes(sdd)) # defined as the number of `elements`; length(⋀_nodes(sdd)) also works but undercounts in case the compiler decides to cache elements
+
 sdd_num_nodes(sdd::Sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
 
 function compile_clause(mgr::SddMgr, clause::Δ)::SddNode

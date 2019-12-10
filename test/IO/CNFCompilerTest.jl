@@ -9,10 +9,10 @@ include("../helper/ValidateSdd.jl")
 
    cnfs = [ 
             ("easy","C17_mince",32,92,45)
-            # ("easy","majority_mince",32,132,61)
-            # ("easy","b1_mince",8,169,84)
-            # ("easy","cm152a_mince",2048,127,62)
-            # ("iscas89","s208.1.scan",262144,1942,927)
+            ("easy","majority_mince",32,132,61)
+            ("easy","b1_mince",8,169,84)
+            ("easy","cm152a_mince",2048,127,62)
+            ("iscas89","s208.1.scan",262144,1942,927)
           ]
       
    for (suite, name, count, size, nodes) in cnfs
