@@ -5,6 +5,8 @@ import .Juice.IO:
 
 include("../helper/ValidateSdd.jl")
 
+println("PWD ", pwd())
+
 @testset "CNF file parser tests" begin
 
    cnfs = [ 
@@ -17,8 +19,8 @@ include("../helper/ValidateSdd.jl")
       
    for (suite, name, count, size, nodes) in cnfs
 
-      cnf = load_cnf("test/cnfs/$suite/$name.cnf")
-      vtree = load_vtree("test/cnfs/$suite/$name.min.vtree");
+      cnf = load_cnf("cnfs/$suite/$name.cnf")
+      vtree = load_vtree("cnfs/$suite/$name.min.vtree");
 
       mgr = SddMgr(TrimSddMgr, vtree)
       # cnfΔ = @time compile_cnf(mgr, cnf)
