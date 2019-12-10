@@ -86,8 +86,10 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     leftΔ = compile_cnf_tree(NodeType(mgr.left), mgr.left, left_clauses, scopes, progress)
     right_clauses = filter(c -> scopes[c] ⊆ variables(mgr.right), clauses)
     rightΔ = compile_cnf_tree(NodeType(mgr.right), mgr.right, right_clauses, scopes, progress)
+    progress && print("Compiled left ($(sdd_size(node2dag(leftΔ)))) and right ($(sdd_size(node2dag(rightΔ))))")
     joinΔ = leftΔ & rightΔ
     mixed_clauses = setdiff(clauses, left_clauses, right_clauses)
+    progress && print(" with $(length(mixed_clauses)) clauses")
     # left_degree(c) = begin
     #     # length(scopes[c] ∩ variables(mgr.left)) #- length(scopes[c] ∩ variables(mgr.right))
     #     -num_children(c)
@@ -96,6 +98,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     for clause in mixed_clauses
         joinΔ = joinΔ & compile_clause(mgr, clause)
     end
+    progress && println(" into sdd of size $(sdd_size(node2dag(joinΔ)))")
     joinΔ
  end
 
