@@ -5,7 +5,7 @@
 #############
 
 function SddMgr(::Type{T}, vtree::Vtree)::T where {T<:SddMgr}
-    node2dag(SddMgr(TrimSddMgrNode, vtree[end]))
+    node2dag(SddMgr(TrimMgrNode, vtree[end]))
 end
 
 function SddMgr(::Type{T}, vtree::VtreeNode)::T where {T<:SddMgrNode}
@@ -21,8 +21,8 @@ function SddMgr(::Type{T}, ::Leaf, vtree::VtreeNode)::T where {T<:SddMgrNode}
     T(first(variables(vtree)))
 end
 
-sdd_size(sdd) = length(⋀_nodes(sdd)) # defined as the number of `elements`
-sdd_num_nodes(sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
+sdd_size(sdd::Sdd) = length(⋀_nodes(sdd)) # defined as the number of `elements`
+sdd_num_nodes(sdd::Sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
 
 function compile_clause(mgr::SddMgr, clause::Δ)::SddNode
     compile_clause(mgr, cnf[end])
