@@ -199,10 +199,17 @@ Construct a unique decision gate for the given vtree
 function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Trim⋁
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
     get!(mgr.unique⋁cache, xy) do 
-        ands = [Trim⋀(prime(e), sub(e), mgr) for e in xy]
-        Trim⋁(ands, mgr)
+        node = Trim⋁(xy2ands(xy, mgr), mgr)
+        not_xy = negate(xy)
+        not_node = Trim⋁(xy2ands(not_xy, mgr), mgr, node)
+        node.negation = not_node
+        mgr.unique⋁cache[not_xy] = not_node
+        node
     end
 end
+
+@inline negate(xy::XYPartition) = XYPartition([Element(prime(e), !sub(e)) for e in xy])
+@inline xy2ands(xy::XYPartition, mgr::TrimSddMgrInnerNode) = [Trim⋀(prime(e), sub(e), mgr) for e in xy]
 
 """
 Compile a given variable, literal, or constant
@@ -278,6 +285,8 @@ Conjoin two SDDs when they respect the same vtree node
 function conjoin_cartesian(s::TrimNode, t::TrimNode)::TrimNode
     if s === t
         return s
+    elseif s == !t
+        return TrimFalse()
     end
     (s,t) = pointer_sort(s,t)
     get!(vtree(s).conjoin_cache, (s,t)) do 
@@ -384,6 +393,8 @@ Disjoin two SDDs when they respect the same vtree node
 function disjoin_cartesian(s::TrimNode, t::TrimNode)::TrimNode
     if s === t
         return s
+    elseif s == !t
+        return TrimTrue()
     end
     (s,t) = pointer_sort(s,t)
     get!(vtree(s).disjoin_cache, (s,t)) do 
@@ -467,10 +478,6 @@ function negate(s::TrimLiteral)::TrimLiteral
     end
 end
 
-function negate(s::Trim⋁)::Trim⋁
-    elements = [Element(prime(e),!sub(e)) for e in children(s)]
-    #TODO are there cases where we don't need all of compress-trim-unique?
-    canonicalize(XYPartition(elements))
-end
+negate(node::Trim⋁)::Trim⋁ = node.negation
 
 @inline Base.:!(s) = negate(s)

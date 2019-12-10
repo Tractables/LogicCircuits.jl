@@ -21,7 +21,7 @@ abstract type SddLeafNode{V} <: SddNode{V} end
 abstract type SddInnerNode{V} <: SddNode{V} end
 
 "A SDD logical literal leaf node, representing the positive or negative literal of its variable"
-struct SddLiteralNode{V} <: SddLeafNode{V}
+mutable struct SddLiteralNode{V} <: SddLeafNode{V}
     literal::Lit
     vtree::V
 end
@@ -42,9 +42,12 @@ struct Sdd⋀Node{V} <: SddInnerNode{V}
 end
 
 "A structured logical disjunction node"
-struct Sdd⋁Node{V} <: SddInnerNode{V}
+mutable struct Sdd⋁Node{V} <: SddInnerNode{V}
     children::Vector{<:Sdd⋀Node{<:V}}
     vtree::V
+    negation::Sdd⋁Node{V}
+    Sdd⋁Node{V}(ch,v) where V = new(ch,v) # leave negation uninitialized
+    Sdd⋁Node{V}(ch,v,neg) where V = new(ch,v,neg)
 end
 
 SddHasVtree = Union{Sdd⋁Node,Sdd⋀Node,SddLiteralNode}
