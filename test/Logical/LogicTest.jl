@@ -1,12 +1,12 @@
 using Test
-using .Juice
+using Juice
 
 @testset "Decomposability tests" begin
-    file = "test/circuits/little_4var.psdd"
+    file = "circuits/little_4var.psdd"
     prob_circuit = load_prob_circuit(file);
     @test is_decomposable(prob_circuit);
 
-    file = "test/circuits/mnist-antonio.psdd"
+    file = "circuits/mnist-antonio.psdd"
     prob_circuit = load_prob_circuit(file);
     @test is_decomposable(prob_circuit);
 

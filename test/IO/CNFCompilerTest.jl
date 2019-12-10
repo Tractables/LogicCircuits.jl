@@ -1,5 +1,5 @@
 using Test
-using .Juice
+using Juice
 import .Juice.IO:
    load_cnf, load_dnf
 
@@ -17,16 +17,16 @@ include("../helper/ValidateSdd.jl")
       
    for (suite, name, count, size, nodes) in cnfs
 
-      cnf = load_cnf("test/cnfs/$suite/$name.cnf")
-      vtree = load_vtree("test/cnfs/$suite/$name.min.vtree");
+      cnf = load_cnf("cnfs/$suite/$name.cnf")
+      vtree = load_vtree("cnfs/$suite/$name.min.vtree");
 
       mgr = SddMgr(TrimSddMgr, vtree)
       # cnfΔ = @time compile_cnf(mgr, cnf)
       cnfΔ = node2dag(compile_cnf(mgr, cnf), TrimSdd)
 
-      println("Sdd size: ", sdd_size(cnfΔ))
+      # println("Sdd size: ", sdd_size(cnfΔ))
 
-      println(node_stats(cnfΔ))
+      # println(node_stats(cnfΔ))
 
       @test model_count(cnfΔ) == count
       @test sdd_size(cnfΔ) == size
