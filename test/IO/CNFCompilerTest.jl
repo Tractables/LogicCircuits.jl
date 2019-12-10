@@ -5,8 +5,6 @@ import .Juice.IO:
 
 include("../helper/ValidateSdd.jl")
 
-println("PWD ", pwd())
-
 @testset "CNF file parser tests" begin
 
    cnfs = [ 
@@ -26,9 +24,9 @@ println("PWD ", pwd())
       # cnfΔ = @time compile_cnf(mgr, cnf)
       cnfΔ = node2dag(compile_cnf(mgr, cnf), TrimSdd)
 
-      println("Sdd size: ", sdd_size(cnfΔ))
+      # println("Sdd size: ", sdd_size(cnfΔ))
 
-      println(node_stats(cnfΔ))
+      # println(node_stats(cnfΔ))
 
       @test model_count(cnfΔ) == count
       @test sdd_size(cnfΔ) == size
