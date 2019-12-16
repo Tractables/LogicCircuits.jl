@@ -6,7 +6,7 @@ using Random
 import Base.size
 
 using ..Utils:
-    flatmap, copy_with_eltype
+    flatmap, copy_with_eltype, issomething
 
 export AbstractData, WXData, PlainXData, XData, XBatches, XYBatches, Dataset, UnlabeledDataset,
 LabeledDataset, XDataset, XYDataset, BatchedXDataset, BatchedXYDataset, weights,
