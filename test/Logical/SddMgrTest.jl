@@ -5,7 +5,7 @@ using Juice.Utils
 @testset "Trimmed SDD Test" begin
 
     num_vars = 7
-    mgr = balanced_vtree(TrimSddMgrNode, num_vars)
+    mgr = balanced_vtree(TrimMgrNode, num_vars)
     
     @test num_variables(mgr) == num_vars
     @test num_nodes(mgr) == 2*num_vars-1
@@ -180,5 +180,11 @@ using Juice.Utils
     f4 = ((v1 | !v3 | v5) & (!v5 | v6 | v7| v1) & (!v5 | v6 | v7)  & (!v1 | !v6 | !v7)  & (!v2 | !v3 | v7)) & ((v2 | !v3 | !v6)  & (v2 | !v6 | !v5) & (v1 | v2 | v3) & (v1 | v2 | v3 | !v6) )
 
     @test f3 === f4
+
+    fΔ = node2dag(f4, TrimSdd)
+
+    @test TrimSdd <: Sdd
+    @test fΔ isa TrimSdd
+    @test fΔ isa Sdd
 
 end
