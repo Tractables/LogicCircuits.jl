@@ -14,9 +14,7 @@ num_examples, total_example_weight, max_batch_size, num_features, num_labels, nu
 feature_matrix, unweighted_data, feature_data, labels, weights, aggr_weight_type, feature_type, label_type,
 train, valid, test,
 shuffle, batch, threshold, fully_factorized_likelihood,
-ll_per_example, bits_per_pixel,
-dataset, 
-vslice, unbatch
+ll_per_example, bits_per_pixel, vslice, unbatch
 
 #####################
 # Types
