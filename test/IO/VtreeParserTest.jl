@@ -3,7 +3,7 @@
  using Juice.IO: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine
 
 @testset "PlainVtree File Parser Test" begin
-    vtree_lines = parse_vtree_file("circuits/little_4var.vtree");
+    vtree_lines = parse_vtree_file(zoo_vtree_file("little_4var.vtree"))
     for i = 1:9
         @test vtree_lines[i] isa VtreeCommentLine
     end
@@ -45,16 +45,16 @@
 
     test_vtree(vtree)
 
-     # Now testing save
-     #   Save the vtree, load it from file, and then run the same tests
-    temp_path = "circuits/little_4var_temp.vtree"
-    save(vtree, temp_path)
+    mktempdir() do tmp
+        # Now testing save
+        #   Save the vtree, load it from file, and then run the same tests
+        temp_path = "$tmp/little_4var_temp.vtree"
+        save(vtree, temp_path)
 
-    dot_path = "circuits/little_4var_temp.dot"
-    #save(vtree, dot_path)
+        # dot_path = "$tmp/little_4var_temp.dot"
+        #save(vtree, dot_path)
 
-    vtree2 = load_vtree(temp_path)
-    test_vtree(vtree2)
+        test_vtree(load_vtree(temp_path))
 
-    rm(temp_path)
+    end
 end
