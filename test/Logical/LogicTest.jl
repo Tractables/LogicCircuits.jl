@@ -2,12 +2,12 @@ using Test
 using Juice
 
 @testset "Decomposability tests" begin
-    file = "circuits/little_4var.psdd"
-    prob_circuit = load_prob_circuit(file);
+    file = "little_4var.psdd"
+    prob_circuit = zoo_psdd(file);
     @test is_decomposable(prob_circuit);
 
-    file = "circuits/mnist-antonio.psdd"
-    prob_circuit = load_prob_circuit(file);
+    file = "mnist-antonio.psdd"
+    prob_circuit = zoo_psdd(file);
     @test is_decomposable(prob_circuit);
 
     lin = LogicalΔNode[]
