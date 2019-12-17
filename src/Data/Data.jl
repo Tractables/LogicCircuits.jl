@@ -15,11 +15,8 @@ feature_matrix, unweighted_data, feature_data, labels, weights, aggr_weight_type
 train, valid, test,
 shuffle, batch, threshold, fully_factorized_likelihood,
 ll_per_example, bits_per_pixel,
-dataset, mnist, sampled_mnist, twenty_datasets, twenty_dataset_names,
+dataset, 
 vslice, unbatch
-
-include("DataLoaders.jl")
-
 
 #####################
 # Types

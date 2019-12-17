@@ -2,6 +2,7 @@ using Test
 using Juice
 import .Juice.IO:
    load_cnf, load_dnf
+using Pkg.Artifacts
 
 include("../helper/ValidateSdd.jl")
 
@@ -17,8 +18,8 @@ include("../helper/ValidateSdd.jl")
       
    for (suite, name, count, size, nodes) in cnfs
 
-      cnf = load_cnf("cnfs/$suite/$name.cnf")
-      vtree = load_vtree("cnfs/$suite/$name.min.vtree");
+      cnf = zoo_cnf("$suite/$name.cnf")
+      vtree = zoo_vtree("$suite/$name.min.vtree");
 
       mgr = SddMgr(TrimSddMgr, vtree)
       # cnfΔ = @time compile_cnf(mgr, cnf)
