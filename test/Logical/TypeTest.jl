@@ -5,7 +5,7 @@ using Juice.Utils
 
 @testset "Type hierarchy tests" begin
 
-    # graps
+    # graphs
     @test Dag <: DiGraph
     @test Tree <: Dag
 
@@ -28,5 +28,5 @@ using Juice.Utils
     @test PlainVtree <: Vtree
     @test SddMgr <: Vtree
     @test TrimSddMgr <: SddMgr
-    
+
 end
