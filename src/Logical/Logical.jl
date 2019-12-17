@@ -41,7 +41,7 @@ accumulate_aggr_flows,
 VtreeNode, Vtree, balanced_vtree, top_down_vtree, bottom_up_vtree,
 
 # StructuredLogicalCircuits
-StructLogicalΔNode, StructLogicalLeafNode, StructLogicalCircuit,
+StructLogicalΔNode, StructLogicalLeafNode, StructLogicalΔ,
 StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node, vtree,
 
 # PlainVtree

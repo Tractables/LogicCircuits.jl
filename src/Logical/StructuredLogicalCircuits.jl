@@ -41,7 +41,7 @@ end
 HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
 
 "A structured logical circuit represented as a bottom-up linear order of nodes"
-const StructLogicalCircuit{V} = AbstractVector{<:StructLogicalΔNode{V}}
+const StructLogicalΔ{V} = AbstractVector{<:StructLogicalΔNode{V}}
 
 #####################
 # traits
