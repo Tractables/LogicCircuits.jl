@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/Juice-jl/LogicCircuits.svg?branch=master)](https://travis-ci.org/Juice-jl/LogicCircuits)
+[![codecov](https://codecov.io/gh/Juice-jl/LogicCircuits/branch/master/graph/badge.svg)](https://codecov.io/gh/Juice-jl/LogicCircuits)
 
 # LogicCircuits.jl
 Logic Circuits - part of Juice (Julia Circuit Empanada)
