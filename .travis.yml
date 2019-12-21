@@ -1,29 +1,20 @@
 language: julia
-
 os:
 - linux
-
 env:
 - DATADEPS_ALWAYS_ACCEPT=1
-
 codecov: true
-
 julia:
 - 1.3
-
 matrix:
   allow_failures:
   - julia: nightly
-
 before_install:
 - julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate(); Pkg.precompile();'
-
 script:
 - julia --project --code-coverage --color=yes --project=. -p2 test/runtests.jl
-
 after_success:
 - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
-
 notifications:
   slack:
     on_success: always
@@ -31,4 +22,4 @@ notifications:
     on_start: always
     on_error: always
     rooms:
-      - secure: "HlTbUNhgR3QEVo+vk8g4+UREl+Y9qtrtPY78UAl9RZFeyC02KsQGPs2fKVcVrO7uk+XFXxFoxVbou7AQtd91PTsLEXv3EbA/u2KQu5TV1kB/BUBvwNZSej5LDj70VDSzLdwXYejefRUS+fyBwlm0UmjlULtR7Z1jVBSu7G2Db7zeiRezvoyHO5Gya3rlNI5zQZV/8PsgmoIh5v5gTe18UAH4f/El727mTxaDTSP0VuK7xmKF/QgO5vJqFOLGVEGArGLd/hnIISvkz3uDSwXOIv0orVMsMalpDkmTkOe+NK65ZP4orX1dvm6P6ufk8farxCiTsoJlSqa7B7fHTpMlIaIM8YNUUHn39JQzkWeghWkxAPjsNdKbMeTUyFBVyOswbLiiGuveA351Uxj7Nq0zeUnGcggRnZZsgX2vgeu7UWYQkUrPqFxARa2B2Dbh8feHijBl4fGbv2+mG6PhtztnpFp1S5CZ1PzKuM+h/kB3GNLNgR8IWlHX937LV8r7MgInMd945J7JynNROKLB1OWTHs78N7aVVWINKfe+5vLI3+2t4BjkibqLPMqLQC+KBNGJgK9lvT+qJ7m5ETexzATUSVN/kXyHAdgw3BwBmN5WCFDRcpbXp18Sjx+y1mFF9ts8pD6nfAEsguvY839SgAAa9eRMxi9Ho5JcGuR/zGw6QX4="
+       - secure: "rmJojqwsfF+qfdvxXDIzSJJG2j37YzsyRwx5UDloug8fAL3J2wEB20uc/BhX1IZik+9MIwf71SNj2WZp8wz21PtZg6pZZ47c3xMlG1o8QgLuAkTK9xmcLP28X041ajAFVr1OP3HFVdDARQcwiUriwbs7yinPacv7+veRY85vCOg/0r/LML6wGSvXJwAwM4phtgBP0m7zA05zBCoFqWcsB6ZdcVN82WhdO00PhrFAKIooMX1tKUr0twf3qBRI5hxi4VGmVc+4mkWRsE53GHbCMBYbgxeZWOCbtS9pcCUXaYT2K6o0RqPgnskcGnYWu+i8VnEsuYqgJujfRJMeSGYG4rASQA8emIXoCcs4bF/W+lZJ+RhGJSMLO3K2YL+AhMXxYqQB5EnM94Q6Dz8Df2izdpMYd6//gB4F4XYoqNl+pZNxxN4eClKH4SJIMg0zEKC/ApqJqX9N3UmtEd50aJL963XigE4f/XorG6/8hlhqgNA3stGyYzF3Bg7LkWuMmFKH0IpzA4Li0BeaIsEdPz9ZOTvqe3I3cW0ZTDIJI2uH0uhL/QENqX4xO6Mp0kX26RQ5Pr9qzoJoDg6NnEJDd3OSWt6I/JAIJeaBynKCB5hvwzv956K/DCnWIX8k2Y+OCyp0hQOn0oP5vgQskdyjkVlZU3FMyTtUtZhE0Z72xXb8XOs="
