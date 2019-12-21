@@ -8,14 +8,15 @@ Julia 1.3
 # Installation
 
 You can use the `Project.toml` that comes with LogicCircuits to activate a Julia environment with all dependencies
-Concretely, the following command will download and install all required packages.
+Concretely, the following command run from the LogicCircuits directory will download and install all required packages.
 
     julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate(); Pkg.precompile();'
 
-You can run the following commands to ensure Julia will find a local version of LogicCircuits at `~/code/LogicCircuits.jl` and is able to use it on all processors (change `/code/LogicCircuits.jl` to be the correct path):
+Suppose you want Julia to use your local copy of the `LogicCircuits` code, which you stored under `~/Juice/LogicCircuits/`.
+You can run the following commands to ensure Julia will find this code and use it on all processors:
     
     mkdir  -p ~/.julia/config
-    echo -e 'using Distributed\n @everywhere push!(LOAD_PATH, "$(homedir())/code/LogicCircuits.jl")' > ~/.julia/config/startup.jl
+    echo -e 'using Distributed\n @everywhere push!(LOAD_PATH, "$(homedir())/Juice")' > ~/.julia/config/startup.jl
 
 # Documentation
 
