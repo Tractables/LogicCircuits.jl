@@ -1,11 +1,11 @@
 # LogicCircuits.jl
 Logic Circuits - part of Juice (Julia Circuit Empanada)
 
-# Requirements
+## Requirements
 
 Julia 1.3
 
-# Installation
+## Installation
 
 You can use the `Project.toml` that comes with LogicCircuits to activate a Julia environment with all dependencies
 Concretely, the following command run from the LogicCircuits directory will download and install all required packages.
@@ -18,21 +18,21 @@ You can run the following commands to ensure Julia will find this code and use i
     mkdir  -p ~/.julia/config
     echo -e 'using Distributed\n @everywhere push!(LOAD_PATH, "$(homedir())/Juice")' >> ~/.julia/config/startup.jl
 
-# Documentation
+## Documentation
 
 To build the documentation locally, run the following to build the documentation, and then open `docs/build/index.html`.
 
     julia docs/make.jl
 
-# Troubleshooting
+## Troubleshooting
 
-## Installation
+### Installation
 
 If the MLDataSets package fails to build, install the following (Ubuntu):
 
   ``sudo apt-get install zlib1g-dev libncurses5-dev``
 
-## Testing
+### Testing
 
 To run all the test cases in the `/test` folder, do:
 
