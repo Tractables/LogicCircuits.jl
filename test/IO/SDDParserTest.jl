@@ -1,6 +1,6 @@
 using Test
-using Juice
-import .Juice.IO: 
+using LogicCircuits
+import .LogicCircuits.IO: 
    parse_sdd_file, CircuitFormatLines
 
 @testset "SDD file parser tests" begin

@@ -1,6 +1,6 @@
 using Test
-using Juice
-import .Juice.IO:
+using LogicCircuits
+import .LogicCircuits.IO:
    load_cnf, load_dnf
 using Pkg.Artifacts
 

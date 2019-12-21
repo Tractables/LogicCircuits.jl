@@ -1,5 +1,5 @@
 using Test
-using Juice
+using LogicCircuits
 
 @testset "Decomposability tests" begin
     file = "little_4var.psdd"

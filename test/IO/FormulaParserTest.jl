@@ -1,6 +1,6 @@
 using Test
-using Juice
-import .Juice.IO: zoo_cnf, zoo_dnf
+using LogicCircuits
+import .LogicCircuits.IO: zoo_cnf, zoo_dnf
 
 
 @testset "CNF file parser tests" begin

@@ -1,6 +1,6 @@
 using Test
-using Juice.Logical
-using Juice.Utils
+using LogicCircuits.Logical
+using LogicCircuits.Utils
 
 @testset "Trimmed SDD Test" begin
 

@@ -8,17 +8,14 @@ import StatsFuns.logsumexp
 export copy_with_eltype, issomething, flatmap, map_something, ntimes, some_vector,
 assign, accumulate_val, accumulate_prod, accumulate_prod_normalized, assign_prod,
 assign_prod_normalized, prod_fast, count_conjunction, sum_weighted_product, 
-order_asc, to_long_mi, @no_error, disjoint, typejoin, lower_element_type, map_values, groupby, logsumexp,
+order_asc, @no_error, disjoint, typejoin, lower_element_type, map_values, groupby, logsumexp,
 unzip, uniform, pushrand!,
-IndirectVector, index_dict,
-collect_exp_paths, path_to_args_dict, filter_exps,
 Node, DagNode, TreeNode, DiGraph, Dag, Tree, 
 NodeType, Leaf, Inner, 
 inode, leafnode, children, num_children, has_children, num_nodes, num_edges,
 node_stats, leaf_stats, inode_stats, tree_num_nodes, node2dag, dag2node, grapheltype, 
 isequal_unordered, isequal_local, pre_order_traverse, 
-left_most_child, right_most_child, isleaf, isinner, lca, parent, descends_from,
-generate_all, generate_data_all
+left_most_child, right_most_child, isleaf, isinner, lca, parent, descends_from
 
 import Base.@time
 import Base.print
@@ -37,11 +34,6 @@ ntimes(f,n) = (for i in 1:n-1; f(); end; f())
 
 @inline order_asc(x, y) = x > y ? (y, x) : (x , y)
 
-function to_long_mi(m::Matrix{Float64}, min_int, max_int)::Matrix{Int64}
-    δmi = maximum(m) - minimum(m)
-    δint = max_int - min_int
-    return @. round(Int64, m * δint / δmi + min_int)
-end
 
 macro no_error(ex)
     quote
@@ -81,7 +73,6 @@ macro unzip(x)
 end
 
 
-
 """
 Push element into random position
 """
@@ -112,28 +103,6 @@ Base.typejoin(array::AbstractArray) = mapreduce(e -> typeof(e), typejoin, array)
 
 "Specialize the type parameter of an array to be most specific"
 lower_element_type(array::AbstractArray) = copy_with_eltype(array, typejoin(array))
-
-
-#####################
-# logging helpers
-#####################
-
-# overwrite @time and println, write to log file and stdout at the same time
-using Suppressor:@capture_out
-
-macro redirect_to_files(expr, outfile, errfile)
-    quote
-        open($outfile, "w") do out
-            open($errfile, "w") do err
-                redirect_stdout(out) do
-                    redirect_stderr(err) do
-                        $(esc(expr))
-                    end
-                end
-            end
-        end
-    end
-end
 
 
 #####################
@@ -186,11 +155,5 @@ include("Kernels.jl")
 #####################
 
 include("Graphs.jl")
-
-###################
-# Testing Utils
-####################
-
-include("TestUtils.jl")
 
 end #module

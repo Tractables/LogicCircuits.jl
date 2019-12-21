@@ -1,6 +1,6 @@
  using Test
- using Juice
- using Juice.IO: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine
+ using LogicCircuits
+ using LogicCircuits.IO: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine
 
 @testset "PlainVtree File Parser Test" begin
     vtree_lines = parse_vtree_file(zoo_vtree_file("little_4var.vtree"))

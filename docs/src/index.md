@@ -1,6 +1,6 @@
-# Juice.jl Documentation
+# LogicCircuits.jl Documentation
 
-Documentation for Juice.jl
+Documentation for LogicCircuits.jl
 
 See the individual modules' API overviews below.
 
@@ -16,8 +16,8 @@ Modules = [Data]
 Modules = [Utils]
 ```
 
-## Juice Module API
+## LogicCircuits Module API
 
 ```@autodocs
-Modules = [Juice]
+Modules = [LogicCircuits]
 ```

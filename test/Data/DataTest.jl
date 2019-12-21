@@ -1,5 +1,5 @@
 using Test
-using Juice
+using LogicCircuits
 
 
 @testset "Unbatch test" begin # wrapping all the statements into a function also trigers signal (4) due to `XDataset`
