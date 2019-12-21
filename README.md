@@ -15,11 +15,11 @@ Concretely, the following command run from the LogicCircuits directory will down
 
     julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate(); Pkg.precompile();'
 
-Suppose you want Julia to use your local copy of the `LogicCircuits` code, which you stored under `~/Juice/LogicCircuits/`.
+Suppose you want Julia to use your local copy of the `LogicCircuits.jl` code, which you stored under `~/Juice/LogicCircuits.jl/`.
 You can run the following commands to ensure Julia will find this code and use it on all processors:
     
     mkdir  -p ~/.julia/config
-    echo -e 'using Distributed\n @everywhere push!(LOAD_PATH, "$(homedir())/Juice/LogicCircuits")' >> ~/.julia/config/startup.jl
+    echo -e 'using Distributed\n @everywhere push!(LOAD_PATH, "$(homedir())/Juice/LogicCircuits.jl")' >> ~/.julia/config/startup.jl
 
 ## Documentation
 
