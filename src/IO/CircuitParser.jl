@@ -1,6 +1,4 @@
 
-using MetaGraphs: MetaDiGraph, set_prop!, props
-
 #####################
 # general parser infrastructure for circuits
 #####################

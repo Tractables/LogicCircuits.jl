@@ -2,14 +2,6 @@ using Test
 using LogicCircuits
 
 @testset "Decomposability tests" begin
-    file = "little_4var.psdd"
-    prob_circuit = zoo_psdd(file);
-    @test is_decomposable(prob_circuit);
-
-    file = "mnist-antonio.psdd"
-    prob_circuit = zoo_psdd(file);
-    @test is_decomposable(prob_circuit);
-
     lin = LogicalΔNode[]
     ors = map(1:10) do v
         pos = LiteralNode(var2lit(Var(v)))

@@ -109,8 +109,6 @@ end
 # saver for circuits
 #####################
 
-save_sdd_file(name::String, ln::ProbΔ, vtree::PlainVtree) = 
-    save_sdd_file(name, origin(ln), vtree)
 
 function save_sdd_file(name::String, ln::StructLogicalΔ, vtree::PlainVtree)
     @assert endswith(name, ".sdd")
