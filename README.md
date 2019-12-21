@@ -34,15 +34,15 @@ If the MLDataSets package fails to build, install the following (Ubuntu):
 
 ### Testing
 
-To run all the test cases in the `/test` folder, do:
+To run all the tests:
 
-    julia --color=yes -pauto runtests.jl
+    julia --color=yes -pauto test/runtests.jl
 
 The flag `-pauto` parallelizes the tests across all CPU cores.
 You can also run all the tests for a single (sub-)module, for example:
 
-    julia --color=yes -pauto runtests.jl IO
+    julia --color=yes -pauto test/runtests.jl IO
 
 Or even any individual test, for example:
 
-    julia --color=yes -pauto runtests.jl IO/VtreeParserTest.jl
+    julia --color=yes -pauto test/runtests.jl IO/VtreeParserTest.jl
