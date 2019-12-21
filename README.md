@@ -22,7 +22,7 @@ You can run the following commands to ensure Julia will find this code and use i
 
 To build the documentation locally, run the following to build the documentation, and then open `docs/build/index.html`.
 
-    julia docs/make.jl
+    julia -e 'using Pkg; Pkg.activate("./docs"); Pkg.instantiate(); include("docs/make.jl");
 
 ## Troubleshooting
 
