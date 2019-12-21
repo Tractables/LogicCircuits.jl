@@ -7,7 +7,7 @@ makedocs(
     sitename = "Juice.jl Documentation",
     format = Documenter.HTML(prettyurls = false),
     doctest = true,
-    modules = [Juice, Data, Utils],
+    modules = [Juice],
 )
 
 # Documenter can also automatically deploy documentation to gh-pages.
