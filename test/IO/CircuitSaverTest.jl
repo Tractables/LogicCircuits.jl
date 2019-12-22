@@ -1,25 +1,16 @@
 using Test
 using LogicCircuits
-using LogicCircuits.IO: parse_lc_file, save_lines, parse_psdd_file, parse_sdd_file, parse_vtree_file
 
-@testset "Circuit load-save-load test" begin
-    mktempdir() do tmp
+@testset "Circuit saver tests" begin
 
-        lines = parse_lc_file(zoo_lc_file("little_4var.circuit"))
-        save_lines("$tmp/temp.circuit", lines)
-        parse_lc_file("$tmp/temp.circuit")
+  circuit, vtree = load_struct_smooth_logical_circuit(zoo_lc_file("mnist-large.circuit"), zoo_vtree_file("balanced.vtree"))
 
-        lines = parse_psdd_file(zoo_psdd_file("little_4var.psdd"))
-        save_lines("$tmp/temp.psdd", lines)
-        parse_psdd_file("$tmp/temp.psdd")
+  mktempdir() do tmp
+    # the circuit above does not conform the the SDD requirements
+    @test_throws Exception save_circuit("$tmp/temp.sdd", circuit, vtree)
+  end
 
-        lines = parse_sdd_file(zoo_sdd_file("random.sdd"))
-        save_lines("$tmp/temp.sdd", lines)
-        parse_sdd_file("$tmp/temp.sdd")
+  # TODO add a test to load and save and load an .sdd file
+  # currently we have no sdd+vtree in the model zoo to do this
 
-        lines = parse_vtree_file(zoo_vtree_file("little_4var.vtree"))
-        # TODO split up vtree saver into decompilation phase and file writing phase so we can test like above
-   
-    end
-    @test true
 end

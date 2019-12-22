@@ -24,11 +24,14 @@ decompile(n::StructLiteralNode, node2id, vtree2id)::UnweightedLiteralLine =
 decompile(n::StructConstantNode, node2id, vtree2id)::AnonymousConstantLine = 
     AnonymousConstantLine(node2id[n], constant(n), false)
 
+decompile(n::Struct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} = 
+    DecisionLine(node2id[n], vtree2id[n.vtree], UInt32(num_children(n)), map(c -> make_element(c, node2id), children(n)))
+
 make_element(n::Struct⋀Node, node2id) = 
     SDDElement(node2id[n.children[1]],  node2id[n.children[2]])
 
-decompile(n::Struct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} = 
-    DecisionLine(node2id[n], vtree2id[n.vtree], UInt32(num_children(n)), map(c -> make_element(c, node2id), children(n)))
+make_element(n::StructLogicalΔNode, node2id) = 
+    error("Given circuit is not an SDD, its decision node elements are not conjunctions.")
 
 # TODO: decompile for logical circuit to some file format
 
@@ -81,16 +84,17 @@ function sdd_header()
 end
 
 function save_sdd_file(name::String, circuit::StructLogicalΔ, vtree::PlainVtree)
+    #TODO no need to pass the vtree, we can infer it from origin?
     @assert endswith(name, ".sdd")
     node2id = get_node2id(circuit, StructLogicalΔNode)
     vtree2id = get_vtree2id(vtree)
     formatlines = Vector{CircuitFormatLine}()
-    append!(formatlines, parse_sdd_file(sdd_header()))
-    push!(formatlines, SddHeader(num_nodes(ln)))
+    append!(formatlines, parse_sdd_file(IOBuffer(sdd_header())))
+    push!(formatlines, SddHeaderLine(num_nodes(circuit)))
     for n in filter(n -> !(GateType(n) isa ⋀), circuit)
         push!(formatlines, decompile(n, node2id, vtree2id))
     end
     save_lines(name, formatlines)
 end
 
-save_circuit(name::String, circuit::StructLogicalΔ, vtree=nothing) = save_sdd_file(name, circuit, vtree)
+save_circuit(name::String, circuit::StructLogicalΔ, vtree::PlainVtree) = save_sdd_file(name, circuit, vtree)

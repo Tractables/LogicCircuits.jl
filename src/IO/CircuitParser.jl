@@ -109,24 +109,24 @@ function parse_bias_line(ln::String)::BiasLine
     BiasLine(weights)
 end
 
-function parse_lc_file(file::String)::CircuitFormatLines
+parse_lc_file(file::String)::CircuitFormatLines = open(parse_lc_file, file)
+
+function parse_lc_file(file::Core.IO)::CircuitFormatLines
     q = Vector{CircuitFormatLine}()
-    open(file) do file # buffered IO does not seem to speed this up
-        for ln in eachline(file)
-            @assert !isempty(ln)
-            if ln[1] == 'D'
-                push!(q, parse_lc_decision_line(ln))
-            elseif ln[1] == 'T' || ln[1] == 'F'
-                push!(q, parse_lc_literal_line(ln))
-            elseif ln[1] == 'c'
-                push!(q, parse_comment_line(ln))
-            elseif ln[1] == 'L'
-                push!(q, parse_lc_header_line(ln))
-            elseif ln[1] == 'B'
-                push!(q, parse_bias_line(ln))
-            else
-                error("Cannot parse logistic circuit file format line '$ln'")
-            end
+    for ln in eachline(file)
+        @assert !isempty(ln)
+        if ln[1] == 'D'
+            push!(q, parse_lc_decision_line(ln))
+        elseif ln[1] == 'T' || ln[1] == 'F'
+            push!(q, parse_lc_literal_line(ln))
+        elseif ln[1] == 'c'
+            push!(q, parse_comment_line(ln))
+        elseif ln[1] == 'L'
+            push!(q, parse_lc_header_line(ln))
+        elseif ln[1] == 'B'
+            push!(q, parse_bias_line(ln))
+        else
+            error("Cannot parse logistic circuit file format line '$ln'")
         end
     end
     q
@@ -175,24 +175,24 @@ function parse_psdd_header_line(ln::String)
     PsddHeaderLine(parse(Int,split(ln)[2]))
 end
 
-function parse_psdd_file(file::String)::CircuitFormatLines
+parse_psdd_file(file::String)::CircuitFormatLines = open(parse_psdd_file, file)
+
+function parse_psdd_file(file::Core.IO)::CircuitFormatLines
     q = Vector{CircuitFormatLine}()
-    open(file) do file # buffered IO does not seem to speed this up
-        for ln in eachline(file)
-            @assert !isempty(ln)
-            if ln[1] == 'D'
-                push!(q, parse_psdd_decision_line(ln))
-            elseif ln[1] == 'T'
-                push!(q, parse_psdd_true_leaf_line(ln))
-            elseif ln[1] == 'L'
-                push!(q, parse_literal_line(ln, true))
-            elseif ln[1] == 'c'
-                push!(q, parse_comment_line(ln))
-            elseif startswith(ln,"psdd")
-                push!(q, parse_psdd_header_line(ln))
-            else
-                error("Cannot parse PSDD file format line '$ln'")
-            end
+    for ln in eachline(file)
+        @assert !isempty(ln)
+        if ln[1] == 'D'
+            push!(q, parse_psdd_decision_line(ln))
+        elseif ln[1] == 'T'
+            push!(q, parse_psdd_true_leaf_line(ln))
+        elseif ln[1] == 'L'
+            push!(q, parse_literal_line(ln, true))
+        elseif ln[1] == 'c'
+            push!(q, parse_comment_line(ln))
+        elseif startswith(ln,"psdd")
+            push!(q, parse_psdd_header_line(ln))
+        else
+            error("Cannot parse PSDD file format line '$ln'")
         end
     end
     q
@@ -228,24 +228,24 @@ function parse_sdd_header_line(ln::String)
     SddHeaderLine(parse(Int,split(ln)[2]))
 end
 
-function parse_sdd_file(file::String)::CircuitFormatLines
+parse_sdd_file(file::String)::CircuitFormatLines = open(parse_sdd_file, file)
+
+function parse_sdd_file(file::Core.IO)::CircuitFormatLines
     q = Vector{CircuitFormatLine}()
-    open(file) do file # buffered IO does not seem to speed this up
-        for ln in eachline(file)
-            @assert !isempty(ln)
-            if ln[1] == 'D'
-                push!(q, parse_sdd_decision_line(ln))
-            elseif ln[1] == 'T' || ln[1] == 'F'
-                push!(q, parse_sdd_constant_leaf_line(ln))
-            elseif ln[1] == 'L'
-                push!(q, parse_literal_line(ln, false))
-            elseif ln[1] == 'c'
-                push!(q, parse_comment_line(ln))
-            elseif startswith(ln,"sdd")
-                push!(q, parse_sdd_header_line(ln))
-            else
-                error("Cannot parse SDD file format line '$ln'")
-            end
+    for ln in eachline(file)
+        @assert !isempty(ln)
+        if ln[1] == 'D'
+            push!(q, parse_sdd_decision_line(ln))
+        elseif ln[1] == 'T' || ln[1] == 'F'
+            push!(q, parse_sdd_constant_leaf_line(ln))
+        elseif ln[1] == 'L'
+            push!(q, parse_literal_line(ln, false))
+        elseif ln[1] == 'c'
+            push!(q, parse_comment_line(ln))
+        elseif startswith(ln,"sdd")
+            push!(q, parse_sdd_header_line(ln))
+        else
+            error("Cannot parse SDD file format line '$ln'")
         end
     end
     q

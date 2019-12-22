@@ -62,4 +62,3 @@ import .LogicCircuits.IO:
   @test num_variables(random_circuit) == 16
 
 end
-
