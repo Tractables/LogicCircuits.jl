@@ -1,6 +1,3 @@
-using Printf
-import Base.copy
-
 #####################
 # Save lines
 #####################
