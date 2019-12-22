@@ -83,6 +83,10 @@ function sdd_header()
     c"""
 end
 
+function save_sdd_file(name::String, circuit::DecoratorΔ, vtree::PlainVtree)
+    save_sdd_file(name, origin(circuit, StructLogicalΔNode), vtree)
+end
+
 function save_sdd_file(name::String, circuit::StructLogicalΔ, vtree::PlainVtree)
     #TODO no need to pass the vtree, we can infer it from origin?
     @assert endswith(name, ".sdd")

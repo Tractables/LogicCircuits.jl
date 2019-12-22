@@ -303,17 +303,24 @@ function propagate_constants(circuit::Δ)
 end
 
 "Get the origin of the given decorator circuit node"
-@inline (origin(n::DecoratorΔNode{O})::O) where {O<:ΔNode} = n.origin
+@inline (origin(n::DecoratorΔNode{O})::O) where {O<:ΔNode} = 
+    n.origin
 "Get the origin of the given decorator circuit"
-@inline origin(circuit::DecoratorΔ) = lower_element_type(map(n -> n.origin, circuit))
+@inline origin(circuit::DecoratorΔ) = 
+    lower_element_type(map(n -> n.origin, circuit))
 
 "Get the first origin of the given decorator circuit node of the given type"
-@inline (origin(n::DecoratorΔNode{<:O}, ::Type{O})::O) where {O<:ΔNode} = origin(n)
-"Get the first origin of the given decorator circuit of the given type"
-@inline (origin(n::DecoratorΔNode, ::Type{T})::T) where {T<:ΔNode} = origin(origin(n),T)
-@inline origin(circuit::DecoratorΔ, ::Type{T}) where T = lower_element_type(map(n -> origin(n,T), circuit))
+@inline (origin(n::DecoratorΔNode{<:O}, ::Type{O})::O) where {O<:ΔNode} = 
+    origin(n)
+@inline (origin(n::DecoratorΔNode, ::Type{T})::T) where {T<:ΔNode} = 
+    origin(origin(n),T)
+"Get the first origin of the given decorator circuit of the given node type"
+@inline origin(circuit::DecoratorΔ, ::Type{T}) where T = 
+    lower_element_type(map(n -> origin(n,T), circuit)) # TODO can we do this with eltype of the circuit type?
 
 "Get the origin of the origin of the given decorator circuit node"
-@inline (grand_origin(n::DecoratorΔNode{<:DecoratorΔNode{O}})::O) where {O} = n.origin.origin
+@inline (grand_origin(n::DecoratorΔNode{<:DecoratorΔNode{O}})::O) where {O} = 
+    n.origin.origin
 "Get the origin of the origin the given decorator circuit"
-@inline grand_origin(circuit::DecoratorΔ) = origin(origin(circuit))
+@inline grand_origin(circuit::DecoratorΔ) = 
+    origin(origin(circuit))
