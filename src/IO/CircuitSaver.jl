@@ -44,6 +44,40 @@ c D id-of-decomposition-sdd-node id-of-vtree number-of-elements {id-of-prime id-
 c"""
 end
 
+function save_lc_line()
+    """
+    c variables (from inputs) start from 1
+    c ids of logistic circuit nodes start from 0
+    c nodes appear bottom-up, children before parents
+    c the last line of the file records the bias parameter
+    c three types of nodes:
+    c	T (terminal nodes that correspond to true literals)
+    c	F (terminal nodes that correspond to false literals)
+    c	D (OR gates)
+    c
+    c file syntax:
+    c Logisitic Circuit
+    c T id-of-true-literal-node id-of-vtree variable parameters
+    c F id-of-false-literal-node id-of-vtree variable parameters
+    c D id-of-or-gate id-of-vtree number-of-elements (id-of-prime id-of-sub parameters)s
+    c B bias-parameters
+    c"""
+    end
+    
+function save_psdd_comment_line()
+    """
+    c ids of psdd nodes start at 0
+    c psdd nodes appear bottom-up, children before parents
+    c
+    c file syntax:
+    c psdd count-of-sdd-nodes
+    c L id-of-literal-sdd-node id-of-vtree literal
+    c T id-of-trueNode-sdd-node id-of-vtree variable log(litProb)
+    c D id-of-decomposition-sdd-node id-of-vtree number-of-elements {id-of-prime id-of-sub log(elementProb)}*
+    c"""
+    end
+    
+
 function save_lines(file::String, lns::Vector{CircuitFormatLine})
     open(file, "a") do f
         for ln in lns
