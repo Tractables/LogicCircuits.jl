@@ -131,3 +131,38 @@ struct BiasLine <: InnerCircuitLine
     weights::Vector{Float64}
     BiasLine(weights) = new(typemax(ID), weights)
 end
+
+"""
+String representations of each line type
+"""
+
+# import Base.show
+Base.show(io, ln::CircuitCommentLine) =  print(io, "$(ln.comment)")
+Base.show(io, ln::DecisionLine) =  print(io, "D $(ln.node_id) $(ln.vtree_id) $(ln.num_elements) $(ln.elements)")
+Base.show(io, ln::BiasLine) =  print(io, "B $(ln.weights)")
+Base.show(io, ln::WeightedNamedConstantLine) =  print(io, "B $(ln.node_id) $(ln.vtree_id) $(ln.variable) $(ln.weight)")
+Base.show(io, ln::UnweightedLiteralLine) =  print(io, "B $(ln.node_id) $(ln.vtree_id) $(ln.literal)")
+
+Base.show(io, ln::WeightedLiteralLine) = begin
+    @assert ln.normalized
+    if ln.literal > 0
+        print(io, "T $(ln.node_id) $(ln.vtree_id) $(ln.literal) $(ln.weights)")
+    else
+        print(io, "F $(ln.node_id) $(ln.vtree_id) $(-ln.literal) $(ln.weights)")
+    end
+end
+
+Base.show(io, ln::AnonymousConstantLine) = begin
+    @assert !ln.normalized
+    if ln.literal > 0
+        print(io, "T $(ln.node_id)")
+    else
+        print(io, "F $(ln.node_id)")
+    end
+end
+
+Base.show(io, e::SDDElement) =  print(io, "$(e.prime_id) $(e.sub_id)")
+Base.show(io, e::PSDDElement) =  print(io, "$(e.prime_id) $(e.sub_id) $(e.weight)")
+Base.show(io, e::LCElement) =  print(io, "($(e.prime_id) $(e.sub_id) $(e.weights))")
+
+Base.show(io, v::Vector{<:Union{Element, AbstractFloat}}) =  join(io, v, " ")
