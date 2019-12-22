@@ -17,7 +17,7 @@ struct CircuitCommentLine{T<:AbstractString} <: CircuitFormatLine
 end
 
 """A header line for circuit files"""
-struct CircuitHeaderLine <: CircuitFormatLine end
+abstract type CircuitHeaderLine <: CircuitFormatLine end
 
 """A circuit format line without child IDs"""
 abstract type LeafCircuitLine <: CircuitFormatLine end
@@ -27,6 +27,18 @@ abstract type InnerCircuitLine <: CircuitFormatLine end
 
 """A line that represents a logical literal"""
 abstract type LiteralLine <: LeafCircuitLine end
+
+
+struct SddHeaderLine <: CircuitHeaderLine
+    num_nodes::Int 
+end
+
+struct PsddHeaderLine <: CircuitHeaderLine
+    num_nodes::Int
+end
+
+struct LcHeaderLine <: CircuitHeaderLine end
+  
 
 """
 A line representing a weighted single literal (for example a logistic circuit literal).
@@ -135,15 +147,17 @@ end
 """
 String representations of each line type
 """
+# TODO rename this IO module so as to not conflict with Core.IO below
+Base.show(io::Core.IO, ln::SddHeaderLine) =  print(io, "sdd $(ln.num_nodes)")
+Base.show(io::Core.IO, ln::PsddHeaderLine) =  print(io, "psdd $(ln.num_nodes)")
+Base.show(io::Core.IO, ln::LcHeaderLine) =  print(io, "Logistic Circuit")
+Base.show(io::Core.IO, ln::CircuitCommentLine) =  print(io, "c $(ln.comment)")
+Base.show(io::Core.IO, ln::DecisionLine) =  print(io, "D $(ln.node_id) $(ln.vtree_id) $(ln.num_elements) $(ln.elements)")
+Base.show(io::Core.IO, ln::BiasLine) =  print(io, "B $(ln.weights)")
+Base.show(io::Core.IO, ln::WeightedNamedConstantLine) =  print(io, "T $(ln.node_id) $(ln.vtree_id) $(ln.variable) $(ln.weight)")
+Base.show(io::Core.IO, ln::UnweightedLiteralLine) =  print(io, "L $(ln.node_id) $(ln.vtree_id) $(ln.literal)")
 
-# import Base.show
-Base.show(io, ln::CircuitCommentLine) =  print(io, "$(ln.comment)")
-Base.show(io, ln::DecisionLine) =  print(io, "D $(ln.node_id) $(ln.vtree_id) $(ln.num_elements) $(ln.elements)")
-Base.show(io, ln::BiasLine) =  print(io, "B $(ln.weights)")
-Base.show(io, ln::WeightedNamedConstantLine) =  print(io, "B $(ln.node_id) $(ln.vtree_id) $(ln.variable) $(ln.weight)")
-Base.show(io, ln::UnweightedLiteralLine) =  print(io, "B $(ln.node_id) $(ln.vtree_id) $(ln.literal)")
-
-Base.show(io, ln::WeightedLiteralLine) = begin
+Base.show(io::Core.IO, ln::WeightedLiteralLine) = begin
     @assert ln.normalized
     if ln.literal > 0
         print(io, "T $(ln.node_id) $(ln.vtree_id) $(ln.literal) $(ln.weights)")
@@ -152,17 +166,17 @@ Base.show(io, ln::WeightedLiteralLine) = begin
     end
 end
 
-Base.show(io, ln::AnonymousConstantLine) = begin
+Base.show(io::Core.IO, ln::AnonymousConstantLine) = begin
     @assert !ln.normalized
-    if ln.literal > 0
+    if ln.constant
         print(io, "T $(ln.node_id)")
     else
         print(io, "F $(ln.node_id)")
     end
 end
 
-Base.show(io, e::SDDElement) =  print(io, "$(e.prime_id) $(e.sub_id)")
-Base.show(io, e::PSDDElement) =  print(io, "$(e.prime_id) $(e.sub_id) $(e.weight)")
-Base.show(io, e::LCElement) =  print(io, "($(e.prime_id) $(e.sub_id) $(e.weights))")
+Base.show(io::Core.IO, e::SDDElement) =  print(io, "$(e.prime_id) $(e.sub_id)")
+Base.show(io::Core.IO, e::PSDDElement) =  print(io, "$(e.prime_id) $(e.sub_id) $(e.weight)")
+Base.show(io::Core.IO, e::LCElement) =  print(io, "($(e.prime_id) $(e.sub_id) $(e.weights))")
 
-Base.show(io, v::Vector{<:Union{Element, AbstractFloat}}) =  join(io, v, " ")
+Base.show(io::Core.IO, v::Vector{<:Union{Element, AbstractFloat}}) =  join(io, v, " ")

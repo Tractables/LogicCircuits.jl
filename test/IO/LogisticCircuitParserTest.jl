@@ -18,21 +18,22 @@ import .LogicCircuits.IO:
    @test parse_lc_file(zoo_lc_file("mnist-large.circuit")) isa CircuitFormatLines
 end
 
-@testset "Test logical circuit loading" begin
+@testset "Test logistic circuit loading as logical circuit" begin
+
    circuit = load_logical_circuit(zoo_lc_file("mnist-large.circuit"))
-   @test circuit isa LogicalΔ
-   # println("MNIST large has size $(length(circuit)) nodes")
-   # println("MNIST large has tree size $(tree_size(circuit)) nodes")
-   # println("MNIST large has scope $(variable_scope(circuit))")
-   
+
+   @test circuit isa LogicalΔ   
    @test is_decomposable(circuit)
 
    circuit = load_smooth_logical_circuit(zoo_lc_file("mnist-large.circuit"))
+
    @test circuit isa LogicalΔ
    @test is_decomposable(circuit)
 
    circuit, vtree = load_struct_smooth_logical_circuit(zoo_lc_file("mnist-large.circuit"), zoo_vtree_file("balanced.vtree"))
+
    @test circuit isa StructLogicalΔ
    @test vtree isa PlainVtree
    @test is_decomposable(circuit)
+
 end

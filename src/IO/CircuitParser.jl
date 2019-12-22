@@ -99,7 +99,7 @@ end
 
 function parse_lc_header_line(ln::String)
     @assert (ln == "Logistic Circuit") || (ln == "Logisitic Circuit")
-    CircuitHeaderLine()
+    LcHeaderLine()
 end
 
 function parse_bias_line(ln::String)::BiasLine
@@ -125,7 +125,7 @@ function parse_lc_file(file::String)::CircuitFormatLines
             elseif ln[1] == 'B'
                 push!(q, parse_bias_line(ln))
             else
-                error("Cannot parse logistic circuit file format line $ln")
+                error("Cannot parse logistic circuit file format line '$ln'")
             end
         end
     end
@@ -170,6 +170,11 @@ function parse_literal_line(ln::String, normalized::Bool)::UnweightedLiteralLine
     UnweightedLiteralLine(head_ints[1],head_ints[2],lit,normalized)
 end
 
+function parse_psdd_header_line(ln::String)
+    @assert startswith(ln, "psdd")
+    PsddHeaderLine(parse(Int,split(ln)[2]))
+end
+
 function parse_psdd_file(file::String)::CircuitFormatLines
     q = Vector{CircuitFormatLine}()
     open(file) do file # buffered IO does not seem to speed this up
@@ -184,9 +189,9 @@ function parse_psdd_file(file::String)::CircuitFormatLines
             elseif ln[1] == 'c'
                 push!(q, parse_comment_line(ln))
             elseif startswith(ln,"psdd")
-                push!(q, CircuitHeaderLine())
+                push!(q, parse_psdd_header_line(ln))
             else
-                error("Cannot parse PSDD file format line $ln")
+                error("Cannot parse PSDD file format line '$ln'")
             end
         end
     end
@@ -218,6 +223,11 @@ function parse_sdd_constant_leaf_line(ln::String)::AnonymousConstantLine
     AnonymousConstantLine(parse(UInt32,tokens[2]), startswith(ln, "T"), false)
 end
 
+function parse_sdd_header_line(ln::String)
+    @assert startswith(ln, "sdd")
+    SddHeaderLine(parse(Int,split(ln)[2]))
+end
+
 function parse_sdd_file(file::String)::CircuitFormatLines
     q = Vector{CircuitFormatLine}()
     open(file) do file # buffered IO does not seem to speed this up
@@ -232,9 +242,9 @@ function parse_sdd_file(file::String)::CircuitFormatLines
             elseif ln[1] == 'c'
                 push!(q, parse_comment_line(ln))
             elseif startswith(ln,"sdd")
-                push!(q, CircuitHeaderLine())
+                push!(q, parse_sdd_header_line(ln))
             else
-                error("Cannot parse SDD file format line $ln")
+                error("Cannot parse SDD file format line '$ln'")
             end
         end
     end
@@ -283,7 +293,7 @@ function load_cnf(file::String)::UnstLogicalΔ
                 tokens = split(ln)
                 for token in tokens
                     if !occursin(r"^\s*[-]?[0-9]+\s*$", token)
-                        error("Cannot parse CNF file format line $ln")
+                        error("Cannot parse CNF file format line '$ln'")
                     end
                     literal = parse(Lit, token)
                     if literal == 0
@@ -354,7 +364,7 @@ function load_dnf(file::String)::UnstLogicalΔ
                 tokens = split(ln)
                 for token in tokens
                     if !occursin(r"^\s*[-]?[0-9]+\s*$", token)
-                        error("Cannot parse CNF file format line $ln")
+                        error("Cannot parse CNF file format line '$ln'")
                     end
                     literal = parse(Lit, token)
                     if literal == 0
