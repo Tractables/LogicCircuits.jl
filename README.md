@@ -4,48 +4,31 @@
 # LogicCircuits.jl
 Logic Circuits - part of Juice (Julia Circuit Empanada)
 
-## Requirements
-
-Julia 1.3
-
 ## Installation
 
-You can use the `Project.toml` that comes with LogicCircuits to activate a Julia environment with all dependencies
-Concretely, the following command run from the LogicCircuits directory will download and install all required packages.
+Install the Julia package by running
 
-    julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate(); Pkg.precompile();'
+    julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/Juice-jl/LogicCircuits.jl.git"))'
 
-Suppose you want Julia to use your local copy of the `LogicCircuits.jl` code, which you stored under `~/Juice/LogicCircuits.jl/`.
-You can run the following commands to ensure Julia will find this code and use it on all processors:
-    
-    mkdir  -p ~/.julia/config
-    echo -e 'using Distributed\n @everywhere push!(LOAD_PATH, "$(homedir())/Juice/LogicCircuits.jl")' >> ~/.julia/config/startup.jl
+This will automatically install all dependencies described in `Project.toml`.
+The first time you run `using LogicCircuits` in Julia, it will precompile the package and all its dependencies.
+
+To make sure everything is working correctly, you can run our test suite as follows. The first time you run the tests will trigger a few slow downloads of various test resources.
+
+    julia --color=yes -e 'using Pkg; Pkg.test("LogicCircuits")'
+
+## Development
+
+If you are interested in modifying the package please see the [development README](README_DEV.md).
 
 ## Documentation
 
-To build the documentation locally, run the following to build the documentation, and then open `docs/build/index.html`.
+To build the documentation locally, run the following and then open `docs/build/index.html`.
 
     julia -e 'using Pkg; Pkg.activate("./docs"); Pkg.instantiate(); include("docs/make.jl");
 
 ## Troubleshooting
 
-### Installation
-
 If the MLDataSets package fails to build, install the following (Ubuntu):
 
   ``sudo apt-get install zlib1g-dev libncurses5-dev``
-
-### Testing
-
-To run all the tests:
-
-    julia --color=yes -pauto test/runtests.jl
-
-The flag `-pauto` parallelizes the tests across all CPU cores.
-You can also run all the tests for a single (sub-)module, for example:
-
-    julia --color=yes -pauto test/runtests.jl IO
-
-Or even any individual test, for example:
-
-    julia --color=yes -pauto test/runtests.jl IO/VtreeParserTest.jl
