@@ -1,20 +1,27 @@
 language: julia
+
 os:
 - linux
-env:
-- DATADEPS_ALWAYS_ACCEPT=1
+
 codecov: true
+
 julia:
 - 1.3
+
 matrix:
   allow_failures:
   - julia: nightly
-before_install:
+
+install:
 - julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate(); Pkg.precompile();'
+- julia -e 'using Pkg; Pkg.activate("./test"); Pkg.develop(PackageSpec(path = pwd())); Pkg.instantiate(); Pkg.precompile();'
+
 script:
 - julia --code-coverage --color=yes -p2 test/runtests.jl
+
 after_success:
 - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+
 notifications:
   slack:
     on_success: always
