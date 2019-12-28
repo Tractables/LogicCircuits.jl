@@ -8,7 +8,7 @@ import Base.size
 using ..Utils:
     flatmap, copy_with_eltype, issomething
 
-export AbstractData, WXData, PlainXData, XData, XBatches, XYBatches, Dataset, UnlabeledDataset,
+export AbstractData, WXData, PlainXData, XData, XYData, XBatches, XYBatches, Dataset, UnlabeledDataset,
 LabeledDataset, XDataset, XYDataset, BatchedXDataset, BatchedXYDataset, weights,
 num_examples, total_example_weight, max_batch_size, num_features, num_labels, num_batches,
 feature_matrix, unweighted_data, feature_data, labels, weights, aggr_weight_type, feature_type, label_type,
