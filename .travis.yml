@@ -12,7 +12,7 @@ matrix:
 before_install:
 - julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate(); Pkg.precompile();'
 script:
-- julia --project --code-coverage --color=yes --project=. -p2 test/runtests.jl
+- julia --code-coverage --color=yes -p2 test/runtests.jl
 after_success:
 - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
 notifications:
