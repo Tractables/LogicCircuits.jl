@@ -5,7 +5,7 @@ module Utils
 using StatsFuns
 import StatsFuns.logsumexp
 
-export copy_with_eltype, issomething, flatmap, map_something, ntimes, some_vector,
+export copy_with_eltype, issomething, flatmap, map_something, ntimes, some_vector, always, never,
 assign, accumulate_val, accumulate_prod, accumulate_prod_normalized, assign_prod,
 assign_prod_normalized, prod_fast, count_conjunction, sum_weighted_product, 
 order_asc, @no_error, disjoint, typejoin, lower_element_type, map_values, groupby, logsumexp,

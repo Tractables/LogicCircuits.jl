@@ -22,7 +22,7 @@ LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ,
 LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, fully_factorized_circuit,
 
 # UpFlowCircuits
-UpFlowΔNode, UpFlowΔ, UpFlowΔ, UpFlowLeafNode, UpFlowInnerNode,
+UpFlowΔNode, UpFlowΔ, UpFlowLeafNode, UpFlowInnerNode,
 UpFlowLiteral, UpFlowConstant, UpFlow⋀Compact, UpFlow⋀Cached, UpFlow⋁Compact, UpFlow⋁Cached, UpFlow⋀, UpFlow⋁,
 flow_opts★, pass_up, pass_up_node, pr_factors, pr, resize_flows, flow_length,
 
