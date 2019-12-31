@@ -81,11 +81,11 @@ import ..Utils.children # make available for extension
 
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::ΔNode)::Lit = literal(GateType(n), n)
-@inline literal(::LiteralLeaf, n::ΔNode)::Lit = error("Each `LiteralLeaf` should implement a `literal` method")
+@inline literal(::LiteralLeaf, n::ΔNode)::Lit = error("Each `LiteralLeaf` should implement a `literal` method. It is missing from $(typeof(n)).")
 
 "Get the logical constant in a given constant leaf node"
 @inline constant(n::ΔNode)::Bool = literal(GateType(n), n)
-@inline constant(::ConstantLeaf, n::ΔNode)::Bool = error("Each `ConstantLeaf` should implement a `constant` method")
+@inline constant(::ConstantLeaf, n::ΔNode)::Bool = error("Each `ConstantLeaf` should implement a `constant` method.  It is missing from $(typeof(n)).")
 
 # next bunch of methods are derived from literal, constant, children, and the traits
 
