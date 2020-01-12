@@ -34,7 +34,7 @@ struct Inner <: NodeType end
 @inline NodeType(instance::Node) = NodeType(typeof(instance))
 
 #####################
-# methods
+# required methods
 #####################
 
 "Get the children of a given inner node"
@@ -61,14 +61,24 @@ import Base.foreach #extend
 function foreach(f::Function, node::DagNode, flag::Bool = !node.bit)
     if node.bit != flag
         node.bit = flag
-        if NodeType(node) isa Inner
-            for c::DagNode in children(node)
+        if isinner(node)
+            for c in children(node)
                 foreach(f, c, flag)
             end
         end
         f(node)
     end
-    nothing # returning nothing helps save some allocations
+    nothing # returning nothing helps save some allocations and time
+end
+
+function foreach(f::Function, node::TreeNode)
+    if isinner(node)
+        for c in children(node)
+            foreach(f, c)
+        end
+    end
+    f(node)
+    nothing
 end
 
 "Compute a function bottom-up on the circuit"
@@ -78,7 +88,7 @@ function foldup(node::DagNode, f_leaf::Function, f_inner::Function,
         return node.data::T
     else
         node.bit = flag
-        v = if NodeType(node) isa Inner
+        v = if isinner(node)
             child_values = Vector{T}(undef, num_children(node))
             map!(c -> foldup(c, f_leaf, f_inner, T, flag)::T, child_values, children(node))
             f_inner(node, child_values)::T
@@ -90,8 +100,23 @@ function foldup(node::DagNode, f_leaf::Function, f_inner::Function,
     end
 end
 
+function foldup(node::TreeNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where T
+    v = if isinner(node)
+        child_values = Vector{T}(undef, num_children(node))
+        map!(c -> foldup(c, f_leaf, f_inner, T)::T, child_values, children(node))
+        f_inner(node, child_values)::T
+    else
+        f_leaf(node)::T
+    end
+    return v
+end
+
+#####################
+# other methods
+#####################
+
 "Number of nodes in the graph"
-num_nodes(c::DiGraph) = length(c)
+@inline num_nodes(c::DiGraph) = length(c)
 function num_nodes(node::DagNode)
     count::Int = 0
     foreach(node) do n
@@ -100,7 +125,7 @@ function num_nodes(node::DagNode)
 end
 
 "Number of edges in the graph"
-num_edges(c::DiGraph) = sum(n -> num_children(n), c)
+@inline num_edges(c::DiGraph) = sum(n -> num_children(n), c)
 function num_edges(node::DagNode)
     count::Int = 0
     foreach(node) do n
@@ -108,35 +133,38 @@ function num_edges(node::DagNode)
     end
 end
 
-isleaf(n::Node) = NodeType(n) isa Leaf
-isinner(n::Node) = NodeType(n) isa Inner
-
-"Get the list of inner nodes in a given graph"
-inodes(c::DiGraph) = filter(n -> NodeType(n) isa Inner, c)
-
-"Get the list of leaf nodes in a given graph"
-leafnodes(c::DiGraph) = filter(n -> NodeType(n) isa Leaf, c)
-
-"Give count of types and fan-ins of inner nodes in the graph"
-function inode_stats(c::DiGraph)
-    groups = groupby(e -> (typeof(e),num_children(e)), inodes(c))
-    map_values(v -> length(v), groups, Int)
-end
-
-"Give count of types of leaf nodes in the graph"
-function leaf_stats(c::DiGraph)
-    groups = groupby(e -> typeof(e), leafnodes(c))
-    map_values(v -> length(v), groups, Int)
-end
-
-"Give count of types and fan-ins of all nodes in the graph"
-node_stats(c::DiGraph) = merge(leaf_stats(c), inode_stats(c))
+@inline isleaf(n::Node) = NodeType(n) isa Leaf
+@inline isinner(n::Node) = NodeType(n) isa Inner
 
 # When you suspect there is a bug but execution halts, it may be because of 
 # pretty printing a huge recursive graph structure. 
 # To safeguard against that case, we set a default show:
 Base.show(io::IO, c::Node) = print(io, "$(typeof(c))($(hash(c))))")
 
+"Get the list of inner nodes in a given graph"
+inodes(c::DiGraph) = filter(n -> isinner(n), c)
+function inodes(node::DagNode)
+    v = Vector{DagNode}()
+    foreach(node) do n
+        if isinner(n)
+            push!(v,n)
+        end
+    end
+    v
+end
+
+
+"Get the list of leaf nodes in a given graph"
+leafnodes(c::DiGraph) = filter(n -> isleaf(n), c)
+function leafnodes(node::DagNode)
+    v = Vector{DagNode}()
+    foreach(node) do n
+        if isleaf(n)
+            push!(v,n)
+        end
+    end
+    v
+end
 
 """
 Compute the number of nodes in of a tree-unfolding of the DAG. 
@@ -153,31 +181,23 @@ function tree_num_nodes(dag::Dag)::BigInt
     size[dag[end]]
 end
 
-"Rebuild a DAG's linear bottom-up order from a new root node"
-function node2dag(r::DagNode)::Dag
-    lower_element_type(node2dag(r,Dag)) # specialize the dag node type
+function tree_num_nodes(node::DagNode)::BigInt
+    @inline f_leaf(n) = zero(BigInt)
+    @inline f_inner(n, cs) = num_children(n) + sum(cs)
+    foldup(node, f_leaf, f_inner, BigInt)
 end
 
-function node2dag(r::DagNode, ::Type{D})::D where {D<:Dag}
-    seen = Set{DagNode}()
-    dag = Vector{eltype(D)}()
-    see(n::DagNode) = see(NodeType(n),n)
-    function see(::Leaf, n::DagNode)
-        if n ∉ seen
-            push!(seen,n)
-            push!(dag,n)
+"Rebuild a DAG's linear bottom-up order from a new root node"
+function node2dag(r::DagNode, ::Type{T} = typeof(r)) where T <: DagNode
+    NewT = T
+    dag = Vector{T}()
+    foreach(r) do n
+        if !(n isa NewT)
+            NewT = typejoin(NewT,typeof(n))
+            dag = copy_with_eltype(dag, NewT)
         end
+        push!(dag,n)
     end
-    function see(::Inner, n::DagNode)
-        if n ∉ seen
-            for child in children(n)
-                see(child)
-            end
-            push!(seen,n)
-            push!(dag,n)
-        end
-    end
-    see(r)
     dag
 end
 
@@ -305,3 +325,24 @@ lca(v::DagNode, w::DagNode, u::DagNode, r::DagNode...)::DagNode = lca(lca(v,w), 
 
 function descends_from end
 function parent end
+
+
+
+#####################
+# debugging methods (not performance critical)
+#####################
+
+"Give count of types and fan-ins of all nodes in the graph"
+node_stats(c::DiGraph) = merge(leaf_stats(c), inode_stats(c))
+
+"Give count of types and fan-ins of inner nodes in the graph"
+function inode_stats(c::DiGraph)
+    groups = groupby(e -> (typeof(e),num_children(e)), inodes(c))
+    map_values(v -> length(v), groups, Int)
+end
+
+"Give count of types of leaf nodes in the graph"
+function leaf_stats(c::DiGraph)
+    groups = groupby(e -> typeof(e), leafnodes(c))
+    map_values(v -> length(v), groups, Int)
+end

@@ -12,7 +12,7 @@ order_asc, @no_error, disjoint, typejoin, lower_element_type, map_values, groupb
 unzip, uniform, pushrand!,
 Node, DagNode, TreeNode, DiGraph, Dag, Tree, 
 NodeType, Leaf, Inner, 
-inode, leafnode, children, num_children, has_children, num_nodes, num_edges,
+inodes, leafnodes, children, num_children, has_children, num_nodes, num_edges,
 node_stats, leaf_stats, inode_stats, tree_num_nodes, node2dag, dag2node, grapheltype, 
 isequal_unordered, isequal_local, pre_order_traverse, 
 left_most_child, right_most_child, isleaf, isinner, lca, parent, descends_from,
@@ -103,8 +103,14 @@ import Base.typejoin
 Base.typejoin(array::AbstractArray) = mapreduce(e -> typeof(e), typejoin, array)
 
 "Specialize the type parameter of an array to be most specific"
-lower_element_type(array::AbstractArray) = copy_with_eltype(array, typejoin(array))
-
+function lower_element_type(array::AbstractArray{T}) where T
+    U = typejoin(array)
+    if T == U
+        return array
+    else
+        return copy_with_eltype(array, U)
+    end
+end
 
 #####################
 # probability semantics and other initializers for various data types
