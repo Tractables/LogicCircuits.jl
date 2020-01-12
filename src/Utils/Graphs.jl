@@ -51,11 +51,62 @@ struct Inner <: NodeType end
 @inline num_children(::Inner, n::Node)::Int = length(children(n))
 @inline num_children(::Leaf, n::Node)::Int = 0
 
+#####################
+# traversal
+#####################
+
+import Base.foreach #extend
+
+"Apply a function to each node in a circuit, bottom up"
+function foreach(f::Function, node::DagNode, flag::Bool = !node.bit)
+    if node.bit != flag
+        node.bit = flag
+        if NodeType(node) isa Inner
+            for c::DagNode in children(node)
+                foreach(f, c, flag)
+            end
+        end
+        f(node)
+    end
+    nothing # returning nothing helps save some allocations
+end
+
+"Compute a function bottom-up on the circuit"
+function foldup(node::DagNode, f_leaf::Function, f_inner::Function, 
+                ::Type{T}, flag::Bool = !node.bit)::T where T
+    if node.bit == flag
+        return node.data::T
+    else
+        node.bit = flag
+        v = if NodeType(node) isa Inner
+            child_values = Vector{T}(undef, num_children(node))
+            map!(c -> foldup(c, f_leaf, f_inner, T, flag)::T, child_values, children(node))
+            f_inner(node, child_values)::T
+        else
+            f_leaf(node)::T
+        end
+        node.data = v
+        return v
+    end
+end
+
 "Number of nodes in the graph"
 num_nodes(c::DiGraph) = length(c)
+function num_nodes(node::DagNode)
+    count::Int = 0
+    foreach(node) do n
+        count += 1
+    end
+end
 
 "Number of edges in the graph"
 num_edges(c::DiGraph) = sum(n -> num_children(n), c)
+function num_edges(node::DagNode)
+    count::Int = 0
+    foreach(node) do n
+        count += num_children(n)
+    end
+end
 
 isleaf(n::Node) = NodeType(n) isa Leaf
 isinner(n::Node) = NodeType(n) isa Inner
