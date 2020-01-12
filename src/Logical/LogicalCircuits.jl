@@ -15,8 +15,11 @@ abstract type LogicalLeafNode <: UnstLogicalΔNode end
 abstract type LogicalInnerNode <: UnstLogicalΔNode end
 
 "A logical literal leaf node, representing the positive or negative literal of its variable"
-struct LiteralNode <: LogicalLeafNode
+mutable struct LiteralNode <: LogicalLeafNode
     literal::Lit
+    data
+    bit::Bool
+    LiteralNode(l) = new(l, nothing, false)
 end
 
 "A logical constant leaf node, representing true or false"
@@ -25,13 +28,19 @@ struct TrueNode <: ConstantNode end
 struct FalseNode <: ConstantNode end
 
 "A logical conjunction node"
-struct ⋀Node <: LogicalInnerNode
+mutable struct ⋀Node <: LogicalInnerNode
     children::Vector{LogicalΔNode}
+    data
+    bit::Bool
+    ⋀Node(c) = new(c, nothing, false)
 end
 
 "A logical disjunction node"
-struct ⋁Node <: LogicalInnerNode
+mutable struct ⋁Node <: LogicalInnerNode
     children::Vector{LogicalΔNode}
+    data
+    bit::Bool
+    ⋁Node(c) = new(c, nothing, false)
 end
 
 "A logical circuit represented as a bottom-up linear order of nodes"

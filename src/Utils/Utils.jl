@@ -15,7 +15,8 @@ NodeType, Leaf, Inner,
 inode, leafnode, children, num_children, has_children, num_nodes, num_edges,
 node_stats, leaf_stats, inode_stats, tree_num_nodes, node2dag, dag2node, grapheltype, 
 isequal_unordered, isequal_local, pre_order_traverse, 
-left_most_child, right_most_child, isleaf, isinner, lca, parent, descends_from
+left_most_child, right_most_child, isleaf, isinner, lca, parent, descends_from,
+@node_data, @default_data
 
 import Base.@time
 import Base.print
