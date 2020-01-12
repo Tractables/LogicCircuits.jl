@@ -16,10 +16,13 @@ Positive literals are positive integers identical to their variable. Negative li
 const Lit = Int32 # variable with a positive or negative sign
 
 "Convert a variable to the corresponding positive literal"
-@inline var2lit(v::Var)::Lit = convert(Var,v)
+@inline var2lit(v::Var)::Lit = convert(Lit,v)
 
 "Convert a literal its variable, removing the sign of the literal"
-@inline lit2var(l::Lit)::Var = convert(Lit,abs(l))
+@inline lit2var(l::Lit)::Var = convert(Var,abs(l))
+
+var(v::Int) = convert(Var, v)
+lit(v::Int) = convert(Lit, v)
 
 #####################
 # General circuits
@@ -222,6 +225,7 @@ end
 "Make the circuit smooth"
 function smooth(circuit::Δ)
     scope = variable_scopes(circuit)
+    lit_nodes = literal_nodes(circuit, scope[circuit[end]])
     smoothed = Dict{ΔNode,ΔNode}()
     smooth_node(n::ΔNode) = smooth_node(GateType(n),n)
     smooth_node(::LeafGate, n::ΔNode) = n
@@ -233,7 +237,7 @@ function smooth(circuit::Δ)
         parent_scope = scope[n]
         smoothed_children = map(children(n)) do c
             missing_scope = setdiff(parent_scope, scope[c])
-            smooth(smoothed[c], missing_scope)
+            smooth(smoothed[c], missing_scope, lit_nodes)
         end
         disjoin_like(n, smoothed_children...)
     end
@@ -241,6 +245,19 @@ function smooth(circuit::Δ)
         smoothed[node] = smooth_node(node)
     end
     node2dag(smoothed[circuit[end]])
+end
+
+"Return a smooth version of the node where the missing variables are added to the scope"
+function smooth(node::ΔNode, missing_scope, lit_nodes)
+    if isempty(missing_scope)
+        return node
+    else
+        ors = map(collect(missing_scope)) do v
+            lit = var2lit(Var(v))
+            disjoin_like(node, lit_nodes[lit], lit_nodes[-lit])
+        end
+        return conjoin_like(node, node, ors...)
+    end
 end
 
 """
@@ -324,3 +341,46 @@ end
 "Get the origin of the origin the given decorator circuit"
 @inline grand_origin(circuit::DecoratorΔ) = 
     origin(origin(circuit))
+
+"Construct a mapping from literals to their canonical node representation"
+function literal_nodes(circuit::Δ, scope::BitSet = variable_scope(circuit))::Dict{Lit,ΔNode}
+    repr = Dict{Lit,ΔNode}()
+    repr_node(n::ΔNode) = repr_node(GateType(n),n)
+    repr_node(::GateType, n::ΔNode) = ()
+    repr_node(::LeafGate, n::ΔNode) = begin
+        if haskey(repr, literal(n))
+            error("Circuit has multiple representations of literal $(literal(n))")
+        end
+        repr[literal(n)] = n
+    end
+    for node in circuit
+        repr_node(node)
+    end
+    for vint in scope
+        v = var(vint)
+        if !haskey(repr, var2lit(v))
+            repr[var2lit(v)] = literal_like(circuit[end], var2lit(v))
+        end
+        if !haskey(repr, -var2lit(v)) 
+            repr[-var2lit(v)] = literal_like(circuit[end], -var2lit(v))
+        end
+    end
+    repr
+end
+
+"Check whether literal nodes are unique"
+function has_unique_literal_nodes(circuit::Δ)::Bool
+    literals = Set{Lit}()
+    visit(n::ΔNode) = visit(GateType(n),n)
+    visit(::GateType, n::ΔNode) = ()
+    visit(::LiteralLeaf, n::ΔNode) = begin
+        if literal(n) ∈ literals 
+            return false
+        end
+        push!(literals, literal(n))
+    end
+    for node in circuit
+        visit(node)
+    end
+    return true
+end

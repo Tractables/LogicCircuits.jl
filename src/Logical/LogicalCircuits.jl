@@ -78,8 +78,7 @@ function conjoin_like(example::UnstLogicalΔNode, arguments...)
         TrueNode()
     elseif length(arguments) == 1
         arguments[1]
-    elseif issetequal(children(example), arguments)
-        @assert example isa ⋀Node
+    elseif example isa ⋀Node && issetequal(children(example), arguments)
         example
     else
         ⋀Node(collect(arguments))
@@ -92,26 +91,15 @@ function disjoin_like(example::UnstLogicalΔNode, arguments...)
         FalseNode()
     elseif length(arguments) == 1
         arguments[1]
-    elseif issetequal(children(example), arguments)
-        @assert example isa ⋁Node
+    elseif example isa ⋁Node && issetequal(children(example), arguments)
         example
     else
         ⋁Node(collect(arguments))
     end
 end
 
-"Return a smooth version of the node where the missing variables are added to the scope"
-function smooth(node::UnstLogicalΔNode, missing_scope)
-    if isempty(missing_scope)
-        return node
-    else
-        ors = map(collect(missing_scope)) do v
-            lit = var2lit(Var(v))
-            ⋁Node([LiteralNode(lit), LiteralNode(-lit)])
-        end
-        return ⋀Node([node, ors...])
-    end
-end
+"Construct a new literal node like the given node's type"
+literal_like(::UnstLogicalΔNode, lit::Lit) = LiteralNode(lit)
 
 "Generate a fully factorized (logistic regression) circuit over `n` variables"
 function fully_factorized_circuit(n)

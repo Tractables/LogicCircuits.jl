@@ -15,7 +15,7 @@ negative, positive, variable, literal, variable_scopes, variable_scope, num_vari
 propagate_constants, is_smooth, smooth, forget, true_like, false_like, 
 DecoratorΔ, DecoratorΔNode, origin, grand_origin, is_true, is_false, constant,
 prime, sub, descends_from, descends_left_from, descends_right_from,
-model_count, sat_prob, prob_equiv_signature,
+model_count, sat_prob, prob_equiv_signature, has_unique_literal_nodes,
 
 # LogicalCircuits
 LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ,
