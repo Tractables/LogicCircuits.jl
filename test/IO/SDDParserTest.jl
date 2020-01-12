@@ -17,6 +17,7 @@ import .LogicCircuits.IO:
   @test any(n -> n isa TrueNode, circuit)
   @test num_variables(circuit) == 30
   @test has_unique_literal_nodes(circuit)
+  @test has_unique_constant_nodes(circuit)
 
   prop_circuit = propagate_constants(circuit)
 
@@ -28,6 +29,7 @@ import .LogicCircuits.IO:
   @test !any(n -> n isa TrueNode, prop_circuit)
   @test num_variables(prop_circuit) == 30
   @test has_unique_literal_nodes(prop_circuit)
+  @test has_unique_constant_nodes(prop_circuit)
 
   @test prop_circuit[end] === propagate_constants(prop_circuit)[end] # no new circuit created if no changes
 
@@ -41,6 +43,7 @@ import .LogicCircuits.IO:
   @test !any(n -> n isa TrueNode, smooth_circuit)
   @test num_variables(smooth_circuit) == 30
   @test has_unique_literal_nodes(smooth_circuit)
+  @test has_unique_constant_nodes(smooth_circuit)
   
   @test smooth_circuit[end] === smooth(smooth_circuit)[end] # no new circuit created if no changes
 
@@ -52,6 +55,7 @@ import .LogicCircuits.IO:
   @test is_decomposable(forgotten_circuit)
   @test !is_smooth(forgotten_circuit)
   @test has_unique_literal_nodes(forgotten_circuit)
+  @test has_unique_constant_nodes(forgotten_circuit)
 
   @test forgotten_circuit[end] === forget(v -> (v > 16), forgotten_circuit)[end] # no new circuit created if no changes
 
@@ -65,5 +69,6 @@ import .LogicCircuits.IO:
   @test !any(n -> n isa TrueNode, random_circuit)
   @test num_variables(random_circuit) == 16
   @test has_unique_literal_nodes(random_circuit)
+  @test has_unique_constant_nodes(random_circuit)
 
 end

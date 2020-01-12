@@ -31,6 +31,9 @@ function compile_logical_m(lines::CircuitFormatLines)
     seen_true = false
     seen_false = false
 
+    true_node = TrueNode()
+    false_node = FalseNode()
+
     function compile(ln::CircuitFormatLine)
         error("Compilation of line $ln is not supported")
     end
@@ -51,10 +54,10 @@ function compile_logical_m(lines::CircuitFormatLines)
     end
     function compile(ln::ConstantLine)
         if constant(ln) == true
-            n = TrueNode()
+            n = true_node
             seen_true || (push!(circuit,n); seen_true = true)
         else
-            n = FalseNode()
+            n = false_node
             seen_false || (push!(circuit,n); seen_false = true)
         end
         id2node[ln.node_id] = n

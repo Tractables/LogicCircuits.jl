@@ -24,8 +24,18 @@ end
 
 "A logical constant leaf node, representing true or false"
 abstract type ConstantNode <: LogicalInnerNode end
-struct TrueNode <: ConstantNode end
-struct FalseNode <: ConstantNode end
+
+mutable struct TrueNode <: ConstantNode 
+    data
+    bit::Bool
+    TrueNode() = new(nothing, false)
+end
+
+mutable struct FalseNode <: ConstantNode 
+    data
+    bit::Bool
+    FalseNode() = new(nothing, false)
+end
 
 "A logical conjunction node"
 mutable struct ⋀Node <: LogicalInnerNode

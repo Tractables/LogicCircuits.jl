@@ -24,6 +24,10 @@ abstract type SddInnerNode{V} <: SddNode{V} end
 mutable struct SddLiteralNode{V} <: SddLeafNode{V}
     literal::Lit
     vtree::V
+    data
+    bit::Bool
+    SddLiteralNode(l,v::V) where V = SddLiteralNode{V}(l,v)
+    SddLiteralNode{V}(l,v::V) where V = new{V}(l,v,nothing,false)
 end
 
 """
@@ -31,23 +35,36 @@ A structured logical constant leaf node, representing true or false.
 These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
 """
 abstract type SddConstantNode{V} <: SddInnerNode{V} end
-struct SddTrueNode{V} <: SddConstantNode{V} end
-struct SddFalseNode{V} <: SddConstantNode{V} end
+mutable struct SddTrueNode{V} <: SddConstantNode{V} 
+    data
+    bit::Bool
+    SddTrueNode{V}() where V = new{V}(nothing,false)
+end
+mutable struct SddFalseNode{V} <: SddConstantNode{V} 
+    data
+    bit::Bool
+    SddFalseNode{V}() where V = new{V}(nothing,false)
+end
 
 "A structured logical conjunction node"
-struct Sdd⋀Node{V} <: SddInnerNode{V}
+mutable struct Sdd⋀Node{V} <: SddInnerNode{V}
     prime::SddNode{<:V}
     sub::SddNode{<:V}
     vtree::V
+    data
+    bit::Bool
+    Sdd⋀Node{V}(p,s,v::V) where V = new{V}(p,s,v,nothing,false)
 end
 
 "A structured logical disjunction node"
 mutable struct Sdd⋁Node{V} <: SddInnerNode{V}
     children::Vector{<:Sdd⋀Node{<:V}}
     vtree::V
+    data
+    bit::Bool
     negation::Sdd⋁Node{V}
-    Sdd⋁Node{V}(ch,v) where V = new(ch,v) # leave negation uninitialized
-    Sdd⋁Node{V}(ch,v,neg) where V = new(ch,v,neg)
+    Sdd⋁Node{V}(ch,v::V) where V = new{V}(ch, v, nothing, false) # leave negation uninitialized
+    Sdd⋁Node{V}(ch,v::V,neg) where V = new{V}(ch, v, nothing, false, neg)
 end
 
 SddHasVtree = Union{Sdd⋁Node,Sdd⋀Node,SddLiteralNode}

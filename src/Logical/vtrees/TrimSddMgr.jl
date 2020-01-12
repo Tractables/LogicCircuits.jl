@@ -10,7 +10,10 @@ abstract type TrimMgrNode <: SddMgrNode end
 
 # alias structured logical nodes with a trimmed sdd manager vtree
 const TrimTrue = SddTrueNode{TrimMgrNode}
+const trimtrue = TrimTrue()
 const TrimFalse = SddFalseNode{TrimMgrNode}
+const trimfalse = TrimFalse()
+
 const TrimConstant = SddConstantNode{TrimMgrNode}
 const Trim⋁ = Sdd⋁Node{TrimMgrNode}
 const Trim⋀ = Sdd⋀Node{TrimMgrNode}
@@ -23,6 +26,7 @@ const XYPartition = Set{Element}
 
 const Unique⋁Cache = Dict{XYPartition,Trim⋁}
 const ApplyCache = Dict{Tuple{TrimNode,TrimNode},TrimNode}
+
 
 mutable struct TrimSddMgrInnerNode <: TrimMgrNode
 
@@ -122,7 +126,7 @@ import ..Utils: parent, descends_from, lca # make available for extension
 
 function lca(xy::XYPartition)::TrimSddMgrInnerNode
     # @assert !isempty(xy)
-    # @assert all(e -> (prime(e) !== TrimFalse()), xy)
+    # @assert all(e -> (prime(e) !== trimfalse), xy)
     element_vtrees = [parentlca(prime(e),sub(e)) for e in xy]
     return lca(element_vtrees...)
 end
@@ -165,13 +169,13 @@ Get the canonical compilation of the given compressed XY Partition
 function canonicalize_compressed(xy::XYPartition)::TrimNode
     # @assert !isempty(xy)
     # trim
-    if length(xy) == 1 && (prime(first(xy)) === TrimTrue())
+    if length(xy) == 1 && (prime(first(xy)) === trimtrue)
         return sub(first(xy))
     elseif length(xy) == 2 
         l = [xy...]
-        if (sub(l[1]) === TrimTrue()) && (sub(l[2]) === TrimFalse())
+        if (sub(l[1]) === trimtrue) && (sub(l[2]) === trimfalse)
             return prime(l[1])
-        elseif (sub(l[2]) === TrimTrue()) && (sub(l[1]) === TrimFalse())
+        elseif (sub(l[2]) === trimtrue) && (sub(l[1]) === trimfalse)
             return prime(l[2])
         end
     end
@@ -180,7 +184,7 @@ function canonicalize_compressed(xy::XYPartition)::TrimNode
 end
 
 @inline function remove_false_primes(xy)
-    return filter(e -> (prime(e) !== TrimFalse()), xy)
+    return filter(e -> (prime(e) !== trimfalse), xy)
 end
 
 """
@@ -231,27 +235,27 @@ end
 
 function compile(constant::Bool)::TrimConstant
     if constant == true
-        TrimTrue()
+        trimtrue
     else
-        TrimFalse()
+        trimfalse
     end
 end
 
 """
 Conjoin two SDDs
 """
-@inline conjoin(::TrimFalse, ::TrimTrue)::TrimFalse = TrimFalse()
-@inline conjoin(::TrimTrue, ::TrimFalse)::TrimFalse = TrimFalse()
+@inline conjoin(::TrimFalse, ::TrimTrue)::TrimFalse = trimfalse
+@inline conjoin(::TrimTrue, ::TrimFalse)::TrimFalse = trimfalse
 @inline conjoin(s::TrimNode, ::TrimTrue)::TrimNode = s
-@inline conjoin(::TrimNode, ::TrimFalse)::TrimFalse = TrimFalse()
+@inline conjoin(::TrimNode, ::TrimFalse)::TrimFalse = trimfalse
 @inline conjoin(::TrimTrue, s::TrimNode)::TrimNode = s
-@inline conjoin(::TrimFalse, ::TrimNode)::TrimFalse = TrimFalse()
-@inline conjoin(::TrimTrue, s::TrimTrue)::TrimNode = TrimTrue()
-@inline conjoin(::TrimFalse, s::TrimFalse)::TrimNode = TrimFalse()
+@inline conjoin(::TrimFalse, ::TrimNode)::TrimFalse = trimfalse
+@inline conjoin(::TrimTrue, s::TrimTrue)::TrimNode = trimtrue
+@inline conjoin(::TrimFalse, s::TrimFalse)::TrimNode = trimfalse
 
 function conjoin(s::TrimLiteral, t::TrimLiteral)::TrimNode 
     if vtree(s) == vtree(t)
-        (s === t) ? s : TrimFalse()
+        (s === t) ? s : trimfalse
     else
         conjoin_indep(s,t)
     end
@@ -276,7 +280,7 @@ function conjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
     if n1 === n2
         return n1
     elseif n1 == !n2
-        return TrimFalse()
+        return trimfalse
     end
     (n1,n2) = pointer_sort(n1,n2)
 
@@ -313,7 +317,7 @@ function conjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
         while !isempty(product)
             (e1, e2) = pop!(product)
             newprime = conjoin(prime(e1),prime(e2))
-            if newprime != TrimFalse()
+            if newprime != trimfalse
                 push!(elems_prod, Element(newprime, conjoin(sub(e1),sub(e2))))
             end
             if newprime === prime(e1)
@@ -336,7 +340,7 @@ function conjoin_descendent(d::TrimNode, n::TrimNode)::TrimNode
         if descends_left_from(d, n)
             elements = Element[Element(conjoin(prime(e),d), sub(e)) for e in children(n)]
             elements = remove_false_primes(elements)
-            push!(elements, Element(!d, TrimFalse()))
+            push!(elements, Element(!d, trimfalse))
         else 
             # @assert descends_right_from(d, n)
             elements = Element[Element(prime(e),conjoin(sub(e),d)) for e in children(n)]
@@ -357,11 +361,11 @@ function conjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
     get!(mgr.conjoin_cache, (s,t)) do 
         if descends_left_from(vtree(s), mgr)
             # @assert descends_right_from(vtree(t), mgr)
-            elements = Element[Element(s,t),Element(!s,TrimFalse())]
+            elements = Element[Element(s,t),Element(!s,trimfalse)]
         else 
             # @assert descends_left_from(vtree(t), mgr)
             # @assert descends_right_from(vtree(s), mgr)
-            elements = Element[Element(t,s),Element(!t,TrimFalse())]
+            elements = Element[Element(t,s),Element(!t,trimfalse)]
         end
         # TODO: the XY partition must already be compressed and trimmed
         unique⋁(XYPartition(elements), mgr)
@@ -373,18 +377,18 @@ end
 """
 Disjoin two SDDs
 """
-@inline disjoin(::TrimFalse, ::TrimTrue)::TrimTrue = TrimTrue()
-@inline disjoin(::TrimTrue, ::TrimFalse)::TrimTrue = TrimTrue()
-@inline disjoin(::TrimNode, ::TrimTrue)::TrimTrue = TrimTrue()
+@inline disjoin(::TrimFalse, ::TrimTrue)::TrimTrue = trimtrue
+@inline disjoin(::TrimTrue, ::TrimFalse)::TrimTrue = trimtrue
+@inline disjoin(::TrimNode, ::TrimTrue)::TrimTrue = trimtrue
 @inline disjoin(s::TrimNode, ::TrimFalse)::TrimNode = s
-@inline disjoin(::TrimTrue, ::TrimNode)::TrimTrue = TrimTrue()
+@inline disjoin(::TrimTrue, ::TrimNode)::TrimTrue = trimtrue
 @inline disjoin(::TrimFalse, s::TrimNode)::TrimNode = s
-@inline disjoin(::TrimTrue, s::TrimTrue)::TrimNode = TrimTrue()
-@inline disjoin(::TrimFalse, s::TrimFalse)::TrimNode = TrimFalse()
+@inline disjoin(::TrimTrue, s::TrimTrue)::TrimNode = trimtrue
+@inline disjoin(::TrimFalse, s::TrimFalse)::TrimNode = trimfalse
 
 function disjoin(s::TrimLiteral, t::TrimLiteral)::TrimNode 
     if vtree(s) == vtree(t)
-        (s === t) ? s : TrimTrue()
+        (s === t) ? s : trimtrue
     else
         disjoin_indep(s,t)
     end
@@ -409,7 +413,7 @@ function disjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
     if n1 === n2
         return n1
     elseif n1 == !n2
-        return TrimTrue()
+        return trimtrue
     end
     (n1,n2) = pointer_sort(n1,n2)
 
@@ -445,7 +449,7 @@ function disjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
         while !isempty(product)
             (e1, e2) = pop!(product)
             newprime = conjoin(prime(e1),prime(e2))
-            if newprime != TrimFalse()
+            if newprime != trimfalse
                 push!(elems_prod, Element(newprime, disjoin(sub(e1),sub(e2))))
             end
             if newprime === prime(e1)
@@ -469,7 +473,7 @@ function disjoin_descendent(d::TrimNode, n::TrimNode)::TrimNode
             not_d = !d
             elements = Element[Element(conjoin(prime(e),not_d), sub(e)) for e in children(n)]
             elements = remove_false_primes(elements)
-            push!(elements,Element(d, TrimTrue()))
+            push!(elements,Element(d, trimtrue))
         else 
             # @assert descends_right_from(d, n)
             elements = Element[Element(prime(e),disjoin(sub(e),d)) for e in children(n)]
@@ -490,11 +494,11 @@ function disjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
     get!(mgr.disjoin_cache, (s,t)) do 
         if descends_left_from(vtree(s), mgr)
             # @assert descends_right_from(vtree(t), mgr)
-            elements = Element[Element(s,TrimTrue()),Element(!s,t)]
+            elements = Element[Element(s,trimtrue),Element(!s,t)]
         else 
             # @assert descends_left_from(vtree(t), mgr)
             # @assert descends_right_from(vtree(s), mgr)
-            elements = Element[Element(t,TrimTrue()),Element(!t,s)]
+            elements = Element[Element(t,trimtrue),Element(!t,s)]
         end
         # TODO: the XY partition must already be compressed and trimmed
         unique⋁(XYPartition(elements), mgr)
@@ -506,8 +510,8 @@ end
 """
 Negate an SDD
 """
-@inline negate(::TrimFalse)::TrimTrue = TrimTrue()
-@inline negate(::TrimTrue)::TrimFalse = TrimFalse()
+@inline negate(::TrimFalse)::TrimTrue = trimtrue
+@inline negate(::TrimTrue)::TrimFalse = trimfalse
 
 function negate(s::TrimLiteral)::TrimLiteral 
     if positive(s) 

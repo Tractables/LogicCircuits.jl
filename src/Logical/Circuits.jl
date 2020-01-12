@@ -266,10 +266,14 @@ Warning: this may or may not destroy the determinism property.
 """
 function forget(is_forgotten::Function, circuit::Δ)
     forgotten = Dict{ΔNode,ΔNode}()
+    (_, true_node) = constant_nodes(circuit) # reuse constants when possible
+    if isnothing(true_node)
+        true_node = true_like(circuit[end])
+    end
     forget_node(n::ΔNode) = forget_node(GateType(n),n)
     forget_node(::ConstantLeaf, n::ΔNode) = n
     forget_node(::LiteralLeaf, n::ΔNode) =
-        is_forgotten(variable(n)) ? true_like(n) : n
+        is_forgotten(variable(n)) ? true_node : n
     function forget_node(::⋀, n::ΔNode)
         forgotten_children = map(c -> forgotten[c], children(n))
         conjoin_like(n, forgotten_children...)
@@ -368,19 +372,73 @@ function literal_nodes(circuit::Δ, scope::BitSet = variable_scope(circuit))::Di
     repr
 end
 
+"Construct a mapping from constants to their canonical node representation"
+function constant_nodes(circuit::Δ)::Tuple{ΔNode,ΔNode}
+    true_node = nothing
+    false_node = nothing
+    visit(n::ΔNode) = visit(GateType(n),n)
+    visit(::GateType, n::ΔNode) = ()
+    visit(::ConstantLeaf, n::ΔNode) = begin
+        if is_true(n)
+            if issomething(true_node) 
+                error("Circuit has multiple representations of true")
+            end
+            true_node = n
+        else
+            @assert is_false(n)
+            if issomething(false_node) 
+                error("Circuit has multiple representations of false")
+            end
+            false_node = n
+        end
+    end
+    for node in circuit
+        visit(node)
+    end
+    (false_node, true_node)
+end
+
 "Check whether literal nodes are unique"
 function has_unique_literal_nodes(circuit::Δ)::Bool
     literals = Set{Lit}()
+    result = true
     visit(n::ΔNode) = visit(GateType(n),n)
     visit(::GateType, n::ΔNode) = ()
     visit(::LiteralLeaf, n::ΔNode) = begin
         if literal(n) ∈ literals 
-            return false
+            result = false
         end
         push!(literals, literal(n))
     end
     for node in circuit
         visit(node)
     end
-    return true
+    return result
+end
+
+"Check whether constant nodes are unique"
+function has_unique_constant_nodes(circuit::Δ)::Bool
+    seen_false = false
+    seen_true = false
+    result = true
+    visit(n::ΔNode) = visit(GateType(n),n)
+    visit(::GateType, n::ΔNode) = ()
+    visit(::ConstantLeaf, n::ΔNode) = begin
+        if is_true(n)
+            if seen_true 
+                result = false
+            end
+            seen_true = true
+        else
+            @assert is_false(n)
+            if seen_false 
+                result = false
+            end
+            seen_false = true
+        end
+    end
+    for node in circuit
+        visit(node)
+    end
+    return result
 end

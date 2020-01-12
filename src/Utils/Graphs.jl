@@ -55,15 +55,34 @@ struct Inner <: NodeType end
 # traversal
 #####################
 
+"Flip the bit field throughout this circuit (or ensure it is set to given value)"
+function flip_bit(node::DagNode, ::Val{Bit} = Val(!node.bit)) where Bit
+    if node.bit != Bit
+        node.bit = Bit
+        if isinner(node)
+            for c in children(node)
+                flip_bit(c, Val(Bit))
+            end
+        end
+    end
+    nothing # returning nothing helps save some allocations and time
+end
+
 import Base.foreach #extend
 
 "Apply a function to each node in a circuit, bottom up"
-function foreach(f::Function, node::DagNode, flag::Bool = !node.bit)
-    if node.bit != flag
-        node.bit = flag
+function foreach(f::Function, node::DagNode)
+    foreach_rec(f, node)
+    flip_bit(node)
+    nothing # returning nothing helps save some allocations and time
+end
+
+function foreach_rec(f::Function, node::DagNode, ::Val{Bit} = Val(!node.bit)) where Bit
+    if node.bit != Bit
+        node.bit = Bit
         if isinner(node)
             for c in children(node)
-                foreach(f, c, flag)
+                foreach_rec(f, c, Val(Bit))
             end
         end
         f(node)
@@ -82,15 +101,22 @@ function foreach(f::Function, node::TreeNode)
 end
 
 "Compute a function bottom-up on the circuit"
-function foldup(node::DagNode, f_leaf::Function, f_inner::Function, 
-                ::Type{T}, flag::Bool = !node.bit)::T where T
-    if node.bit == flag
+function foldup(node::DagNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
+    @assert node.bit == false
+    v = foldup_rec(node, f_leaf, f_inner, T)
+    flip_bit(node)
+    v
+end
+
+function foldup_rec(node::DagNode, f_leaf::Function, f_inner::Function, 
+                    ::Type{T}, ::Val{Bit} = Val(!node.bit))::T where {T,Bit}
+    if node.bit == Bit
         return node.data::T
     else
-        node.bit = flag
+        node.bit = Bit
         v = if isinner(node)
             child_values = Vector{T}(undef, num_children(node))
-            map!(c -> foldup(c, f_leaf, f_inner, T, flag)::T, child_values, children(node))
+            map!(c -> foldup_rec(c, f_leaf, f_inner, T, Val(Bit))::T, child_values, children(node))
             f_inner(node, child_values)::T
         else
             f_leaf(node)::T
@@ -187,6 +213,34 @@ function tree_num_nodes(node::DagNode)::BigInt
     foldup(node, f_leaf, f_inner, BigInt)
 end
 
+# "Rebuild a DAG's linear bottom-up order from a new root node"
+# function node2dag(r::DagNode)::Dag
+#     lower_element_type(node2dag(r,Dag)) # specialize the dag node type
+# end
+
+# function node2dag(r::DagNode, ::Type{D})::D where {D<:Dag}
+#     seen = Set{DagNode}()
+#     dag = Vector{eltype(D)}()
+#     see(n::DagNode) = see(NodeType(n),n)
+#     function see(::Leaf, n::DagNode)
+#         if n ∉ seen
+#             push!(seen,n)
+#             push!(dag,n)
+#         end
+#     end
+#     function see(::Inner, n::DagNode)
+#         if n ∉ seen
+#             for child in children(n)
+#                 see(child)
+#             end
+#             push!(seen,n)
+#             push!(dag,n)
+#         end
+#     end
+#     see(r)
+#     dag
+# end
+
 "Rebuild a DAG's linear bottom-up order from a new root node"
 function node2dag(r::DagNode, ::Type{T} = typeof(r)) where T <: DagNode
     NewT = T
@@ -202,7 +256,6 @@ function node2dag(r::DagNode, ::Type{T} = typeof(r)) where T <: DagNode
 end
 
 @inline dag2node(dag::Dag)::DagNode = dag[end]
-
 
 # this version of `root` is specialized for trees and is more BFS than the general version above. Some unit tests are sensitive to the order, unfortunately
 function node2dag(root::TreeNode)::Tree	

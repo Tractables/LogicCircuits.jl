@@ -181,7 +181,7 @@ using LogicCircuits.Utils
 
     @test f3 === f4
 
-    fΔ = node2dag(f4, TrimSdd)
+    fΔ = node2dag(f4, TrimNode)
 
     @test TrimSdd <: Sdd
     @test fΔ isa TrimSdd
