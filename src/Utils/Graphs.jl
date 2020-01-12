@@ -100,7 +100,11 @@ function foreach(f::Function, node::TreeNode)
     nothing
 end
 
-"Compute a function bottom-up on the circuit"
+"""
+Compute a function bottom-up on the circuit. 
+`f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
+Values of type `T` are passed up the circuit and given to `f_inner` in a vector from the children.
+"""
 function foldup(node::DagNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
     @assert node.bit == false
     v = foldup_rec(node, f_leaf, f_inner, T)
@@ -213,34 +217,6 @@ function tree_num_nodes(node::DagNode)::BigInt
     foldup(node, f_leaf, f_inner, BigInt)
 end
 
-# "Rebuild a DAG's linear bottom-up order from a new root node"
-# function node2dag(r::DagNode)::Dag
-#     lower_element_type(node2dag(r,Dag)) # specialize the dag node type
-# end
-
-# function node2dag(r::DagNode, ::Type{D})::D where {D<:Dag}
-#     seen = Set{DagNode}()
-#     dag = Vector{eltype(D)}()
-#     see(n::DagNode) = see(NodeType(n),n)
-#     function see(::Leaf, n::DagNode)
-#         if n ∉ seen
-#             push!(seen,n)
-#             push!(dag,n)
-#         end
-#     end
-#     function see(::Inner, n::DagNode)
-#         if n ∉ seen
-#             for child in children(n)
-#                 see(child)
-#             end
-#             push!(seen,n)
-#             push!(dag,n)
-#         end
-#     end
-#     see(r)
-#     dag
-# end
-
 "Rebuild a DAG's linear bottom-up order from a new root node"
 function node2dag(r::DagNode, ::Type{T} = typeof(r)) where T <: DagNode
     NewT = T
@@ -257,45 +233,6 @@ end
 
 @inline dag2node(dag::Dag)::DagNode = dag[end]
 
-# this version of `root` is specialized for trees and is more BFS than the general version above. Some unit tests are sensitive to the order, unfortunately
-function node2dag(root::TreeNode)::Tree	
-    # Running BFS	
-    visited = Vector{TreeNode}()	
-    queue = Queue{TreeNode}()	
-    enqueue!(queue, root)	
-    while !isempty(queue)	
-        cur = dequeue!(queue)	
-        push!(visited, cur)	
-
-        if NodeType(cur) isa Inner	
-            enqueue!(queue, cur.right)	
-            enqueue!(queue, cur.left)	
-        end	
-    end	
-    lower_element_type(reverse(visited))
-end
-
-"""
-Order the nodes in preorder
-"""
-function pre_order_traverse(root::TreeNode)::Tree
-    # Running DFS
-    visited = Vector{TreeNode}()
-    stack = Stack{TreeNode}()
-    push!(stack, root)
-
-    while !isempty(stack)
-        cur = pop!(stack)
-        push!(visited, cur)
-
-        if NodeType(cur) isa Inner	
-            push!(stack, cur.left)
-            push!(stack, cur.right)
-        end
-    end
-    lower_element_type(reverse(visited))
-end
-
 "Get the type of node contained in this graph"
 grapheltype(circuit::DiGraph)::Type{<:Node} = eltype(circuit)
 grapheltype(::Type{T}) where {T<:DiGraph} = eltype(T)
@@ -304,13 +241,15 @@ grapheltype(::Type{T}) where {T<:DiGraph} = eltype(T)
 function isequal_local end
 
 import Base.isequal
+
 "Is one ordered tree equal to another?"
 isequal(t1::Tree, t2::Tree)::Bool = 
     isequal(t1[end], t2[end])
 isequal(n1::TreeNode, n2::TreeNode)::Bool = 
-    isequal_local(n1,n2) && isequal(NodeType(n1), NodeType(n2), n1, n2)
-isequal(::Leaf, ::Leaf, ::TreeNode, ::TreeNode)::Bool = true
-function isequal(::Inner, ::Inner, n1::TreeNode, n2::TreeNode)::Bool
+    isequal_local(n1,n2) && isequal_rec(NodeType(n1), NodeType(n2), n1, n2)
+
+isequal_rec(::Leaf, ::Leaf, ::TreeNode, ::TreeNode)::Bool = true
+function isequal_rec(::Inner, ::Inner, n1::TreeNode, n2::TreeNode)::Bool
     foreach(children(n1), children(n2)) do c1, c2 # we need all to support varagrs!
         if !isequal(c1, c2)
             return false
@@ -323,10 +262,10 @@ end
 isequal_unordered(t1::Tree, t2::Tree)::Bool = 
     isequal_unordered(t1[end], t2[end])
 isequal_unordered(n1::TreeNode, n2::TreeNode)::Bool = 
-    isequal_local(n1,n2) && isequal_unordered(NodeType(n1), NodeType(n2), n1, n2)
-isequal_unordered(::Leaf, ::Leaf, ::TreeNode, ::TreeNode)::Bool = true
+    isequal_local(n1,n2) && isequal_unordered_rec(NodeType(n1), NodeType(n2), n1, n2)
 
-function isequal_unordered(::Inner, ::Inner, n1::TreeNode, n2::TreeNode)::Bool
+isequal_unordered_rec(::Leaf, ::Leaf, ::TreeNode, ::TreeNode)::Bool = true
+function isequal_unordered_rec(::Inner, ::Inner, n1::TreeNode, n2::TreeNode)::Bool
     @assert num_children(n1) == 2 && num_children(n2) == 2 "`isequal_unordered` is only implemented for binary trees"
     c1 = children(n1)
     c2 = children(n2)
@@ -338,7 +277,7 @@ end
 Return the leftmost child.
 """
 function left_most_child(root::DagNode)::DagNode
-    while !(NodeType(root) isa Leaf)
+    while isinner(root)
         root = children(root)[1]
     end
     root
@@ -348,7 +287,7 @@ end
 Return the rightmost child.
 """
 function right_most_child(root::DagNode)::DagNode
-    while !(NodeType(root) isa Leaf)
+    while isinner(root)
         root = children(root)[end]
     end
     root
@@ -378,8 +317,6 @@ lca(v::DagNode, w::DagNode, u::DagNode, r::DagNode...)::DagNode = lca(lca(v,w), 
 
 function descends_from end
 function parent end
-
-
 
 #####################
 # debugging methods (not performance critical)
