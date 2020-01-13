@@ -117,32 +117,24 @@ import ..Utils.children # make available for extension
 # traversal infrastructure
 #####################
 
-
+@inline is⋀gate(n) = GateType(n) isa ⋀Gate
+@inline is⋁gate(n) = GateType(n) isa ⋁Gate
 
 #####################
 # traversal methods
 #####################
 
 "Get the list of conjunction nodes in a given circuit"
-⋀_nodes(c::Δ) = filter(n -> GateType(n) isa ⋀Gate, c)
-function ⋀_nodes(root::ΔNode) 
-    v = Vector{ΔNode}()
-    foreach(root) do n
-        if GateType(n) == ⋀Gate()
-            push!(v,n)
-        end
-    end
-    v
-end
+⋀_nodes(c::Union{ΔNode,Δ}) = filter(is⋀gate, c)
 
 "Get the list of disjunction nodes in a given circuit"
-⋁_nodes(c::Δ) = filter(n -> GateType(n) isa ⋁Gate, c)
+⋁_nodes(c::Union{ΔNode,Δ}) = filter(is⋁gate, c)
 
 "Number of variables in the circuit"
-num_variables(c::Δ) = length(variable_scope(c))
+num_variables(c::Union{ΔNode,Δ}) = length(variable_scope(c))
 
 "Get the probability that a random world satisties the circuit"
-function sat_prob(circuit::Δ)::Rational{BigInt}
+function sat_prob(circuit::Union{ΔNode,Δ})::Rational{BigInt}
     sat_prob(circuit, v -> BigInt(1) // BigInt(2))
 end
 

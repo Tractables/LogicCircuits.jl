@@ -216,7 +216,8 @@ function tree_num_nodes(node::DagNode)::BigInt
 end
 
 "Rebuild a DAG's linear bottom-up order from a new root node"
-@inline node2dag(r::DagNode) = filter(x -> true, r, typeof(r))
+@inline node2dag(r::DagNode, ::Type{T} = Union{}) where T = 
+    filter(x -> true, r, typejoin(typeof(r),T))
 
 @inline dag2node(dag::Dag)::DagNode = dag[end]
 
