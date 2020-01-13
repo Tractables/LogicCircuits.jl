@@ -354,7 +354,7 @@ end
 Conjoin two SDDs in separate parts of the vtree
 """
 function conjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
-    # @assert GateType(s)!=ConstantLeaf() && GateType(t)!=ConstantLeaf()
+    # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     mgr = parentlca(s,t)
     # @assert vtree(s) != mgr && vtree(t) != mgr
     (s,t) = pointer_sort(s,t)
@@ -487,7 +487,7 @@ end
 Disjoin two SDDs in separate parts of the vtree
 """
 function disjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
-    # @assert GateType(s)!=ConstantLeaf() && GateType(t)!=ConstantLeaf()
+    # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     mgr = parentlca(s,t)
     # @assert vtree(s) != mgr && vtree(t) != mgr
     (s,t) = pointer_sort(s,t)

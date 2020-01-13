@@ -52,8 +52,8 @@ const UpFlowΔ{O,F} = AbstractVector{<:UpFlowΔNode{O,F}}
 # traits
 #####################
 
-@inline GateType(::Type{<:UpFlowLiteral}) = LiteralLeaf()
-@inline GateType(::Type{<:UpFlowConstant}) = ConstantLeaf()
+@inline GateType(::Type{<:UpFlowLiteral}) = LiteralGate()
+@inline GateType(::Type{<:UpFlowConstant}) = ConstantGate()
 @inline GateType(::Type{<:UpFlow⋀}) = ⋀()
 @inline GateType(::Type{<:UpFlow⋁}) = ⋁()
 
@@ -78,8 +78,8 @@ function UpFlowΔ(circuit::Δ, m::Int, ::Type{El}, opts = flow_opts★)  where E
     cache = Dict{ΔNode, UpFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)
 
-    upflow_node(::LiteralLeaf, n::ΔNode) = UpFlowLiteral{O,F}(n, fmem())
-    upflow_node(::ConstantLeaf, n::ΔNode) = UpFlowConstant{O,F}(n, fmem())
+    upflow_node(::LiteralGate, n::ΔNode) = UpFlowLiteral{O,F}(n, fmem())
+    upflow_node(::ConstantGate, n::ΔNode) = UpFlowConstant{O,F}(n, fmem())
 
     upflow_node(::⋀, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)

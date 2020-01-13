@@ -33,8 +33,8 @@ const AggregateFlowΔ{O,A} = AbstractVector{<:AggregateFlowΔNode{O,A}}
 # traits
 #####################
 
-@inline GateType(::Type{<:AggregateFlowLiteral}) = LiteralLeaf()
-@inline GateType(::Type{<:AggregateFlowConstant}) = ConstantLeaf()
+@inline GateType(::Type{<:AggregateFlowLiteral}) = LiteralGate()
+@inline GateType(::Type{<:AggregateFlowConstant}) = ConstantGate()
 
 @inline GateType(::Type{<:AggregateFlow⋀}) = ⋀()
 @inline GateType(::Type{<:AggregateFlow⋁}) = ⋁()
@@ -49,8 +49,8 @@ function AggregateFlowΔ(circuit::Δ, ::Type{A}) where {A}
     sizehint!(cache, length(circuit)*4÷3)
     
     O = grapheltype(circuit) # type of node in the origin
-    af_node(::LiteralLeaf, n::ΔNode) = AggregateFlowLiteral{O,A}(n)
-    af_node(::ConstantLeaf, n::ΔNode) = AggregateFlowConstant{O,A}(n)
+    af_node(::LiteralGate, n::ΔNode) = AggregateFlowLiteral{O,A}(n)
+    af_node(::ConstantGate, n::ΔNode) = AggregateFlowConstant{O,A}(n)
 
     af_node(::⋀, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)

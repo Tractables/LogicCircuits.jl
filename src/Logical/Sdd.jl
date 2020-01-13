@@ -78,8 +78,8 @@ Base.eltype(::Type{Sdd}) = SddNode
 # traits
 #####################
 
-@inline GateType(::Type{<:SddLiteralNode}) = LiteralLeaf()
-@inline GateType(::Type{<:SddConstantNode}) = ConstantLeaf()
+@inline GateType(::Type{<:SddLiteralNode}) = LiteralGate()
+@inline GateType(::Type{<:SddConstantNode}) = ConstantGate()
 @inline GateType(::Type{<:Sdd⋀Node}) = ⋀()
 @inline GateType(::Type{<:Sdd⋁Node}) = ⋁()
 

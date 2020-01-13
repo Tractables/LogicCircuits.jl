@@ -55,10 +55,10 @@ abstract type LeafGate <: GateType end
 abstract type InnerGate <: GateType end
 
 "A trait denoting literal leaf nodes of any type"
-struct LiteralLeaf <: LeafGate end
+struct LiteralGate <: LeafGate end
 
 "A trait denoting constant leaf nodes of any type"
-struct ConstantLeaf <: LeafGate end
+struct ConstantGate <: LeafGate end
 
 "A trait denoting conjuction nodes of any type"
 struct ⋀ <: InnerGate end
@@ -70,7 +70,7 @@ struct ⋁ <: InnerGate end
 
 # map gate type traits to graph node traits
 import ..Utils.NodeType # make available for extension
-@inline NodeType(::Type{CN}) where {CN<:ΔNode} = NodeType(GateType(CN))
+@inline NodeType(::Type{N}) where {N<:ΔNode} = NodeType(GateType(N))
 @inline NodeType(::LeafGate) = Leaf()
 @inline NodeType(::InnerGate) = Inner()
 
@@ -84,32 +84,32 @@ import ..Utils.children # make available for extension
 
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::ΔNode)::Lit = literal(GateType(n), n)
-@inline literal(::LiteralLeaf, n::ΔNode)::Lit = error("Each `LiteralLeaf` should implement a `literal` method. It is missing from $(typeof(n)).")
+@inline literal(::LiteralGate, n::ΔNode)::Lit = error("Each `LiteralGate` should implement a `literal` method. It is missing from $(typeof(n)).")
 
 "Get the logical constant in a given constant leaf node"
 @inline constant(n::ΔNode)::Bool = literal(GateType(n), n)
-@inline constant(::ConstantLeaf, n::ΔNode)::Bool = error("Each `ConstantLeaf` should implement a `constant` method.  It is missing from $(typeof(n)).")
+@inline constant(::ConstantGate, n::ΔNode)::Bool = error("Each `ConstantGate` should implement a `constant` method.  It is missing from $(typeof(n)).")
 
 # next bunch of methods are derived from literal, constant, children, and the traits
 
 "Get the logical variable in a given literal leaf node"
 @inline variable(n::ΔNode)::Var = variable(GateType(n), n)
-@inline variable(::LiteralLeaf, n::ΔNode)::Var = lit2var(literal(n))
+@inline variable(::LiteralGate, n::ΔNode)::Var = lit2var(literal(n))
 
 "Get the sign of the literal leaf node"
 @inline positive(n::ΔNode)::Bool = positive(GateType(n), n)
-@inline positive(::LiteralLeaf, n::ΔNode)::Bool = literal(n) >= 0 
+@inline positive(::LiteralGate, n::ΔNode)::Bool = literal(n) >= 0 
 @inline negative(n::ΔNode)::Bool = !positive(n)
 
 "Is the circuit syntactically equal to true?"
 @inline is_true(n::ΔNode)::Bool = is_true(GateType(n), n)
 @inline is_true(::GateType, n::ΔNode)::Bool = false
-@inline is_true(::ConstantLeaf, n::ΔNode)::Bool = (constant(n) == true)
+@inline is_true(::ConstantGate, n::ΔNode)::Bool = (constant(n) == true)
 
 "Is the circuit syntactically equal to false?"
 @inline is_false(n::ΔNode)::Bool = is_false(GateType(n), n)
 @inline is_false(::GateType, n::ΔNode)::Bool = false
-@inline is_false(::ConstantLeaf, n::ΔNode)::Bool = (constant(n) == false)
+@inline is_false(::ConstantGate, n::ΔNode)::Bool = (constant(n) == false)
 
 "Get the list of conjunction nodes in a given circuit"
 ⋀_nodes(c::Δ) = filter(n -> GateType(n) isa ⋀, c)
@@ -128,9 +128,9 @@ end
 function sat_prob(circuit::Δ, varprob::Function)::Rational{BigInt}
     prob = Dict{ΔNode,Rational{BigInt}}()
     do_prob(n::ΔNode) = do_prob(GateType(n),n)
-    do_prob(::ConstantLeaf, n::ΔNode) = 
+    do_prob(::ConstantGate, n::ΔNode) = 
         is_true(n) ? BigInt(1) : BigInt(0)
-    do_prob(::LiteralLeaf, n::ΔNode) = 
+    do_prob(::LiteralGate, n::ΔNode) = 
         positive(n) ? varprob(variable(n)) : 1 .- varprob(variable(n))
     do_prob(::⋁, n::ΔNode) = 
         mapreduce(c -> prob[c], +, children(n))
@@ -160,9 +160,9 @@ function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,ΔNode},Signa
     randprob() = BigInt(1) .// rand(1:prime,k)
     do_signs(v::Var) = get!(randprob, signs, v)
     do_signs(n::ΔNode) = do_signs(GateType(n),n)
-    do_signs(::ConstantLeaf, n::ΔNode) = 
+    do_signs(::ConstantGate, n::ΔNode) = 
         is_true(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)
-    do_signs(::LiteralLeaf, n::ΔNode) =
+    do_signs(::LiteralGate, n::ΔNode) =
         positive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))
     do_signs(::⋁, n::ΔNode) = 
         mapreduce(c -> signs[c], (x,y) -> (x .+ y), children(n))
@@ -192,8 +192,8 @@ end
 function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
     scope = Dict{ΔNode,BitSet}()
     scope_set(n::ΔNode) = scope_set(GateType(n),n)
-    scope_set(::ConstantLeaf, ::ΔNode) = BitSet()
-    scope_set(::LiteralLeaf, n::ΔNode) = BitSet(variable(n))
+    scope_set(::ConstantGate, ::ΔNode) = BitSet()
+    scope_set(::LiteralGate, n::ΔNode) = BitSet(variable(n))
     scope_set(::InnerGate, n::ΔNode) = 
         mapreduce(c -> scope[c], union, children(n))
     for node in circuit
@@ -271,8 +271,8 @@ function forget(is_forgotten::Function, circuit::Δ)
         true_node = true_like(circuit[end])
     end
     forget_node(n::ΔNode) = forget_node(GateType(n),n)
-    forget_node(::ConstantLeaf, n::ΔNode) = n
-    forget_node(::LiteralLeaf, n::ΔNode) =
+    forget_node(::ConstantGate, n::ΔNode) = n
+    forget_node(::LiteralGate, n::ΔNode) =
         is_forgotten(variable(n)) ? true_node : n
     function forget_node(::⋀, n::ΔNode)
         forgotten_children = map(c -> forgotten[c], children(n))
@@ -378,7 +378,7 @@ function constant_nodes(circuit::Δ)::Tuple{ΔNode,ΔNode}
     false_node = nothing
     visit(n::ΔNode) = visit(GateType(n),n)
     visit(::GateType, n::ΔNode) = ()
-    visit(::ConstantLeaf, n::ΔNode) = begin
+    visit(::ConstantGate, n::ΔNode) = begin
         if is_true(n)
             if issomething(true_node) 
                 error("Circuit has multiple representations of true")
@@ -404,7 +404,7 @@ function has_unique_literal_nodes(circuit::Δ)::Bool
     result = true
     visit(n::ΔNode) = visit(GateType(n),n)
     visit(::GateType, n::ΔNode) = ()
-    visit(::LiteralLeaf, n::ΔNode) = begin
+    visit(::LiteralGate, n::ΔNode) = begin
         if literal(n) ∈ literals 
             result = false
         end
@@ -423,7 +423,7 @@ function has_unique_constant_nodes(circuit::Δ)::Bool
     result = true
     visit(n::ΔNode) = visit(GateType(n),n)
     visit(::GateType, n::ΔNode) = ()
-    visit(::ConstantLeaf, n::ΔNode) = begin
+    visit(::ConstantGate, n::ΔNode) = begin
         if is_true(n)
             if seen_true 
                 result = false
