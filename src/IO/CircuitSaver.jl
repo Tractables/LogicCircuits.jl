@@ -38,7 +38,7 @@ make_element(n::StructLogicalΔNode, node2id) =
 
 function get_node2id(ln::AbstractVector{X}, T::Type)where X #<: T#::Dict{T, ID}
     node2id = Dict{T, ID}()
-    outnodes = filter(n -> !(GateType(n) isa ⋀), ln)
+    outnodes = filter(n -> !(GateType(n) isa ⋀Gate), ln)
     sizehint!(node2id, length(outnodes))
     index = ID(0) # node id start from 0
     for n in outnodes
@@ -92,7 +92,7 @@ function save_sdd_file(name::String, circuit::StructLogicalΔ, vtree::PlainVtree
     formatlines = Vector{CircuitFormatLine}()
     append!(formatlines, parse_sdd_file(IOBuffer(sdd_header())))
     push!(formatlines, SddHeaderLine(num_nodes(circuit)))
-    for n in filter(n -> !(GateType(n) isa ⋀), circuit)
+    for n in filter(n -> !(GateType(n) isa ⋀Gate), circuit)
         push!(formatlines, decompile(n, node2id, vtree2id))
     end
     save_lines(name, formatlines)

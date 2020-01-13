@@ -54,8 +54,8 @@ const UpFlowΔ{O,F} = AbstractVector{<:UpFlowΔNode{O,F}}
 
 @inline GateType(::Type{<:UpFlowLiteral}) = LiteralGate()
 @inline GateType(::Type{<:UpFlowConstant}) = ConstantGate()
-@inline GateType(::Type{<:UpFlow⋀}) = ⋀()
-@inline GateType(::Type{<:UpFlow⋁}) = ⋁()
+@inline GateType(::Type{<:UpFlow⋀}) = ⋀Gate()
+@inline GateType(::Type{<:UpFlow⋁}) = ⋁Gate()
 
 const HasPr = Union{UpFlow⋁Cached,UpFlow⋀Cached,UpFlowLeafNode}
 
@@ -81,7 +81,7 @@ function UpFlowΔ(circuit::Δ, m::Int, ::Type{El}, opts = flow_opts★)  where E
     upflow_node(::LiteralGate, n::ΔNode) = UpFlowLiteral{O,F}(n, fmem())
     upflow_node(::ConstantGate, n::ΔNode) = UpFlowConstant{O,F}(n, fmem())
 
-    upflow_node(::⋀, n::ΔNode) = begin
+    upflow_node(::⋀Gate, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
         @assert length(children)>=2
         pr_fs = pr_factors(children)
@@ -92,7 +92,7 @@ function UpFlowΔ(circuit::Δ, m::Int, ::Type{El}, opts = flow_opts★)  where E
         end
     end
 
-    upflow_node(::⋁, n::ΔNode) = begin
+    upflow_node(::⋁Gate, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
         @assert length(children)>=1
         pr_fs = pr_factors(children)

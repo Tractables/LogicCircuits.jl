@@ -65,8 +65,8 @@ const UnstLogicalΔ = AbstractVector{<:UnstLogicalΔNode}
 
 @inline GateType(::Type{<:LiteralNode}) = LiteralGate()
 @inline GateType(::Type{<:ConstantNode}) = ConstantGate()
-@inline GateType(::Type{<:⋀Node}) = ⋀()
-@inline GateType(::Type{<:⋁Node}) = ⋁()
+@inline GateType(::Type{<:⋀Node}) = ⋀Gate()
+@inline GateType(::Type{<:⋁Node}) = ⋁Gate()
 
 #####################
 # methods

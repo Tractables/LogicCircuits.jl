@@ -30,7 +30,7 @@ function compile_clause(mgr::SddMgr, clause::Δ)::SddNode
  end
 
 function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
-    @assert GateType(clause) isa ⋁
+    @assert GateType(clause) isa ⋁Gate
     literals = children(clause)
     clauseΔ = compile(mgr, literal(literals[1]))
     for l in literals[2:end]
@@ -54,7 +54,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
  end
 
  function compile_cnf_naive(mgr::SddMgr, cnf::ΔNode, progress=false)::SddNode
-    @assert GateType(cnf) isa ⋀
+    @assert GateType(cnf) isa ⋀Gate
     cnfΔ = compile(true)
     i = 0
     for clause in children(cnf)
@@ -66,7 +66,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
  end
 
  function compile_cnf_tree(mgr::SddMgr, cnf::ΔNode, progress=false)::SddNode
-    @assert GateType(cnf) isa ⋀
+    @assert GateType(cnf) isa ⋀Gate
     compile_cnf_tree(NodeType(mgr[end]), mgr[end], children(cnf), variable_scopes(cnf), progress)
  end
 

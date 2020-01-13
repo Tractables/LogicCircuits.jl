@@ -61,10 +61,10 @@ struct LiteralGate <: LeafGate end
 struct ConstantGate <: LeafGate end
 
 "A trait denoting conjuction nodes of any type"
-struct ⋀ <: InnerGate end
+struct ⋀Gate <: InnerGate end
 
 "A trait denoting disjunction nodes of any type"
-struct ⋁ <: InnerGate end
+struct ⋁Gate <: InnerGate end
 
 @inline GateType(instance::ΔNode) = GateType(typeof(instance))
 
@@ -112,10 +112,10 @@ import ..Utils.children # make available for extension
 @inline is_false(::ConstantGate, n::ΔNode)::Bool = (constant(n) == false)
 
 "Get the list of conjunction nodes in a given circuit"
-⋀_nodes(c::Δ) = filter(n -> GateType(n) isa ⋀, c)
+⋀_nodes(c::Δ) = filter(n -> GateType(n) isa ⋀Gate, c)
 
 "Get the list of disjunction nodes in a given circuit"
-⋁_nodes(c::Δ) = filter(n -> GateType(n) isa ⋁, c)
+⋁_nodes(c::Δ) = filter(n -> GateType(n) isa ⋁Gate, c)
 
 "Number of variables in the circuit"
 num_variables(c::Δ) = length(variable_scope(c))
@@ -132,9 +132,9 @@ function sat_prob(circuit::Δ, varprob::Function)::Rational{BigInt}
         is_true(n) ? BigInt(1) : BigInt(0)
     do_prob(::LiteralGate, n::ΔNode) = 
         positive(n) ? varprob(variable(n)) : 1 .- varprob(variable(n))
-    do_prob(::⋁, n::ΔNode) = 
+    do_prob(::⋁Gate, n::ΔNode) = 
         mapreduce(c -> prob[c], +, children(n))
-    do_prob(::⋀, n::ΔNode) = 
+    do_prob(::⋀Gate, n::ΔNode) = 
         mapreduce(c -> prob[c], *, children(n))
     for node in circuit
         prob[node] = do_prob(node)
@@ -164,9 +164,9 @@ function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,ΔNode},Signa
         is_true(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)
     do_signs(::LiteralGate, n::ΔNode) =
         positive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))
-    do_signs(::⋁, n::ΔNode) = 
+    do_signs(::⋁Gate, n::ΔNode) = 
         mapreduce(c -> signs[c], (x,y) -> (x .+ y), children(n))
-    do_signs(::⋀, n::ΔNode) = 
+    do_signs(::⋀Gate, n::ΔNode) = 
         mapreduce(c -> signs[c], (x,y) -> (x .* y), children(n))
     for node in circuit
         signs[node] = do_signs(node)
@@ -207,7 +207,7 @@ function is_smooth(circuit::Δ)::Bool
     scope = variable_scopes(circuit)
     is_smooth_node(n::ΔNode) = is_smooth_node(GateType(n),n)
     is_smooth_node(::GateType, ::ΔNode) = true
-    is_smooth_node(::⋁, n::ΔNode) =
+    is_smooth_node(::⋁Gate, n::ΔNode) =
         all(c -> scope[c] == scope[n], children(n))
     all(n -> is_smooth_node(n), circuit)
 end
@@ -217,7 +217,7 @@ function is_decomposable(circuit::Δ)::Bool
     scope = variable_scopes(circuit)
     is_decomposable_node(n::ΔNode) = is_decomposable_node(GateType(n),n)
     is_decomposable_node(::GateType, ::ΔNode) = true
-    is_decomposable_node(::⋀, n::ΔNode) =
+    is_decomposable_node(::⋀Gate, n::ΔNode) =
         disjoint(map(c -> scope[c], children(n))...)
     all(n -> is_decomposable_node(n), circuit)
 end
@@ -229,11 +229,11 @@ function smooth(circuit::Δ)
     smoothed = Dict{ΔNode,ΔNode}()
     smooth_node(n::ΔNode) = smooth_node(GateType(n),n)
     smooth_node(::LeafGate, n::ΔNode) = n
-    function smooth_node(::⋀, n::ΔNode)
+    function smooth_node(::⋀Gate, n::ΔNode)
         smoothed_children = map(c -> smoothed[c], children(n))
         conjoin_like(n, smoothed_children...)
     end
-    function smooth_node(::⋁, n::ΔNode) 
+    function smooth_node(::⋁Gate, n::ΔNode) 
         parent_scope = scope[n]
         smoothed_children = map(children(n)) do c
             missing_scope = setdiff(parent_scope, scope[c])
@@ -274,11 +274,11 @@ function forget(is_forgotten::Function, circuit::Δ)
     forget_node(::ConstantGate, n::ΔNode) = n
     forget_node(::LiteralGate, n::ΔNode) =
         is_forgotten(variable(n)) ? true_node : n
-    function forget_node(::⋀, n::ΔNode)
+    function forget_node(::⋀Gate, n::ΔNode)
         forgotten_children = map(c -> forgotten[c], children(n))
         conjoin_like(n, forgotten_children...)
     end
-    function forget_node(::⋁, n::ΔNode) 
+    function forget_node(::⋁Gate, n::ΔNode) 
         forgotten_children = map(c -> forgotten[c], children(n))
         disjoin_like(n, forgotten_children...)
     end
@@ -299,7 +299,7 @@ function propagate_constants(circuit::Δ)
     proped = Dict{ΔNode,ΔNode}()
     propagate(n::ΔNode) = propagate(GateType(n),n)
     propagate(::LeafGate, n::ΔNode) = n
-    function propagate(::⋀, n::ΔNode) 
+    function propagate(::⋀Gate, n::ΔNode) 
         proped_children = map(c -> proped[c], children(n))
         if any(c -> is_false(c), proped_children)
             false_like(n) 
@@ -308,7 +308,7 @@ function propagate_constants(circuit::Δ)
             conjoin_like(n, proped_children...)
         end
     end
-    function propagate(::⋁, n::ΔNode) 
+    function propagate(::⋁Gate, n::ΔNode) 
         proped_children = map(c -> proped[c], children(n))
         if any(c -> is_true(c), proped_children)
             true_like(n) 

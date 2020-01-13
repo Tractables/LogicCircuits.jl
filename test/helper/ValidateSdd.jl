@@ -13,13 +13,13 @@ function validate(n::SddNode)
    validate(GateType(n), n)
 end
 
-function validate(::⋁, n::SddNode)
+function validate(::⋁Gate, n::SddNode)
    size = num_children(n)
    primes = compile(false)
    for i = 1:size
       element = children(n)[i]
       # has alternating layers
-      @test GateType(element) isa ⋀
+      @test GateType(element) isa ⋀Gate
       for j = i+1:size
          other_element = children(n)[j]
          # is deterministic
@@ -44,10 +44,10 @@ function validate(::⋁, n::SddNode)
    @test NodeType(vtree(n)) isa Inner
 end
 
-function validate(::⋀, n::SddNode)
+function validate(::⋀Gate, n::SddNode)
    @test num_children(n) == 2
-   @test !(GateType(prime(n)) isa ⋀)
-   @test !(GateType(sub(n)) isa ⋀)
+   @test !(GateType(prime(n)) isa ⋀Gate)
+   @test !(GateType(sub(n)) isa ⋀Gate)
    # has no false prime
    @test !is_false(prime(n))
    @test NodeType(vtree(n)) isa Inner 

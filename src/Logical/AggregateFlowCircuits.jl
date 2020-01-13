@@ -36,8 +36,8 @@ const AggregateFlowΔ{O,A} = AbstractVector{<:AggregateFlowΔNode{O,A}}
 @inline GateType(::Type{<:AggregateFlowLiteral}) = LiteralGate()
 @inline GateType(::Type{<:AggregateFlowConstant}) = ConstantGate()
 
-@inline GateType(::Type{<:AggregateFlow⋀}) = ⋀()
-@inline GateType(::Type{<:AggregateFlow⋁}) = ⋁()
+@inline GateType(::Type{<:AggregateFlow⋀}) = ⋀Gate()
+@inline GateType(::Type{<:AggregateFlow⋁}) = ⋁Gate()
 
 #####################
 # constructors and conversions
@@ -52,12 +52,12 @@ function AggregateFlowΔ(circuit::Δ, ::Type{A}) where {A}
     af_node(::LiteralGate, n::ΔNode) = AggregateFlowLiteral{O,A}(n)
     af_node(::ConstantGate, n::ΔNode) = AggregateFlowConstant{O,A}(n)
 
-    af_node(::⋀, n::ΔNode) = begin
+    af_node(::⋀Gate, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
         AggregateFlow⋀{O,A}(n, children)
     end
 
-    af_node(::⋁, n::ΔNode) = begin
+    af_node(::⋁Gate, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
         AggregateFlow⋁{O,A}(n, children, zero(A), some_vector(A, num_children(n)))
     end

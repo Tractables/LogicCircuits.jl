@@ -56,8 +56,8 @@ const FlowΔ{O,F} = AbstractVector{<:FlowΔNode{O,F}}
 #####################
 
 @inline GateType(::Type{<:DownFlowLeaf{O}}) where O = GateType(O)
-@inline GateType(::Type{<:DownFlow⋀}) = ⋀()
-@inline GateType(::Type{<:DownFlow⋁}) = ⋁()
+@inline GateType(::Type{<:DownFlow⋀}) = ⋀Gate()
+@inline GateType(::Type{<:DownFlow⋁}) = ⋁Gate()
 
 const HasDownFlow = Union{DownFlow⋁Cached,DownFlow⋀Cached}
 
@@ -76,7 +76,7 @@ function DownFlowΔ(circuit::UpFlowΔ{O,F}, opts = flow_opts★)::DownFlowΔ{O,F
 
     flow_node(::LeafGate, n::ΔNode) = DownFlowLeaf{O,F}(n)
 
-    flow_node(::⋀, n::ΔNode) = begin
+    flow_node(::⋀Gate, n::ΔNode) = begin
         n_children = map(c -> cache[c], children(n))
         @assert length(n_children)>=2
         sinks = downflow_sinks(n_children)
@@ -87,7 +87,7 @@ function DownFlowΔ(circuit::UpFlowΔ{O,F}, opts = flow_opts★)::DownFlowΔ{O,F
         end
     end
 
-    flow_node(::⋁, n::ΔNode) = begin
+    flow_node(::⋁Gate, n::ΔNode) = begin
         n_children = map(c -> cache[c], children(n))
         @assert length(n_children)>=1
         sinks = downflow_sinks(n_children)

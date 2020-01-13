@@ -9,7 +9,7 @@ export
 
 # Circuits
 Var, Lit, var2lit, lit2var, ΔNode, Δ, 
-LiteralGate, ConstantGate, ⋁, ⋀, ⋁_nodes,
+LiteralGate, ConstantGate, ⋁Gate, ⋀Gate, ⋁_nodes,
 GateType, InnerGate, LeafGate, is_decomposable,
 negative, positive, variable, literal, variable_scopes, variable_scope, num_variables,
 propagate_constants, is_smooth, smooth, forget, true_like, false_like, 

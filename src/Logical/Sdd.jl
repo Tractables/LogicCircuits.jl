@@ -80,8 +80,8 @@ Base.eltype(::Type{Sdd}) = SddNode
 
 @inline GateType(::Type{<:SddLiteralNode}) = LiteralGate()
 @inline GateType(::Type{<:SddConstantNode}) = ConstantGate()
-@inline GateType(::Type{<:Sdd⋀Node}) = ⋀()
-@inline GateType(::Type{<:Sdd⋁Node}) = ⋁()
+@inline GateType(::Type{<:Sdd⋀Node}) = ⋀Gate()
+@inline GateType(::Type{<:Sdd⋁Node}) = ⋁Gate()
 
 #####################
 # methods
