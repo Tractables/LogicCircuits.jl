@@ -183,7 +183,6 @@ function inodes(node::DagNode)
     v
 end
 
-
 "Get the list of leaf nodes in a given graph"
 leafnodes(c::DiGraph) = filter(n -> isleaf(n), c)
 function leafnodes(node::DagNode)
@@ -323,16 +322,16 @@ function parent end
 #####################
 
 "Give count of types and fan-ins of all nodes in the graph"
-node_stats(c::DiGraph) = merge(leaf_stats(c), inode_stats(c))
+node_stats(c::Union{DiGraph,DagNode}) = merge(leaf_stats(c), inode_stats(c))
 
 "Give count of types and fan-ins of inner nodes in the graph"
-function inode_stats(c::DiGraph)
+function inode_stats(c::Union{DiGraph,DagNode})
     groups = groupby(e -> (typeof(e),num_children(e)), inodes(c))
     map_values(v -> length(v), groups, Int)
 end
 
 "Give count of types of leaf nodes in the graph"
-function leaf_stats(c::DiGraph)
+function leaf_stats(c::Union{DiGraph,DagNode})
     groups = groupby(e -> typeof(e), leafnodes(c))
     map_values(v -> length(v), groups, Int)
 end
