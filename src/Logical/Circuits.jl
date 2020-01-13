@@ -75,7 +75,7 @@ import ..Utils.NodeType # make available for extension
 @inline NodeType(::InnerGate) = Inner()
 
 #####################
-# methods
+# node methods
 #####################
 
 # following methods should be defined for all types of circuits
@@ -84,11 +84,13 @@ import ..Utils.children # make available for extension
 
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::ΔNode)::Lit = literal(GateType(n), n)
-@inline literal(::LiteralGate, n::ΔNode)::Lit = error("Each `LiteralGate` should implement a `literal` method. It is missing from $(typeof(n)).")
+@inline literal(::LiteralGate, n::ΔNode)::Lit = 
+    error("Each `LiteralGate` should implement a `literal` method. It is missing from $(typeof(n)).")
 
 "Get the logical constant in a given constant leaf node"
 @inline constant(n::ΔNode)::Bool = literal(GateType(n), n)
-@inline constant(::ConstantGate, n::ΔNode)::Bool = error("Each `ConstantGate` should implement a `constant` method.  It is missing from $(typeof(n)).")
+@inline constant(::ConstantGate, n::ΔNode)::Bool = 
+    error("Each `ConstantGate` should implement a `constant` method.  It is missing from $(typeof(n)).")
 
 # next bunch of methods are derived from literal, constant, children, and the traits
 
@@ -111,8 +113,27 @@ import ..Utils.children # make available for extension
 @inline is_false(::GateType, n::ΔNode)::Bool = false
 @inline is_false(::ConstantGate, n::ΔNode)::Bool = (constant(n) == false)
 
+#####################
+# traversal infrastructure
+#####################
+
+
+
+#####################
+# traversal methods
+#####################
+
 "Get the list of conjunction nodes in a given circuit"
 ⋀_nodes(c::Δ) = filter(n -> GateType(n) isa ⋀Gate, c)
+function ⋀_nodes(root::ΔNode) 
+    v = Vector{ΔNode}()
+    foreach(root) do n
+        if GateType(n) == ⋀Gate()
+            push!(v,n)
+        end
+    end
+    v
+end
 
 "Get the list of disjunction nodes in a given circuit"
 ⋁_nodes(c::Δ) = filter(n -> GateType(n) isa ⋁Gate, c)

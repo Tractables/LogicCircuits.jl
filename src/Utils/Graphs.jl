@@ -100,6 +100,23 @@ function foreach(f::Function, node::TreeNode)
     nothing
 end
 
+
+import Base.filter #extend
+
+"""Retrieve list of nodes in circuit matching predicate `p`"""
+function filter(p::Function, root::DagNode, ::Type{T} = Union{})::Vector where T
+    results = Vector{T}()
+    foreach(root) do n
+        if p(n)
+            if !(n isa eltype(results))
+                results = copy_with_eltype(results, typejoin(eltype(results),typeof(n)))
+            end
+            push!(results,n)
+        end
+    end
+    results
+end
+
 """
 Compute a function bottom-up on the circuit. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
@@ -145,6 +162,11 @@ end
 # other methods
 #####################
 
+# When you suspect there is a bug but execution halts, it may be because of 
+# pretty printing a huge recursive graph structure. 
+# To safeguard against that case, we set a default show:
+Base.show(io::IO, c::Node) = print(io, "$(typeof(c))($(hash(c))))")
+
 "Number of nodes in the graph"
 @inline num_nodes(c::DiGraph) = length(c)
 function num_nodes(node::DagNode)
@@ -166,34 +188,11 @@ end
 @inline isleaf(n::Node) = NodeType(n) isa Leaf
 @inline isinner(n::Node) = NodeType(n) isa Inner
 
-# When you suspect there is a bug but execution halts, it may be because of 
-# pretty printing a huge recursive graph structure. 
-# To safeguard against that case, we set a default show:
-Base.show(io::IO, c::Node) = print(io, "$(typeof(c))($(hash(c))))")
-
 "Get the list of inner nodes in a given graph"
-inodes(c::DiGraph) = filter(n -> isinner(n), c)
-function inodes(node::DagNode)
-    v = Vector{DagNode}()
-    foreach(node) do n
-        if isinner(n)
-            push!(v,n)
-        end
-    end
-    v
-end
+inodes(c::Union{DagNode,DiGraph}) = filter(isinner, c)
 
 "Get the list of leaf nodes in a given graph"
-leafnodes(c::DiGraph) = filter(n -> isleaf(n), c)
-function leafnodes(node::DagNode)
-    v = Vector{DagNode}()
-    foreach(node) do n
-        if isleaf(n)
-            push!(v,n)
-        end
-    end
-    v
-end
+leafnodes(c::DiGraph) = filter(isleaf, c)
 
 """
 Compute the number of nodes in of a tree-unfolding of the DAG. 
@@ -217,18 +216,7 @@ function tree_num_nodes(node::DagNode)::BigInt
 end
 
 "Rebuild a DAG's linear bottom-up order from a new root node"
-function node2dag(r::DagNode, ::Type{T} = typeof(r)) where T <: DagNode
-    NewT = T
-    dag = Vector{T}()
-    foreach(r) do n
-        if !(n isa NewT)
-            NewT = typejoin(NewT,typeof(n))
-            dag = copy_with_eltype(dag, NewT)
-        end
-        push!(dag,n)
-    end
-    dag
-end
+@inline node2dag(r::DagNode) = filter(x -> true, r, typeof(r))
 
 @inline dag2node(dag::Dag)::DagNode = dag[end]
 
