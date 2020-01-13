@@ -120,7 +120,7 @@ end
 """
 Compute a function bottom-up on the circuit. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
-Values of type `T` are passed up the circuit and given to `f_inner` in a vector from the children.
+Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
 function foldup(node::DagNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
     @assert node.bit == false
@@ -136,9 +136,8 @@ function foldup_rec(node::DagNode, f_leaf::Function, f_inner::Function,
     else
         node.bit = Bit
         v = if isinner(node)
-            child_values = Vector{T}(undef, num_children(node))
-            map!(c -> foldup_rec(c, f_leaf, f_inner, T, Val(Bit))::T, child_values, children(node))
-            f_inner(node, child_values)::T
+            callback(c) = (foldup_rec(c, f_leaf, f_inner, T, Val(Bit))::T)
+            f_inner(node, callback)::T
         else
             f_leaf(node)::T
         end
@@ -149,8 +148,48 @@ end
 
 function foldup(node::TreeNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where T
     v = if isinner(node)
+        callback(c) = (foldup(c, f_leaf, f_inner, T)::T)
+        f_inner(node, callback)::T
+    else
+        f_leaf(node)::T
+    end
+    return v
+end
+
+"""
+Compute a function bottom-up on the circuit. 
+`f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
+Values of type `T` are passed up the circuit and given to `f_inner` in aggregate as a vector from the children.
+"""
+function foldup_aggregate(node::DagNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
+    @assert node.bit == false
+    v = foldup_aggregate_rec(node, f_leaf, f_inner, T)
+    flip_bit(node)
+    v
+end
+
+function foldup_aggregate_rec(node::DagNode, f_leaf::Function, f_inner::Function, 
+                    ::Type{T}, ::Val{Bit} = Val(!node.bit))::T where {T,Bit}
+    if node.bit == Bit
+        return node.data::T
+    else
+        node.bit = Bit
+        v = if isinner(node)
+            child_values = Vector{T}(undef, num_children(node))
+            map!(c -> foldup_aggregate_rec(c, f_leaf, f_inner, T, Val(Bit))::T, child_values, children(node))
+            f_inner(node, child_values)::T
+        else
+            f_leaf(node)::T
+        end
+        node.data = v
+        return v
+    end
+end
+
+function foldup_aggregate(node::TreeNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where T
+    v = if isinner(node)
         child_values = Vector{T}(undef, num_children(node))
-        map!(c -> foldup(c, f_leaf, f_inner, T)::T, child_values, children(node))
+        map!(c -> foldup_aggregate(c, f_leaf, f_inner, T)::T, child_values, children(node))
         f_inner(node, child_values)::T
     else
         f_leaf(node)::T
@@ -211,13 +250,12 @@ end
 
 function tree_num_nodes(node::DagNode)::BigInt
     @inline f_leaf(n) = zero(BigInt)
-    @inline f_inner(n, cs) = num_children(n) + sum(cs)
+    @inline f_inner(n, call) = (num_children(n) + mapreduce(c -> call(c), +, children(n)))
     foldup(node, f_leaf, f_inner, BigInt)
 end
 
 "Rebuild a DAG's linear bottom-up order from a new root node"
-@inline node2dag(r::DagNode, ::Type{T} = Union{}) where T = 
-    filter(x -> true, r, typejoin(typeof(r),T))
+@inline node2dag(r::DagNode, ::Type{T} = Union{}) where T = filter(x -> true, r, typejoin(T,typeof(r)))
 
 @inline dag2node(dag::Dag)::DagNode = dag[end]
 

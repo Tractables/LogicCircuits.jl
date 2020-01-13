@@ -9,12 +9,15 @@ export
 
 # Circuits
 Var, Lit, var2lit, lit2var, ΔNode, Δ, 
-LiteralGate, ConstantGate, ⋁Gate, ⋀Gate, ⋁_nodes,
-GateType, InnerGate, LeafGate, is_decomposable,
-negative, positive, variable, literal, variable_scopes, variable_scope, num_variables,
+LiteralGate, ConstantGate, ⋁Gate, ⋀Gate, 
+GateType, InnerGate, LeafGate, 
+negative, positive, variable, literal,  num_variables,
 propagate_constants, is_smooth, smooth, forget, true_like, false_like, 
 DecoratorΔ, DecoratorΔNode, origin, grand_origin, is_true, is_false, constant,
 prime, sub, descends_from, descends_left_from, descends_right_from,
+
+# CircuitTraversal
+⋁_nodes, is_decomposable, variable_scopes, variable_scope,
 model_count, sat_prob, prob_equiv_signature, has_unique_literal_nodes, has_unique_constant_nodes,
 
 # LogicalCircuits
@@ -63,6 +66,7 @@ compress, unique⋁, canonicalize,
 compile, conjoin, disjoin, negate
 
 include("Circuits.jl")
+include("CircuitTraversal.jl")
 include("LogicalCircuits.jl")
 include("UpFlowCircuits.jl")
 include("DownFlowCircuits.jl")
