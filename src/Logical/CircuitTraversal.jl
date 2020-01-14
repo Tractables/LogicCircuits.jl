@@ -7,6 +7,16 @@
 @inline isliteralgate(n) = GateType(n) isa LiteralGate
 @inline isconstantgate(n) = GateType(n) isa ConstantGate
 
+
+import Base: foreach # extend
+
+function foreach(node::DagNode, f_con::Function, f_lit::Function, f_a::Function, f_o::Function)
+    f_leaf(n) = isliteralgate(n) ? f_lit(n) : f_con(n)
+    f_inner(n) = is⋀gate(n) ? f_a(n) : f_o(n)
+    foreach(node, f_leaf, f_inner)
+    nothing # returning nothing helps save some allocations and time
+end
+
 import ..Utils: foldup # extend
 
 """
@@ -77,29 +87,24 @@ function model_count(circuit::Δ, num_vars_in_scope::Int = num_variables(circuit
     BigInt(sat_prob(circuit) * BigInt(2)^num_vars_in_scope)
 end
 
-#TODO try to see whether these circuit traversal methods could be done through some higher-order functions without a performance penalty.
-
 const Signature = Vector{Rational{BigInt}}
 
 "Get a signature for each node using probabilistic equivalence checking"
 function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,ΔNode},Signature}
+    prob_equiv_signature(circuit[end],k)
+end
+
+function prob_equiv_signature(circuit::ΔNode, k::Int)::Dict{Union{Var,ΔNode},Signature}
     # uses probability instead of integers to circumvent smoothing, no mod though
-    signs = Dict{Union{Var,ΔNode},Signature}()
-    prime = 7919 #TODO set as smallest prime larger than num_variables
+    signs::Dict{Union{Var,ΔNode},Signature} = Dict{Union{Var,ΔNode},Signature}()
+    prime::Int = 7919 #TODO set as smallest prime larger than num_variables
     randprob() = BigInt(1) .// rand(1:prime,k)
     do_signs(v::Var) = get!(randprob, signs, v)
-    do_signs(n::ΔNode) = do_signs(GateType(n),n)
-    do_signs(::ConstantGate, n::ΔNode) = 
-        is_true(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)
-    do_signs(::LiteralGate, n::ΔNode) =
-        positive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))
-    do_signs(::⋁Gate, n::ΔNode) = 
-        mapreduce(c -> signs[c], (x,y) -> (x .+ y), children(n))
-    do_signs(::⋀Gate, n::ΔNode) = 
-        mapreduce(c -> signs[c], (x,y) -> (x .* y), children(n))
-    for node in circuit
-        signs[node] = do_signs(node)
-    end
+    f_con(n) = (signs[n] = (is_true(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)))
+    f_lit(n) = (signs[n] = (positive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))))
+    f_a(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .* y), children(n))))
+    f_o(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .+ y), children(n))))
+    foldup(circuit, f_con, f_lit, f_a, f_o, Signature)
     signs
 end
 

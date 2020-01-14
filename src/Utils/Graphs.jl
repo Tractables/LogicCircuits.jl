@@ -77,6 +77,13 @@ function foreach(f::Function, node::DagNode)
     nothing # returning nothing helps save some allocations and time
 end
 
+function foreach(node::DagNode, f_leaf::Function, f_inner::Function)
+    foreach(node) do n
+        isinner(n) ? f_inner(n) : f_leaf(n)
+    end
+    nothing # returning nothing helps save some allocations and time
+end
+
 function foreach_rec(f::Function, node::DagNode, ::Val{Bit} = Val(!node.bit)) where Bit
     if node.bit != Bit
         node.bit = Bit
