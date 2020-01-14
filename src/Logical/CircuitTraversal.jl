@@ -109,20 +109,22 @@ function prob_equiv_signature(circuit::ΔNode, k::Int)::Dict{Union{Var,ΔNode},S
 end
 
 "Get the variable scope of the circuit node"
-function variable_scope(root::ΔNode)::BitSet
-    variable_scopes(root)[root]
-end
-
-"Get the variable scope of the entire circuit"
 function variable_scope(circuit::Δ)::BitSet
-    variable_scopes(circuit)[circuit[end]]
+    variable_scope(circuit[end])
 end
 
+function variable_scope(root::ΔNode)::BitSet
+    f_con(n) = BitSet()
+    f_lit(n) = BitSet(variable(n))
+    f_inner(n, call) = mapreduce(call, union, children(n))
+    foldup(root, f_con, f_lit, f_inner, f_inner, BitSet)
+end
+
+"Get the variable scope of each node in the circuit"
 function variable_scopes(root::ΔNode)::Dict{ΔNode,BitSet}
     variable_scopes(node2dag(root))
 end
 
-"Get the variable scope of each node in the circuit"
 function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
     scope = Dict{ΔNode,BitSet}()
     scope_set(n::ΔNode) = scope_set(GateType(n),n)
