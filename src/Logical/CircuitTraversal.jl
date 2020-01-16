@@ -121,41 +121,56 @@ function variable_scope(root::ΔNode)::BitSet
 end
 
 "Get the variable scope of each node in the circuit"
-function variable_scopes(root::ΔNode)::Dict{ΔNode,BitSet}
-    variable_scopes(node2dag(root))
+function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
+    variable_scopes(circuit[end])
 end
 
-function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
+function variable_scopes(root::ΔNode)::Dict{ΔNode,BitSet}
+    # variable_scopes(node2dag(root))
     scope = Dict{ΔNode,BitSet}()
-    scope_set(n::ΔNode) = scope_set(GateType(n),n)
-    scope_set(::ConstantGate, ::ΔNode) = BitSet()
-    scope_set(::LiteralGate, n::ΔNode) = BitSet(variable(n))
-    scope_set(::InnerGate, n::ΔNode) = 
-        mapreduce(c -> scope[c], union, children(n))
-    for node in circuit
-        scope[node] = scope_set(node)
-    end
+    f_con(n) = scope[n] = BitSet()
+    f_lit(n) = scope[n] = BitSet(variable(n))
+    f_inner(n, call) = scope[n] = mapreduce(call, union, children(n))
+    foldup(root, f_con, f_lit, f_inner, f_inner, BitSet)
     scope
 end
 
 "Is the circuit smooth?"
 function is_smooth(circuit::Δ)::Bool
-    scope = variable_scopes(circuit)
-    is_smooth_node(n::ΔNode) = is_smooth_node(GateType(n),n)
-    is_smooth_node(::GateType, ::ΔNode) = true
-    is_smooth_node(::⋁Gate, n::ΔNode) =
-        all(c -> scope[c] == scope[n], children(n))
-    all(n -> is_smooth_node(n), circuit)
+    is_smooth(circuit[end])
 end
+
+function is_smooth(root::ΔNode)::Bool
+    result::Bool = true
+    f_con(n) = BitSet()
+    f_lit(n) = BitSet(variable(n))
+    f_a(n, cs) = reduce(union, cs)
+    f_o(n, cs) = begin
+        scope = reduce(union, cs)
+        result = result && all(c -> c == scope, cs)
+        scope
+    end 
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
+    result
+end
+
 
 "Is the circuit decomposable?"
 function is_decomposable(circuit::Δ)::Bool
-    scope = variable_scopes(circuit)
-    is_decomposable_node(n::ΔNode) = is_decomposable_node(GateType(n),n)
-    is_decomposable_node(::GateType, ::ΔNode) = true
-    is_decomposable_node(::⋀Gate, n::ΔNode) =
-        disjoint(map(c -> scope[c], children(n))...)
-    all(n -> is_decomposable_node(n), circuit)
+    is_decomposable(circuit[end])
+end
+
+function is_decomposable(root::ΔNode)::Bool
+    result::Bool = true
+    f_con(n) = BitSet()
+    f_lit(n) = BitSet(variable(n))
+    f_a(n, cs) = begin
+        result = result && disjoint(cs...)
+        reduce(union, cs)
+    end 
+    f_o(n, cs) = reduce(union, cs)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
+    result
 end
 
 "Make the circuit smooth"

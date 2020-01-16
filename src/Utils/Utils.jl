@@ -48,7 +48,7 @@ macro no_error(ex)
 end
 
 function disjoint(set1::AbstractSet, sets::AbstractSet...)::Bool
-    seen = set1
+    seen = set1 # can be sped up by copying seen first then reusing it with union!?
     for set in sets
         if !isempty(intersect(seen,set))
             return false
