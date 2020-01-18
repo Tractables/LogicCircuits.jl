@@ -231,7 +231,7 @@ function smooth3(root::ΔNode)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
     f_a(n, cv) = begin
-        new_n = conjoin_like(n, (first.(cv))...)
+        new_n = conjoin_like(n, (first.(cv)))
         new_scope = mapreduce(last, union, cv)
         (new_n, new_scope)
     end
@@ -241,7 +241,7 @@ function smooth3(root::ΔNode)
             missing_scope = setdiff(new_scope, scope)
             smooth3(child, missing_scope, lit_nodes)
         end
-        new_n = disjoin_like(n, smoothed_children...)
+        new_n = disjoin_like(n, smoothed_children)
         (new_n, new_scope)
     end
     (smoothed_root, _) = foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{ΔNode, BitSet})
@@ -264,6 +264,50 @@ function smooth4(root::ΔNode)
         disjoin_like(n, smoothed_children...)
     end
     foldup(root, f_same, f_same, f_a, f_o, ΔNode)
+end
+
+#TODO is it faster to know the type of ΔNode more specifically?
+function smooth5(root::ΔNode)
+    lit_nodes::Dict{Lit,ΔNode} = literal_nodes2(root)
+    f_con(n) = (n, BitSet(), false)
+    f_lit(n) = (n, BitSet(variable(n)), false)
+    f_a(n, call) = begin
+        smooth_children = Vector{ΔNode}()
+        new_scope = BitSet()
+        new_changed = false
+        for child in children(n)
+            (smooth_child, scope, changed) = call(child)
+            push!(smooth_children,smooth_child)
+            union!(new_scope,scope)
+            new_changed = changed || new_changed
+        end
+        new_n = new_changed ? conjoin_like(n, smooth_children) : n
+        (new_n, new_scope, new_changed)
+    end
+    f_o(n, call) = begin
+        smooth_children = Vector{ΔNode}()
+        new_scope = BitSet()
+        new_changed = false
+        for child in children(n)
+            (_, scope, changed) = call(child)
+            union!(new_scope,scope)
+            new_changed = changed || new_changed
+        end
+        for child in children(n)
+            (smooth_child, scope, _) = call(child)
+            missing_scope = setdiff(new_scope, scope)
+            smooth_child = smooth3(smooth_child, missing_scope, lit_nodes)
+            push!(smooth_children,smooth_child)
+            new_changed = new_changed || !isempty(missing_scope)
+        end
+        if !new_changed
+            return (n, new_scope, new_changed)
+        else
+            return (disjoin_like(n, smooth_children), new_scope, new_changed)
+        end
+    end
+    (smoothed_root, _, _) = foldup(root, f_con, f_lit, f_a, f_o, Tuple{ΔNode, BitSet, Bool})
+    smoothed_root
 end
 
 "Make the circuit smooth"

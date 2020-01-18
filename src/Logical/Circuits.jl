@@ -141,3 +141,13 @@ false_like(n) = disjoin_like(n)
 "Get the origin of the origin the given decorator circuit"
 @inline grand_origin(circuit::DecoratorΔ) = 
     origin(origin(circuit))
+
+"Conjoin nodes in the same way as the example"
+@inline function conjoin_like(example::ΔNode, arguments::ΔNode...)
+    conjoin_like(example, collect(arguments))
+end
+
+"Disjoin nodes in the same way as the example"
+@inline function disjoin_like(example::ΔNode, arguments::ΔNode...)
+    disjoin_like(example, collect(arguments))
+end

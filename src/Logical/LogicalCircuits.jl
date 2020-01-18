@@ -82,29 +82,30 @@ const UnstLogicalΔ = AbstractVector{<:UnstLogicalΔNode}
 "Get the children of a given inner node"
 @inline children(n::LogicalInnerNode) = n.children
 
-"Conjoin nodes in the same way as the example"
-function conjoin_like(example::UnstLogicalΔNode, arguments...)
+function conjoin_like(example::UnstLogicalΔNode, arguments::Vector)
     if isempty(arguments)
         TrueNode()
-    elseif length(arguments) == 1
-        arguments[1]
+    # it's unclear if we want to also optimize the following
+    # elseif length(arguments) == 1
+    #     arguments[1]
     elseif example isa ⋀Node && issetequal(children(example), arguments)
         example
     else
-        ⋀Node(collect(arguments))
+        ⋀Node(arguments)
     end
 end
 
 "Disjoin nodes in the same way as the example"
-function disjoin_like(example::UnstLogicalΔNode, arguments...)
+function disjoin_like(example::UnstLogicalΔNode, arguments::Vector)
     if isempty(arguments)
         FalseNode()
-    elseif length(arguments) == 1
-        arguments[1]
+    # it's unclear if we want to also optimize the following
+    # elseif length(arguments) == 1
+    #     arguments[1]
     elseif example isa ⋁Node && issetequal(children(example), arguments)
         example
     else
-        ⋁Node(collect(arguments))
+        ⋁Node(arguments)
     end
 end
 
