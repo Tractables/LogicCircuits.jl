@@ -220,6 +220,7 @@ function num_nodes(node::DagNode)
     foreach(node) do n
         count += 1
     end
+    count
 end
 
 "Number of edges in the graph"
@@ -229,6 +230,7 @@ function num_edges(node::DagNode)
     foreach(node) do n
         count += num_children(n)
     end
+    count
 end
 
 @inline isleaf(n::Node) = NodeType(n) isa Leaf

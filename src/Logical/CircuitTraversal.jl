@@ -226,6 +226,46 @@ function smooth2(circuit::Δ)
     node2dag(first(result))
 end
 
+function smooth3(root::ΔNode)
+    lit_nodes::Dict{Lit,ΔNode} = literal_nodes2(root)
+    f_con(n) = (n, BitSet())
+    f_lit(n) = (n, BitSet(variable(n)))
+    f_a(n, cv) = begin
+        new_n = conjoin_like(n, (first.(cv))...)
+        new_scope = mapreduce(last, union, cv)
+        (new_n, new_scope)
+    end
+    f_o(n, cv) = begin
+        new_scope = mapreduce(last, union, cv)
+        smoothed_children = map(cv) do (child, scope)
+            missing_scope = setdiff(new_scope, scope)
+            smooth3(child, missing_scope, lit_nodes)
+        end
+        new_n = disjoin_like(n, smoothed_children...)
+        (new_n, new_scope)
+    end
+    (smoothed_root, _) = foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{ΔNode, BitSet})
+    smoothed_root
+end
+
+function smooth4(root::ΔNode)
+    lit_nodes::Dict{Lit,ΔNode} = literal_nodes2(root)
+    scopes::Dict{ΔNode,BitSet} = variable_scopes(root)
+    f_same(n) = n
+    f_a(n, call) = conjoin_like(n, map(call, children(n))...)
+    f_o(n, call) = begin
+        parent_scope = scopes[n]
+        smoothed_children = map(children(n)) do child
+            scope = scopes[child]
+            smooth_child = call(child)
+            missing_scope = setdiff(parent_scope, scope)
+            smooth3(smooth_child, missing_scope, lit_nodes)
+        end
+        disjoin_like(n, smoothed_children...)
+    end
+    foldup(root, f_same, f_same, f_a, f_o, ΔNode)
+end
+
 "Make the circuit smooth"
 function smooth(circuit::Δ)
     scope = variable_scopes(circuit)
@@ -259,6 +299,26 @@ function smooth(node::ΔNode, missing_scope, lit_nodes)
         ors = map(collect(missing_scope)) do v
             lit = var2lit(Var(v))
             disjoin_like(node, lit_nodes[lit], lit_nodes[-lit])
+        end
+        return conjoin_like(node, node, ors...)
+    end
+end
+
+
+"Return a smooth version of the node where the missing variables are added to the scope"
+function smooth3(node::ΔNode, missing_scope, lit_nodes)
+    if isempty(missing_scope)
+        return node
+    else
+        ors = map(collect(missing_scope)) do v
+            lit = var2lit(Var(v))
+            lit_node = get!(lit_nodes, lit) do 
+                literal_like(root[end], lit)
+            end
+            not_lit_node = get!(lit_nodes, -lit) do 
+                literal_like(root[end], -lit)
+            end
+            disjoin_like(node, lit_node, not_lit_node)
         end
         return conjoin_like(node, node, ors...)
     end
@@ -346,6 +406,20 @@ function literal_nodes(circuit::Δ, scope::BitSet = variable_scope(circuit))::Di
         end
     end
     repr
+end
+
+"Construct a mapping from literals to their canonical node representation"
+function literal_nodes2(circuit::Union{Δ,ΔNode})::Dict{Lit,ΔNode}
+    lit_dict = Dict{Lit,ΔNode}()
+    foreach(circuit) do n
+        if isliteralgate(n)
+            if haskey(lit_dict, literal(n))
+                error("Circuit has multiple representations of literal $(literal(n))")
+            end
+            lit_dict[literal(n)] = n
+        end
+    end
+    lit_dict
 end
 
 "Construct a mapping from constants to their canonical node representation"
