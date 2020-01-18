@@ -173,6 +173,59 @@ function is_decomposable(root::ΔNode)::Bool
     result
 end
 
+function smooth2(circuit::Δ)
+    n = circuit[end]
+    scope = variable_scopes(circuit)
+    lit_nodes = literal_nodes(circuit, scope[n])
+    
+    f_con(n) = (n, BitSet())
+    f_lit(n) = (n, BitSet(variable(n)))
+    f_a(n, cv) = begin
+        cn = first.(cv)
+        cs = last.(cv)
+        new_n = conjoin_like(n, cn...)
+        new_scope = reduce(union, cs)
+        (new_n, new_scope)
+    end
+
+    f_o(n, cv) = begin
+        new_scope = reduce(union, last.(cv))
+        parent_scope = new_scope
+
+        # check if all missing_scopes is empty 
+        # missing_scopes = map(cv) do (child, scope)
+        #    setdiff(parent_scope, scope)
+        # end
+        
+        # if all(map(missing_scopes) do s isempty(s) end)
+        #    new_n = disjoin_like(n, first.(cv)...)
+        #    return (new_n, new_scope)
+        # end
+
+        smoothed_children = map(cv) do (child, scope)
+            missing_scope = setdiff(parent_scope, scope)
+            smooth(child, missing_scope, lit_nodes)
+            
+            # do not catch literal nodes
+            # if isempty(missing_scope)
+            #    child
+            # else
+            #    ors = map(collect(missing_scope)) do v
+            #        lit = var2lit(Var(v))
+            #        disjoin_like(child, literal_like(n, lit), literal_like(n, -lit))
+            #    end
+            #    conjoin_like(child, child, ors...)
+            # end
+
+        end
+        new_n = disjoin_like(n, smoothed_children...)
+        (new_n, new_scope)
+    end
+
+    result = foldup_aggregate(n, f_con, f_lit, f_a, f_o, Tuple{ΔNode, BitSet})
+    node2dag(first(result))
+end
+
 "Make the circuit smooth"
 function smooth(circuit::Δ)
     scope = variable_scopes(circuit)
@@ -274,7 +327,7 @@ function literal_nodes(circuit::Δ, scope::BitSet = variable_scope(circuit))::Di
     repr = Dict{Lit,ΔNode}()
     repr_node(n::ΔNode) = repr_node(GateType(n),n)
     repr_node(::GateType, n::ΔNode) = ()
-    repr_node(::LeafGate, n::ΔNode) = begin
+    repr_node(::LiteralGate, n::ΔNode) = begin
         if haskey(repr, literal(n))
             error("Circuit has multiple representations of literal $(literal(n))")
         end
