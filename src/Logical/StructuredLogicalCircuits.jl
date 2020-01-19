@@ -13,9 +13,12 @@ abstract type StructLogicalLeafNode{V} <: StructLogicalΔNode{V} end
 abstract type StructLogicalInnerNode{V} <: StructLogicalΔNode{V} end
 
 "A structured logical literal leaf node, representing the positive or negative literal of its variable"
-struct StructLiteralNode{V} <: StructLogicalLeafNode{V}
+mutable struct StructLiteralNode{V} <: StructLogicalLeafNode{V}
     literal::Lit
     vtree::V
+    data
+    bit::Bool
+    StructLiteralNode{V}(l,v::V) where V = new{V}(l, v, nothing, false)
 end
 
 """
@@ -23,19 +26,35 @@ A structured logical constant leaf node, representing true or false.
 These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
 """
 abstract type StructConstantNode{V} <: StructLogicalInnerNode{V} end
-struct StructTrueNode{V} <: StructConstantNode{V} end
-struct StructFalseNode{V} <: StructConstantNode{V} end
+
+mutable struct StructTrueNode{V} <: StructConstantNode{V} 
+    data
+    bit::Bool
+    StructTrueNode{V}() where V = new{V}(nothing, false)
+end
+
+mutable struct StructFalseNode{V} <: StructConstantNode{V} 
+    data
+    bit::Bool
+    StructFalseNode{V}() where V = new{V}(nothing, false)
+end
 
 "A structured logical conjunction node"
-struct Struct⋀Node{V} <: StructLogicalInnerNode{V}
+mutable struct Struct⋀Node{V} <: StructLogicalInnerNode{V}
     children::Vector{<:StructLogicalΔNode{<:V}}
     vtree::V
+    data
+    bit::Bool
+    Struct⋀Node{V}(c,v::V) where V = new{V}(c, v, nothing, false)
 end
 
 "A structured logical disjunction node"
-struct Struct⋁Node{V} <: StructLogicalInnerNode{V}
+mutable struct Struct⋁Node{V} <: StructLogicalInnerNode{V}
     children::Vector{<:StructLogicalΔNode{<:V}}
     vtree::V # could be leaf or inner
+    data
+    bit::Bool
+    Struct⋁Node{V}(c,v::V) where V = new{V}(c, v, nothing, false)
 end
 
 HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
