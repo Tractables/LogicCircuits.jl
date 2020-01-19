@@ -10,7 +10,7 @@
 
 import Base: foreach # extend
 
-function foreach(node::DagNode, f_con::Function, f_lit::Function, f_a::Function, f_o::Function)
+function foreach(node::Union{Δ,ΔNode}, f_con::Function, f_lit::Function, f_a::Function, f_o::Function)
     f_leaf(n) = isliteralgate(n) ? f_lit(n) : f_con(n)
     f_inner(n) = is⋀gate(n) ? f_a(n) : f_o(n)
     foreach(node, f_leaf, f_inner)
@@ -25,7 +25,7 @@ Compute a function bottom-up on the circuit.
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
-function foldup(node::ΔNode, f_con::Function, f_lit::Function, 
+function foldup(node::Union{Δ,ΔNode}, f_con::Function, f_lit::Function, 
                 f_a::Function, f_o::Function, ::Type{T})::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)::T
@@ -40,7 +40,7 @@ Compute a function bottom-up on the circuit.
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an aggregate vector from the children.
 """
-function foldup_aggregate(node::ΔNode, f_con::Function, f_lit::Function, 
+function foldup_aggregate(node::Union{Δ,ΔNode}, f_con::Function, f_lit::Function, 
                           f_a::Function, f_o::Function, ::Type{T})::T where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
@@ -173,184 +173,52 @@ function is_decomposable(root::ΔNode)::Bool
     result
 end
 
-function smooth2(circuit::Δ)
-    n = circuit[end]
-    scope = variable_scopes(circuit)
-    lit_nodes = literal_nodes(circuit, scope[n])
-    
+"Create an equivalent smooth circuit from the given circuit."
+function smooth(root::Union{ΔNode,Δ})
+    lit_nodes = literal_nodes2(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
-    f_a(n, cv) = begin
-        cn = first.(cv)
-        cs = last.(cv)
-        new_n = conjoin_like(n, cn...)
-        new_scope = reduce(union, cs)
-        (new_n, new_scope)
-    end
-
-    f_o(n, cv) = begin
-        new_scope = reduce(union, last.(cv))
-        parent_scope = new_scope
-
-        # check if all missing_scopes is empty 
-        # missing_scopes = map(cv) do (child, scope)
-        #    setdiff(parent_scope, scope)
-        # end
-        
-        # if all(map(missing_scopes) do s isempty(s) end)
-        #    new_n = disjoin_like(n, first.(cv)...)
-        #    return (new_n, new_scope)
-        # end
-
-        smoothed_children = map(cv) do (child, scope)
-            missing_scope = setdiff(parent_scope, scope)
-            smooth(child, missing_scope, lit_nodes)
-            
-            # do not catch literal nodes
-            # if isempty(missing_scope)
-            #    child
-            # else
-            #    ors = map(collect(missing_scope)) do v
-            #        lit = var2lit(Var(v))
-            #        disjoin_like(child, literal_like(n, lit), literal_like(n, -lit))
-            #    end
-            #    conjoin_like(child, child, ors...)
-            # end
-
-        end
-        new_n = disjoin_like(n, smoothed_children...)
-        (new_n, new_scope)
-    end
-
-    result = foldup_aggregate(n, f_con, f_lit, f_a, f_o, Tuple{ΔNode, BitSet})
-    node2dag(first(result))
-end
-
-function smooth3(root::ΔNode)
-    lit_nodes::Dict{Lit,ΔNode} = literal_nodes2(root)
-    f_con(n) = (n, BitSet())
-    f_lit(n) = (n, BitSet(variable(n)))
-    f_a(n, cv) = begin
-        new_n = conjoin_like(n, (first.(cv)))
-        new_scope = mapreduce(last, union, cv)
-        (new_n, new_scope)
-    end
-    f_o(n, cv) = begin
-        new_scope = mapreduce(last, union, cv)
-        smoothed_children = map(cv) do (child, scope)
-            missing_scope = setdiff(new_scope, scope)
-            smooth3(child, missing_scope, lit_nodes)
-        end
-        new_n = disjoin_like(n, smoothed_children)
-        (new_n, new_scope)
-    end
-    (smoothed_root, _) = foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{ΔNode, BitSet})
-    smoothed_root
-end
-
-function smooth4(root::ΔNode)
-    lit_nodes::Dict{Lit,ΔNode} = literal_nodes2(root)
-    scopes::Dict{ΔNode,BitSet} = variable_scopes(root)
-    f_same(n) = n
-    f_a(n, call) = conjoin_like(n, map(call, children(n))...)
-    f_o(n, call) = begin
-        parent_scope = scopes[n]
-        smoothed_children = map(children(n)) do child
-            scope = scopes[child]
-            smooth_child = call(child)
-            missing_scope = setdiff(parent_scope, scope)
-            smooth3(smooth_child, missing_scope, lit_nodes)
-        end
-        disjoin_like(n, smoothed_children...)
-    end
-    foldup(root, f_same, f_same, f_a, f_o, ΔNode)
-end
-
-#TODO is it faster to know the type of ΔNode more specifically?
-function smooth5(root::ΔNode)
-    lit_nodes::Dict{Lit,ΔNode} = literal_nodes2(root)
-    f_con(n) = (n, BitSet(), false)
-    f_lit(n) = (n, BitSet(variable(n)), false)
     f_a(n, call) = begin
-        smooth_children = Vector{ΔNode}()
+        smooth_children = Vector{node_type(root)}()
         new_scope = BitSet()
         new_changed = false
         for child in children(n)
-            (smooth_child, scope, changed) = call(child)
+            (smooth_child, scope) = call(child)
             push!(smooth_children,smooth_child)
             union!(new_scope,scope)
-            new_changed = changed || new_changed
+            new_changed = new_changed || (smooth_child !== child)
         end
         new_n = new_changed ? conjoin_like(n, smooth_children) : n
-        (new_n, new_scope, new_changed)
+        (new_n, new_scope)
     end
     f_o(n, call) = begin
-        smooth_children = Vector{ΔNode}()
+        smooth_children = Vector{node_type(root)}()
         new_scope = BitSet()
-        new_changed = false
+        new_changed= false
         for child in children(n)
-            (_, scope, changed) = call(child)
-            union!(new_scope,scope)
-            new_changed = changed || new_changed
+            (smooth_child, scope) = call(child)
+            union!(new_scope, scope)
+            new_changed = new_changed || (smooth_child !== child)
         end
         for child in children(n)
-            (smooth_child, scope, _) = call(child)
+            (smooth_child, scope) = call(child)
             missing_scope = setdiff(new_scope, scope)
-            smooth_child = smooth3(smooth_child, missing_scope, lit_nodes)
-            push!(smooth_children,smooth_child)
+            smooth_child = smooth_node(smooth_child, missing_scope, lit_nodes)
+            push!(smooth_children, smooth_child)
             new_changed = new_changed || !isempty(missing_scope)
         end
         if !new_changed
-            return (n, new_scope, new_changed)
+            return (n, new_scope)
         else
-            return (disjoin_like(n, smooth_children), new_scope, new_changed)
+            return (disjoin_like(n, smooth_children), new_scope)
         end
     end
-    (smoothed_root, _, _) = foldup(root, f_con, f_lit, f_a, f_o, Tuple{ΔNode, BitSet, Bool})
+    (smoothed_root, _) = foldup(root, f_con, f_lit, f_a, f_o, Tuple{node_type(root), BitSet})
     smoothed_root
 end
 
-"Make the circuit smooth"
-function smooth(circuit::Δ)
-    scope = variable_scopes(circuit)
-    lit_nodes = literal_nodes(circuit, scope[circuit[end]])
-    smoothed = Dict{ΔNode,ΔNode}()
-    smooth_node(n::ΔNode) = smooth_node(GateType(n),n)
-    smooth_node(::LeafGate, n::ΔNode) = n
-    function smooth_node(::⋀Gate, n::ΔNode)
-        smoothed_children = map(c -> smoothed[c], children(n))
-        conjoin_like(n, smoothed_children...)
-    end
-    function smooth_node(::⋁Gate, n::ΔNode) 
-        parent_scope = scope[n]
-        smoothed_children = map(children(n)) do c
-            missing_scope = setdiff(parent_scope, scope[c])
-            smooth(smoothed[c], missing_scope, lit_nodes)
-        end
-        disjoin_like(n, smoothed_children...)
-    end
-    for node in circuit
-        smoothed[node] = smooth_node(node)
-    end
-    node2dag(smoothed[circuit[end]])
-end
-
 "Return a smooth version of the node where the missing variables are added to the scope"
-function smooth(node::ΔNode, missing_scope, lit_nodes)
-    if isempty(missing_scope)
-        return node
-    else
-        ors = map(collect(missing_scope)) do v
-            lit = var2lit(Var(v))
-            disjoin_like(node, lit_nodes[lit], lit_nodes[-lit])
-        end
-        return conjoin_like(node, node, ors...)
-    end
-end
-
-
-"Return a smooth version of the node where the missing variables are added to the scope"
-function smooth3(node::ΔNode, missing_scope, lit_nodes)
+function smooth_node(node::ΔNode, missing_scope, lit_nodes)
     if isempty(missing_scope)
         return node
     else

@@ -80,6 +80,10 @@ import ..Utils.NodeType # make available for extension
 
 # following methods should be defined for all types of circuits
 
+"Get the node type at the root of the corresponding hierarchy."
+@inline node_type(c::Δ) = node_type(eltype(c))
+@inline node_type(n::ΔNode) = node_type(typeof(n))
+
 import ..Utils.children # make available for extension
 
 "Get the logical literal in a given literal leaf node"

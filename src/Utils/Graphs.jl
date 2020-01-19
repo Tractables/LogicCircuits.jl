@@ -71,13 +71,15 @@ end
 import Base.foreach #extend
 
 "Apply a function to each node in a circuit, bottom up"
+
+
 function foreach(f::Function, node::DagNode)
     foreach_rec(f, node)
     flip_bit(node)
     nothing # returning nothing helps save some allocations and time
 end
 
-function foreach(node::DagNode, f_leaf::Function, f_inner::Function)
+function foreach(node::Union{DagNode,Dag}, f_leaf::Function, f_inner::Function)
     foreach(node) do n
         isinner(n) ? f_inner(n) : f_leaf(n)
     end
@@ -129,6 +131,10 @@ Compute a function bottom-up on the circuit.
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
+function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
+    foldup(node[end], f_leaf, f_inner, T)
+end
+
 function foldup(node::DagNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
     @assert node.bit == false
     v = foldup_rec(node, f_leaf, f_inner, T)
@@ -168,6 +174,10 @@ Compute a function bottom-up on the circuit.
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` in aggregate as a vector from the children.
 """
+function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
+    foldup_aggregate(node[end], f_leaf, f_inner, T)
+end
+
 function foldup_aggregate(node::DagNode, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
     @assert node.bit == false
     v = foldup_aggregate_rec(node, f_leaf, f_inner, T)

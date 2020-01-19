@@ -72,6 +72,8 @@ const UnstLogicalΔ = AbstractVector{<:UnstLogicalΔNode}
 # methods
 #####################
 
+@inline node_type(::Type{<:UnstLogicalΔNode}) = UnstLogicalΔNode
+
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::LiteralNode)::Lit = n.literal
 
