@@ -11,14 +11,20 @@ export
 Var, Lit, var2lit, lit2var, ΔNode, Δ, 
 LiteralGate, ConstantGate, ⋁Gate, ⋀Gate, 
 GateType, InnerGate, LeafGate, 
-negative, positive, variable, literal,  num_variables,
-propagate_constants, is_smooth, smooth, forget, true_like, false_like, 
-DecoratorΔ, DecoratorΔNode, origin, grand_origin, is_true, is_false, constant,
-prime, sub, descends_from, descends_left_from, descends_right_from,
+negative, positive, variable, literal,
+true_like, false_like, DecoratorΔ, DecoratorΔNode, origin, grand_origin, is_true, is_false, constant,
+prime, sub, 
 
 # CircuitTraversal
-⋁_nodes, is_decomposable, variable_scopes, variable_scope,
+⋁_nodes, ⋀_nodes,
+
+# Queries
+num_variables, is_decomposable, variable_scopes, variable_scope,
 model_count, sat_prob, prob_equiv_signature, has_unique_literal_nodes, has_unique_constant_nodes,
+is_smooth, 
+
+# Transformations
+smooth, forget, propagate_constants, 
 
 # LogicalCircuits
 LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ,
@@ -63,10 +69,13 @@ compile_cnf, compile_clause, validate,
 # TrimSddMgr
 TrimMgrNode, TrimSddMgr, XYPartition, Element, TrimSdd, TrimNode,
 compress, unique⋁, canonicalize, 
-compile, conjoin, disjoin, negate
+compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from
 
 include("Circuits.jl")
 include("CircuitTraversal.jl")
+include("Queries.jl")
+include("Transformations.jl")
+
 include("LogicalCircuits.jl")
 include("UpFlowCircuits.jl")
 include("DownFlowCircuits.jl")
