@@ -151,6 +151,25 @@ function constant_nodes(circuit::Δ)::Tuple{ΔNode,ΔNode}
     (false_node, true_node)
 end
 
+"Construct a mapping from constants to their canonical node representation"
+function constant_nodes2(circuit::Union{Δ,ΔNode})::Tuple{Union{Nothing, ΔNode},Union{Nothing, ΔNode}}
+    true_node = nothing
+    false_node = nothing
+    foreach(circuit) do n
+        if isconstantgate(n)
+            if is_true(n)
+                isnothing(true_node) || error("Circuit has multiple representations of true")
+                true_node = n
+            else
+                @assert is_false(n)
+                isnothing(false_node) || error("Circuit has multiple representations of false")
+                false_node = n
+            end
+        end
+    end
+    (false_node, true_node)
+end
+
 "Check whether literal nodes are unique"
 function has_unique_literal_nodes(circuit::Δ)::Bool
     literals = Set{Lit}()
@@ -167,6 +186,28 @@ function has_unique_literal_nodes(circuit::Δ)::Bool
         visit(node)
     end
     return result
+end
+
+"Check whether literal nodes are unique"
+function has_unique_literal_nodes2(circuit::Δ)::Bool
+    has_unique_literal_nodes2(circuit[end])
+end
+
+function has_unique_literal_nodes2(root::ΔNode)::Bool
+    literals = Set{Lit}()
+    @inline f_con(n) = true
+    @inline f_lit(n) = begin
+        lit = literal(n)
+        if lit in literals
+            false
+        else
+            push!(literals, lit)
+            true
+        end
+    end
+    @inline f_a(n, cs) = all(cs)
+    @inline f_o(n, cs) = all(cs)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Bool)
 end
 
 "Check whether constant nodes are unique"

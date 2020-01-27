@@ -133,3 +133,28 @@ function fully_factorized_circuit(n)
     push!(lin, bias)
     lin
 end
+
+import Base.copy
+function copy(n::ΔNode, depth::Int64)
+    old2new = Dict{ΔNode, ΔNode}()
+    copy_rec(n, depth, old2new)
+end
+
+function copy_rec(n::ΔNode, depth::Int64, old2new::Dict{ΔNode, ΔNode})
+    if depth == 0 || isliteralgate(n) || isconstantgate(n)
+        n
+    else
+        get!(old2new, n) do
+            cns = map(children(n)) do c
+                copy_rec(c, depth - 1, old2new)
+            end
+            # type specific
+            if n isa ⋀Node
+                ⋀Node(cns)
+            else
+                @assert n isa ⋁Node
+                ⋁Node(cns)
+            end
+        end
+    end
+end

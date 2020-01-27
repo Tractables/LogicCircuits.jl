@@ -74,6 +74,23 @@ function forget(is_forgotten::Function, circuit::Δ)
     node2dag(forgotten[circuit[end]])
 end
 
+function forget2(is_forgotten::Function, circuit::Δ)::Δ
+    new_root = forget2(is_forgotten, circuit[end])
+    node2dag(new_root)
+end
+
+function forget2(is_forgotten::Function, root::ΔNode)::ΔNode
+    (_, true_node) = constant_nodes2(root) # reuse constants when possible
+    if isnothing(true_node)
+        true_node = true_like(root)
+    end
+    f_con(n) = n
+    f_lit(n) = is_forgotten(variable(n)) ? true_node : n
+    f_a(n, cn) = conjoin_like(n, cn...)
+    f_o(n, cn) = disjoin_like(n, cn...)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, ΔNode)
+end
+
 "Remove all constant leafs from the circuit"
 function propagate_constants(circuit::Δ)
     proped = Dict{ΔNode,ΔNode}()
@@ -101,4 +118,111 @@ function propagate_constants(circuit::Δ)
         proped[node] = propagate(node)
     end
     node2dag(proped[circuit[end]])
+end
+
+"Return the circuit conditioned on given constrains"
+function condition(circuit::Δ, lit::Lit)::Δ
+    new_root = condition(circuit[end], lit)
+    node2dag(new_root)
+end
+
+function condition(root::ΔNode, lit::Lit)::ΔNode
+    literals = literal_nodes(root)
+    (false_node, ) = constant_nodes2(root) # reuse constants when possible
+    if isnothing(false_node)
+        false_node = false_like(root)
+    end
+
+    if !haskey(literals, -lit)
+        root
+    elseif haskey(literals, -lit) && !haskey(literals, lit)
+        false_node
+    else
+        f_con(n) = (n, true)
+        f_lit(n) = begin
+            if variable(n) == lit2var(lit) && literal(n) != lit
+                (false_node, false)
+            else
+                (n, true)
+            end
+        end
+        f_a(n, cv) = (conjoin_like(n, first.(cv)...), all(last.(cv)))
+        f_o(n, cv) = begin
+            kept = last.(cv)
+            new_children = first.(cv)[kept]
+            if length(new_children) == 1 && isliteralgate(new_children[1])
+                (new_children[1], true)
+            else            
+                (disjoin_like(n, new_children...), any(kept))
+            end
+        end
+        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{ΔNode, Bool})[1]
+    end  
+end
+
+import Base.split
+
+"Return the circuit after spliting on edge `edge` and variable `var`"
+function split(circuit::Union{Δ, ΔNode}, edge::Tuple{ΔNode, ΔNode}, var::Var; depth=0)
+    or = first(edge)
+    and = last(edge)
+
+    # sanity check 
+    @assert depth >= 0
+    @assert GateType(or) isa ⋁Gate && GateType(and) isa ⋀Gate && and in children(or)
+    if circuit isa Δ
+        @assert or in circuit && and in circuit
+    else
+        # TODO
+    end
+    literals = literal_nodes(and)
+    @assert haskey(literals, var2lit(var)) && haskey(literals, - var2lit(var))
+
+    # split 
+    new_children1 = map(children(and)) do c
+        condition(c, var2lit(var))
+    end
+
+    new_children2 = map(children(and)) do c 
+        condition(c, - var2lit(var))
+    end
+
+    new_and1 = conjoin_like(and, new_children1...)
+    new_and2 = conjoin_like(and, new_children2...)
+    new_or = disjoin_like(or, [[new_and1, new_and2]; filter(c -> c != and, children(or))])
+    new_or = copy(new_or, depth)
+    
+    replace_node(circuit, or, new_or)
+end
+
+"Clone the `and` node and redirect one of its parents to the new copy"
+function clone(circuit::Union{Δ, ΔNode}, or1::ΔNode, or2::ΔNode, and::ΔNode; depth=1)
+    # sanity check 
+    @assert depth >= 1
+    @assert GateType(or1) isa ⋁Gate && GateType(or2) isa ⋁Gate && GateType(and) isa ⋀Gate
+    @assert and in children(or1) && and in children(or2)
+    if circuit isa Δ
+        @assert or1 in circuit && or2 in circuit && and in circuit
+    else
+        # TODO
+    end
+
+    # clone
+    new_and = copy(and, depth)
+    new_or2 = disjoin_like(or2, [[new_and]; filter(c -> c != and, children(or2))])
+
+    replace_node(circuit, or2, new_or2)
+end
+
+function replace_node(circuit::Δ, old::ΔNode, new::ΔNode)::Δ
+    node2dag(replace_node(circuit[end], old, new))
+end
+
+function replace_node(root::ΔNode, old::ΔNode, new::ΔNode)::ΔNode
+    @assert GateType(old) == GateType(new)
+    f_con(n) = old == n ? new : n
+    f_lit = f_con
+    f_a(n, cns) = old == n ? new : conjoin_like(n, cns...)
+    f_o(n, cns) = old == n ? new : disjoin_like(n, cns...)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, ΔNode)
 end
