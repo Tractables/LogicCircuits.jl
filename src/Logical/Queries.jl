@@ -333,48 +333,198 @@ function evaluate4(root::ΔNode, data::XData)
     foldup(root, f_con, f_lit, fa, fo, Union{Tuple{BitVector,BitVector},BitVector})
 end
 
-# function evaluate5(root::ΔNode, data::XData)
-#     @inline f_lit(n)::BitVector = if positive(n) 
-#         feature_matrix(data)[:,variable(n)]::BitVector
-#     else
-#         broadcast(!,feature_matrix(data)[:,variable(n)])
-#     end
-#     @inline f_con(n)::BitVector = error("To be implemented")
-#     @inline fa(n, call) = begin
-#         if num_children(n) == 1
-#             call(children(n)[1])::Union{Tuple{BitVector,BitVector},BitVector}
-#         else if num_children(n) == 2
-#             x = call(children(n)[1])::Union{Tuple{BitVector,BitVector},BitVector}
-#             y = call(children(n)[2])::Union{Tuple{BitVector,BitVector},BitVector}
-#             x_bitvector::BitVector = (x isa BitVector) ? x : x[1] .& x[2]
-#             y_bitvector::BitVector = (y isa BitVector) ? y : y[1] .& y[2]
-#             (x_bitvector, y_bitvector)::Tuple{BitVector,BitVector}
-#         else
-#             error(-1)
-#         end
-#     end
-#     @inline fo(n, call)::BitVector = begin
-#         if num_children(n) == 1
-#             call(children(n)[1])
-#         else
-#             x::BitVector = begin
-#                 cv = call(children(n)[1])
-#                 if cv isa BitVector
-#                     copy(cv)
-#                 else
-#                     @. cv[1] & cv[2]
-#                 end
-#             end
-#             for c in children(n)[2:end]
-#                 cv = call(c)
-#                 if cv isa BitVector
-#                     @. x |= cv
-#                 else
-#                     @. x |= cv[1] & cv[2]
-#                 end
-#             end
-#             x
-#         end
-#     end
-#     foldup(root, f_con, f_lit, fa, fo, Union{Tuple{BitVector,BitVector},BitVector})
-# end
+function evaluate5(root::ΔNode, data::XData)
+    @inline f_lit(n)::BitVector = if positive(n) 
+        feature_matrix(data)[:,variable(n)]::BitVector
+    else
+        broadcast(!,feature_matrix(data)[:,variable(n)])
+    end
+    @inline f_con(n)::BitVector = error("To be implemented")
+    @inline f_a(n, call) = begin
+        if num_children(n) == 1
+            call(children(n)[1])::Union{Tuple{BitVector,BitVector},BitVector}
+        elseif num_children(n) == 2
+            x = call(children(n)[1])::Union{Tuple{BitVector,BitVector},BitVector}
+            y = call(children(n)[2])::Union{Tuple{BitVector,BitVector},BitVector}
+            x_bitvector::BitVector = (x isa BitVector) ? x : x[1] .& x[2]
+            y_bitvector::BitVector = (y isa BitVector) ? y : y[1] .& y[2]
+            (x_bitvector, y_bitvector)::Tuple{BitVector,BitVector}
+        else
+            error(-1)
+        end
+    end
+    @inline f_o(n, call) = begin
+        if num_children(n) == 1
+            call(children(n)[1])
+        else
+            x::BitVector = begin
+                cv = call(children(n)[1])
+                if cv isa BitVector
+                    copy(cv)
+                else
+                    @. cv[1] & cv[2]
+                end
+            end
+            for c in children(n)[2:end]
+                cv = call(c)
+                if cv isa BitVector
+                    @. x |= cv
+                else
+                    @. x |= cv[1] & cv[2]
+                end
+            end
+            x
+        end
+    end
+    foldup(root, f_con, f_lit, f_a, f_o, Union{Tuple{BitVector,BitVector},BitVector})
+end
+
+function evaluate6(root::ΔNode, data::XData)
+    @inline f_lit(n)::BitVector = if positive(n) 
+        feature_matrix(data)[:,variable(n)]::BitVector
+    else
+        broadcast(!,feature_matrix(data)[:,variable(n)])
+    end
+    @inline f_con(n)::BitVector = error("To be implemented")
+    @inline f_a(n, call) = begin
+        if num_children(n) == 1
+            call(children(n)[1])
+        elseif num_children(n) == 2
+            x = call(children(n)[1])::Union{Tuple{BitVector,BitVector},BitVector}
+            y = call(children(n)[2])::Union{Tuple{BitVector,BitVector},BitVector}
+            x_bitvector::BitVector = (x isa BitVector) ? x : x[1] .& x[2]
+            y_bitvector::BitVector = (y isa BitVector) ? y : y[1] .& y[2]
+            (x_bitvector, y_bitvector)::Tuple{BitVector,BitVector}
+        else
+            error(-1)
+        end
+    end
+    @inline f_o(n, call) = begin
+        if num_children(n) == 1
+            call(children(n)[1])
+        else
+            x::BitVector = begin
+                cv = call(children(n)[1])
+                if cv isa BitVector
+                    copy(cv)
+                else
+                    @. cv[1] & cv[2]
+                end
+            end
+            for c in children(n)[2:end]
+                cv = call(c)
+                if cv isa BitVector
+                    @. x |= cv
+                else
+                    @. x |= cv[1] & cv[2]
+                end
+            end
+            x
+        end
+    end
+    foldup(root, f_con, f_lit, f_a, f_o, Union{Tuple{BitVector,BitVector},BitVector})
+end
+
+function evaluate7(root::ΔNode, data::XData)
+    @inline f_lit(n)::BitVector = if positive(n) 
+        feature_matrix(data)[:,variable(n)]::BitVector
+    else
+        broadcast(!,feature_matrix(data)[:,variable(n)])::BitVector
+    end
+    @inline f_con(n)::BitVector = error("To be implemented")
+    @inline f_a(n, call) = begin
+        x::BitVector = always(Bool, num_examples(data))
+        for c in children(n)
+            x .&= call(c)
+        end
+        x
+    end
+    @inline f_o(n, call) = begin
+        x::BitVector = never(Bool, num_examples(data))
+        for c in children(n)
+            x .|= call(c)
+        end
+        x
+    end
+    foldup(root, f_con, f_lit, f_a, f_o, BitVector)
+end
+
+function evaluate8(root::ΔNode, data::XData)
+    @inline f_lit(n)::BitVector = if positive(n) 
+        feature_matrix(data)[:,variable(n)]::BitVector
+    else
+        broadcast(!,feature_matrix(data)[:,variable(n)])::BitVector
+    end
+    @inline f_con(n)::BitVector = error("To be implemented")
+    @inline f_a(n, call) = mapreduce(call, (x,y) -> x .& y, children(n))::BitVector 
+    @inline f_o(n, call) = mapreduce(call, (x,y) -> x .| y, children(n))::BitVector 
+    foldup(root, f_con, f_lit, f_a, f_o, BitVector)
+end
+
+function evaluate9(root::ΔNode, data::XData)
+    @inline f_lit(n)::Vector{BitVector} = if positive(n) 
+        [feature_matrix(data)[:,variable(n)]::BitVector]
+    else
+        [broadcast(!,feature_matrix(data)[:,variable(n)])]
+    end
+    @inline f_con(n)::Vector{BitVector} = error("To be implemented")
+    @inline fa(n, call)::Vector{BitVector} = begin
+        [call(children(n)[1])[1], call(children(n)[2])[1]]
+    end
+    @inline fo(n, call)::Vector{BitVector} = begin
+        x::BitVector = never(Bool, num_examples(data))
+        for c in children(n)
+            cv = call(c)::Vector{BitVector}
+            if length(cv) == 1
+                x .|= cv[1]
+            else
+                x .|= cv[1] .& cv[2]
+            end
+        end
+        [x]
+    end
+    foldup(root, f_con, f_lit, fa, fo, Vector{BitVector})
+end
+
+function evaluate10(root::ΔNode, data::XData)
+    @inline f_lit(n)::Vector{BitVector} = if positive(n) 
+        [feature_matrix(data)[:,variable(n)]::BitVector]
+    else
+        [broadcast(!,feature_matrix(data)[:,variable(n)])]
+    end
+    @inline f_con(n)::Vector{BitVector} = error("To be implemented")
+    @inline eval(elems)::BitVector = reduce((x,y) -> x .& y, elems)
+    @inline fa(n, call)::Vector{BitVector} = begin
+        if num_children(n) == 2
+            c1 = eval(call(children(n)[1])::Vector{BitVector})::BitVector
+            c2 = eval(call(children(n)[2])::Vector{BitVector})::BitVector
+            [c1, c2]::Vector{BitVector}
+        else
+            x::BitVector = always(Bool, num_examples(data))
+            for c in children(n)
+                cv = call(c)::Vector{BitVector}
+                if length(cv) == 1
+                    x .&= cv[1]
+                else
+                    @assert length(cv) == 2
+                    x .&= cv[1] .& cv[2]
+                end
+            end
+            [x]::Vector{BitVector}
+        end
+    end
+    @inline fo(n, call)::Vector{BitVector} = begin
+        x::BitVector = never(Bool, num_examples(data))
+        for c in children(n)
+            cv = call(c)::Vector{BitVector}
+            if length(cv) == 1
+                x .|= cv[1]
+            else
+                @assert length(cv) == 2
+                x .|= cv[1] .& cv[2]
+            end
+        end
+        [x]::Vector{BitVector}
+    end
+    foldup(root, f_con, f_lit, fa, fo, Vector{BitVector})
+end
