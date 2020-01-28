@@ -573,8 +573,6 @@ function evaluate11(root::ΔNode, data::XData)::BitVector
     eval_elems(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
 end
 
-using StaticArrays
-
 const BT = Union{Tuple{BitArray{1}}, Tuple{BitArray{1},BitArray{1}}}
 
 function evaluate12(root::ΔNode, data::XData)::BitVector
@@ -618,4 +616,141 @@ function evaluate12(root::ΔNode, data::XData)::BitVector
         return (x,)::BT
     end
     eval_elems(foldup(root, f_con, f_lit, fa, fo, BT))
+end
+
+using StaticArrays
+
+const SBV = Union{SVector{1,BitVector},SVector{2,BitVector}}
+
+function evaluate13(root::ΔNode, data::XData)::BitVector
+    @inline f_lit(n) = if positive(n) 
+        SA[feature_matrix(data)[:,variable(n)]::BitVector]
+    else
+        SA[broadcast(!,feature_matrix(data)[:,variable(n)])]
+    end
+    @inline f_con(n) = error("To be implemented")
+    @inline eval_elems(elems)::BitVector = elems isa SVector{1,BitVector} ? elems[1] :  elems[1] .& elems[2]
+    @inline fa(n, call) = begin
+        if num_children(n) == 2
+            c1 = eval_elems(call(children(n)[1]))
+            c2 = eval_elems(call(children(n)[2]))
+            return SA[c1, c2]
+        else
+            x = always(Bool, num_examples(data))
+            for c in children(n)
+                cv = call(c)
+                if length(cv) == 1
+                    x .&= cv[1]
+                else
+                    @assert length(cv) == 2
+                    x .&= cv[1] .& cv[2]
+                end
+            end
+            return SA[x]
+        end
+    end
+    @inline fo(n, call) = begin
+        x = never(Bool, num_examples(data))
+        for c in children(n)
+            cv = call(c)
+            if length(cv) == 1
+                x .|= cv[1]
+            else
+                @assert length(cv) == 2
+                x .|= cv[1] .& cv[2]
+            end
+        end
+        return SA[x]
+    end
+    eval_elems(foldup(root, f_con, f_lit, fa, fo, SBV))
+end
+
+function evaluate14(root::ΔNode, data::XData{Bool})::BitVector
+    @inline f_lit(n)::Vector{BitVector} = if positive(n) 
+        [feature_matrix(data)[:,variable(n)]]
+    else
+        [broadcast(!,feature_matrix(data)[:,variable(n)])]
+    end
+    @inline f_con(n)::Vector{BitVector} = 
+        is_true(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))
+    @inline eval_elems(elems)::BitVector = reduce((x,y) -> x .& y, elems)
+    @inline fa(n, call)::Vector{BitVector} = begin
+        if num_children(n) == 2
+            c1 = call(@inbounds children(n)[1])::Vector{BitVector}
+            c2 = call(@inbounds children(n)[2])::Vector{BitVector}
+            if length(c1) == 1 && length(c2) == 1
+                return [c1[1], c2[1]]
+            end
+        end
+        x::BitVector = always(Bool, num_examples(data))
+        for c in children(n)
+            cv = call(c)::Vector{BitVector}
+            if length(cv) == 1
+                @inbounds @. x &= cv[1]
+            else
+                @assert length(cv) == 2
+                @inbounds @. x &= cv[1] & cv[2]
+            end
+        end
+        return [x]
+    end
+    @inline fo(n, call)::Vector{BitVector} = begin
+        x::BitVector = never(Bool, num_examples(data))
+        for c in children(n)
+            cv = call(c)::Vector{BitVector}
+            if length(cv) == 1
+                @inbounds @. x |= cv[1]
+            else
+                @assert length(cv) == 2
+                @inbounds @. x |= cv[1] & cv[2]
+            end
+        end
+        return [x]
+    end
+    eval_elems(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
+end
+
+@inline eval_elems(elems::Vector{BitVector})::BitVector = reduce((x,y) -> x .& y, elems)
+
+@inline accumulate(x,v,op)::BitVector =  if length(v) == 1
+    @inbounds @. x = op(x, v[1])
+else
+    @assert length(v) == 2
+    @inbounds @. x = op(x, v[1] & v[2])
+end
+
+function evaluate15(root::ΔNode, data::XData{Bool})::BitVector
+    @inline f_lit(n)::Vector{BitVector} = if positive(n) 
+        [feature_matrix(data)[:,variable(n)]]
+    else
+        [broadcast(!,feature_matrix(data)[:,variable(n)])]
+    end
+    @inline f_con(n)::Vector{BitVector} = 
+        is_true(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))
+    @inline fa(n, call)::Vector{BitVector} = begin
+        if num_children(n) < 2
+            call(@inbounds children(n)[1])::Vector{BitVector}
+        else
+            c1 = call(@inbounds children(n)[1])::Vector{BitVector}
+            c2 = call(@inbounds children(n)[2])::Vector{BitVector}
+            if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
+                return [c1[1], c2[1]]
+            end
+            x::BitVector = always(Bool, num_examples(data))
+            accumulate(x, c1, &)
+            accumulate(x, c2, &)
+            for c in children(n)[3:end]
+                accumulate(x, call(c)::Vector{BitVector}, &)
+            end
+            return [x]
+        end
+    end
+    @inline fo(n, call)::Vector{BitVector} = begin
+        x::BitVector = never(Bool, num_examples(data))
+        for c in children(n)
+            accumulate(x, call(c)::Vector{BitVector}, |)
+        end
+        return [x]
+    end
+    eval_elems(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
 end
