@@ -498,7 +498,7 @@ function evaluate10(root::ΔNode, data::XData)
         if num_children(n) == 2
             c1 = eval(call(children(n)[1])::Vector{BitVector})::BitVector
             c2 = eval(call(children(n)[2])::Vector{BitVector})::BitVector
-            [c1, c2]::Vector{BitVector}
+            return [c1, c2]::Vector{BitVector}
         else
             x::BitVector = always(Bool, num_examples(data))
             for c in children(n)
@@ -510,7 +510,7 @@ function evaluate10(root::ΔNode, data::XData)
                     x .&= cv[1] .& cv[2]
                 end
             end
-            [x]::Vector{BitVector}
+            return [x]::Vector{BitVector}
         end
     end
     @inline fo(n, call)::Vector{BitVector} = begin
@@ -524,7 +524,98 @@ function evaluate10(root::ΔNode, data::XData)
                 x .|= cv[1] .& cv[2]
             end
         end
-        [x]::Vector{BitVector}
+        return [x]::Vector{BitVector}
     end
     foldup(root, f_con, f_lit, fa, fo, Vector{BitVector})
+end
+
+
+function evaluate11(root::ΔNode, data::XData)::BitVector
+    @inline f_lit(n)::Vector{BitVector} = if positive(n) 
+        [feature_matrix(data)[:,variable(n)]::BitVector]
+    else
+        [broadcast(!,feature_matrix(data)[:,variable(n)])]
+    end
+    @inline f_con(n)::Vector{BitVector} = error("To be implemented")
+    @inline eval_elems(elems)::BitVector = reduce((x,y) -> x .& y, elems)
+    @inline fa(n, call)::Vector{BitVector} = begin
+        if num_children(n) == 2
+            c1 = eval_elems(call(children(n)[1])::Vector{BitVector})::BitVector
+            c2 = eval_elems(call(children(n)[2])::Vector{BitVector})::BitVector
+            return [c1, c2]::Vector{BitVector}
+        else
+            x::BitVector = always(Bool, num_examples(data))
+            for c in children(n)
+                cv = call(c)::Vector{BitVector}
+                if length(cv) == 1
+                    x .&= cv[1]
+                else
+                    @assert length(cv) == 2
+                    x .&= cv[1] .& cv[2]
+                end
+            end
+            return [x]::Vector{BitVector}
+        end
+    end
+    @inline fo(n, call)::Vector{BitVector} = begin
+        x::BitVector = never(Bool, num_examples(data))
+        for c in children(n)
+            cv = call(c)::Vector{BitVector}
+            if length(cv) == 1
+                x .|= cv[1]
+            else
+                @assert length(cv) == 2
+                x .|= cv[1] .& cv[2]
+            end
+        end
+        return [x]::Vector{BitVector}
+    end
+    eval_elems(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
+end
+
+using StaticArrays
+
+const BT = Union{Tuple{BitArray{1}}, Tuple{BitArray{1},BitArray{1}}}
+
+function evaluate12(root::ΔNode, data::XData)::BitVector
+    @inline f_lit(n)::BT = if positive(n) 
+        (feature_matrix(data)[:,variable(n)]::BitVector,)
+    else
+        (broadcast(!,feature_matrix(data)[:,variable(n)]),)
+    end
+    @inline f_con(n)::BT = error("To be implemented")
+    @inline eval_elems(elems)::BitVector = reduce((x,y) -> x .& y, elems)
+    @inline fa(n, call)::BT = begin
+        if num_children(n) == 2
+            c1 = eval_elems(call(children(n)[1])::BT)::BitVector
+            c2 = eval_elems(call(children(n)[2])::BT)::BitVector
+            return (c1, c2)::BT
+        else
+            x::BitVector = always(Bool, num_examples(data))
+            for c in children(n)
+                cv = call(c)::BT
+                if length(cv) == 1
+                    x .&= cv[1]
+                else
+                    @assert length(cv) == 2
+                    x .&= cv[1] .& cv[2]
+                end
+            end
+            return (x,)::BT
+        end
+    end
+    @inline fo(n, call)::BT = begin
+        x::BitVector = never(Bool, num_examples(data))
+        for c in children(n)
+            cv = call(c)::BT
+            if length(cv) == 1
+                x .|= cv[1]
+            else
+                @assert length(cv) == 2
+                x .|= cv[1] .& cv[2]
+            end
+        end
+        return (x,)::BT
+    end
+    eval_elems(foldup(root, f_con, f_lit, fa, fo, BT))
 end
