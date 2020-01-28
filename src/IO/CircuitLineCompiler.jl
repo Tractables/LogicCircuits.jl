@@ -207,7 +207,7 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
 
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
     lit_cache = Dict{Lit,StructLogicalLeafNode{PlainVtreeNode}}()
-    literal_node(l::Lit, v::PlainVtreeLeafNode) = get!(lit_cache, l) do
+    literal_node(l::Lit, v::PlainVtreeNode) = get!(lit_cache, l) do
         leaf = StructLiteralNode{PlainVtreeNode}(l,v)
         push!(circuit,leaf) # also add new leaf to linearized circuit before caller
         leaf
