@@ -71,6 +71,7 @@ const StructLogicalΔ{V} = AbstractVector{<:StructLogicalΔNode{V}}
 @inline GateType(::Type{<:Struct⋀Node}) = ⋀Gate()
 @inline GateType(::Type{<:Struct⋁Node}) = ⋁Gate()
 
+@inline node_type(::Type{<:StructLogicalΔNode}) = StructLogicalΔNode
 #####################
 # methods
 #####################

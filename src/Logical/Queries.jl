@@ -126,7 +126,7 @@ function literal_nodes(circuit::Union{Δ,ΔNode})::Dict{Lit,ΔNode}
 end
 
 "Construct a mapping from constants to their canonical node representation"
-function constant_nodes(circuit::Δ)::Tuple{ΔNode,ΔNode}
+function constant_nodes(circuit::Δ)::Tuple{Union{Nothing, ΔNode},Union{Nothing, ΔNode}}
     true_node = nothing
     false_node = nothing
     visit(n::ΔNode) = visit(GateType(n),n)
@@ -285,6 +285,10 @@ end
     reduce((x,y) -> x .& y, elems)
 end
 
+@inline function disjoin_elements(elems::Vector{BitVector})::BitVector
+    reduce((x, y) -> x .| y, elems)
+end
+
 @inline function accumulate_elements(x::BitVector, elems::Vector{BitVector}, op)::BitVector
     if length(elems) == 1
         @inbounds @. x = op(x, elems[1])
@@ -292,4 +296,34 @@ end
         @assert length(elems) == 2
         @inbounds @. x = op(x, elems[1] & elems[2])
     end
+end
+ 
+function pass_down2(circuit::Δ, data::XData{Bool})
+    num = num_examples(data)
+    @inline f_root(n, f_s) = begin
+        [always(Bool, num)]
+    end
+    @inline f_inner(n, f_s, p_s) = begin
+        x = never(Bool, num)
+        if length(f_s) == 2
+            for y in p_s
+                @inbounds @. x = x | ( y[1] & f_s[1] & f_s[2])
+            end
+        else
+            @assert length(f_s) == 1
+            for y in p_s
+                @inbounds @. x = x | ( y[1] & f_s[1])
+            end
+        end
+        [x]
+    end
+
+    f_leaf = f_inner
+
+    folddown_aggregate(circuit, f_root, f_leaf, f_inner, Vector{BitVector})
+end
+
+function pass_up_down2(circuit::Δ, data::XData{Bool})
+    circuit[end](data)
+    pass_down2(circuit, data)
 end

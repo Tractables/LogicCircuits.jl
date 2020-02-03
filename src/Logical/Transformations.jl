@@ -86,8 +86,8 @@ function forget2(is_forgotten::Function, root::ΔNode)::ΔNode
     end
     f_con(n) = n
     f_lit(n) = is_forgotten(variable(n)) ? true_node : n
-    f_a(n, cn) = conjoin_like(n, cn...)
-    f_o(n, cn) = disjoin_like(n, cn...)
+    f_a(n, cn) = conjoin_like(n, cn)
+    f_o(n, cn) = disjoin_like(n, cn)
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, ΔNode)
 end
 
@@ -146,14 +146,14 @@ function condition(root::ΔNode, lit::Lit)::ΔNode
                 (n, true)
             end
         end
-        f_a(n, cv) = (conjoin_like(n, first.(cv)...), all(last.(cv)))
+        f_a(n, cv) = (conjoin_like(n, first.(cv)), all(last.(cv)))
         f_o(n, cv) = begin
             kept = last.(cv)
             new_children = first.(cv)[kept]
             if length(new_children) == 1 && isliteralgate(new_children[1])
                 (new_children[1], true)
             else            
-                (disjoin_like(n, new_children...), any(kept))
+                (disjoin_like(n, new_children), any(kept))
             end
         end
         foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{ΔNode, Bool})[1]
@@ -187,8 +187,8 @@ function split(circuit::Union{Δ, ΔNode}, edge::Tuple{ΔNode, ΔNode}, var::Var
         condition(c, - var2lit(var))
     end
 
-    new_and1 = conjoin_like(and, new_children1...)
-    new_and2 = conjoin_like(and, new_children2...)
+    new_and1 = conjoin_like(and, new_children1)
+    new_and2 = conjoin_like(and, new_children2)
     new_or = disjoin_like(or, [[new_and1, new_and2]; filter(c -> c != and, children(or))])
     new_or = copy(new_or, depth)
     
@@ -222,7 +222,7 @@ function replace_node(root::ΔNode, old::ΔNode, new::ΔNode)::ΔNode
     @assert GateType(old) == GateType(new)
     f_con(n) = old == n ? new : n
     f_lit = f_con
-    f_a(n, cns) = old == n ? new : conjoin_like(n, cns...)
-    f_o(n, cns) = old == n ? new : disjoin_like(n, cns...)
+    f_a(n, cns) = old == n ? new : conjoin_like(n, cns)
+    f_o(n, cns) = old == n ? new : disjoin_like(n, cns)
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, ΔNode)
 end

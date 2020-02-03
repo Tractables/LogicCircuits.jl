@@ -27,7 +27,7 @@ is_smooth,
 smooth, forget, propagate_constants, condition, split, clone, 
 
 # LogicalCircuits
-LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ,
+LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ, node_type,
 LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, fully_factorized_circuit, copy, 
 
 # UpFlowCircuits
@@ -69,7 +69,10 @@ compile_cnf, compile_clause, validate,
 # TrimSddMgr
 TrimMgrNode, TrimSddMgr, XYPartition, Element, TrimSdd, TrimNode,
 compress, unique⋁, canonicalize, 
-compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from
+compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from, 
+
+# temp
+simple_test
 
 include("Circuits.jl")
 include("CircuitTraversal.jl")

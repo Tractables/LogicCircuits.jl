@@ -214,6 +214,48 @@ function foldup_aggregate(node::TreeNode, f_leaf::Function, f_inner::Function, :
     return v
 end
 
+
+"""
+Compute a function top down on the circuit.
+`f_root` is called on the root node, `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
+Values of type `T` are passed down the circuit and given to `f_inner` as a value from the parent.
+"""
+mutable struct Downpass
+    passup
+    passdown
+    Downpass(T, passup) = new(passup, Vector{T}())
+end
+function folddown_aggregate(node::Dag, f_root::Function, f_leaf::Function, f_inner::Function, ::Type{T})::Nothing where {T}
+    # folddown_aggregate(node[end], f_root, f_leaf, f_inner, T)
+    @inline isroot(n) = n === node[end]
+    @inline function folddown_init(n::DagNode)
+        n.data = Downpass(T, n.data)
+        nothing
+    end
+    @inline function data_to_childern(c::DagNode, data)
+        push!(c.data.passdown, data)
+    end
+    
+    foreach(folddown_init, node)
+    n = node[end]
+    n.data = x = f_root(n, n.data.passup)
+    map(c -> data_to_childern(c, x), children(n))
+
+    inners = filter(isinner, @view node[1:end-1])
+    map(Iterators.reverse(inners)) do n 
+        n.data = @inbounds f_inner(n, n.data.passup, n.data.passdown)::T
+        map(c -> data_to_childern(c, n.data), children(n))
+        nothing
+    end
+    
+    leafs = filter(isleaf, node)
+    map(leafs) do n 
+        n.data = f_leaf(n, n.data.passup, n.data.passdown)::T
+        nothing
+    end
+    flip_bit(node[end], Val(false))
+end
+
 #####################
 # other methods
 #####################
