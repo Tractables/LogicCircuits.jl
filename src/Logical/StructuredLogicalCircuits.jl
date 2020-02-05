@@ -82,3 +82,28 @@ const StructLogicalΔ{V} = AbstractVector{<:StructLogicalΔNode{V}}
 @inline children(n::StructLogicalInnerNode) = n.children
 
 @inline vtree(n::HasVtree) = n.vtree
+
+"Conjoin nodes in the same way as the example"
+@inline function conjoin_like(example::StructLogicalΔNode, arguments::Vector)
+    if isempty(arguments)
+        StructTrueNode{PlainVtreeNode}()
+    elseif example isa Struct⋀Node && children(example) == arguments
+        example
+    else
+        Struct⋀Node{PlainVtreeNode}(arguments, vtree(example))
+    end
+end
+
+"Disjoin nodes in the same way as the example"
+@inline function disjoin_like(example::StructLogicalΔNode, arguments::Vector)
+    if isempty(arguments)
+        StructFalseNode{PlainVtreeNode}()
+    elseif example isa Struct⋁Node && children(example) == arguments
+        example
+    else
+        Struct⋁Node{PlainVtreeNode}(arguments, vtree(example))
+    end
+end
+
+"Construct a new literal node like the given node's type"
+literal_like(example::StructLogicalΔNode, lit::Lit) = StructLiteralNode{PlainVtreeNode}(lit, vtree(example))

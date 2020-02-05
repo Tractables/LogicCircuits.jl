@@ -222,7 +222,7 @@ function replace_node(root::ΔNode, old::ΔNode, new::ΔNode)::ΔNode
     @assert GateType(old) == GateType(new)
     f_con(n) = old == n ? new : n
     f_lit = f_con
-    f_a(n, cns) = old == n ? new : conjoin_like(n, cns)
-    f_o(n, cns) = old == n ? new : disjoin_like(n, cns)
+    f_a(n, cns) = old == n ? new : conjoin_like(n, cns...)
+    f_o(n, cns) = old == n ? new : disjoin_like(n, cns...)
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, ΔNode)
 end

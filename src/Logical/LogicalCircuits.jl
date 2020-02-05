@@ -151,9 +151,13 @@ function copy_rec(n::ΔNode, depth::Int64, old2new::Dict{ΔNode, ΔNode})
             # type specific
             if n isa ⋀Node
                 ⋀Node(cns)
-            else
-                @assert n isa ⋁Node
+            elseif  n isa ⋁Node
                 ⋁Node(cns)
+            elseif n isa Struct⋁Node
+                Struct⋁Node{PlainVtreeNode}(cns, vtree(n))
+            else 
+                @assert n isa Struct⋀Node
+                Struct⋀Node{PlainVtreeNode}(cns, vtree(n))
             end
         end
     end
