@@ -6,7 +6,7 @@ Follow these instructions to install and use LogicCircuits.jl as a developer of 
 
 Install the Julia package in development mode by running
 
-    julia -e 'using Pkg; Pkg.develop(PackageSpec(url="git@github.com:Juice-jl/LogicCircuits.jl.git"))'
+    julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/Juice-jl/LogicCircuits.jl.git"))'
 
 By default this will install the package at `~/.julia/dev` and allow you to change the code there. See the [Pkg manual](https://julialang.github.io/Pkg.jl/v1/managing-packages/#Developing-packages-1) for more details. One can adjust the development directory using environment variables or simply create a symbolic link to/from your favorite development directory.
 
