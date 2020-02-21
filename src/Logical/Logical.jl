@@ -24,11 +24,11 @@ model_count, sat_prob, prob_equiv_signature, has_unique_literal_nodes, has_uniqu
 is_smooth, 
 
 # Transformations
-smooth, forget, propagate_constants, 
+smooth, forget, propagate_constants, condition, split, clone, 
 
 # LogicalCircuits
-LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ,
-LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, fully_factorized_circuit,
+LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ, node_type,
+LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, fully_factorized_circuit, copy, 
 
 # UpFlowCircuits
 UpFlowΔNode, UpFlowΔ, UpFlowLeafNode, UpFlowInnerNode,
@@ -69,17 +69,21 @@ compile_cnf, compile_clause, validate,
 # TrimSddMgr
 TrimMgrNode, TrimSddMgr, XYPartition, Element, TrimSdd, TrimNode,
 compress, unique⋁, canonicalize, 
-compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from
+compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from, 
+
+# temp
+simple_test
 
 include("Circuits.jl")
 include("CircuitTraversal.jl")
-include("Queries.jl")
-include("Transformations.jl")
 
 include("LogicalCircuits.jl")
 include("UpFlowCircuits.jl")
 include("DownFlowCircuits.jl")
 include("AggregateFlowCircuits.jl")
+
+include("Queries.jl")
+include("Transformations.jl")
 
 include("vtrees/Vtree.jl")
 include("StructuredLogicalCircuits.jl")

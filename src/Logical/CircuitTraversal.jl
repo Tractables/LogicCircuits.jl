@@ -50,6 +50,19 @@ function foldup_aggregate(node::Union{Δ,ΔNode}, f_con::Function, f_lit::Functi
     foldup_aggregate(node, f_leaf::Function, f_inner::Function, T)
 end
 
+import ..Utils: folddown_aggregate # extend
+function folddown_aggregate(node::Δ, f_root::Function, f_con::Function, f_lit::Function, f_a::Function, f_o::Function, ::Type{T})::Nothing where T
+    function f_leaf(n, fs, ps)
+        isliteralgate(n) ? f_lit(n, fs, ps)::T : f_con(n, fs, ps)::T
+    end
+    function f_inner(n, fs, ps) 
+        is⋀gate(n) ? f_a(n, fs, ps)::T : f_o(n, fs, ps)::T
+    end
+    folddown_aggregate(node, f_root, f_leaf::Function, f_inner::Function, T)
+end
+
+
+
 #####################
 # traversal methods
 #####################

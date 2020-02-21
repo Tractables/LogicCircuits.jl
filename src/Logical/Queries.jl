@@ -126,7 +126,7 @@ function literal_nodes(circuit::Union{Δ,ΔNode})::Dict{Lit,ΔNode}
 end
 
 "Construct a mapping from constants to their canonical node representation"
-function constant_nodes(circuit::Δ)::Tuple{ΔNode,ΔNode}
+function constant_nodes(circuit::Δ)::Tuple{Union{Nothing, ΔNode},Union{Nothing, ΔNode}}
     true_node = nothing
     false_node = nothing
     visit(n::ΔNode) = visit(GateType(n),n)
@@ -151,6 +151,25 @@ function constant_nodes(circuit::Δ)::Tuple{ΔNode,ΔNode}
     (false_node, true_node)
 end
 
+"Construct a mapping from constants to their canonical node representation"
+function constant_nodes2(circuit::Union{Δ,ΔNode})::Tuple{Union{Nothing, ΔNode},Union{Nothing, ΔNode}}
+    true_node = nothing
+    false_node = nothing
+    foreach(circuit) do n
+        if isconstantgate(n)
+            if is_true(n)
+                isnothing(true_node) || error("Circuit has multiple representations of true")
+                true_node = n
+            else
+                @assert is_false(n)
+                isnothing(false_node) || error("Circuit has multiple representations of false")
+                false_node = n
+            end
+        end
+    end
+    (false_node, true_node)
+end
+
 "Check whether literal nodes are unique"
 function has_unique_literal_nodes(circuit::Δ)::Bool
     literals = Set{Lit}()
@@ -167,6 +186,28 @@ function has_unique_literal_nodes(circuit::Δ)::Bool
         visit(node)
     end
     return result
+end
+
+"Check whether literal nodes are unique"
+function has_unique_literal_nodes2(circuit::Δ)::Bool
+    has_unique_literal_nodes2(circuit[end])
+end
+
+function has_unique_literal_nodes2(root::ΔNode)::Bool
+    literals = Set{Lit}()
+    @inline f_con(n) = true
+    @inline f_lit(n) = begin
+        lit = literal(n)
+        if lit in literals
+            false
+        else
+            push!(literals, lit)
+            true
+        end
+    end
+    @inline f_a(n, cs) = all(cs)
+    @inline f_o(n, cs) = all(cs)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Bool)
 end
 
 "Check whether constant nodes are unique"
@@ -244,6 +285,10 @@ end
     reduce((x,y) -> x .& y, elems)
 end
 
+@inline function disjoin_elements(elems::Vector{BitVector})::BitVector
+    reduce((x, y) -> x .| y, elems)
+end
+
 @inline function accumulate_elements(x::BitVector, elems::Vector{BitVector}, op)::BitVector
     if length(elems) == 1
         @inbounds @. x = op(x, elems[1])
@@ -251,4 +296,34 @@ end
         @assert length(elems) == 2
         @inbounds @. x = op(x, elems[1] & elems[2])
     end
+end
+ 
+function pass_down2(circuit::Δ, data::XData{Bool})
+    num = num_examples(data)
+    @inline f_root(n, f_s) = begin
+        [always(Bool, num)]
+    end
+    @inline f_inner(n, f_s, p_s) = begin
+        x = never(Bool, num)
+        if length(f_s) == 2
+            for y in p_s
+                @inbounds @. x = x | ( y[1] & f_s[1] & f_s[2])
+            end
+        else
+            @assert length(f_s) == 1
+            for y in p_s
+                @inbounds @. x = x | ( y[1] & f_s[1])
+            end
+        end
+        [x]
+    end
+
+    f_leaf = f_inner
+
+    folddown_aggregate(circuit, f_root, f_leaf, f_inner, Vector{BitVector})
+end
+
+function pass_up_down2(circuit::Δ, data::XData{Bool})
+    circuit[end](data)
+    pass_down2(circuit, data)
 end
