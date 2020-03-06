@@ -14,5 +14,9 @@ makedocs(
 # See "Hosting Documentation" and deploydocs() in the Documenter manual
 # for more information.
 deploydocs(
+    target = "build",
     repo = "github.com/Juice-jl/LogicCircuits.jl.git",
+    branch = "gh-pages",
+    devurl = "dev",
+    versions = ["stable" => "v^", "v#.#", devurl => devurl],
 )
