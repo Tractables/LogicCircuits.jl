@@ -1,3 +1,5 @@
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev)
+
 # LogicCircuits.jl for Developers
 
 Follow these instructions to install and use LogicCircuits.jl as a developer of the package.

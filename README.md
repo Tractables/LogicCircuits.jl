@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/Juice-jl/LogicCircuits.jl.svg?branch=master)](https://travis-ci.org/Juice-jl/LogicCircuits.jl)	
 [![codecov](https://codecov.io/gh/Juice-jl/LogicCircuits.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Juice-jl/LogicCircuits.jl)	
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable)
 
 
 # LogicCircuits.jl
