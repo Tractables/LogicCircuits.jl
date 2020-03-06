@@ -17,6 +17,7 @@ deploydocs(
     target = "build",
     repo = "github.com/Juice-jl/LogicCircuits.jl.git",
     branch = "gh-pages",
+    devbranch = "master",
     devurl = "dev",
-    versions = ["stable" => "v^", "v#.#", devurl => devurl],
+    versions = ["stable" => "v^", "v#.#"],
 )
