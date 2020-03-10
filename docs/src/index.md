@@ -1,23 +1,9 @@
-# LogicCircuits.jl Documentation
+# LogicCircuits.jl
 
-Documentation for LogicCircuits.jl
+Documentation for `LogicCircuits.jl`
 
-See the individual modules' API overviews below.
+!!! note
 
-## Data Module API
+    The documentation is still under construction and not complete yet. For more information or documentation requests please refer to the github repo for now.
+    
 
-```@autodocs
-Modules = [Data]
-```
-
-## Utils Module API
-
-```@autodocs
-Modules = [Utils]
-```
-
-## LogicCircuits Module API
-
-```@autodocs
-Modules = [LogicCircuits]
-```

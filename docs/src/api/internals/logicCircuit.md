@@ -1,0 +1,6 @@
+
+# LogicCircuits
+
+```@autodocs
+Modules = [LogicCircuits]
+```
