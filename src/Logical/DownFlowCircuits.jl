@@ -7,10 +7,6 @@
 abstract type DownFlowΔNode{O,F} <: DecoratorΔNode{UpFlowΔNode{O,F}} end
 abstract type DownFlowInnerNode{O,F} <: DownFlowΔNode{O,F} end
 
-struct DownFlowLeaf{O,F} <: DownFlowΔNode{O,F}
-    origin::UpFlowLeafNode{O,F}
-end
-
 abstract type DownFlow⋀{O,F} <: DownFlowInnerNode{O,F} end
 abstract type DownFlow⋁{O,F} <: DownFlowInnerNode{O,F} end
 
@@ -18,6 +14,11 @@ abstract type DownFlow⋁{O,F} <: DownFlowInnerNode{O,F} end
 mutable struct DownFlow{F}
     downflow::F
     in_progress::Bool
+end
+
+struct DownFlowLeaf{O,F} <: DownFlowΔNode{O,F}
+    origin::UpFlowLeafNode{O,F}
+    downflow::DownFlow{F}
 end
 
 struct DownFlow⋀Compact{O,F} <: DownFlow⋀{O,F}
@@ -59,7 +60,7 @@ const FlowΔ{O,F} = AbstractVector{<:FlowΔNode{O,F}}
 @inline GateType(::Type{<:DownFlow⋀}) = ⋀Gate()
 @inline GateType(::Type{<:DownFlow⋁}) = ⋁Gate()
 
-const HasDownFlow = Union{DownFlow⋁Cached,DownFlow⋀Cached}
+const HasDownFlow = Union{DownFlow⋁Cached, DownFlow⋀Cached, DownFlowLeaf}
 
 #####################
 # constructors and conversions
@@ -67,14 +68,14 @@ const HasDownFlow = Union{DownFlow⋁Cached,DownFlow⋀Cached}
 
 """Construct a downward flow circuit from a given upward flow circuit"""
 function DownFlowΔ(circuit::UpFlowΔ{O,F}, opts = flow_opts★)::DownFlowΔ{O,F} where {O,F}
-    
+
     m = flow_length(circuit)
     fmem  = () -> some_vector(eltype(F), m)
-    
+
     cache = Dict{ΔNode, DownFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)
 
-    flow_node(::LeafGate, n::ΔNode) = DownFlowLeaf{O,F}(n)
+    flow_node(::LeafGate, n::ΔNode) = DownFlowLeaf{O,F}(n, DownFlow(fmem(),false))
 
     flow_node(::⋀Gate, n::ΔNode) = begin
         n_children = map(c -> cache[c], children(n))
@@ -97,7 +98,7 @@ function DownFlowΔ(circuit::UpFlowΔ{O,F}, opts = flow_opts★)::DownFlowΔ{O,F
             DownFlow⋁Cached{O,F}(n, n_children, DownFlow(fmem(),false))
         end
     end
-        
+
     map(circuit) do node
         fnode = flow_node(GateType(node), node)
         cache[node] = fnode
@@ -125,7 +126,7 @@ end
 
 @inline downflow_sinks(n::DownFlowInnerNode) = n.cached_downflow_sinks
 @inline downflow_sinks(n::HasDownFlow) = [n.downflow]
-@inline downflow_sinks(n::DownFlowLeaf{O,F}) where {O,F} = Vector{DownFlow{F}}()
+# @inline downflow_sinks(n::DownFlowLeaf{O,F}) where {O,F} = Vector{DownFlow{F}}()
 @inline function downflow_sinks(ns::Vector{<:DownFlowΔNode{O,F}})::Vector{DownFlow{F}} where {O,F}
     flatmap(c -> downflow_sinks(c)::Vector{DownFlow{F}}, ns, DownFlow{F}[])
 end

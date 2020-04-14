@@ -8,7 +8,7 @@ using Random
 "Root of the plain vtree node hierarchy"
 abstract type PlainVtreeNode <: VtreeNode end
 
-struct PlainVtreeLeafNode <: PlainVtreeNode
+mutable struct PlainVtreeLeafNode <: PlainVtreeNode
     var::Var
 end
 
@@ -59,7 +59,7 @@ import ..Utils.isequal_local
 Compare whether two vtree nodes are locally equal (enables `equals` and `equals_unordered` from Utils)
 """
 isequal_local(leaf1::PlainVtreeNode, leaf2::PlainVtreeNode)::Bool = false #default
-isequal_local(leaf1::PlainVtreeLeafNode, leaf2::PlainVtreeLeafNode)::Bool = 
+isequal_local(leaf1::PlainVtreeLeafNode, leaf2::PlainVtreeLeafNode)::Bool =
     (leaf1.var == leaf2.var)
-isequal_local(inner1::PlainVtreeInnerNode, inner2::PlainVtreeInnerNode)::Bool = 
+isequal_local(inner1::PlainVtreeInnerNode, inner2::PlainVtreeInnerNode)::Bool =
     isequal(variables(inner1), variables(inner2))
