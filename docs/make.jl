@@ -14,8 +14,7 @@ end
 makedocs(
     sitename = "LogicCircuits.jl",
     format = Documenter.HTML(
-        # Use clean URLs, unless built as a "local" build
-        prettyurls = !("local" in ARGS),
+        prettyurls = true, # make false for local builds
         canonical = "https://juice-jl.github.io/LogicCircuits.jl/stable/",
         assets = ["assets/favicon.ico"],
         analytics = "UA-136089579-2",
@@ -30,8 +29,11 @@ makedocs(
     ], 
     pages = [
         "Home" => "index.md",
+        "Installation" => "installation.md",
         "Manual" => Any[
-            "Installation" => "manual/installation.md",
+            "Queries" => "manual/queries.md",
+            "Tranformantions" => "manual/transformations.md",
+            "Properties" => "manual/properties.md",
             "Examples" => "manual/examples.md"
         ],
         "API" => Any[
