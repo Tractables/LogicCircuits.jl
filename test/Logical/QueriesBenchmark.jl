@@ -1,5 +1,5 @@
 using Test
-using BenchmarkTools
+#using BenchmarkTools
 using LogicCircuits
 
 function benchmark_pass_down()
@@ -9,13 +9,13 @@ function benchmark_pass_down()
     pass_up(upflow, data);
     circuit(data);
 
-    @btime begin
+    @time begin
         downflow_circuit = DownFlowΔ(upflow,  (max_factors = 0, compact⋀ = false, compact⋁ = false));
         pass_down(downflow_circuit);
     end
     # 547.595 ms (2416251 allocations: 474.71 MiB)
     
-    @btime Logical.pass_down2(circuit, data); 
+    @time Logical.pass_down2(circuit, data); 
     # 379.885 ms (1687709 allocations: 419.05 MiB)
 
     
