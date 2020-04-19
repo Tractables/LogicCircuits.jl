@@ -17,6 +17,7 @@ prime, sub,
 
 # CircuitTraversal
 ⋁_nodes, ⋀_nodes,
+or_nodes, and_nodes,
 
 # Queries
 num_variables, is_decomposable, variable_scopes, variable_scope,

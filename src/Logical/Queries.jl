@@ -51,6 +51,7 @@ function variable_scope(circuit::Δ)::BitSet
     variable_scope(circuit[end])
 end
 
+"Get the variable scope of the root of the circuit"
 function variable_scope(root::ΔNode)::BitSet
     f_con(n) = BitSet()
     f_lit(n) = BitSet(variable(n))
