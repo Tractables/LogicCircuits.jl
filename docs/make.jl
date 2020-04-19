@@ -32,7 +32,7 @@ makedocs(
         "Installation" => "installation.md",
         "Manual" => Any[
             "Queries" => "manual/queries.md",
-            "Tranformantions" => "manual/transformations.md",
+            "Tranformations" => "manual/transformations.md",
             "Properties" => "manual/properties.md",
             "Examples" => "manual/examples.md"
         ],
