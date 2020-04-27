@@ -31,9 +31,9 @@ makedocs(
         "Home" => "index.md",
         "Installation" => "installation.md",
         "Manual" => Any[
-            "Queries" => "manual/queries.md",
+            "Structural Properties" => "manual/properties.md",
             "Tranformations" => "manual/transformations.md",
-            "Properties" => "manual/properties.md",
+            "Queries" => "manual/queries.md",            
             "Examples" => "manual/examples.md"
         ],
         "API" => Any[
