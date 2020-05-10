@@ -180,7 +180,7 @@ function foldup_aggregate(node::DagNode, f_leaf::Function, f_inner::Function, ::
     @assert node.bit == false
     v = foldup_aggregate_rec(node, f_leaf, f_inner, T)
     flip_bit(node)
-    v
+    return v
 end
 
 function foldup_aggregate_rec(node::DagNode, f_leaf::Function, f_inner::Function, 
