@@ -1,4 +1,5 @@
 using Documenter
+using DocumenterLaTeX
 using LogicCircuits
 
 # The DOCSARGS environment variable can be used to pass additional arguments to make.jl.
@@ -11,39 +12,48 @@ if haskey(ENV, "DOCSARGS")
 end
 
 
-makedocs(
-    sitename = "LogicCircuits.jl",
+const pages = [
+    "Home" => "index.md",
+    "Installation" => "installation.md",
+    "Manual" => [
+        "manual/properties.md",
+        "manual/transformations.md",
+        "manual/queries.md",            
+        "manual/examples.md"
+    ],
+    "API" => [
+        "api/public.md",
+        "Internals" => map(
+            s -> "api/internals/$(s)",
+            sort(readdir(joinpath(@__DIR__, "src/api/internals")))
+        ),
+    ],
+]
+
+const format = if ("pdf" in ARGS)
+    LaTeX(platform  = "native")
+else
     format = Documenter.HTML(
-        prettyurls = true, # make false for local builds
+        prettyurls = !("local" in ARGS),
         canonical = "https://juice-jl.github.io/LogicCircuits.jl/stable/",
         assets = ["assets/favicon.ico"],
         analytics = "UA-136089579-2",
         highlights = ["yaml"],
-    ),
-    doctest = true,
-    modules = [LogicCircuits],
+        collapselevel = 1,
+    )
+end
+
+makedocs(
+    sitename = "LogicCircuits.jl",
+    format   = format,
+    doctest  = true,
+    modules  = [LogicCircuits],
+    pages    = pages,
     linkcheck_ignore = [
         # We'll ignore links that point to GitHub's edit pages, as they redirect to the
         # login screen and cause a warning:
         r"https://github.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/edit(.*)"
     ], 
-    pages = [
-        "Home" => "index.md",
-        "Installation" => "installation.md",
-        "Manual" => Any[
-            "Structural Properties" => "manual/properties.md",
-            "Tranformations" => "manual/transformations.md",
-            "Queries" => "manual/queries.md",            
-            "Examples" => "manual/examples.md"
-        ],
-        "API" => Any[
-            "Public" => "api/public.md",
-            "Internals" => map(
-                s -> "api/internals/$(s)",
-                sort(readdir(joinpath(@__DIR__, "src/api/internals")))
-            ),
-        ],
-    ],
 )
 
 # Documenter can also automatically deploy documentation to gh-pages.

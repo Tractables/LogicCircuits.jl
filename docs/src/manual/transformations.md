@@ -1,3 +1,5 @@
+# [Tranformations](@id man-tranformations)
+
 ## Conditioning 
 
 Given the logical formula of the circuit ``\Delta``, conditioning on the literal ``x`` (resp. ``\lnot x``) is equivalent to replacing every occurance of ``X`` with `true` (resp. `false`). 

@@ -1,4 +1,4 @@
-# Examples
+# [Examples](@id man-examples)
 
 !!! note
 

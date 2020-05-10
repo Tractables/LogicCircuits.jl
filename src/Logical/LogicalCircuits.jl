@@ -2,19 +2,29 @@
 # Logical circuits
 #####################
 
-"Root of the logical circuit node hierarchy"
+"""
+Root of the logical circuit node hierarchy
+"""
 abstract type LogicalΔNode <: ΔNode end
 
-"Root of the unstructured logical circuit node hierarchy"
+"""
+Root of the unstructured logical circuit node hierarchy
+"""
 abstract type UnstLogicalΔNode <: LogicalΔNode end
 
-"A logical leaf node"
+"""
+A logical leaf node
+"""
 abstract type LogicalLeafNode <: UnstLogicalΔNode end
 
-"A logical inner node"
+"""
+A logical inner node
+"""
 abstract type LogicalInnerNode <: UnstLogicalΔNode end
 
-"A logical literal leaf node, representing the positive or negative literal of its variable"
+"""
+A logical literal leaf node, representing the positive or negative literal of its variable
+"""
 mutable struct LiteralNode <: LogicalLeafNode
     literal::Lit
     data
@@ -22,22 +32,32 @@ mutable struct LiteralNode <: LogicalLeafNode
     LiteralNode(l) = new(l, nothing, false)
 end
 
-"A logical constant leaf node, representing true or false"
+"""
+A logical constant leaf node, representing true or false
+"""
 abstract type ConstantNode <: LogicalInnerNode end
 
+"""
+Constant True node
+"""
 mutable struct TrueNode <: ConstantNode 
     data
     bit::Bool
     TrueNode() = new(nothing, false)
 end
 
+"""
+Constant False node
+"""
 mutable struct FalseNode <: ConstantNode 
     data
     bit::Bool
     FalseNode() = new(nothing, false)
 end
 
-"A logical conjunction node"
+"""
+A logical conjunction node (And node)
+"""
 mutable struct ⋀Node <: LogicalInnerNode
     children::Vector{LogicalΔNode}
     data
@@ -45,7 +65,9 @@ mutable struct ⋀Node <: LogicalInnerNode
     ⋀Node(c) = new(c, nothing, false)
 end
 
-"A logical disjunction node"
+"""
+A logical disjunction node (Or node)
+"""
 mutable struct ⋁Node <: LogicalInnerNode
     children::Vector{LogicalΔNode}
     data
@@ -53,16 +75,23 @@ mutable struct ⋁Node <: LogicalInnerNode
     ⋁Node(c) = new(c, nothing, false)
 end
 
-"A logical circuit represented as a bottom-up linear order of nodes"
+"""
+A logical circuit represented as a bottom-up linear order of nodes
+"""
 const LogicalΔ = AbstractVector{<:LogicalΔNode}
 
-"A unstructured logical circuit represented as a bottom-up linear order of nodes"
+"""
+A unstructured logical circuit represented as a bottom-up linear order of nodes
+"""
 const UnstLogicalΔ = AbstractVector{<:UnstLogicalΔNode}
 
 #####################
 # traits
 #####################
 
+"""
+Returns GateType of a node (Literal, Constant, And, Or)
+"""
 @inline GateType(::Type{<:LiteralNode}) = LiteralGate()
 @inline GateType(::Type{<:ConstantNode}) = ConstantGate()
 @inline GateType(::Type{<:⋀Node}) = ⋀Gate()

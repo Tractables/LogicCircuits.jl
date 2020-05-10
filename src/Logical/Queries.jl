@@ -27,7 +27,9 @@ end
 
 const Signature = Vector{Rational{BigInt}}
 
-"Get a signature for each node using probabilistic equivalence checking"
+"""
+Get a signature for each node using probabilistic equivalence checking
+"""
 function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,ΔNode},Signature}
     prob_equiv_signature(circuit[end],k)
 end

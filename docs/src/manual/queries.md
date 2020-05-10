@@ -1,3 +1,5 @@
+# [Queries](@id man-queries)
+
 !!! note
 
     This page is still under construction. For suggestions and fixes, please click on the "Edit on Github" button in the top right.
