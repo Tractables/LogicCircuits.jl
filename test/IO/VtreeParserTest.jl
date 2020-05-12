@@ -54,15 +54,19 @@
     test_vtree(vtree)
 
     mktempdir() do tmp
-        # Now testing save
-        #   Save the vtree, load it from file, and then run the same tests
+        # Save the vtree
         temp_path = "$tmp/little_4var_temp.vtree"
         save(vtree, temp_path)
 
-        # dot_path = "$tmp/little_4var_temp.dot"
-        #save(vtree, dot_path)
-
+        # load it from file, and then run the same tests
         test_vtree(load_vtree(temp_path))
 
+        # Save dot file
+        dot_path = "$tmp/little_4var_temp.dot"
+        save(vtree, dot_path)
+
+        # Save unsupported format 
+        dot_path = "$tmp/little_4var_temp.bad_extension"
+        @test_throws String save(vtree, dot_path);
     end
 end
