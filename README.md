@@ -25,9 +25,9 @@ To make sure everything is working correctly, you can run our test suite as foll
 
 ## Documentation
 
-To build the documentation locally, run the following and then open `docs/build/index.html`.
+To build the documentation locally, run the following and then open `docs/build/index.html`. For more information, check the readme inside the `./docs`  folder.
 
-    julia -e 'using Pkg; Pkg.activate("./docs"); Pkg.instantiate(); include("docs/make.jl");
+    julia --project=docs docs/make.jl
 
 ## Development
 
