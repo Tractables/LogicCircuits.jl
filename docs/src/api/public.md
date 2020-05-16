@@ -1,4 +1,4 @@
-# Public Documentation
+# [Public API](@id api-public)
 
 Documentation for `LogicCircuits.jl`'s public interface.
 
@@ -22,3 +22,9 @@ Pages = ["public.md"]
 load_logical_circuit
 load_smooth_logical_circuit
 ```
+
+
+!!! note
+
+    This list is not complete yet, will be adding more here as the public API gets finalized.
+    

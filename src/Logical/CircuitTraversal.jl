@@ -70,6 +70,12 @@ end
 "Get the list of conjunction nodes in a given circuit"
 ⋀_nodes(c::Union{ΔNode,Δ}) = filter(is⋀gate, c)
 
+"Get the list of And nodes in a given circuit"
+@inline and_nodes(c::Union{ΔNode,Δ}) = ⋀_nodes(c)
+
 "Get the list of disjunction nodes in a given circuit"
 ⋁_nodes(c::Union{ΔNode,Δ}) = filter(is⋁gate, c)
+
+"Get the list of or nodes in a given circuit"
+@inline or_nodes(c::Union{ΔNode,Δ}) = ⋁_nodes(c)
 

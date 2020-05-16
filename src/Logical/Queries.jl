@@ -27,7 +27,9 @@ end
 
 const Signature = Vector{Rational{BigInt}}
 
-"Get a signature for each node using probabilistic equivalence checking"
+"""
+Get a signature for each node using probabilistic equivalence checking
+"""
 function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,ΔNode},Signature}
     prob_equiv_signature(circuit[end],k)
 end
@@ -51,6 +53,7 @@ function variable_scope(circuit::Δ)::BitSet
     variable_scope(circuit[end])
 end
 
+"Get the variable scope of the root of the circuit"
 function variable_scope(root::ΔNode)::BitSet
     f_con(n) = BitSet()
     f_lit(n) = BitSet(variable(n))

@@ -3,6 +3,18 @@ using MLDatasets
 using CSV
 using Pkg.Artifacts
 
+####################
+# Constants
+#####################
+
+const twenty_dataset_names = [
+        "accidents", "ad", "baudio", "bbc", "bnetflix", "book", "c20ng", "cr52", "cwebkb",
+        "dna", "jester", "kdd", "kosarek", "msnbc", "msweb", "nltcs", "plants", "pumsb_star", "tmovie", "tretail", 
+        "binarized_mnist"
+];
+
+const zoo_version = "/Circuit-Model-Zoo-0.1.2";
+
 #####################
 # Data loaders
 #####################
@@ -29,12 +41,6 @@ function mnist()
     XYDataset(train,valid,test)
 end
 
-expand_folds(f) = [f("train"), f("valid"), f("test")]
-
-const twenty_dataset_names = ["accidents", "ad", "baudio", "bbc", "bnetflix", "book", "c20ng", "cr52", "cwebkb",
-           "dna", "jester", "kdd", "kosarek", "msnbc", "msweb", "nltcs", "plants", "pumsb_star", "tmovie", "tretail", 
-           "binarized_mnist"]
-
 
 sampled_mnist() = twenty_datasets("binarized_mnist")
 
@@ -57,25 +63,25 @@ end
 #####################
 
 zoo_vtree_file(name) = 
-    artifact"circuit_model_zoo" * "/Circuit-Model-Zoo-0.1.2/vtrees/$name"
+    artifact"circuit_model_zoo" * zoo_version * "/vtrees/$name"
 
 zoo_cnf_file(name) = 
-    artifact"circuit_model_zoo" * "/Circuit-Model-Zoo-0.1.2/cnfs/$name"
+    artifact"circuit_model_zoo" * zoo_version * "/cnfs/$name"
 
 zoo_dnf_file(name) = 
-    artifact"circuit_model_zoo" * "/Circuit-Model-Zoo-0.1.2/dnfs/$name"
+    artifact"circuit_model_zoo" * zoo_version * "/dnfs/$name"
 
 zoo_lc_file(name) = 
-    artifact"circuit_model_zoo" * "/Circuit-Model-Zoo-0.1.2/lcs/$name"
+    artifact"circuit_model_zoo" * zoo_version * "/lcs/$name"
 
 zoo_clt_file(name) = 
-    artifact"circuit_model_zoo" * "/Circuit-Model-Zoo-0.1.2/clts/$name"
+    artifact"circuit_model_zoo" * zoo_version * "/clts/$name"
 
 zoo_psdd_file(name) = 
-    artifact"circuit_model_zoo" * "/Circuit-Model-Zoo-0.1.2/psdds/$name"
+    artifact"circuit_model_zoo" * zoo_version * "/psdds/$name"
 
 zoo_sdd_file(name) = 
-    artifact"circuit_model_zoo" * "/Circuit-Model-Zoo-0.1.2/sdds/$name"
+    artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
 
 # loaders
 

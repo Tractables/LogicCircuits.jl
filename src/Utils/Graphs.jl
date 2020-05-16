@@ -71,8 +71,6 @@ end
 import Base.foreach #extend
 
 "Apply a function to each node in a circuit, bottom up"
-
-
 function foreach(f::Function, node::DagNode)
     foreach_rec(f, node)
     flip_bit(node)
@@ -182,7 +180,7 @@ function foldup_aggregate(node::DagNode, f_leaf::Function, f_inner::Function, ::
     @assert node.bit == false
     v = foldup_aggregate_rec(node, f_leaf, f_inner, T)
     flip_bit(node)
-    v
+    return v
 end
 
 function foldup_aggregate_rec(node::DagNode, f_leaf::Function, f_inner::Function, 
@@ -285,11 +283,17 @@ function num_edges(node::DagNode)
     count
 end
 
+"Is the node a leaf node?"
 @inline isleaf(n::Node) = NodeType(n) isa Leaf
+
+"Is the node an Inner node?"
 @inline isinner(n::Node) = NodeType(n) isa Inner
 
 "Get the list of inner nodes in a given graph"
 inodes(c::Union{DagNode,DiGraph}) = filter(isinner, c)
+
+"Get the list of inner nodes in a given graph"
+innernodes(c::Union{DagNode,DiGraph}) = inodes(c)
 
 "Get the list of leaf nodes in a given graph"
 leafnodes(c::DiGraph) = filter(isleaf, c)

@@ -14,7 +14,7 @@ end
 # decompile for nodes
 #####################
 
-# decompile for sdd circuit
+"Decompile for sdd circuit, used during saving of circuits to file" 
 decompile(n::StructLiteralNode, node2id, vtree2id)::UnweightedLiteralLine = 
     UnweightedLiteralLine(node2id[n], vtree2id[n.vtree], literal(n), false)
 
@@ -64,6 +64,7 @@ end
 # saver for circuits
 #####################
 
+"Returns header for SDD file format"
 function sdd_header()
     """
     c ids of sdd nodes start at 0
@@ -84,6 +85,7 @@ function save_sdd_file(name::String, circuit::DecoratorΔ, vtree::PlainVtree)
     save_sdd_file(name, origin(circuit, StructLogicalΔNode), vtree)
 end
 
+"Save a SDD circuit to file"
 function save_sdd_file(name::String, circuit::StructLogicalΔ, vtree::PlainVtree)
     #TODO no need to pass the vtree, we can infer it from origin?
     @assert endswith(name, ".sdd")
@@ -98,4 +100,5 @@ function save_sdd_file(name::String, circuit::StructLogicalΔ, vtree::PlainVtree
     save_lines(name, formatlines)
 end
 
+"Save a circuit to file"
 save_circuit(name::String, circuit::StructLogicalΔ, vtree::PlainVtree) = save_sdd_file(name, circuit, vtree)

@@ -22,15 +22,6 @@ jobs:
       after_success:
         - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
 
-      notifications:
-        slack:
-          on_success: always
-          on_failure: always
-          on_start: always
-          on_error: always
-          rooms:
-            - secure: "rmJojqwsfF+qfdvxXDIzSJJG2j37YzsyRwx5UDloug8fAL3J2wEB20uc/BhX1IZik+9MIwf71SNj2WZp8wz21PtZg6pZZ47c3xMlG1o8QgLuAkTK9xmcLP28X041ajAFVr1OP3HFVdDARQcwiUriwbs7yinPacv7+veRY85vCOg/0r/LML6wGSvXJwAwM4phtgBP0m7zA05zBCoFqWcsB6ZdcVN82WhdO00PhrFAKIooMX1tKUr0twf3qBRI5hxi4VGmVc+4mkWRsE53GHbCMBYbgxeZWOCbtS9pcCUXaYT2K6o0RqPgnskcGnYWu+i8VnEsuYqgJujfRJMeSGYG4rASQA8emIXoCcs4bF/W+lZJ+RhGJSMLO3K2YL+AhMXxYqQB5EnM94Q6Dz8Df2izdpMYd6//gB4F4XYoqNl+pZNxxN4eClKH4SJIMg0zEKC/ApqJqX9N3UmtEd50aJL963XigE4f/XorG6/8hlhqgNA3stGyYzF3Bg7LkWuMmFKH0IpzA4Li0BeaIsEdPz9ZOTvqe3I3cW0ZTDIJI2uH0uhL/QENqX4xO6Mp0kX26RQ5Pr9qzoJoDg6NnEJDd3OSWt6I/JAIJeaBynKCB5hvwzv956K/DCnWIX8k2Y+OCyp0hQOn0oP5vgQskdyjkVlZU3FMyTtUtZhE0Z72xXb8XOs="
-
     - stage: "Documentation"
       julia: 1.3
       os: linux
@@ -39,4 +30,11 @@ jobs:
         - julia --project=docs/ docs/make.jl
       after_success: skip  
     
-
+notifications:
+  slack:
+    on_success: always
+    on_failure: always
+    on_start: always
+    on_error: always
+    rooms:
+      - secure: "rmJojqwsfF+qfdvxXDIzSJJG2j37YzsyRwx5UDloug8fAL3J2wEB20uc/BhX1IZik+9MIwf71SNj2WZp8wz21PtZg6pZZ47c3xMlG1o8QgLuAkTK9xmcLP28X041ajAFVr1OP3HFVdDARQcwiUriwbs7yinPacv7+veRY85vCOg/0r/LML6wGSvXJwAwM4phtgBP0m7zA05zBCoFqWcsB6ZdcVN82WhdO00PhrFAKIooMX1tKUr0twf3qBRI5hxi4VGmVc+4mkWRsE53GHbCMBYbgxeZWOCbtS9pcCUXaYT2K6o0RqPgnskcGnYWu+i8VnEsuYqgJujfRJMeSGYG4rASQA8emIXoCcs4bF/W+lZJ+RhGJSMLO3K2YL+AhMXxYqQB5EnM94Q6Dz8Df2izdpMYd6//gB4F4XYoqNl+pZNxxN4eClKH4SJIMg0zEKC/ApqJqX9N3UmtEd50aJL963XigE4f/XorG6/8hlhqgNA3stGyYzF3Bg7LkWuMmFKH0IpzA4Li0BeaIsEdPz9ZOTvqe3I3cW0ZTDIJI2uH0uhL/QENqX4xO6Mp0kX26RQ5Pr9qzoJoDg6NnEJDd3OSWt6I/JAIJeaBynKCB5hvwzv956K/DCnWIX8k2Y+OCyp0hQOn0oP5vgQskdyjkVlZU3FMyTtUtZhE0Z72xXb8XOs="
