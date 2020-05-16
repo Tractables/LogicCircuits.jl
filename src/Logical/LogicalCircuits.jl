@@ -25,13 +25,13 @@ end
 "A logical constant leaf node, representing true or false"
 abstract type ConstantNode <: LogicalInnerNode end
 
-mutable struct TrueNode <: ConstantNode 
+mutable struct TrueNode <: ConstantNode
     data
     bit::Bool
     TrueNode() = new(nothing, false)
 end
 
-mutable struct FalseNode <: ConstantNode 
+mutable struct FalseNode <: ConstantNode
     data
     bit::Bool
     FalseNode() = new(nothing, false)
@@ -148,17 +148,11 @@ function copy_rec(n::ΔNode, depth::Int64, old2new::Dict{ΔNode, ΔNode})
             cns = map(children(n)) do c
                 copy_rec(c, depth - 1, old2new)
             end
-            # type specific
-            if n isa ⋀Node
-                ⋀Node(cns)
-            elseif  n isa ⋁Node
-                ⋁Node(cns)
-            elseif n isa Struct⋁Node
-                Struct⋁Node{PlainVtreeNode}(cns, vtree(n))
-            else 
-                @assert n isa Struct⋀Node
-                Struct⋀Node{PlainVtreeNode}(cns, vtree(n))
-            end
+            copy_node(n, cns)
         end
     end
 end
+
+@inline copy_node(n::ΔNode, cns) = @assert false "TODO"
+@inline copy_node(n::⋀Node, cns) = ⋀Node(cns)
+@inline copy_node(n::⋁Node, cns) = ⋁Node(cns)

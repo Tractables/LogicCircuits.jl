@@ -129,7 +129,7 @@ end
     or = c0[end]
     and = children(or)[1]
     v = Var(1)
-    c1= split(c0, (or, and), v)
+    c1, _ = split(c0, (or, and), v)
     @test num_nodes(c1) == 22
     @test num_edges(c1) == 24
     @test c1[end].children[1].children[2] == c1[end].children[2].children[2]
@@ -138,7 +138,7 @@ end
     or = c1[end].children[1].children[1]
     and = children(or)[2]
     v = Var(4)
-    c2 = split(c1, (or, and), v)
+    c2, _ = split(c1, (or, and), v)
     @test num_nodes(c2) == 24
     @test num_edges(c2) == 29
     n1 = c2[end].children[2].children[1].children[2]

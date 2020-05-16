@@ -1,5 +1,5 @@
 #####################
-# Logical circuits that are structured, 
+# Logical circuits that are structured,
 # meaning that each conjunction is associated with a vtree node.
 #####################
 
@@ -27,13 +27,13 @@ These are the only structured nodes that don't have an associated vtree node (cf
 """
 abstract type StructConstantNode{V} <: StructLogicalInnerNode{V} end
 
-mutable struct StructTrueNode{V} <: StructConstantNode{V} 
+mutable struct StructTrueNode{V} <: StructConstantNode{V}
     data
     bit::Bool
     StructTrueNode{V}() where V = new{V}(nothing, false)
 end
 
-mutable struct StructFalseNode{V} <: StructConstantNode{V} 
+mutable struct StructFalseNode{V} <: StructConstantNode{V}
     data
     bit::Bool
     StructFalseNode{V}() where V = new{V}(nothing, false)
@@ -107,3 +107,6 @@ end
 
 "Construct a new literal node like the given node's type"
 literal_like(example::StructLogicalΔNode, lit::Lit) = StructLiteralNode{PlainVtreeNode}(lit, vtree(example))
+
+@inline copy_node(n::Struct⋁Node, cns) = Struct⋁Node{PlainVtreeNode}(cns, vtree(n))
+@inline copy_node(n::Struct⋀Node, cns) = Struct⋀Node{PlainVtreeNode}(cns, vtree(n))

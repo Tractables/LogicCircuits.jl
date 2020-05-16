@@ -8,12 +8,12 @@ using ..Utils
 export
 
 # Circuits
-Var, Lit, var2lit, lit2var, ΔNode, Δ, 
-LiteralGate, ConstantGate, ⋁Gate, ⋀Gate, 
-GateType, InnerGate, LeafGate, 
+Var, Lit, var2lit, lit2var, ΔNode, Δ,
+LiteralGate, ConstantGate, ⋁Gate, ⋀Gate,
+GateType, InnerGate, LeafGate,
 negative, positive, variable, literal,
 true_like, false_like, DecoratorΔ, DecoratorΔNode, origin, grand_origin, is_true, is_false, constant,
-prime, sub, 
+prime, sub, conjoin_like, disjoin_like, literal_like,
 
 # CircuitTraversal
 ⋁_nodes, ⋀_nodes,
@@ -21,14 +21,15 @@ prime, sub,
 # Queries
 num_variables, is_decomposable, variable_scopes, variable_scope,
 model_count, sat_prob, prob_equiv_signature, has_unique_literal_nodes, has_unique_constant_nodes,
-is_smooth, 
+is_smooth,
 
 # Transformations
-smooth, forget, propagate_constants, condition, split, clone, 
+smooth, forget, propagate_constants, condition, split, clone, replace_node,
 
 # LogicalCircuits
 LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ, node_type,
-LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, fully_factorized_circuit, copy, 
+LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, fully_factorized_circuit, copy,
+copy_node, normalize,  
 
 # UpFlowCircuits
 UpFlowΔNode, UpFlowΔ, UpFlowLeafNode, UpFlowInnerNode,
@@ -58,7 +59,7 @@ PlainVtreeNode, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_
 path_length, random_vtree,
 
 # Sdd
-SddMgrNode, SddMgr, 
+SddMgrNode, SddMgr,
 SddNode, SddLeafNode, SddCircuit, Sdd,
 SddLiteralNode, SddConstantNode, Sdd⋁Node, Sdd⋀Node,
 
@@ -68,8 +69,8 @@ compile_cnf, compile_clause, validate,
 
 # TrimSddMgr
 TrimMgrNode, TrimSddMgr, XYPartition, Element, TrimSdd, TrimNode,
-compress, unique⋁, canonicalize, 
-compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from, 
+compress, unique⋁, canonicalize,
+compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from,
 
 # temp
 simple_test
