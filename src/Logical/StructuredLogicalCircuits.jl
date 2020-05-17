@@ -45,7 +45,7 @@ mutable struct Struct⋀Node{V} <: StructLogicalInnerNode{V}
     vtree::V
     data
     bit::Bool
-    Struct⋀Node{V}(c,v::V) where V = new{V}(c, v, nothing, false)
+    Struct⋀Node{V}(c,v::V) where V = new{V}(convert(Vector{StructLogicalΔNode{V}}, c), v, nothing, false)
 end
 
 "A structured logical disjunction node"
@@ -54,7 +54,7 @@ mutable struct Struct⋁Node{V} <: StructLogicalInnerNode{V}
     vtree::V # could be leaf or inner
     data
     bit::Bool
-    Struct⋁Node{V}(c,v::V) where V = new{V}(c, v, nothing, false)
+    Struct⋁Node{V}(c,v::V) where V = new{V}(convert(Vector{StructLogicalΔNode{V}}, c), v, nothing, false)
 end
 
 HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
