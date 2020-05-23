@@ -28,9 +28,9 @@ end
 function mnist()
     # transposing makes slicing by variable much much faster
     # need to take a copy to physically move the data around
-    train_x = copy_with_eltype(transpose(MNIST.convert2features(MNIST.traintensor())), Float32)
-    test_x  = copy_with_eltype(transpose(MNIST.convert2features(MNIST.testtensor())), Float32)
-
+    train_x = copy_with_eltype(transpose(reshape(MNIST.traintensor(), 28*28, :)), Float32)
+    test_x  = copy_with_eltype(transpose(reshape(MNIST.testtensor(), 28*28, :)), Float32)
+    
     train_y::Vector{UInt8} = MNIST.trainlabels()
     test_y::Vector{UInt8}  = MNIST.testlabels()
 
