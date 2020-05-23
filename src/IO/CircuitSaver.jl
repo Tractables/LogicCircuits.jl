@@ -102,3 +102,87 @@ end
 
 "Save a circuit to file"
 save_circuit(name::String, circuit::StructLogicalΔ, vtree::PlainVtree) = save_sdd_file(name, circuit, vtree)
+
+"Rank nodes in the same layer left to right"
+function get_nodes_level(circuit::LogicalΔ)
+    levels = Vector{Vector{LogicalΔNode}}()
+    current = Vector{LogicalΔNode}()
+    next = Vector{LogicalΔNode}()
+
+    push!(next, circuit[end])
+    push!(levels, Base.copy(next))
+    while !isempty(next)
+        current, next = next, current
+        while !isempty(current)
+            n = popfirst!(current)
+            if n isa Logical.LogicalInnerNode
+                for c in children(n)
+                    if !(c in next) push!(next, c); end
+                end
+            end
+        end
+        push!(levels, Base.copy(next))
+    end
+
+    return levels
+end
+
+function save_as_dot(root::LogicalΔNode, file::String)
+  circuit = Vector{LogicalΔNode}()
+  foreach(x -> pushfirst!(circuit, x), root)
+  return save_as_dot(circuit, file)
+end
+
+"Save prob circuits to .dot file"
+function save_as_dot(circuit::LogicalΔ, file::String)
+    node_cache = Dict{LogicalΔNode, Int64}()
+    for (i, n) in enumerate(circuit)
+        node_cache[n] = i
+    end
+
+    levels = get_nodes_level(circuit)
+
+    f = open(file, "w")
+    write(f,"digraph Circuit {\nsplines=false\nedge[arrowhead=\"none\",fontsize=6]\n")
+
+    for level in levels
+        if length(level) > 1
+            write(f,"{rank=\"same\";newrank=\"true\";rankdir=\"LR\";")
+            rank = ""
+            foreach(x->rank*="$(node_cache[x])->",level)
+            rank = rank[1:end-2]
+            write(f, rank)
+            write(f,"[style=invis]}\n")
+        end
+    end
+
+    for n in reverse(circuit)
+        if n isa ⋀Node
+            write(f, "$(node_cache[n]) [label=\"*$(node_cache[n])\"]\n")
+        elseif n isa ⋁Node
+            write(f, "$(node_cache[n]) [label=\"+$(node_cache[n])\"]\n")
+        elseif n isa LiteralNode && positive(n)
+            write(f, "$(node_cache[n]) [label=\"+$(variable(n))\"]\n")
+        elseif n isa LiteralNode && negative(n)
+            write(f, "$(node_cache[n]) [label=\"-$(variable(n))\"]\n")
+        elseif n isa FalseNode
+            write(f, "$(node_cache[n]) [label=\"F\"]\n")
+        elseif n isa TrueNode
+            write(f, "$(node_cache[n]) [label=\"T\"]\n")
+        else
+            throw("unknown node type")
+        end
+    end
+
+    for n in reverse(circuit)
+        if n isa ⋀Node || n isa ⋁Node
+            for c in n.children
+                write(f, "$(node_cache[n]) -> $(node_cache[c])\n")
+            end
+        end
+    end
+
+    write(f, "}\n")
+    flush(f)
+    close(f)
+end
