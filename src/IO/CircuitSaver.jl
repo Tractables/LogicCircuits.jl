@@ -104,10 +104,10 @@ end
 save_circuit(name::String, circuit::StructLogicalΔ, vtree::PlainVtree) = save_sdd_file(name, circuit, vtree)
 
 "Rank nodes in the same layer left to right"
-function get_nodes_level(circuit::LogicalΔ)
-    levels = Vector{Vector{LogicalΔNode}}()
-    current = Vector{LogicalΔNode}()
-    next = Vector{LogicalΔNode}()
+function get_nodes_level(circuit::Δ)
+    levels = Vector{Vector{ΔNode}}()
+    current = Vector{ΔNode}()
+    next = Vector{ΔNode}()
 
     push!(next, circuit[end])
     push!(levels, Base.copy(next))
@@ -115,7 +115,7 @@ function get_nodes_level(circuit::LogicalΔ)
         current, next = next, current
         while !isempty(current)
             n = popfirst!(current)
-            if n isa Logical.LogicalInnerNode
+            if isinner(n)
                 for c in children(n)
                     if !(c in next) push!(next, c); end
                 end
@@ -128,12 +128,10 @@ function get_nodes_level(circuit::LogicalΔ)
 end
 
 function save_as_dot(root::LogicalΔNode, file::String)
-  circuit = Vector{LogicalΔNode}()
-  foreach(x -> pushfirst!(circuit, x), root)
-  return save_as_dot(circuit, file)
+    return save_as_dot(node2dag(root), file)
 end
 
-"Save prob circuits to .dot file"
+"Save logic circuit to .dot file"
 function save_as_dot(circuit::LogicalΔ, file::String)
     node_cache = Dict{LogicalΔNode, Int64}()
     for (i, n) in enumerate(circuit)
