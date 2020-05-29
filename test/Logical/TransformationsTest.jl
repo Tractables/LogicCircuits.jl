@@ -179,3 +179,11 @@ end
     @test num_edges(n2) == num_edges(n0) + 4
     @test length(Set([node2dag(n2); node2dag(n0)])) == num_nodes(n0) + 5
 end
+
+@testset "Merge test" begin
+    n0 = little_3var()
+    n1 = merge(n0, n0[9], n0[12])
+    @test n0[end].children[1].children[2] != n0[end].children[2].children[2]
+    @test n1[end].children[1].children[2] == n1[end].children[2].children[2]
+    @test num_nodes(n1[end]) == (num_nodes(n0[end]) - 1)
+end

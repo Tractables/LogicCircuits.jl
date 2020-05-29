@@ -25,7 +25,7 @@ model_count, sat_prob, prob_equiv_signature, has_unique_literal_nodes, has_uniqu
 is_smooth,
 
 # Transformations
-smooth, forget, propagate_constants, condition, split, clone, replace_node,
+smooth, forget, propagate_constants, condition, split, clone, replace_node, merge,
 
 # LogicalCircuits
 LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ, node_type,
