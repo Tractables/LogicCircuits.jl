@@ -230,6 +230,28 @@ function clone(circuit::Union{Δ, ΔNode}, or1::ΔNode, or2::ΔNode, and::ΔNode
     replace_node(circuit, or2, new_or2)
 end
 
+import Base.merge
+
+function merge(circuit::Union{Δ, ΔNode}, or1::ΔNode, or2::ΔNode)
+    # sanity check
+    @assert GateType(or1) isa ⋁Gate && GateType(or2) isa ⋁Gate
+    if circuit isa Δ
+        @assert or1 in circuit && or2 in circuit
+    else
+        # TODO
+    end
+
+    # Simply replace the occurrencce of the larger OR with the smaller OR
+    n_or1 = num_nodes(or1)
+    n_or2 = num_nodes(or2)
+
+    if n_or1 >= n_or2
+        replace_node(circuit, or1, or2)
+    else
+        replace_node(circuit, or2, or1)
+    end
+end
+
 function replace_node(circuit::Δ, old::ΔNode, new::ΔNode)::Δ
     node2dag(replace_node(circuit[end], old, new))
 end
