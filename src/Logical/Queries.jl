@@ -255,7 +255,7 @@ function evaluate(root::ΔNode, data::XData{Bool})::BitVector
         [broadcast(!,feature_matrix(data)[:,variable(n)])]
     end
     @inline f_con(n) = 
-        is_true(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))
+        [is_true(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))]
     @inline fa(n, call) = begin
         if num_children(n) < 2
             return call(@inbounds children(n)[1])
