@@ -185,3 +185,42 @@ end
 @inline copy_node(n::ΔNode, cns) = @assert false "TODO"
 @inline copy_node(n::⋀Node, cns) = ⋀Node(cns)
 @inline copy_node(n::⋁Node, cns) = ⋁Node(cns)
+
+"""
+Get the base of a given ΔNode as a string formula
+"""
+function get_base(n::ΔNode)
+    if n isa LiteralNode
+        "$(literal(n))"
+    elseif n isa ConstantNode
+        "$n"
+    elseif n isa ⋀Node
+        s = ""
+        for (i,c) in enumerate(children(n))
+            if i < length(children(n))
+                s = string(s, get_base(c), " ⋀ ")
+            else
+                s = string(s, get_base(c))
+            end
+        end
+        s = string("(", s, ")")
+        s
+    elseif n isa ⋁Node
+        s = ""
+        for (i,c) in enumerate(children(n))
+            if i < length(children(n))
+                s = string(s, get_base(c), " ⋁ ")
+            else
+                s = string(s, get_base(c))
+            end
+        end
+        s = string("(", s, ")")
+        s
+    else
+        error("Node not recognized")
+    end
+end
+
+function get_base(n::Δ)
+    get_base(n[end])
+end
