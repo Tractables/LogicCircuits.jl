@@ -30,7 +30,7 @@ smooth, forget, propagate_constants, condition, split, clone, replace_node, merg
 # LogicalCircuits
 LogicalΔNode, UnstLogicalΔNode, LogicalLeafNode, LogicalΔ, UnstLogicalΔ, node_type,
 LiteralNode, ConstantNode, ⋁Node, ⋀Node, TrueNode, FalseNode, fully_factorized_circuit, copy,
-copy_node, normalize,  
+copy_node, normalize, to_string, 
 
 # UpFlowCircuits
 UpFlowΔNode, UpFlowΔ, UpFlowLeafNode, UpFlowInnerNode,

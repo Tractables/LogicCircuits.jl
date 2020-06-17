@@ -1,6 +1,56 @@
 using Test
 using LogicCircuits
 
+function little_2var()
+    lin = LogicalΔNode[]
+
+    v = Var(2)
+    pos = LiteralNode( var2lit(v))
+    push!(lin, pos)
+    neg = LiteralNode(-var2lit(v))
+    push!(lin, neg)
+    or1 = ⋁Node([pos,neg])
+    push!(lin, or1)
+    or2 = ⋁Node([pos,neg])
+    push!(lin, or2)
+
+    v = Var(1)
+    pos = LiteralNode( var2lit(v))
+    push!(lin, pos)
+    neg = LiteralNode(-var2lit(v))
+    push!(lin, neg)
+
+    and1 = ⋀Node([pos, or1])
+    and2 = ⋀Node([neg, or2])
+    root = ⋁Node([and1, and2])
+
+    push!(lin, and1)
+    push!(lin, and2)
+    push!(lin, root)
+end
+
+function little_3var()
+    lin = little_2var()
+    or1 = lin[end]
+    v = Var(3)
+
+    pos = LiteralNode( var2lit(v))
+    push!(lin, pos)
+    neg = LiteralNode(-var2lit(v))
+    push!(lin, neg)
+
+    or2 = ⋁Node(children(or1))
+    push!(lin, or2)
+
+    and1 = ⋀Node([pos, or1])
+    and2 = ⋀Node([neg, or2])
+    root = ⋁Node([and1,and2])
+    push!(lin, and1)
+    push!(lin, and2)
+    push!(lin, root)
+    lin
+end
+
 @testset "Decomposability tests" begin
     lin = LogicalΔNode[]
     ors = map(1:10) do v
@@ -79,4 +129,15 @@ using LogicCircuits
     push!(simpletest2, leaf2)
     push!(simpletest2, and)
     @test !is_decomposable(simpletest2)
+end
+
+@testset "Get-Base Tests" begin
+    n0 = little_3var()
+    n1 = little_2var()
+
+    base_n1 = "((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))"
+    base_n0 = "((3 ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))) ⋁ (-3 ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))))"
+
+    @test to_string(n1) == base_n1
+    @test to_string(n0) == base_n0
 end

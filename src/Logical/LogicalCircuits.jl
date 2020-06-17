@@ -185,3 +185,43 @@ end
 @inline copy_node(n::ΔNode, cns) = @assert false "TODO"
 @inline copy_node(n::⋀Node, cns) = ⋀Node(cns)
 @inline copy_node(n::⋁Node, cns) = ⋁Node(cns)
+
+"""
+Get the formula of a given ΔNode as a string
+"""
+function to_string(n::ΔNode)
+    g = GateType(n)
+    if g isa LiteralGate
+        "$(literal(n))"
+    elseif g isa ConstantGate
+        "$n"
+    elseif g isa ⋀Gate
+        s = ""
+        for (i,c) in enumerate(children(n))
+            if i < length(children(n))
+                s = string(s, to_string(c), " ⋀ ")
+            else
+                s = string(s, to_string(c))
+            end
+        end
+        s = string("(", s, ")")
+        s
+    elseif g isa ⋁Gate
+        s = ""
+        for (i,c) in enumerate(children(n))
+            if i < length(children(n))
+                s = string(s, to_string(c), " ⋁ ")
+            else
+                s = string(s, to_string(c))
+            end
+        end
+        s = string("(", s, ")")
+        s
+    else
+        error("Node not recognized")
+    end
+end
+
+function to_string(n::Δ)
+    to_string(n[end])
+end
