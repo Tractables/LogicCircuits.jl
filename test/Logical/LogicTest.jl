@@ -138,6 +138,6 @@ end
     base_n1 = "((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))"
     base_n0 = "((3 ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))) ⋁ (-3 ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))))"
 
-    @test get_base(n1) == base_n1
-    @test get_base(n0) == base_n0
+    @test to_string(n1) == base_n1
+    @test to_string(n0) == base_n0
 end

@@ -187,31 +187,32 @@ end
 @inline copy_node(n::⋁Node, cns) = ⋁Node(cns)
 
 """
-Get the base of a given ΔNode as a string formula
+Get the formula of a given ΔNode as a string
 """
-function get_base(n::ΔNode)
-    if n isa LiteralNode
+function to_string(n::ΔNode)
+    g = GateType(n)
+    if g isa LiteralGate
         "$(literal(n))"
-    elseif n isa ConstantNode
+    elseif g isa ConstantGate
         "$n"
-    elseif n isa ⋀Node
+    elseif g isa ⋀Gate
         s = ""
         for (i,c) in enumerate(children(n))
             if i < length(children(n))
-                s = string(s, get_base(c), " ⋀ ")
+                s = string(s, to_string(c), " ⋀ ")
             else
-                s = string(s, get_base(c))
+                s = string(s, to_string(c))
             end
         end
         s = string("(", s, ")")
         s
-    elseif n isa ⋁Node
+    elseif g isa ⋁Gate
         s = ""
         for (i,c) in enumerate(children(n))
             if i < length(children(n))
-                s = string(s, get_base(c), " ⋁ ")
+                s = string(s, to_string(c), " ⋁ ")
             else
-                s = string(s, get_base(c))
+                s = string(s, to_string(c))
             end
         end
         s = string("(", s, ")")
@@ -221,6 +222,6 @@ function get_base(n::ΔNode)
     end
 end
 
-function get_base(n::Δ)
-    get_base(n[end])
+function to_string(n::Δ)
+    to_string(n[end])
 end
