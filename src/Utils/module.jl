@@ -15,8 +15,4 @@ include("Graphs.jl")
 
 include("Data.jl")
 
-# compute kernels
-
-include("Kernels.jl")
-
 end #module
