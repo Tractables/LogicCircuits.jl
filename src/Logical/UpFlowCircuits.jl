@@ -73,7 +73,7 @@ function UpFlowΔ(circuit::Δ, m::Int, ::Type{El}, opts = flow_opts★)  where E
 
     O = grapheltype(circuit) # type of node in the origin
     F = (El == Bool) ? BitVector : Vector{El}
-    fmem  = () -> some_vector(El, m) # note: fmem's return type will determine type of all UpFlows in the circuit (should be El)
+    fmem  = () -> init_array(El, m) # note: fmem's return type will determine type of all UpFlows in the circuit (should be El)
     
     cache = Dict{ΔNode, UpFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)

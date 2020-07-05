@@ -1,4 +1,3 @@
-
 # Basic data-related utilities.
 # These methods assume that one would either be representing the data as:
 #  - `DataFrame`
@@ -43,6 +42,9 @@ is_binary(::AbstractMatrix) = false
 is_binary(::AbstractMatrix{Bool}) = true
 is_binary(df::DataFrame) = all(t -> t <: Bool, eltypes(df))
 
+
+# DATA TRANSFORMATIONS
+
 "Shuffle the examples in the data"
 shuffle_examples(df::DataFrame) = df[shuffle(axes(df, 1)), :]
 shuffle_examples(m::AbstractMatrix) = m[shuffle(1:end), :]
@@ -66,6 +68,14 @@ function threshold(x::AbstractMatrix{<:Number}, offset)
 end
 
 
+# LIKELIHOOD HELPERS
+
+"Normalize the given log-likelihood by the number of examples in `data`"
+ll_per_example(ll, data) = ll / num_examples(data)
+
+"Normalize the given log-likelihood as bits per pixel in `data`"
+bits_per_pixel(ll, data) = -(ll_per_example(ll, data)  / num_features(data)) / log(2)
+
 "Computer the per-example log-likelihood of a fully factorized model on Bool data"
 function fully_factorized_log_likelihood(m::AbstractMatrix{<:Bool}; pseudocount)
     counts = sum(m, dims=1)    
@@ -80,10 +90,3 @@ function fully_factorized_log_likelihood(df::DataFrame; pseudocount)
     @assert is_binary(df) "This method requires binary data"
     fully_factorized_log_likelihood(convert(Matrix,df); pseudocount)
 end
-
-"Normalize the given log-likelihood by the number of examples in `data`"
-ll_per_example(ll, data) = ll / num_examples(data)
-
-"Normalize the given log-likelihood as bits per pixel in `data`"
-bits_per_pixel(ll, data) = -(ll_per_example(ll, data)  / num_features(data)) / log(2)
-

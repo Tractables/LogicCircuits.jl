@@ -116,7 +116,7 @@ function filter(p::Function, root::DagNode, ::Type{T} = Union{})::Vector where T
     foreach(root) do n
         if p(n)
             if !(n isa eltype(results))
-                results = copy_with_eltype(results, typejoin(eltype(results),typeof(n)))
+                results = collect(typejoin(eltype(results),typeof(n)), results)
             end
             push!(results,n)
         end

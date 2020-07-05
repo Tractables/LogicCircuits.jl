@@ -6,7 +6,7 @@ module LogicCircuits
 
 using Reexport
 
-include("Utils/Utils.jl")
+include("Utils/module.jl")
 
 @reexport using .Utils
 

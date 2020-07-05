@@ -59,7 +59,7 @@ function AggregateFlowΔ(circuit::Δ, ::Type{A}) where {A}
 
     af_node(::⋁Gate, n::ΔNode) = begin
         children = map(c -> cache[c], n.children)
-        AggregateFlow⋁{O,A}(n, children, zero(A), some_vector(A, num_children(n)))
+        AggregateFlow⋁{O,A}(n, children, zero(A), init_array(A, num_children(n)))
     end
         
     map(circuit) do node

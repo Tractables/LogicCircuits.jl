@@ -70,7 +70,7 @@ const HasDownFlow = Union{DownFlow⋁Cached, DownFlow⋀Cached, DownFlowLeaf}
 function DownFlowΔ(circuit::UpFlowΔ{O,F}, opts = flow_opts★)::DownFlowΔ{O,F} where {O,F}
 
     m = flow_length(circuit)
-    fmem  = () -> some_vector(eltype(F), m)
+    fmem  = () -> init_array(eltype(F), m)
 
     cache = Dict{ΔNode, DownFlowΔNode}()
     sizehint!(cache, length(circuit)*4÷3)

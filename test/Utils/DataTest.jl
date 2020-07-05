@@ -1,6 +1,6 @@
 using Test
 using LogicCircuits
-using DataFrames
+using DataFrames: DataFrame, DataFrameRow
 
 @testset "Data utils" begin
 
@@ -57,11 +57,11 @@ using DataFrames
     @test Utils.fully_factorized_log_likelihood(mb; pseudocount=1) ≈ -1.280557674335465 #not verified
     @test Utils.fully_factorized_log_likelihood(dfb; pseudocount=1) ≈ -1.280557674335465 #not verified
 
-    @test ll_per_example(-12.3, m) ≈ -4.1
-    @test ll_per_example(-12.3, df) ≈ -4.1
+    @test ll_per_example(-12.3, m) ≈ -4.1 #not verified
+    @test ll_per_example(-12.3, df) ≈ -4.1 #not verified
 
-    @test bits_per_pixel(-12.3, m) ≈ 2.9575248338223754
-    @test bits_per_pixel(-12.3, df) ≈ 2.9575248338223754
+    @test bits_per_pixel(-12.3, m) ≈ 2.9575248338223754 #not verified
+    @test bits_per_pixel(-12.3, df) ≈ 2.9575248338223754 #not verified
 
 end
 

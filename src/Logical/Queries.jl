@@ -1,3 +1,4 @@
+using DataFrames
 
 "Number of variables in the circuit"
 num_variables(c::Union{ΔNode,Δ}) = length(variable_scope(c))
@@ -248,6 +249,7 @@ function (root::ΔNode)(data::XData)
     evaluate(root, data)
 end
 
+#TODO; create a version that doesn't allocate, using fold!
 function evaluate(root::ΔNode, data::XData{Bool})::BitVector
     @inline f_lit(n) = if positive(n) 
         [feature_matrix(data)[:,variable(n)]]
@@ -276,6 +278,80 @@ function evaluate(root::ΔNode, data::XData{Bool})::BitVector
     end
     @inline fo(n, call) = begin
         x = never(Bool, num_examples(data))
+        for c in children(n)
+            accumulate_elements(x, call(c), |)
+        end
+        return [x]
+    end
+    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
+end
+
+function evaluate2(root::ΔNode, data::DataFrame)::BitVector
+    num_examples::Int = nrow(data)
+    @inline f_lit(n) = if positive(n) 
+        [data[!,variable(n)]]::Vector{BitVector}
+    else
+        [broadcast(!,data[!,variable(n)])]::Vector{BitVector}
+    end
+    @inline f_con(n) = 
+        [is_true(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
+    @inline fa(n, call) = begin
+        if num_children(n) < 2
+            return call(@inbounds children(n)[1])
+        else
+            c1 = call(@inbounds children(n)[1])
+            c2 = call(@inbounds children(n)[2])
+            if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
+                return [c1[1], c2[1]] # no need to allocate a new BitVector, just return pair
+            end
+            x = always(Bool, num_examples)
+            accumulate_elements(x, c1, &)
+            accumulate_elements(x, c2, &)
+            for c in children(n)[3:end]
+                accumulate_elements(x, call(c), &)
+            end
+            return [x]
+        end
+    end
+    @inline fo(n, call) = begin
+        x = never(Bool, num_examples)
+        for c in children(n)
+            accumulate_elements(x, call(c), |)
+        end
+        return [x]
+    end
+    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
+end
+
+function evaluate3(root::ΔNode, data::DataFrame)::BitVector
+    num_examples::Int = nrow(data)
+    @inline f_lit(n) = if positive(n) 
+        [data[!,variable(n)]]::Vector{BitVector}
+    else
+        [broadcast(!,data[!,variable(n)])]::Vector{BitVector}
+    end
+    @inline f_con(n) = 
+        [is_true(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
+    @inline fa(n, call) = begin
+        if num_children(n) < 2
+            return call(@inbounds children(n)[1])
+        else
+            c1 = call(@inbounds children(n)[1])
+            c2 = call(@inbounds children(n)[2])
+            if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
+                return [c1[1], c2[1]] # no need to allocate a new BitVector, just return pair
+            end
+            x = n.data[1]
+            accumulate_elements(x, c1, &)
+            accumulate_elements(x, c2, &)
+            for c in children(n)[3:end]
+                accumulate_elements(x, call(c), &)
+            end
+            return [x]
+        end
+    end
+    @inline fo(n, call) = begin
+        x = n.data[1]
         for c in children(n)
             accumulate_elements(x, call(c), |)
         end

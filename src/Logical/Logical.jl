@@ -22,7 +22,7 @@ or_nodes, and_nodes,
 # Queries
 num_variables, is_decomposable, variable_scopes, variable_scope,
 model_count, sat_prob, prob_equiv_signature, has_unique_literal_nodes, has_unique_constant_nodes,
-is_smooth,
+is_smooth, evaluate,
 
 # Transformations
 smooth, forget, propagate_constants, condition, split, clone, replace_node, merge,
