@@ -1,18 +1,18 @@
 #############
-# VtreeNode
+# VTree
 #############
 
 "Root of the vtree node hiearchy"
-abstract type VtreeNode <: TreeNode end
+abstract type VTree <: Tree end
 
-const Vtree{VN<:VtreeNode} = AbstractVector{<:VN}
+const Vtree{VN<:VTree} = AbstractVector{<:VN}
 
 #############
 # Constructors
 #############
 
 "Construct a balanced vtree"
-function balanced_vtree(::Type{VN}, num_vars::Int)::Vtree{VN} where {VN <: VtreeNode}
+function balanced_vtree(::Type{VN}, num_vars::Int)::Vtree{VN} where {VN <: VTree}
     return node2dag(balanced_vtree_root(VN, 1, num_vars))
 end
 
@@ -27,7 +27,7 @@ function balanced_vtree_root(::Type{VN}, first::Int, last::Int)::VN where VN
     end
 end
 
-function random_vtree(::Type{VN}, num_variables::Integer; vtree_mode::String="balanced")::Vtree{VN} where {VN <: VtreeNode}
+function random_vtree(::Type{VN}, num_variables::Integer; vtree_mode::String="balanced")::Vtree{VN} where {VN <: VTree}
     @assert vtree_mode in ["linear", "balanced", "rand"]
     vars = Var.(Random.randperm(num_variables))
     
@@ -55,11 +55,11 @@ end
 """
 Construct PlainVtree top town, using method specified by split_method.
 """
-function top_down_vtree(::Type{VN}, vars::Vector{Var}, split_method::Function)::Vtree{VN} where {VN <: VtreeNode}
+function top_down_vtree(::Type{VN}, vars::Vector{Var}, split_method::Function)::Vtree{VN} where {VN <: VTree}
     node2dag(top_down_root(VN, vars, split_method))
 end
 
-function top_down_root(::Type{VN}, vars::Vector{Var}, split_method::Function)::VN  where {VN <: VtreeNode}
+function top_down_root(::Type{VN}, vars::Vector{Var}, split_method::Function)::VN  where {VN <: VTree}
     @assert !isempty(vars) "Cannot construct a vtree with zero variables"
     if length(vars) == 1
         VN(vars[1])
@@ -74,7 +74,7 @@ end
 """
 Construct PlainVtree bottom up, using method specified by combine_method!.
 """
-function bottom_up_vtree(::Type{VN}, vars::Vector{Var}, combine_method!::Function)::Vtree{VN} where {VN <: VtreeNode}
+function bottom_up_vtree(::Type{VN}, vars::Vector{Var}, combine_method!::Function)::Vtree{VN} where {VN <: VTree}
     vars = copy(vars)
     ln = Vector{VN}()
     node_cache = Dict{Var, VN}() # map from variable to *highest* level node
@@ -107,23 +107,23 @@ end
 variables(v::Vtree) = variables(v[end])
 num_variables(v::Vtree) = num_variables(v[end])
 
-num_variables(n::VtreeNode) = num_variables(NodeType(n), n::VtreeNode) 
-num_variables(::Leaf, ::VtreeNode) = 1
-num_variables(::Inner, n::VtreeNode) = length(variables(n))
+num_variables(n::VTree) = num_variables(NodeType(n), n::VTree) 
+num_variables(::Leaf, ::VTree) = 1
+num_variables(::Inner, n::VTree) = length(variables(n))
 
 """
 Check vtree validation, variables(parent) = variables(left) + variables(right)
 """
-isvalid(n::VtreeNode)::Bool = isvalid(NodeType(n), n)
+isvalid(n::VTree)::Bool = isvalid(NodeType(n), n)
 
-function isvalid(::Inner, n::VtreeNode)::Bool
+function isvalid(::Inner, n::VTree)::Bool
     return num_variables(n) == num_variables(n.left) + num_variables(n.right) &&
         isequal(variables(n), union(variables(n.left), variables(n.right))) &&
         isvalid(n.right) &&
         isvalid(n.left)
 end
 
-function isvalid(::Leaf, n::VtreeNode)::Bool true; end
+function isvalid(::Leaf, n::VTree)::Bool true; end
 
 function isvalid(vtree::Vtree)::Bool
     return isvalid(vtree[end])
@@ -132,9 +132,9 @@ end
 """
 Return the length from vtree inner node `n` to leaf node which contains `var`
 """
-path_length(n::VtreeNode, var::Var)::Int = path_length(NodeType(n), n, var)
+path_length(n::VTree, var::Var)::Int = path_length(NodeType(n), n, var)
 
-function path_length(::Inner, n::VtreeNode, var::Var)::Int
+function path_length(::Inner, n::VTree, var::Var)::Int
     @assert var in variables(n)
     if var in variables(n.left)
         return 1 + path_length(n.left, var)
@@ -143,7 +143,7 @@ function path_length(::Inner, n::VtreeNode, var::Var)::Int
     end
 end
 
-function path_length(::Leaf, n::VtreeNode, var::Var)::Int
+function path_length(::Leaf, n::VTree, var::Var)::Int
     @assert variables(n) == [var]
     return 0
 end

@@ -6,25 +6,25 @@ using Random
 #############
 
 "Root of the plain vtree node hierarchy"
-abstract type PlainVtreeNode <: VtreeNode end
+abstract type PlainVTree <: VTree end
 
-mutable struct PlainVtreeLeafNode <: PlainVtreeNode
+mutable struct PlainVtreeLeafNode <: PlainVTree
     var::Var
 end
 
-mutable struct PlainVtreeInnerNode <: PlainVtreeNode
-    left::PlainVtreeNode
-    right::PlainVtreeNode
+mutable struct PlainVtreeInnerNode <: PlainVTree
+    left::PlainVTree
+    right::PlainVTree
     variables::Vector{Var}
 end
 
-const PlainVtree = AbstractVector{<:PlainVtreeNode}
+const PlainVtree = AbstractVector{<:PlainVTree}
 
 #####################
 # Constructor
 #####################
 
-function PlainVtreeInnerNode(left::PlainVtreeNode, right::PlainVtreeNode)
+function PlainVtreeInnerNode(left::PlainVTree, right::PlainVTree)
     @assert isempty(intersect(variables(left), variables(right)))
     PlainVtreeInnerNode(left, right, [variables(left); variables(right)])
 end
@@ -34,8 +34,8 @@ function PlainVtreeLeafNode(vars::Vector{Var})
     PlainVtreeLeafNode(vars[1])
 end
 
-PlainVtreeNode(v::Var) = PlainVtreeLeafNode(v)
-PlainVtreeNode(left::PlainVtreeNode, right::PlainVtreeNode) = PlainVtreeInnerNode(left, right)
+PlainVTree(v::Var) = PlainVtreeLeafNode(v)
+PlainVTree(left::PlainVTree, right::PlainVTree) = PlainVtreeInnerNode(left, right)
 
 
 #####################
@@ -58,7 +58,7 @@ import ..Utils.isequal_local
 """
 Compare whether two vtree nodes are locally equal (enables `equals` and `equals_unordered` from Utils)
 """
-isequal_local(leaf1::PlainVtreeNode, leaf2::PlainVtreeNode)::Bool = false #default
+isequal_local(leaf1::PlainVTree, leaf2::PlainVTree)::Bool = false #default
 isequal_local(leaf1::PlainVtreeLeafNode, leaf2::PlainVtreeLeafNode)::Bool =
     (leaf1.var == leaf2.var)
 isequal_local(inner1::PlainVtreeInnerNode, inner2::PlainVtreeInnerNode)::Bool =

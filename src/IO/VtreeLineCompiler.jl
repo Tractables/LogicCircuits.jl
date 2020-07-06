@@ -31,10 +31,10 @@ compile_vtree_format_lines(lines::VtreeFormatLines)::PlainVtree =
 function compile_vtree_format_lines_m(lines::VtreeFormatLines)
 
     # linearized vtree nodes
-    vtree = Vector{PlainVtreeNode}()
+    vtree = Vector{PlainVTree}()
 
-    # map from index to PlainVtreeNode for input
-    id2node = Dict{UInt32, PlainVtreeNode}()
+    # map from index to PlainVTree for input
+    id2node = Dict{UInt32, PlainVTree}()
 
     function compile(::Union{VtreeHeaderLine,VtreeCommentLine})
         # do nothing

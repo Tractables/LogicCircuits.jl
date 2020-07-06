@@ -29,7 +29,7 @@ lit(v::Int) = convert(Lit, v)
 #####################
 
 "Root of the circuit node hierarchy"
-abstract type ΔNode <: DagNode end
+abstract type ΔNode <: Dag end
 
 "Any circuit represented as a bottom-up linear order of nodes"
 const Δ = AbstractVector{<:ΔNode}

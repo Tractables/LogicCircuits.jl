@@ -57,10 +57,10 @@ function save(vtree::PlainVtree, file::AbstractString)
         throw("Invalid file type")
     end
 
-    "2. map from PlainVtreeNode to index for output"
-    index_cache = Dict{PlainVtreeNode, UInt32}()
+    "2. map from PlainVTree to index for output"
+    index_cache = Dict{PlainVTree, UInt32}()
     index = -1
-    node2index(n::PlainVtreeNode) =
+    node2index(n::PlainVTree) =
         get!(index_cache, n) do
             index += 1
         end

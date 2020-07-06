@@ -3,7 +3,7 @@
 #############
 
 "Root of the SDD manager node hierarchy"
-abstract type SddMgrNode <: VtreeNode end
+abstract type SddMgrNode <: VTree end
 
 const SddMgr = AbstractVector{<:SddMgrNode}
 

@@ -1,8 +1,5 @@
 # Miscellaneous utilities.
 
-import DataFrames: groupby
-import StatsFuns: logsumexp
-
 export issomething, order_asc, disjoint, pushrand!, init_array,
        always, never, uniform, logsumexp,
        map_values, groupby
@@ -13,6 +10,7 @@ export issomething, order_asc, disjoint, pushrand!, init_array,
 "Order the arguments in a tuple in ascending order"
 @inline order_asc(x, y) = x > y ? (y, x) : (x , y)
 
+"Are the given sets disjoint (no shared elements)?"
 # TODO: Once Julia 1.5 is standard, rename to `isdisjoint` from Base
 function disjoint(set1::AbstractSet, sets::AbstractSet...)::Bool
     seen = set1 # can be sped up by copying seen first then reusing it with union!?
@@ -60,6 +58,7 @@ end
 @inline uniform(dims::Int...) = uniform(Float64, dims...)
 @inline uniform(::Type{F}, dims::Int...) where F<:AbstractFloat = always(F, dims...) ./ prod(dims)
 
+import StatsFuns: logsumexp #extend
 
 "Marginalize out dimensions `dims` from log-probability tensor"
 function logsumexp(a::AbstractArray, dims)
@@ -78,6 +77,8 @@ function map_values(f::Function, dict::AbstractDict{K}, vtype::Type)::AbstractDi
     end
     mapped_dict
 end
+
+import DataFrames: groupby #extend
 
 "Group the elements of `list` by their values according to function `f`"
 function groupby(f::Function, list::Union{Vector{E},Set{E}})::Dict{Any,Vector{E}} where E

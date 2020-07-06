@@ -48,8 +48,8 @@ function get_node2id(ln::AbstractVector{X}, T::Type)where X #<: T#::Dict{T, ID}
     node2id
 end
 
-function get_vtree2id(ln::PlainVtree):: Dict{PlainVtreeNode, ID}
-    vtree2id = Dict{PlainVtreeNode, ID}()
+function get_vtree2id(ln::PlainVtree):: Dict{PlainVTree, ID}
+    vtree2id = Dict{PlainVTree, ID}()
     sizehint!(vtree2id, length(ln))
     index = ID(0) # vtree id start from 0
 

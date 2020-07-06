@@ -249,7 +249,8 @@ function (root::ΔNode)(data::XData)
     evaluate(root, data)
 end
 
-#TODO; create a version that doesn't allocate, using fold!
+# TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
+# TODO; create a version that doesn't allocate, using fold!
 function evaluate(root::ΔNode, data::XData{Bool})::BitVector
     @inline f_lit(n) = if positive(n) 
         [feature_matrix(data)[:,variable(n)]]

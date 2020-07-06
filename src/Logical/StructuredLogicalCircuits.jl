@@ -4,7 +4,7 @@
 #####################
 
 "Root of the structure logical circuit node hierarchy"
-abstract type StructLogicalΔNode{V<:VtreeNode} <: LogicalΔNode end
+abstract type StructLogicalΔNode{V<:VTree} <: LogicalΔNode end
 
 "A structured logical leaf node"
 abstract type StructLogicalLeafNode{V} <: StructLogicalΔNode{V} end
@@ -86,27 +86,27 @@ const StructLogicalΔ{V} = AbstractVector{<:StructLogicalΔNode{V}}
 "Conjoin nodes in the same way as the example"
 @inline function conjoin_like(example::StructLogicalΔNode, arguments::Vector)
     if isempty(arguments)
-        StructTrueNode{PlainVtreeNode}()
+        StructTrueNode{PlainVTree}()
     elseif example isa Struct⋀Node && children(example) == arguments
         example
     else
-        Struct⋀Node{PlainVtreeNode}(arguments, vtree(example))
+        Struct⋀Node{PlainVTree}(arguments, vtree(example))
     end
 end
 
 "Disjoin nodes in the same way as the example"
 @inline function disjoin_like(example::StructLogicalΔNode, arguments::Vector)
     if isempty(arguments)
-        StructFalseNode{PlainVtreeNode}()
+        StructFalseNode{PlainVTree}()
     elseif example isa Struct⋁Node && children(example) == arguments
         example
     else
-        Struct⋁Node{PlainVtreeNode}(arguments, vtree(example))
+        Struct⋁Node{PlainVTree}(arguments, vtree(example))
     end
 end
 
 "Construct a new literal node like the given node's type"
-literal_like(example::StructLogicalΔNode, lit::Lit) = StructLiteralNode{PlainVtreeNode}(lit, vtree(example))
+literal_like(example::StructLogicalΔNode, lit::Lit) = StructLiteralNode{PlainVTree}(lit, vtree(example))
 
-@inline copy_node(n::Struct⋁Node, cns) = Struct⋁Node{PlainVtreeNode}(cns, vtree(n))
-@inline copy_node(n::Struct⋀Node, cns) = Struct⋀Node{PlainVtreeNode}(cns, vtree(n))
+@inline copy_node(n::Struct⋁Node, cns) = Struct⋁Node{PlainVTree}(cns, vtree(n))
+@inline copy_node(n::Struct⋀Node, cns) = Struct⋀Node{PlainVTree}(cns, vtree(n))
