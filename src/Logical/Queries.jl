@@ -68,7 +68,7 @@ function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
 end
 
 function variable_scopes(root::ΔNode)::Dict{ΔNode,BitSet}
-    # variable_scopes(node2dag(root))
+    # variable_scopes(linearize(root))
     scope = Dict{ΔNode,BitSet}()
     f_con(n) = scope[n] = BitSet()
     f_lit(n) = scope[n] = BitSet(variable(n))

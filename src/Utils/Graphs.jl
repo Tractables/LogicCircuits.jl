@@ -1,10 +1,12 @@
-using DataStructures
-
-export Node, Dag, Tree, NodeType, Leaf, Inner,
+export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
        flip_bit, foreach, foreach_rec, filter, foldup, foldup_rec,
        num_nodes, num_edges, tree_num_nodes,
-       inodes, innernodes, leafnodes
+       inodes, innernodes, leafnodes, linearize,
+       left_most_descendent, right_most_descendent,
+       descends_from, parent, lca,
+       node_stats, inode_stats, leaf_stats
+
 
 #####################
 # types and traits
@@ -18,9 +20,6 @@ abstract type Node end
 
 "A node in a directed acyclic graph (of which it is the root)"
 abstract type Dag <: Node end
-
-"A node in a tree (of which it is the root)"
-abstract type Tree <: Dag end
 
 """
 A trait hierarchy denoting types of `Dag` nodes
@@ -104,16 +103,6 @@ function foreach(node::Dag, f_leaf::Function, f_inner::Function)
     nothing # returning nothing helps save some allocations and time
 end
 
-function foreach(f::Function, node::Tree)
-    if isinner(node)
-        for c in children(node)
-            foreach(f, c)
-        end
-    end
-    f(node)
-    nothing
-end
-
 "Apply a function to each node in a graph, bottom up, flipping the node bits"
 function foreach_rec(f::Function, node::Dag, ::Val{Bit} = Val(!node.bit)) where Bit
     if node.bit != Bit
@@ -158,7 +147,6 @@ function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T})::T wh
     v
 end
 
-
 """
 Compute a function bottom-up on the graph, flipping the node bits. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
@@ -181,22 +169,13 @@ function foldup_rec(node::Dag, f_leaf::Function, f_inner::Function,
     end
 end
 
-function foldup(node::Tree, f_leaf::Function, f_inner::Function, ::Type{T})::T where T
-    v = if isinner(node)
-        callback(c) = (foldup(c, f_leaf, f_inner, T)::T)
-        f_inner(node, callback)::T
-    else
-        f_leaf(node)::T
-    end
-    return v
-end
-
 """
 Compute a function bottom-up on the circuit. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` in aggregate 
 as a vector from the children.
 """
+# TODO: see whether we could standardize on `foldup` and remove this version?
 function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
     @assert node.bit == false
     v = foldup_aggregate_rec(node, f_leaf, f_inner, T)
@@ -204,6 +183,13 @@ function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type
     return v
 end
 
+"""
+Compute a function bottom-up on the circuit, flipping the node bits. . 
+`f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
+Values of type `T` are passed up the circuit and given to `f_inner` in aggregate 
+as a vector from the children.
+"""
+# TODO: see whether we could standardize on `foldup` and remove this version?
 function foldup_aggregate_rec(node::Dag, f_leaf::Function, f_inner::Function, 
                     ::Type{T}, ::Val{Bit} = Val(!node.bit))::T where {T,Bit}
     if node.bit == Bit
@@ -222,17 +208,6 @@ function foldup_aggregate_rec(node::Dag, f_leaf::Function, f_inner::Function,
     end
 end
 
-function foldup_aggregate(node::Tree, f_leaf::Function, f_inner::Function, ::Type{T})::T where T
-    v = if isinner(node)
-        child_values = Vector{T}(undef, num_children(node))
-        map!(c -> foldup_aggregate(c, f_leaf, f_inner, T)::T, child_values, children(node))
-        f_inner(node, child_values)::T
-    else
-        f_leaf(node)::T
-    end
-    return v
-end
-
 
 """
 Compute a function top down on the circuit.
@@ -245,6 +220,7 @@ mutable struct Downpass
     passdown
     Downpass(T, passup) = new(passup, Vector{T}())
 end
+# TODO: see if we can instead make this a `foldupdown` function so that the type of data is fixed
 function folddown_aggregate(node::Dag, f_root::Function, f_leaf::Function, f_inner::Function, 
                            ::Type{T})::Nothing where {T}
     # folddown_aggregate(node[end], f_root, f_leaf, f_inner, T)
@@ -281,7 +257,7 @@ end
 # methods using circuit traversal
 #####################
 
-"Number of nodes in the graph"
+"Number of nodes in the `Dag`"
 function num_nodes(node::Dag)
     count::Int = 0
     foreach(node) do n
@@ -291,7 +267,7 @@ function num_nodes(node::Dag)
 end
 
 """
-Compute the number of nodes in of a tree-unfolding of the DAG. 
+Compute the number of nodes in of a tree-unfolding of the `Dag`. 
 """
 function tree_num_nodes(node::Dag)::BigInt
     @inline f_leaf(n) = zero(BigInt)
@@ -299,7 +275,7 @@ function tree_num_nodes(node::Dag)::BigInt
     foldup(node, f_leaf, f_inner, BigInt)
 end
 
-"Number of edges in the graph"
+"Number of edges in the `Dag`"
 function num_edges(node::Dag)
     count::Int = 0
     foreach(node) do n
@@ -317,46 +293,13 @@ innernodes(c::Dag) = inodes(c)
 "Get the list of leaf nodes in a given graph"
 leafnodes(c::Dag) = filter(isleaf, c)
 
-
-"Rebuild a DAG's linear bottom-up order from a new root node"
-@inline node2dag(r::Dag, ::Type{T} = Union{}) where T = filter(x -> true, r, typejoin(T,typeof(r)))
-
-"Is one node equal to another locally, ignoring children?"
-function isequal_local end
-
-import Base.isequal
-
-"Is one ordered tree equal to another?"
-isequal(n1::Tree, n2::Tree)::Bool = 
-    isequal_local(n1,n2) && isequal_rec(NodeType(n1), NodeType(n2), n1, n2)
-
-isequal_rec(::Leaf, ::Leaf, ::Tree, ::Tree)::Bool = true
-function isequal_rec(::Inner, ::Inner, n1::Tree, n2::Tree)::Bool
-    foreach(children(n1), children(n2)) do c1, c2 # we need all to support varagrs!
-        if !isequal(c1, c2)
-            return false
-        end
-    end
-    return true
-end
-
-"Is one unordered tree equal to another?"
-isequal_unordered(n1::Tree, n2::Tree)::Bool = 
-    isequal_local(n1,n2) && isequal_unordered_rec(NodeType(n1), NodeType(n2), n1, n2)
-
-isequal_unordered_rec(::Leaf, ::Leaf, ::Tree, ::Tree)::Bool = true
-function isequal_unordered_rec(::Inner, ::Inner, n1::Tree, n2::Tree)::Bool
-    @assert num_children(n1) == 2 && num_children(n2) == 2 "`isequal_unordered` is only implemented for binary trees"
-    c1 = children(n1)
-    c2 = children(n2)
-    return ((isequal_unordered(c1[1],c2[1]) &&  isequal_unordered(c1[2],c2[2])) 
-            || (isequal_unordered(c1[1],c2[2]) && isequal_unordered(c1[2],c2[1])))
-end
+"Order the `Dag`'s nodes bottom-up in a list (with optional element type)"
+@inline linearize(r::Dag, ::Type{T} = Union{}) where T = filter(x -> true, r, typejoin(T,typeof(r)))
 
 """
-Return the leftmost child.
+Return the left-most descendent.
 """
-function left_most_child(root::Dag)::Dag
+function left_most_descendent(root::Dag)::Dag
     while isinner(root)
         root = children(root)[1]
     end
@@ -364,9 +307,9 @@ function left_most_child(root::Dag)::Dag
 end
 
 """
-Return the rightmost child.
+Return the right-most descendent.
 """
-function right_most_child(root::Dag)::Dag
+function right_most_descendent(root::Dag)::Dag
     while isinner(root)
         root = children(root)[end]
     end

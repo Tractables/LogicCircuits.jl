@@ -23,7 +23,7 @@ include("../helper/ValidateSdd.jl")
 
       mgr = SddMgr(TrimSddMgr, vtree)
       # cnfΔ = @time compile_cnf(mgr, cnf)
-      cnfΔ = node2dag(compile_cnf(mgr, cnf))
+      cnfΔ = linearize(compile_cnf(mgr, cnf))
 
       # println("node count ($suite/$name): ", num_nodes(cnfΔ))
       # println("edge count ($suite/$name): ", num_edges(cnfΔ))

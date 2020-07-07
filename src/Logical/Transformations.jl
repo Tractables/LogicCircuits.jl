@@ -1,7 +1,7 @@
 "Create an equivalent smooth circuit from the given circuit."
 function smooth(root::Δ)::Δ
     new_root = smooth(root[end])
-    node2dag(new_root)
+    linearize(new_root)
 end
 
 function smooth(root::ΔNode)::ΔNode
@@ -71,12 +71,12 @@ function forget(is_forgotten::Function, circuit::Δ)
     for node in circuit
         forgotten[node] = forget_node(node)
     end
-    node2dag(forgotten[circuit[end]])
+    linearize(forgotten[circuit[end]])
 end
 
 function forget2(is_forgotten::Function, circuit::Δ)::Δ
     new_root = forget2(is_forgotten, circuit[end])
-    node2dag(new_root)
+    linearize(new_root)
 end
 
 function forget2(is_forgotten::Function, root::ΔNode)::ΔNode
@@ -117,7 +117,7 @@ function propagate_constants(circuit::Δ)
     for node in circuit
         proped[node] = propagate(node)
     end
-    node2dag(proped[circuit[end]])
+    linearize(proped[circuit[end]])
 end
 
 @inline normalize(n::ΔNode, old_n::ΔNode, kept) = ()
@@ -125,7 +125,7 @@ end
 "Return the circuit conditioned on given constrains"
 function condition(circuit::Δ, lit::Lit)::Δ
     new_root = condition(circuit[end], lit)
-    node2dag(new_root)
+    linearize(new_root)
 end
 
 function condition(root::ΔNode, lit::Lit)::ΔNode
@@ -253,7 +253,7 @@ function merge(circuit::Union{Δ, ΔNode}, or1::ΔNode, or2::ΔNode)
 end
 
 function replace_node(circuit::Δ, old::ΔNode, new::ΔNode)::Δ
-    node2dag(replace_node(circuit[end], old, new))
+    linearize(replace_node(circuit[end], old, new))
 end
 
 function replace_node(root::ΔNode, old::ΔNode, new::ΔNode)::ΔNode

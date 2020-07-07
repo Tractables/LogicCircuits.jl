@@ -173,11 +173,11 @@ end
     n1 = clone(n0, or1, or2, and; depth=1)
     @test num_nodes(n1) == num_nodes(n0) + 1
     @test num_edges(n1) == num_edges(n0) + num_children(and)
-    @test length(Set([node2dag(n1); node2dag(n0)])) == num_nodes(n0) + 4
+    @test length(Set([linearize(n1); linearize(n0)])) == num_nodes(n0) + 4
     n2 = clone(n0, or1, or2, and; depth=2)
     @test num_nodes(n2) == num_nodes(n0) + 2
     @test num_edges(n2) == num_edges(n0) + 4
-    @test length(Set([node2dag(n2); node2dag(n0)])) == num_nodes(n0) + 5
+    @test length(Set([linearize(n2); linearize(n0)])) == num_nodes(n0) + 5
 end
 
 @testset "Merge test" begin

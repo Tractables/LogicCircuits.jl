@@ -13,7 +13,7 @@ const Vtree{VN<:VTree} = AbstractVector{<:VN}
 
 "Construct a balanced vtree"
 function balanced_vtree(::Type{VN}, num_vars::Int)::Vtree{VN} where {VN <: VTree}
-    return node2dag(balanced_vtree_root(VN, 1, num_vars))
+    return linearize(balanced_vtree_root(VN, 1, num_vars))
 end
 
 "Construct a balanced vtree root node"
@@ -49,14 +49,14 @@ function random_vtree(::Type{VN}, num_variables::Integer; vtree_mode::String="ba
         end
         right = popfirst!(vtree)
     end
-    node2dag(right)
+    linearize(right)
 end
 
 """
 Construct PlainVtree top town, using method specified by split_method.
 """
 function top_down_vtree(::Type{VN}, vars::Vector{Var}, split_method::Function)::Vtree{VN} where {VN <: VTree}
-    node2dag(top_down_root(VN, vars, split_method))
+    linearize(top_down_root(VN, vars, split_method))
 end
 
 function top_down_root(::Type{VN}, vars::Vector{Var}, split_method::Function)::VN  where {VN <: VTree}
@@ -97,7 +97,7 @@ function bottom_up_vtree(::Type{VN}, vars::Vector{Var}, combine_method!::Functio
     end
 
     "3. clean up"
-    node2dag(ln[end])
+    linearize(ln[end])
 end
 
 #############

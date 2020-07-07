@@ -128,7 +128,7 @@ function get_nodes_level(circuit::Δ)
 end
 
 function save_as_dot(root::LogicalΔNode, file::String)
-    return save_as_dot(node2dag(root), file)
+    return save_as_dot(linearize(root), file)
 end
 
 "Save logic circuit to .dot file"

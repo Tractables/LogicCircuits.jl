@@ -105,11 +105,23 @@ module TestNodes
         
         @test tree_num_nodes(r) == 14 # unverified
 
+        @test linearize(r)[end] == r
+        @test linearize(r)[1] == l1 || linearize(r)[1] == l2
+        @test linearize(l2) == [l2]
+        @test length(linearize(i12)) == 3
+
+        @test eltype(linearize(r)) == Dag
+        @test eltype(linearize(l1)) == TestLNode
+        @test eltype(linearize(r, Any)) == Any
+
+        @test left_most_descendent(r) == l1
+        @test right_most_descendent(r) == l2
+
+        # TODO: find a way to test `lca` which requires a parent pointer and list of descendents
+
     end    
 
 end
-
-# TODO add similar tests for the special case of`Tree`
 
 
 # TODO: bring back

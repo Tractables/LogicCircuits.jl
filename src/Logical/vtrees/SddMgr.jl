@@ -5,7 +5,7 @@
 #############
 
 function SddMgr(::Type{T}, vtree::Vtree)::T where {T<:SddMgr}
-    node2dag(SddMgr(TrimMgrNode, vtree[end]))
+    linearize(SddMgr(TrimMgrNode, vtree[end]))
 end
 
 function SddMgr(::Type{T}, vtree::VTree)::T where {T<:SddMgrNode}
@@ -60,7 +60,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     for clause in children(cnf)
        i = i+1
        cnfΔ = cnfΔ & compile_clause(mgr, clause)
-       progress && println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(node2dag(cnfΔ)))
+       progress && println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(linearize(cnfΔ)))
     end
     cnfΔ
  end
@@ -76,7 +76,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     leftΔ = compile_cnf_tree(NodeType(mgr.left), mgr.left, left_clauses, scopes, progress)
     right_clauses = filter(c -> scopes[c] ⊆ variables(mgr.right), clauses)
     rightΔ = compile_cnf_tree(NodeType(mgr.right), mgr.right, right_clauses, scopes, progress)
-    progress && print("Compiled left ($(sdd_size(node2dag(leftΔ)))) and right ($(sdd_size(node2dag(rightΔ))))")
+    progress && print("Compiled left ($(sdd_size(linearize(leftΔ)))) and right ($(sdd_size(linearize(rightΔ))))")
     joinΔ = leftΔ & rightΔ
     mixed_clauses = setdiff(clauses, left_clauses, right_clauses)
     progress && print(" with $(length(mixed_clauses)) clauses")
@@ -88,7 +88,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     for clause in mixed_clauses
         joinΔ = joinΔ & compile_clause(mgr, clause)
     end
-    progress && println(" into sdd of size $(sdd_size(node2dag(joinΔ)))")
+    progress && println(" into sdd of size $(sdd_size(linearize(joinΔ)))")
     joinΔ
  end
 

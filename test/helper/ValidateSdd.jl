@@ -70,7 +70,7 @@ function is_unique(sdd::Sdd, k::Int)
       if length(nodes) > 1
          println("Equivalent Nodes:")
          for node in nodes
-            println("  - Node: $node Pr: $(sat_prob(node2dag(node)))")
+            println("  - Node: $node Pr: $(sat_prob(linearize(node)))")
          end
       end
       @test length(nodes) == 1

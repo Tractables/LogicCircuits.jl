@@ -115,7 +115,7 @@ function save(vtree::PlainVtree, file::AbstractString)
     end
 
     " 4. saving frame"
-    order = node2dag(vtree[end])
+    order = linearize(vtree[end])
 
     save_vtree_header(vtree, f)
 

@@ -6,6 +6,7 @@ module Utils
 
 include("Misc.jl")
 include("Graphs.jl")
+include("Trees.jl")
 include("Data.jl")
 
 end #module
