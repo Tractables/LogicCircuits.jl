@@ -76,8 +76,8 @@ ll_per_example(ll, data) = ll / num_examples(data)
 "Normalize the given log-likelihood as bits per pixel in `data`"
 bits_per_pixel(ll, data) = -(ll_per_example(ll, data)  / num_features(data)) / log(2)
 
-"Computer the per-example log-likelihood of a fully factorized model on Bool data"
-function fully_factorized_log_likelihood(m::AbstractMatrix{<:Bool}; pseudocount)
+"Computer the per-example log-likelihood of a fully factorized ML model on Bool data"
+function fully_factorized_log_likelihood(m::AbstractMatrix{<:Bool}; pseudocount=0)
     counts = sum(m, dims=1)    
     smoothed_counts = counts .+ pseudocount/2.0
     log_estimates = log.(smoothed_counts ./ (num_examples(m) + pseudocount))
@@ -86,7 +86,7 @@ function fully_factorized_log_likelihood(m::AbstractMatrix{<:Bool}; pseudocount)
     ll_per_example(ll,m)
 end
 
-function fully_factorized_log_likelihood(df::DataFrame; pseudocount)
+function fully_factorized_log_likelihood(df::DataFrame; pseudocount=0)
     @assert is_binary(df) "This method requires binary data"
     fully_factorized_log_likelihood(convert(Matrix,df); pseudocount)
 end

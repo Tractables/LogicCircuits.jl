@@ -56,6 +56,7 @@ using DataFrames: DataFrame, DataFrameRow
 
     @test Utils.fully_factorized_log_likelihood(mb; pseudocount=1) ≈ -1.280557674335465 #not verified
     @test Utils.fully_factorized_log_likelihood(dfb; pseudocount=1) ≈ -1.280557674335465 #not verified
+    @test Utils.fully_factorized_log_likelihood(dfb) ≈ -1.2730283365896256 #not verified
 
     @test ll_per_example(-12.3, m) ≈ -4.1 #not verified
     @test ll_per_example(-12.3, df) ≈ -4.1 #not verified

@@ -75,7 +75,7 @@ struct Inner <: NodeType end
 # traversal
 #####################
 
-"Flip the bit field throughout this circuit (or ensure it is set to given value)"
+"Flip the bit field throughout this graph (or ensure it is set to given value)"
 function flip_bit(node::Dag, ::Val{Bit} = Val(!node.bit)) where Bit
     if node.bit != Bit
         node.bit = Bit
@@ -90,7 +90,7 @@ end
 
 import Base.foreach #extend
 
-"Apply a function to each node in a circuit, bottom up"
+"Apply a function to each node in a graph, bottom up"
 function foreach(f::Function, node::Dag)
     foreach_rec(f, node)
     flip_bit(node)
@@ -114,7 +114,7 @@ function foreach(f::Function, node::Tree)
     nothing
 end
 
-"Apply a function to each node in a circuit, bottom up, flipping the node bits"
+"Apply a function to each node in a graph, bottom up, flipping the node bits"
 function foreach_rec(f::Function, node::Dag, ::Val{Bit} = Val(!node.bit)) where Bit
     if node.bit != Bit
         node.bit = Bit
@@ -133,7 +133,7 @@ end
 
 import Base.filter #extend
 
-"""Retrieve list of nodes in circuit matching predicate `p`"""
+"""Retrieve list of nodes in graph matching predicate `p`"""
 function filter(p::Function, root::Dag, ::Type{T} = Union{})::Vector where T
     results = Vector{T}()
     foreach(root) do n
@@ -148,7 +148,7 @@ function filter(p::Function, root::Dag, ::Type{T} = Union{})::Vector where T
 end
 
 """
-Compute a function bottom-up on the circuit. 
+Compute a function bottom-up on the graph. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
@@ -160,7 +160,7 @@ end
 
 
 """
-Compute a function bottom-up on the circuit, flipping the node bits. 
+Compute a function bottom-up on the graph, flipping the node bits. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
