@@ -107,7 +107,7 @@ function is_decomposable(root::ΔNode)::Bool
     f_con(n) = BitSet()
     f_lit(n) = BitSet(variable(n))
     f_a(n, cs) = begin
-        result = result && disjoint(cs...)
+        result = result && isdisjoint(cs...)
         reduce(union, cs)
     end 
     f_o(n, cs) = reduce(union, cs)

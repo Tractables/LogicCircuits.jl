@@ -10,8 +10,8 @@ using DataFrames: DataFrame
     @test order_asc(1,2) == (1,2)
     @test order_asc(2,1) == (1,2)
 
-    @test disjoint(Set([1,3]),Set([5,2]),Set(["a"]))
-    @test !disjoint(Set([1,"a"]),Set([5,2]),Set(["a"]))
+    @test isdisjoint(Set([1,3]),Set([5,2]),Set(["a"]))
+    @test !isdisjoint(Set([1,"a"]),Set([5,2]),Set(["a"]))
 
     @test length(pushrand!([1,2],3)) == 3
 

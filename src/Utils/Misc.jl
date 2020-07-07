@@ -1,6 +1,6 @@
 # Miscellaneous utilities.
 
-export issomething, order_asc, disjoint, pushrand!, init_array,
+export issomething, order_asc, isdisjoint, pushrand!, init_array,
        always, never, uniform, logsumexp,
        map_values, groupby
 
@@ -11,10 +11,9 @@ export issomething, order_asc, disjoint, pushrand!, init_array,
 @inline order_asc(x, y) = x > y ? (y, x) : (x , y)
 
 "Are the given sets disjoint (no shared elements)?"
-# TODO: Once Julia 1.5 is standard, rename to `isdisjoint` from Base
-function disjoint(set1::AbstractSet, sets::AbstractSet...)::Bool
+function Base.isdisjoint(set1::AbstractSet, set2::AbstractSet, set3::AbstractSet, othersets::AbstractSet...)::Bool
     seen = set1 # can be sped up by copying seen first then reusing it with union!?
-    for set in sets
+    for set in [set2, set3, othersets...]
         if !isempty(intersect(seen,set))
             return false
         else
