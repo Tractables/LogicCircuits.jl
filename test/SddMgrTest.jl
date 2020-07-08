@@ -1,5 +1,5 @@
 using Test
-using LogicCircuits.Logical
+using LogicCircuits.Logic
 using LogicCircuits.Utils
 
 @testset "Trimmed SDD Test" begin

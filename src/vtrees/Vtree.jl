@@ -1,3 +1,5 @@
+export VTree, Vtree, balanced_vtree, top_down_vtree, bottom_up_vtree
+
 #############
 # VTree
 #############

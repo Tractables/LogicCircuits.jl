@@ -1,6 +1,6 @@
 
 using Test
-using LogicCircuits.Logical
+using LogicCircuits.Logic
 using LogicCircuits.Utils
 
 @testset "Type hierarchy tests" begin
@@ -11,10 +11,10 @@ using LogicCircuits.Utils
 
     # logical circuits
     @test Δ <: Dag
-    @test LogicalΔ <: Δ
-    @test UnstLogicalΔ <: LogicalΔ
-    @test StructLogicalΔ <: LogicalΔ
-    @test Sdd <: LogicalΔ
+    @test LogicΔ <: Δ
+    @test UnstLogicΔ <: LogicΔ
+    @test StructLogicΔ <: LogicΔ
+    @test Sdd <: LogicΔ
     @test TrimSdd <: Sdd
 
     # decorator circuits

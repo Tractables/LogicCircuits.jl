@@ -5,7 +5,7 @@
 """
 Compile lines into a unstructured logical circuit
 """
-compile_logical(lines::CircuitFormatLines)::UnstLogicalΔ = 
+compile_logical(lines::CircuitFormatLines)::UnstLogicΔ = 
     compile_logical_m(lines)[1]
 
 """
@@ -15,13 +15,13 @@ while keeping track of id-to-node mappings
 function compile_logical_m(lines::CircuitFormatLines)
 
     # linearized circuit nodes
-    circuit = Vector{UnstLogicalΔNode}()
+    circuit = Vector{UnstLogicΔNode}()
     
     # mapping from circuit node ids to node objects
-    id2node = Dict{ID,UnstLogicalΔNode}()
+    id2node = Dict{ID,UnstLogicΔNode}()
     
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,LogicalLeafNode}()
+    lit_cache = Dict{Lit,LogicLeafNode}()
     literal_node(l::Lit) = get!(lit_cache, l) do
         leaf = LiteralNode(l)
         push!(circuit,leaf) # also add new leaf to linearized circuit before caller
@@ -90,7 +90,7 @@ end
 """
 Compile lines into a smooth unstructured logical circuit
 """
-compile_smooth_logical(lines::CircuitFormatLines)::UnstLogicalΔ = 
+compile_smooth_logical(lines::CircuitFormatLines)::UnstLogicΔ = 
     compile_smooth_logical_m(lines)[1]
 
 """
@@ -100,13 +100,13 @@ while keeping track of id-to-node mappings
 function compile_smooth_logical_m(lines::CircuitFormatLines)
 
     # linearized circuit nodes
-    circuit = Vector{UnstLogicalΔNode}()
+    circuit = Vector{UnstLogicΔNode}()
     
     # mapping from circuit node ids to node objects
-    id2node = Dict{ID,UnstLogicalΔNode}()
+    id2node = Dict{ID,UnstLogicΔNode}()
     
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,LogicalLeafNode}()
+    lit_cache = Dict{Lit,LogicLeafNode}()
     literal_node(l::Lit) = get!(lit_cache, l) do
         leaf = LiteralNode(l)
         push!(circuit,leaf) # also add new leaf to linearized circuit before caller
@@ -200,13 +200,13 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
                                          id2vtree::Dict{ID, PlainVTree})
 
     # linearized circuit nodes
-    circuit = Vector{StructLogicalΔNode{PlainVTree}}()
+    circuit = Vector{StructLogicΔNode{PlainVTree}}()
     
     # mapping from node ids to node objects
-    id2node = Dict{ID,StructLogicalΔNode{PlainVTree}}()
+    id2node = Dict{ID,StructLogicΔNode{PlainVTree}}()
 
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,StructLogicalLeafNode{PlainVTree}}()
+    lit_cache = Dict{Lit,StructLogicLeafNode{PlainVTree}}()
     literal_node(l::Lit, v::PlainVTree) = get!(lit_cache, l) do
         leaf = StructLiteralNode{PlainVTree}(l,v)
         push!(circuit,leaf) # also add new leaf to linearized circuit before caller

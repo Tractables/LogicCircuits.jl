@@ -15,7 +15,7 @@ function benchmark_pass_down()
     end
     # 547.595 ms (2416251 allocations: 474.71 MiB)
     
-    @time Logical.pass_down2(circuit, data); 
+    @time Logic.pass_down2(circuit, data); 
     # 379.885 ms (1687709 allocations: 419.05 MiB)
 
     

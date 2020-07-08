@@ -1,7 +1,7 @@
 module IO
 
 using ..Utils
-using ..Logical
+using ..Logic
 
 export
 

@@ -1,31 +1,31 @@
 #####################
-# Logical circuits
+# Logic circuits
 #####################
 
 """
 Root of the logical circuit node hierarchy
 """
-abstract type LogicalΔNode <: ΔNode end
+abstract type LogicΔNode <: ΔNode end
 
 """
 Root of the unstructured logical circuit node hierarchy
 """
-abstract type UnstLogicalΔNode <: LogicalΔNode end
+abstract type UnstLogicΔNode <: LogicΔNode end
 
 """
 A logical leaf node
 """
-abstract type LogicalLeafNode <: UnstLogicalΔNode end
+abstract type LogicLeafNode <: UnstLogicΔNode end
 
 """
 A logical inner node
 """
-abstract type LogicalInnerNode <: UnstLogicalΔNode end
+abstract type LogicInnerNode <: UnstLogicΔNode end
 
 """
 A logical literal leaf node, representing the positive or negative literal of its variable
 """
-mutable struct LiteralNode <: LogicalLeafNode
+mutable struct LiteralNode <: LogicLeafNode
     literal::Lit
     data
     bit::Bool
@@ -35,7 +35,7 @@ end
 """
 A logical constant leaf node, representing true or false
 """
-abstract type ConstantNode <: LogicalInnerNode end
+abstract type ConstantNode <: LogicInnerNode end
 
 """
 Constant True node
@@ -58,8 +58,8 @@ end
 """
 A logical conjunction node (And node)
 """
-mutable struct ⋀Node <: LogicalInnerNode
-    children::Vector{LogicalΔNode}
+mutable struct ⋀Node <: LogicInnerNode
+    children::Vector{LogicΔNode}
     data
     bit::Bool
     ⋀Node(c) = new(c, nothing, false)
@@ -68,8 +68,8 @@ end
 """
 A logical disjunction node (Or node)
 """
-mutable struct ⋁Node <: LogicalInnerNode
-    children::Vector{LogicalΔNode}
+mutable struct ⋁Node <: LogicInnerNode
+    children::Vector{LogicΔNode}
     data
     bit::Bool
     ⋁Node(c) = new(c, nothing, false)
@@ -78,12 +78,12 @@ end
 """
 A logical circuit represented as a bottom-up linear order of nodes
 """
-const LogicalΔ = AbstractVector{<:LogicalΔNode}
+const LogicΔ = AbstractVector{<:LogicΔNode}
 
 """
 A unstructured logical circuit represented as a bottom-up linear order of nodes
 """
-const UnstLogicalΔ = AbstractVector{<:UnstLogicalΔNode}
+const UnstLogicΔ = AbstractVector{<:UnstLogicΔNode}
 
 #####################
 # traits
@@ -101,7 +101,7 @@ Returns GateType of a node (Literal, Constant, And, Or)
 # methods
 #####################
 
-@inline node_type(::Type{<:UnstLogicalΔNode}) = UnstLogicalΔNode
+@inline node_type(::Type{<:UnstLogicΔNode}) = UnstLogicΔNode
 
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::LiteralNode)::Lit = n.literal
@@ -111,9 +111,9 @@ Returns GateType of a node (Literal, Constant, And, Or)
 @inline constant(n::FalseNode)::Bool = false
 
 "Get the children of a given inner node"
-@inline children(n::LogicalInnerNode) = n.children
+@inline children(n::LogicInnerNode) = n.children
 
-@inline function conjoin_like(example::UnstLogicalΔNode, arguments::Vector)
+@inline function conjoin_like(example::UnstLogicΔNode, arguments::Vector)
     if isempty(arguments)
         TrueNode()
     # it's unclear if we want to also optimize the following
@@ -127,7 +127,7 @@ Returns GateType of a node (Literal, Constant, And, Or)
 end
 
 "Disjoin nodes in the same way as the example"
-@inline function disjoin_like(example::UnstLogicalΔNode, arguments::Vector)
+@inline function disjoin_like(example::UnstLogicΔNode, arguments::Vector)
     if isempty(arguments)
         FalseNode()
     # it's unclear if we want to also optimize the following
@@ -141,11 +141,11 @@ end
 end
 
 "Construct a new literal node like the given node's type"
-literal_like(::UnstLogicalΔNode, lit::Lit) = LiteralNode(lit)
+literal_like(::UnstLogicΔNode, lit::Lit) = LiteralNode(lit)
 
 "Generate a fully factorized (logistic regression) circuit over `n` variables"
 function fully_factorized_circuit(n)
-    lin = LogicalΔNode[]
+    lin = LogicΔNode[]
     ors = map(1:n) do v
         v = Var(v)
         pos = LiteralNode( var2lit(v))

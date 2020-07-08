@@ -2,20 +2,24 @@
 
 module LogicCircuits
 
-# USE EXTERNAL MODULES
-
 using Reexport
 
 include("Utils/module.jl")
-
 @reexport using .Utils
 
-# # INCLUDE CHILD MODULES
-# include("Logical/Logical.jl")
-# include("IO/IO.jl")
+include("Circuits.jl")
+# include("CircuitTraversal.jl")
+# include("LogicCircuits.jl")
+# include("Queries.jl")
+# include("Transformations.jl")
+# include("vtrees/Vtree.jl")
+# include("StructuredLogicCircuits.jl")
+# include("vtrees/PlainVtree.jl")
+# include("Sdd.jl")
+# include("vtrees/SddMgr.jl")
+# include("vtrees/TrimSddMgr.jl")
 
-# # USE CHILD MODULES (in order to re-export some functions)
-# @reexport using .Logical
+# include("IO/module.jl")
 # @reexport using .IO
 
 end

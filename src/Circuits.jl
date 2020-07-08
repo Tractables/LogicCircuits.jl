@@ -1,28 +1,10 @@
+export ΔNode, Δ, LiteralGate, ConstantGate, ⋁Gate, ⋀Gate,
+    GateType, InnerGate, LeafGate,
+    negative, positive, variable, literal,
+    true_like, false_like, DecoratorΔ, DecoratorΔNode, origin, grand_origin, is_true, is_false, constant,
+    prime, sub, conjoin_like, disjoin_like, literal_like
+
 using Random
-
-#####################
-# General logic
-#####################
-
-"""
-Variables are represented as 32-bit unsigned integers
-"""
-const Var = UInt32 # variable ids
-
-"""
-Literals are represented as 32-bit signed integers.
-Positive literals are positive integers identical to their variable. Negative literals are their negations. Integer 0 should not be used to represent literals.
-"""
-const Lit = Int32 # variable with a positive or negative sign
-
-"Convert a variable to the corresponding positive literal"
-@inline var2lit(v::Var)::Lit = convert(Lit,v)
-
-"Convert a literal its variable, removing the sign of the literal"
-@inline lit2var(l::Lit)::Var = convert(Var,abs(l))
-
-var(v::Int) = convert(Var, v)
-lit(v::Int) = convert(Lit, v)
 
 #####################
 # General circuits

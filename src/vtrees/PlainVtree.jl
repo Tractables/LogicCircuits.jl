@@ -1,3 +1,6 @@
+export PlainVTree, PlainVtreeLeafNode, PlainVtreeInnerNode, isleaf, variables, num_variables, PlainVtree,
+path_length, random_vtree
+
 using DataStructures
 using Random
 

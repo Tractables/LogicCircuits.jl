@@ -22,17 +22,17 @@ end
 
    circuit = load_logical_circuit(zoo_lc_file("mnist-large.circuit"))
 
-   @test circuit isa LogicalΔ   
+   @test circuit isa LogicΔ   
    @test is_decomposable(circuit)
 
    circuit = load_smooth_logical_circuit(zoo_lc_file("mnist-large.circuit"))
 
-   @test circuit isa LogicalΔ
+   @test circuit isa LogicΔ
    @test is_decomposable(circuit)
 
    circuit, vtree = load_struct_smooth_logical_circuit(zoo_lc_file("mnist-large.circuit"), zoo_vtree_file("balanced.vtree"))
 
-   @test circuit isa StructLogicalΔ
+   @test circuit isa StructLogicΔ
    @test vtree isa PlainVtree
    @test is_decomposable(circuit)
 

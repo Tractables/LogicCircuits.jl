@@ -1,3 +1,7 @@
+export TrimMgrNode, TrimSddMgr, XYPartition, Element, TrimSdd, TrimNode,
+compress, unique⋁, canonicalize,
+compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from
+
 using DataStructures
 using Random
 

@@ -1,3 +1,5 @@
+export smooth, forget, propagate_constants, condition, split, clone, replace_node, merge
+
 "Create an equivalent smooth circuit from the given circuit."
 function smooth(root::Δ)::Δ
     new_root = smooth(root[end])

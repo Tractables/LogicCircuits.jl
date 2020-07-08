@@ -1,3 +1,5 @@
+export ⋁_nodes, ⋀_nodes, or_nodes, and_nodes
+
 #####################
 # traversal infrastructure
 #####################

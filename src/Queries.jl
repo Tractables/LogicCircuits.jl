@@ -1,3 +1,7 @@
+export num_variables, is_decomposable, variable_scopes, variable_scope,
+    model_count, sat_prob, prob_equiv_signature, has_unique_literal_nodes, 
+    has_unique_constant_nodes, is_smooth, evaluate
+
 using DataFrames
 
 "Number of variables in the circuit"

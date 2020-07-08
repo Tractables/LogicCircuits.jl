@@ -1,6 +1,7 @@
 # Miscellaneous utilities.
 
 export issomething, order_asc, isdisjoint, pushrand!, init_array,
+       Var, Lit, var2lit, lit2var,
        always, never, uniform, logsumexp,
        map_values, groupby
 
@@ -40,6 +41,30 @@ end
 "An array of undetermined values (fast) for the given element type"
 @inline init_array(::Type{T}, dims::Int...) where T<:Number = Array{T}(undef, dims...)
 @inline init_array(::Type{T}, dims::Int...) where T<:Bool= BitArray(undef, dims...)
+
+#####################
+# General logic
+#####################
+
+"""
+Variables are represented as 32-bit unsigned integers
+"""
+const Var = UInt32 # variable ids
+
+"""
+Literals are represented as 32-bit signed integers.
+Positive literals are positive integers identical to their variable. Negative literals are their negations. Integer 0 should not be used to represent literals.
+"""
+const Lit = Int32 # variable with a positive or negative sign
+
+"Convert a variable to the corresponding positive literal"
+@inline var2lit(v::Var)::Lit = convert(Lit,v)
+
+"Convert a literal its variable, removing the sign of the literal"
+@inline lit2var(l::Lit)::Var = convert(Var,abs(l))
+
+var(v::Int) = convert(Var, v)
+lit(v::Int) = convert(Lit, v)
 
 #####################
 # probability semantics

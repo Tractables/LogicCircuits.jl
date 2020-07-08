@@ -63,7 +63,7 @@ end
 
 is_normalized(l::LiteralLine) = l.normalized
 
-import ..Logical: literal, variable # import to extend
+import ..Logic: literal, variable # import to extend
 literal(l::LiteralLine) = l.literal
 variable(l::LiteralLine) = lit2var(literal(l))
 

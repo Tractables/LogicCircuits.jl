@@ -9,7 +9,7 @@ import .LogicCircuits.IO:
 
   circuit = load_logical_circuit(zoo_sdd_file("random.sdd"))
 
-  @test circuit isa UnstLogicalΔ
+  @test circuit isa UnstLogicΔ
   @test num_nodes(circuit) == 1676
   @test is_decomposable(circuit)
   @test !is_smooth(circuit)
@@ -21,7 +21,7 @@ import .LogicCircuits.IO:
 
   prop_circuit = propagate_constants(circuit)
 
-  @test prop_circuit isa UnstLogicalΔ
+  @test prop_circuit isa UnstLogicΔ
   @test num_nodes(prop_circuit) == 1232
   @test is_decomposable(prop_circuit)
   @test !is_smooth(prop_circuit)
@@ -35,7 +35,7 @@ import .LogicCircuits.IO:
 
   smooth_circuit = smooth(prop_circuit)
 
-  @test smooth_circuit isa UnstLogicalΔ
+  @test smooth_circuit isa UnstLogicΔ
   @test num_nodes(smooth_circuit) == 2056
   @test is_decomposable(smooth_circuit)
   @test is_smooth(smooth_circuit)
@@ -49,7 +49,7 @@ import .LogicCircuits.IO:
 
   forgotten_circuit = forget(v -> (v > 16), circuit)
 
-  @test forgotten_circuit isa UnstLogicalΔ
+  @test forgotten_circuit isa UnstLogicΔ
   @test num_nodes(forgotten_circuit) == 1648
   @test num_variables(forgotten_circuit) == 16
   @test is_decomposable(forgotten_circuit)
@@ -61,7 +61,7 @@ import .LogicCircuits.IO:
 
   random_circuit = smooth(propagate_constants(forgotten_circuit))
 
-  @test random_circuit isa UnstLogicalΔ
+  @test random_circuit isa UnstLogicΔ
   @test num_nodes(random_circuit) == 1956
   @test is_decomposable(random_circuit)
   @test is_smooth(random_circuit)

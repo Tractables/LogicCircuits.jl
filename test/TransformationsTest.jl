@@ -2,7 +2,7 @@ using Test
 using LogicCircuits
 
 function little_2var()
-    lin = LogicalΔNode[]
+    lin = LogicΔNode[]
 
     v = Var(2)
     pos = LiteralNode( var2lit(v))
@@ -52,7 +52,7 @@ function little_3var()
 end
 
 function little_4var()
-    lin = LogicalΔNode[]
+    lin = LogicΔNode[]
     n = 4
     ors = map(1:n) do v
         v = Var(v)
@@ -99,7 +99,7 @@ end
 
     lit1 = Lit(1)
     c2 = condition(c1, lit1)
-    dict = Logical.literal_nodes(c2)
+    dict = Logic.literal_nodes(c2)
     @test haskey(dict, lit1)
     @test !haskey(dict, -lit1) 
     c3 = condition(c2, -lit1)

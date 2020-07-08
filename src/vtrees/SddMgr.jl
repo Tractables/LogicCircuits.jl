@@ -1,4 +1,5 @@
-
+export sdd_size, sdd_num_nodes,
+compile_cnf, compile_clause, validate
 
 #############
 # Methods

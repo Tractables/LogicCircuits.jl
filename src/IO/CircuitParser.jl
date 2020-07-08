@@ -13,7 +13,7 @@ Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 """
-function load_logical_circuit(file::String)::UnstLogicalΔ
+function load_logical_circuit(file::String)::UnstLogicΔ
     compile_logical(parse_circuit_file(file))
 end
 
@@ -23,7 +23,7 @@ Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 """
-function load_smooth_logical_circuit(file::String)::UnstLogicalΔ
+function load_smooth_logical_circuit(file::String)::UnstLogicΔ
     compile_smooth_logical(parse_circuit_file(file))
 end
 
@@ -35,7 +35,7 @@ Support circuit file formats:
 Supported vtree file formats:
  * ".vtree" for VTree files
 """
-function load_struct_smooth_logical_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicalΔ{PlainVTree},PlainVtree}
+function load_struct_smooth_logical_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicΔ{PlainVTree},PlainVtree}
     circuit_lines = parse_circuit_file(circuit_file)
     vtree_lines = parse_vtree_file(vtree_file)
     compile_smooth_struct_logical(circuit_lines, vtree_lines)
@@ -260,17 +260,17 @@ Load a CNF as a logical circuit from file.
 Supppor file formats:
 * ".cnf" for CNF files
 """
-function load_cnf(file::String)::UnstLogicalΔ
+function load_cnf(file::String)::UnstLogicΔ
     @assert endswith(file, ".cnf")
 
     # linearized circuit nodes
-    circuit = Vector{UnstLogicalΔNode}()
+    circuit = Vector{UnstLogicΔNode}()
 
     # linearized clauses (disjunctions)
     clauses = Vector{⋁Node}()
 
     # literal cache is responsible for making leaf literals nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,LogicalLeafNode}()
+    lit_cache = Dict{Lit,LogicLeafNode}()
     literal_node(l::Lit) = get!(lit_cache, l) do
         leaf = LiteralNode(l)
         push!(circuit,leaf) # also add new leaf to linearized circuit before caller
@@ -333,17 +333,17 @@ Load a CNF as a logical circuit from file.
 Supppor file formats:
 * ".cnf" for CNF files
 """
-function load_dnf(file::String)::UnstLogicalΔ
+function load_dnf(file::String)::UnstLogicΔ
     @assert endswith(file, ".dnf")
 
     # linearized circuit nodes
-    circuit = Vector{UnstLogicalΔNode}()
+    circuit = Vector{UnstLogicΔNode}()
 
     # linearized clauses (conjunctions)
     clauses = Vector{⋀Node}()
 
     # literal cache is responsible for making leaf literals nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,LogicalLeafNode}()
+    lit_cache = Dict{Lit,LogicLeafNode}()
     literal_node(l::Lit) = get!(lit_cache, l) do
         leaf = LiteralNode(l)
         push!(circuit,leaf) # also add new leaf to linearized circuit before caller

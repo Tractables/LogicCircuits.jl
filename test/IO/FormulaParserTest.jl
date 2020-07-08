@@ -7,7 +7,7 @@ import .LogicCircuits.IO: zoo_cnf, zoo_dnf
 
    circuit = zoo_cnf("8.cnf")
 
-   @test circuit isa UnstLogicalΔ
+   @test circuit isa UnstLogicΔ
    @test circuit[end] isa ⋀Node
    @test circuit[end - 1] isa ⋁Node
    @test num_variables(circuit) == 227
@@ -19,7 +19,7 @@ end
 
    circuit = zoo_dnf("8.dnf")
 
-   @test circuit isa UnstLogicalΔ
+   @test circuit isa UnstLogicΔ
    @test circuit[end] isa ⋁Node
    @test circuit[end - 1] isa ⋀Node
    @test num_variables(circuit) == 227

@@ -1,3 +1,7 @@
+export SddMgrNode, SddMgr,
+SddNode, SddLeafNode, SddCircuit, Sdd,
+SddLiteralNode, SddConstantNode, Sdd⋁Node, Sdd⋀Node
+
 #############
 # SddMgr
 #############
@@ -12,7 +16,7 @@ const SddMgr = AbstractVector{<:SddMgrNode}
 #############
 
 "Root of the SDD circuit node hierarchy"
-abstract type SddNode{V<:SddMgrNode} <: StructLogicalΔNode{V} end
+abstract type SddNode{V<:SddMgrNode} <: StructLogicΔNode{V} end
 
 "A SDD logical leaf node"
 abstract type SddLeafNode{V} <: SddNode{V} end
