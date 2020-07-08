@@ -21,11 +21,17 @@ module TestNodes
         TestLNode(i) = new(i,nothing,false)
     end
 
+    struct DummyNode <: Node end
+
     LogicCircuits.NodeType(::Type{<:TestINode}) = Inner()
     LogicCircuits.NodeType(::Type{<:TestLNode}) = Leaf()
+    LogicCircuits.NodeType(::Type{<:DummyNode}) = Inner()
     LogicCircuits.children(n::TestINode) = n.children
 
     @testset "Graphs utils for TestNodes" begin
+
+        @test_throws ErrorException children(DummyNode())
+        @test_throws ErrorException num_children(DummyNode())
 
         l1 = TestLNode(1)
         l2 = TestLNode(2)
