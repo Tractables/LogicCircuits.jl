@@ -4,10 +4,10 @@ module LogicCircuits
 
 using Reexport
 
-include("Utils/module.jl")
+include("Utils/Utils.jl")
 @reexport using .Utils
 
-include("Circuits.jl")
+include("abstract_logic_circuits.jl")
 # include("CircuitTraversal.jl")
 # include("LogicCircuits.jl")
 # include("Queries.jl")

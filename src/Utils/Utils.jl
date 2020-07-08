@@ -4,9 +4,9 @@ that could be useful in any Julia project
 """
 module Utils
 
-include("Misc.jl")
-include("Graphs.jl")
-include("Trees.jl")
-include("Data.jl")
+include("misc.jl")
+include("graphs.jl")
+include("trees.jl")
+include("data.jl")
 
 end #module
