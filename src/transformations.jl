@@ -6,13 +6,13 @@ function smooth(root::Δ)::Δ
     linearize(new_root)
 end
 
-function smooth(root::ΔNode)::ΔNode
+function smooth(root::LogicNode)::LogicNode
     lit_nodes = literal_nodes(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
     f_a(n, call) = begin
         parent_scope = BitSet()
-        smooth_children = Vector{ΔNode}(undef, num_children(n))
+        smooth_children = Vector{Node}(undef, num_children(n))
         map!(smooth_children, children(n)) do child
             (smooth_child, scope) = call(child)
             union!(parent_scope, scope)
@@ -22,18 +22,18 @@ function smooth(root::ΔNode)::ΔNode
     end
     f_o(n, call) = begin
         parent_scope = mapreduce(c -> call(c)[2], union, children(n))
-        smooth_children = Vector{ΔNode}(undef, num_children(n))
+        smooth_children = Vector{Node}(undef, num_children(n))
         map!(smooth_children, children(n)) do child
             (smooth_child, scope) = call(child)
             smooth_node(smooth_child, setdiff(parent_scope, scope), lit_nodes)
         end
         return (disjoin_like(n, smooth_children), parent_scope)
     end
-    foldup(root, f_con, f_lit, f_a, f_o, Tuple{ΔNode, BitSet})[1]
+    foldup(root, f_con, f_lit, f_a, f_o, Tuple{Node, BitSet})[1]
 end
 
 "Return a smooth version of the node where the `missing_scope` variables are added to the scope, using literals from `lit_nodes`"
-function smooth_node(node::ΔNode, missing_scope, lit_nodes)
+function smooth_node(node::LogicNode, missing_scope, lit_nodes)
     if isempty(missing_scope)
         return node
     else
@@ -53,20 +53,20 @@ Forget variables from the circuit.
 Warning: this may or may not destroy the determinism property.
 """
 function forget(is_forgotten::Function, circuit::Δ)
-    forgotten = Dict{ΔNode,ΔNode}()
+    forgotten = Dict{Node,Node}()
     (_, true_node) = constant_nodes(circuit) # reuse constants when possible
     if isnothing(true_node)
         true_node = true_like(circuit[end])
     end
-    forget_node(n::ΔNode) = forget_node(GateType(n),n)
-    forget_node(::ConstantGate, n::ΔNode) = n
-    forget_node(::LiteralGate, n::ΔNode) =
+    forget_node(n::LogicNode) = forget_node(GateType(n),n)
+    forget_node(::ConstantGate, n::LogicNode) = n
+    forget_node(::LiteralGate, n::LogicNode) =
         is_forgotten(variable(n)) ? true_node : n
-    function forget_node(::⋀Gate, n::ΔNode)
+    function forget_node(::⋀Gate, n::LogicNode)
         forgotten_children = map(c -> forgotten[c], children(n))
         conjoin_like(n, forgotten_children...)
     end
-    function forget_node(::⋁Gate, n::ΔNode)
+    function forget_node(::⋁Gate, n::LogicNode)
         forgotten_children = map(c -> forgotten[c], children(n))
         disjoin_like(n, forgotten_children...)
     end
@@ -81,7 +81,7 @@ function forget2(is_forgotten::Function, circuit::Δ)::Δ
     linearize(new_root)
 end
 
-function forget2(is_forgotten::Function, root::ΔNode)::ΔNode
+function forget2(is_forgotten::Function, root::LogicNode)::LogicNode
     (_, true_node) = constant_nodes2(root) # reuse constants when possible
     if isnothing(true_node)
         true_node = true_like(root)
@@ -90,29 +90,29 @@ function forget2(is_forgotten::Function, root::ΔNode)::ΔNode
     f_lit(n) = is_forgotten(variable(n)) ? true_node : n
     f_a(n, cn) = conjoin_like(n, cn)
     f_o(n, cn) = disjoin_like(n, cn)
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, ΔNode)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
 end
 
 "Remove all constant leafs from the circuit"
 function propagate_constants(circuit::Δ)
-    proped = Dict{ΔNode,ΔNode}()
-    propagate(n::ΔNode) = propagate(GateType(n),n)
-    propagate(::LeafGate, n::ΔNode) = n
-    function propagate(::⋀Gate, n::ΔNode)
+    proped = Dict{Node,Node}()
+    propagate(n::LogicNode) = propagate(GateType(n),n)
+    propagate(::LeafGate, n::LogicNode) = n
+    function propagate(::⋀Gate, n::LogicNode)
         proped_children = map(c -> proped[c], children(n))
-        if any(c -> is_false(c), proped_children)
+        if any(c -> isfalse(c), proped_children)
             false_like(n)
         else
-            proped_children = filter(c -> !is_true(c), proped_children)
+            proped_children = filter(c -> !istrue(c), proped_children)
             conjoin_like(n, proped_children...)
         end
     end
-    function propagate(::⋁Gate, n::ΔNode)
+    function propagate(::⋁Gate, n::LogicNode)
         proped_children = map(c -> proped[c], children(n))
-        if any(c -> is_true(c), proped_children)
+        if any(c -> istrue(c), proped_children)
             true_like(n)
         else
-            proped_children = filter(c -> !is_false(c), proped_children)
+            proped_children = filter(c -> !isfalse(c), proped_children)
             disjoin_like(n, proped_children...)
         end
     end
@@ -122,7 +122,7 @@ function propagate_constants(circuit::Δ)
     linearize(proped[circuit[end]])
 end
 
-@inline normalize(n::ΔNode, old_n::ΔNode, kept) = ()
+@inline normalize(n::LogicNode, old_n::LogicNode, kept) = ()
 
 "Return the circuit conditioned on given constrains"
 function condition(circuit::Δ, lit::Lit)::Δ
@@ -130,7 +130,7 @@ function condition(circuit::Δ, lit::Lit)::Δ
     linearize(new_root)
 end
 
-function condition(root::ΔNode, lit::Lit)::ΔNode
+function condition(root::LogicNode, lit::Lit)::LogicNode
     literals = literal_nodes(root)
     (false_node, ) = constant_nodes2(root) # reuse constants when possible
     if isnothing(false_node)
@@ -152,7 +152,7 @@ function condition(root::ΔNode, lit::Lit)::ΔNode
         end
         f_a(n, cv) = begin
             kept = last.(cv)
-            new_children = convert(Vector{ΔNode}, first.(cv)[kept])
+            new_children = convert(Vector{Node}, first.(cv)[kept])
             if all(kept)
                 (conjoin_like(n, new_children), true)
             else
@@ -161,7 +161,7 @@ function condition(root::ΔNode, lit::Lit)::ΔNode
         end
         f_o(n, cv) = begin
             kept = last.(cv)
-            new_children = convert(Vector{ΔNode}, first.(cv)[kept])
+            new_children = convert(Vector{Node}, first.(cv)[kept])
             if any(kept) && (length(new_children) == 1) && isliteralgate(new_children[1])
                 (new_children[1], true)
             elseif any(kept)
@@ -172,14 +172,14 @@ function condition(root::ΔNode, lit::Lit)::ΔNode
                 (nothing, false)
             end
         end
-        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{Union{Nothing,ΔNode}, Bool})[1]
+        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{Union{Nothing,Node}, Bool})[1]
     end
 end
 
 import Base.split
 
 "Return the circuit after spliting on edge `edge` and variable `var`"
-function split(circuit::Union{Δ, ΔNode}, edge::Tuple{ΔNode, ΔNode}, var::Var; depth=0, sanity_check=true)
+function split(circuit::Union{Δ, Node}, edge::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true)
     or = first(edge)
     and = last(edge)
 
@@ -214,7 +214,7 @@ function split(circuit::Union{Δ, ΔNode}, edge::Tuple{ΔNode, ΔNode}, var::Var
 end
 
 "Clone the `and` node and redirect one of its parents to the new copy"
-function clone(circuit::Union{Δ, ΔNode}, or1::ΔNode, or2::ΔNode, and::ΔNode; depth=1)
+function clone(circuit::Union{Δ, Node}, or1::LogicNode, or2::LogicNode, and::LogicNode; depth=1)
     # sanity check
     @assert depth >= 1
     @assert GateType(or1) isa ⋁Gate && GateType(or2) isa ⋁Gate && GateType(and) isa ⋀Gate
@@ -234,7 +234,7 @@ end
 
 import Base.merge
 
-function merge(circuit::Union{Δ, ΔNode}, or1::ΔNode, or2::ΔNode)
+function merge(circuit::Union{Δ, Node}, or1::LogicNode, or2::LogicNode)
     # sanity check
     @assert GateType(or1) isa ⋁Gate && GateType(or2) isa ⋁Gate
     if circuit isa Δ
@@ -254,11 +254,11 @@ function merge(circuit::Union{Δ, ΔNode}, or1::ΔNode, or2::ΔNode)
     end
 end
 
-function replace_node(circuit::Δ, old::ΔNode, new::ΔNode)::Δ
+function replace_node(circuit::Δ, old::LogicNode, new::LogicNode)::Δ
     linearize(replace_node(circuit[end], old, new))
 end
 
-function replace_node(root::ΔNode, old::ΔNode, new::ΔNode)::ΔNode
+function replace_node(root::LogicNode, old::LogicNode, new::LogicNode)::LogicNode
     @assert GateType(old) == GateType(new)
     f_con(n) = old == n ? new : n
     f_lit = f_con
@@ -268,5 +268,5 @@ function replace_node(root::ΔNode, old::ΔNode, new::ΔNode)::ΔNode
             normalize(new_n, n, trues(length(cns)))
             new_n
         end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, ΔNode)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
 end

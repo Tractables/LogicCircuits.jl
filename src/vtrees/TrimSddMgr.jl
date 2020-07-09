@@ -518,7 +518,7 @@ Negate an SDD
 @inline negate(::TrimTrue)::TrimFalse = trimfalse
 
 function negate(s::TrimLiteral)::TrimLiteral 
-    if positive(s) 
+    if ispositive(s) 
         vtree(s).negative_literal
     else
         vtree(s).positive_literal

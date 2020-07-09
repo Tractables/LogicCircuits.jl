@@ -264,7 +264,7 @@ function load_cnf(file::String)::UnstLogicΔ
     @assert endswith(file, ".cnf")
 
     # linearized circuit nodes
-    circuit = Vector{UnstLogicΔNode}()
+    circuit = Vector{UnstLogicNode}()
 
     # linearized clauses (disjunctions)
     clauses = Vector{⋁Node}()
@@ -337,7 +337,7 @@ function load_dnf(file::String)::UnstLogicΔ
     @assert endswith(file, ".dnf")
 
     # linearized circuit nodes
-    circuit = Vector{UnstLogicΔNode}()
+    circuit = Vector{UnstLogicNode}()
 
     # linearized clauses (conjunctions)
     clauses = Vector{⋀Node}()

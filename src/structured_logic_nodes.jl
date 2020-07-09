@@ -1,4 +1,4 @@
-export StructLogicΔNode, StructLogicLeafNode, StructLogicΔ
+export StructLogicNode, StructLogicLeafNode, StructLogicΔ
     StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node, vtree
 
 #####################
@@ -7,13 +7,13 @@ export StructLogicΔNode, StructLogicLeafNode, StructLogicΔ
 #####################
 
 "Root of the structure logical circuit node hierarchy"
-abstract type StructLogicΔNode{V<:VTree} <: LogicΔNode end
+abstract type StructLogicNode{V<:VTree} <: LogicNode end
 
 "A structured logical leaf node"
-abstract type StructLogicLeafNode{V} <: StructLogicΔNode{V} end
+abstract type StructLogicLeafNode{V} <: StructLogicNode{V} end
 
 "A structured logical inner node"
-abstract type StructLogicInnerNode{V} <: StructLogicΔNode{V} end
+abstract type StructLogicInnerNode{V} <: StructLogicNode{V} end
 
 "A structured logical literal leaf node, representing the positive or negative literal of its variable"
 mutable struct StructLiteralNode{V} <: StructLogicLeafNode{V}
@@ -44,26 +44,26 @@ end
 
 "A structured logical conjunction node"
 mutable struct Struct⋀Node{V} <: StructLogicInnerNode{V}
-    children::Vector{<:StructLogicΔNode{<:V}}
+    children::Vector{<:StructLogicNode{<:V}}
     vtree::V
     data
     bit::Bool
-    Struct⋀Node{V}(c,v::V) where V = new{V}(convert(Vector{StructLogicΔNode{V}}, c), v, nothing, false)
+    Struct⋀Node{V}(c,v::V) where V = new{V}(convert(Vector{StructLogicNode{V}}, c), v, nothing, false)
 end
 
 "A structured logical disjunction node"
 mutable struct Struct⋁Node{V} <: StructLogicInnerNode{V}
-    children::Vector{<:StructLogicΔNode{<:V}}
+    children::Vector{<:StructLogicNode{<:V}}
     vtree::V # could be leaf or inner
     data
     bit::Bool
-    Struct⋁Node{V}(c,v::V) where V = new{V}(convert(Vector{StructLogicΔNode{V}}, c), v, nothing, false)
+    Struct⋁Node{V}(c,v::V) where V = new{V}(convert(Vector{StructLogicNode{V}}, c), v, nothing, false)
 end
 
 HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
 
 "A structured logical circuit represented as a bottom-up linear order of nodes"
-const StructLogicΔ{V} = AbstractVector{<:StructLogicΔNode{V}}
+const StructLogicΔ{V} = AbstractVector{<:StructLogicNode{V}}
 
 #####################
 # traits
@@ -74,7 +74,6 @@ const StructLogicΔ{V} = AbstractVector{<:StructLogicΔNode{V}}
 @inline GateType(::Type{<:Struct⋀Node}) = ⋀Gate()
 @inline GateType(::Type{<:Struct⋁Node}) = ⋁Gate()
 
-@inline node_type(::Type{<:StructLogicΔNode}) = StructLogicΔNode
 #####################
 # methods
 #####################
@@ -87,7 +86,7 @@ const StructLogicΔ{V} = AbstractVector{<:StructLogicΔNode{V}}
 @inline vtree(n::HasVtree) = n.vtree
 
 "Conjoin nodes in the same way as the example"
-@inline function conjoin_like(example::StructLogicΔNode, arguments::Vector)
+@inline function conjoin_like(example::StructLogicNode, arguments::Vector)
     if isempty(arguments)
         StructTrueNode{PlainVTree}()
     elseif example isa Struct⋀Node && children(example) == arguments
@@ -98,7 +97,7 @@ const StructLogicΔ{V} = AbstractVector{<:StructLogicΔNode{V}}
 end
 
 "Disjoin nodes in the same way as the example"
-@inline function disjoin_like(example::StructLogicΔNode, arguments::Vector)
+@inline function disjoin_like(example::StructLogicNode, arguments::Vector)
     if isempty(arguments)
         StructFalseNode{PlainVTree}()
     elseif example isa Struct⋁Node && children(example) == arguments
@@ -109,7 +108,7 @@ end
 end
 
 "Construct a new literal node like the given node's type"
-literal_like(example::StructLogicΔNode, lit::Lit) = StructLiteralNode{PlainVTree}(lit, vtree(example))
+literal_like(example::StructLogicNode, lit::Lit) = StructLiteralNode{PlainVTree}(lit, vtree(example))
 
 @inline copy_node(n::Struct⋁Node, cns) = Struct⋁Node{PlainVTree}(cns, vtree(n))
 @inline copy_node(n::Struct⋀Node, cns) = Struct⋀Node{PlainVTree}(cns, vtree(n))

@@ -47,13 +47,13 @@
 #     @test variable(x_c) == x
 #     @test literal(x_c) == var2lit(x)
 #     @test vtree(x_c) ∈ mgr
-#     @test positive(x_c)
+#     @test ispositive(x_c)
 #     @test x_c == compile(mgr, x)
 
 #     @test variable(y_c) == y
 #     @test literal(y_c) == var2lit(y)
 #     @test vtree(y_c) ∈ mgr
-#     @test positive(y_c)
+#     @test ispositive(y_c)
 #     @test y_c == compile(mgr, y)
 
 
@@ -69,18 +69,18 @@
 #     @test variable(notx_c) == x
 #     @test literal(notx_c) == notx
 #     @test vtree(notx_c) ∈ mgr
-#     @test negative(notx_c)
+#     @test isnegative(notx_c)
 #     @test notx_c == compile(mgr, notx)
 
 #     true_c = compile(true)
 
     
-#     @test is_true(true_c)
+#     @test istrue(true_c)
 #     @test constant(true_c) == true
     
 #     false_c = compile(false)
     
-#     @test is_false(false_c)
+#     @test isfalse(false_c)
 #     @test constant(false_c) == false
 
 #     @test !true_c == false_c

@@ -11,7 +11,7 @@ export ⋁_nodes, ⋀_nodes, or_nodes, and_nodes
 
 import Base: foreach # extend
 
-function foreach(node::Union{Δ,ΔNode}, f_con::Function, f_lit::Function, f_a::Function, f_o::Function)
+function foreach(node::Union{Δ,Node}, f_con::Function, f_lit::Function, f_a::Function, f_o::Function)
     f_leaf(n) = isliteralgate(n) ? f_lit(n) : f_con(n)
     f_inner(n) = is⋀gate(n) ? f_a(n) : f_o(n)
     foreach(node, f_leaf, f_inner)
@@ -26,7 +26,7 @@ Compute a function bottom-up on the circuit.
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
-function foldup(node::Union{Δ,ΔNode}, f_con::Function, f_lit::Function, 
+function foldup(node::Union{Δ,Node}, f_con::Function, f_lit::Function, 
                 f_a::Function, f_o::Function, ::Type{T})::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)::T
@@ -41,7 +41,7 @@ Compute a function bottom-up on the circuit.
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an aggregate vector from the children.
 """
-function foldup_aggregate(node::Union{Δ,ΔNode}, f_con::Function, f_lit::Function, 
+function foldup_aggregate(node::Union{Δ,Node}, f_con::Function, f_lit::Function, 
                           f_a::Function, f_o::Function, ::Type{T})::T where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
@@ -70,14 +70,14 @@ end
 #####################
 
 "Get the list of conjunction nodes in a given circuit"
-⋀_nodes(c::Union{ΔNode,Δ}) = filter(is⋀gate, c)
+⋀_nodes(c::Union{Node,Δ}) = filter(is⋀gate, c)
 
 "Get the list of And nodes in a given circuit"
-@inline and_nodes(c::Union{ΔNode,Δ}) = ⋀_nodes(c)
+@inline and_nodes(c::Union{Node,Δ}) = ⋀_nodes(c)
 
 "Get the list of disjunction nodes in a given circuit"
-⋁_nodes(c::Union{ΔNode,Δ}) = filter(is⋁gate, c)
+⋁_nodes(c::Union{Node,Δ}) = filter(is⋁gate, c)
 
 "Get the list of or nodes in a given circuit"
-@inline or_nodes(c::Union{ΔNode,Δ}) = ⋁_nodes(c)
+@inline or_nodes(c::Union{Node,Δ}) = ⋁_nodes(c)
 

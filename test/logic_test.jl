@@ -2,7 +2,7 @@
 # using LogicCircuits
 
 # function little_2var()
-#     lin = LogicΔNode[]
+#     lin = LogicNode[]
 
 #     v = Var(2)
 #     pos = LiteralNode( var2lit(v))
@@ -52,7 +52,7 @@
 # end
 
 # @testset "Decomposability tests" begin
-#     lin = LogicΔNode[]
+#     lin = LogicNode[]
 #     ors = map(1:10) do v
 #         pos = LiteralNode(var2lit(Var(v)))
 #         push!(lin, pos)
@@ -70,7 +70,7 @@
 #     @test is_decomposable(lin)
 
 
-#     lin2 = LogicΔNode[]
+#     lin2 = LogicNode[]
 #     ors = map(1:10) do v
 #         pos = LiteralNode(var2lit(Var(v)))
 #         push!(lin2, pos)
@@ -90,7 +90,7 @@
 
 
 
-#     lin3 = LogicΔNode[]
+#     lin3 = LogicNode[]
 #     ors = map(1:10) do v
 #         pos = LiteralNode(var2lit(Var(v)))
 #         push!(lin3, pos)
@@ -117,11 +117,11 @@
 
 #     @test !is_decomposable(lin3)
 
-#     simpletest1 = LogicΔNode[]
+#     simpletest1 = LogicNode[]
 #     push!(simpletest1, LiteralNode(Lit(1)))
 #     @test is_decomposable(simpletest1)
 
-#     simpletest2 = LogicΔNode[]
+#     simpletest2 = LogicNode[]
 #     leaf1 = LiteralNode(Lit(1))
 #     leaf2 = LiteralNode(Lit(-1))
 #     and = ⋀Node([leaf1, leaf2])

@@ -30,7 +30,7 @@ function compile_clause(mgr::SddMgr, clause::Δ)::SddNode
     compile_clause(mgr, cnf[end])
  end
 
-function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
+function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicNode)::SddNode
     @assert GateType(clause) isa ⋁Gate
     literals = children(clause)
     clauseΔ = compile(mgr, literal(literals[1]))
@@ -44,7 +44,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     compile_cnf(mgr, cnf[end], strategy, progress)
  end
 
- function compile_cnf(mgr::SddMgr, cnf::ΔNode, strategy="tree", progress=false)::SddNode
+ function compile_cnf(mgr::SddMgr, cnf::LogicNode, strategy="tree", progress=false)::SddNode
     if strategy == "naive"
         compile_cnf_naive(mgr, cnf, progress)
     elseif strategy == "tree"
@@ -54,7 +54,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     end
  end
 
- function compile_cnf_naive(mgr::SddMgr, cnf::ΔNode, progress=false)::SddNode
+ function compile_cnf_naive(mgr::SddMgr, cnf::LogicNode, progress=false)::SddNode
     @assert GateType(cnf) isa ⋀Gate
     cnfΔ = compile(true)
     i = 0
@@ -66,13 +66,13 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     cnfΔ
  end
 
- function compile_cnf_tree(mgr::SddMgr, cnf::ΔNode, progress=false)::SddNode
+ function compile_cnf_tree(mgr::SddMgr, cnf::LogicNode, progress=false)::SddNode
     @assert GateType(cnf) isa ⋀Gate
     compile_cnf_tree(NodeType(mgr[end]), mgr[end], children(cnf), variable_scopes(cnf), progress)
  end
 
- function compile_cnf_tree(::Inner, mgr::SddMgrNode, clauses::Vector{<:ΔNode}, 
-                           scopes::Dict{ΔNode,BitSet}, progress=false)::SddNode
+ function compile_cnf_tree(::Inner, mgr::SddMgrNode, clauses::Vector{<:Node}, 
+                           scopes::Dict{Node,BitSet}, progress=false)::SddNode
     left_clauses = filter(c -> scopes[c] ⊆ variables(mgr.left), clauses)
     leftΔ = compile_cnf_tree(NodeType(mgr.left), mgr.left, left_clauses, scopes, progress)
     right_clauses = filter(c -> scopes[c] ⊆ variables(mgr.right), clauses)
@@ -93,8 +93,8 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::ΔNode)::SddNode
     joinΔ
  end
 
- function compile_cnf_tree(::Leaf, mgr::SddMgrNode, clauses::Vector{<:ΔNode}, 
-                            scopes::Dict{ΔNode,BitSet}, progress=false)::SddNode
+ function compile_cnf_tree(::Leaf, mgr::SddMgrNode, clauses::Vector{<:Node}, 
+                            scopes::Dict{Node,BitSet}, progress=false)::SddNode
     joinΔ = compile(true)
     for clause in clauses
         joinΔ = joinΔ & compile_clause(mgr, clause)

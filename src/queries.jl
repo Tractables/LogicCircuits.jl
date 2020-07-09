@@ -5,10 +5,10 @@ export num_variables, is_decomposable, variable_scopes, variable_scope,
 using DataFrames
 
 "Number of variables in the circuit"
-num_variables(c::Union{ΔNode,Δ}) = length(variable_scope(c))
+num_variables(c::Union{Node,Δ}) = length(variable_scope(c))
 
 "Get the probability that a random world satisties the circuit"
-function sat_prob(circuit::Union{ΔNode,Δ})::Rational{BigInt}
+function sat_prob(circuit::Union{Node,Δ})::Rational{BigInt}
     sat_prob(circuit, v -> BigInt(1) // BigInt(2))
 end
 
@@ -16,9 +16,9 @@ function sat_prob(circuit::Δ, varprob::Function)::Rational{BigInt}
     sat_prob(circuit[end], varprob)
 end
 
-function sat_prob(root::ΔNode, varprob::Function)::Rational{BigInt}
-    f_con(n) = is_true(n) ? one(Rational{BigInt}) : zero(Rational{BigInt})
-    f_lit(n) = positive(n) ? varprob(variable(n)) : one(Rational{BigInt}) - varprob(variable(n))
+function sat_prob(root::LogicNode, varprob::Function)::Rational{BigInt}
+    f_con(n) = istrue(n) ? one(Rational{BigInt}) : zero(Rational{BigInt})
+    f_lit(n) = ispositive(n) ? varprob(variable(n)) : one(Rational{BigInt}) - varprob(variable(n))
     f_a(n, callback) = mapreduce(callback, *, children(n))
     f_o(n, callback) = mapreduce(callback, +, children(n))
     foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt})
@@ -35,18 +35,18 @@ const Signature = Vector{Rational{BigInt}}
 """
 Get a signature for each node using probabilistic equivalence checking
 """
-function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,ΔNode},Signature}
+function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,Node},Signature}
     prob_equiv_signature(circuit[end],k)
 end
 
-function prob_equiv_signature(circuit::ΔNode, k::Int)::Dict{Union{Var,ΔNode},Signature}
+function prob_equiv_signature(circuit::LogicNode, k::Int)::Dict{Union{Var,Node},Signature}
     # uses probability instead of integers to circumvent smoothing, no mod though
-    signs::Dict{Union{Var,ΔNode},Signature} = Dict{Union{Var,ΔNode},Signature}()
+    signs::Dict{Union{Var,Node},Signature} = Dict{Union{Var,Node},Signature}()
     prime::Int = 7919 #TODO set as smallest prime larger than num_variables
     randprob() = BigInt(1) .// rand(1:prime,k)
     do_signs(v::Var) = get!(randprob, signs, v)
-    f_con(n) = (signs[n] = (is_true(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)))
-    f_lit(n) = (signs[n] = (positive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))))
+    f_con(n) = (signs[n] = (istrue(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)))
+    f_lit(n) = (signs[n] = (ispositive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))))
     f_a(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .* y), children(n))))
     f_o(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .+ y), children(n))))
     foldup(circuit, f_con, f_lit, f_a, f_o, Signature)
@@ -59,7 +59,7 @@ function variable_scope(circuit::Δ)::BitSet
 end
 
 "Get the variable scope of the root of the circuit"
-function variable_scope(root::ΔNode)::BitSet
+function variable_scope(root::LogicNode)::BitSet
     f_con(n) = BitSet()
     f_lit(n) = BitSet(variable(n))
     f_inner(n, call) = mapreduce(call, union, children(n))
@@ -67,13 +67,13 @@ function variable_scope(root::ΔNode)::BitSet
 end
 
 "Get the variable scope of each node in the circuit"
-function variable_scopes(circuit::Δ)::Dict{ΔNode,BitSet}
+function variable_scopes(circuit::Δ)::Dict{Node,BitSet}
     variable_scopes(circuit[end])
 end
 
-function variable_scopes(root::ΔNode)::Dict{ΔNode,BitSet}
+function variable_scopes(root::LogicNode)::Dict{Node,BitSet}
     # variable_scopes(linearize(root))
-    scope = Dict{ΔNode,BitSet}()
+    scope = Dict{Node,BitSet}()
     f_con(n) = scope[n] = BitSet()
     f_lit(n) = scope[n] = BitSet(variable(n))
     f_inner(n, call) = scope[n] = mapreduce(call, union, children(n))
@@ -86,7 +86,7 @@ function is_smooth(circuit::Δ)::Bool
     is_smooth(circuit[end])
 end
 
-function is_smooth(root::ΔNode)::Bool
+function is_smooth(root::LogicNode)::Bool
     result::Bool = true
     f_con(n) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -106,7 +106,7 @@ function is_decomposable(circuit::Δ)::Bool
     is_decomposable(circuit[end])
 end
 
-function is_decomposable(root::ΔNode)::Bool
+function is_decomposable(root::LogicNode)::Bool
     result::Bool = true
     f_con(n) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -120,8 +120,8 @@ function is_decomposable(root::ΔNode)::Bool
 end
 
 "Construct a mapping from literals to their canonical node representation"
-function literal_nodes(circuit::Union{Δ,ΔNode})::Dict{Lit,ΔNode}
-    lit_dict = Dict{Lit,ΔNode}()
+function literal_nodes(circuit::Union{Δ,Node})::Dict{Lit,Node}
+    lit_dict = Dict{Lit,Node}()
     foreach(circuit) do n
         if isliteralgate(n)
             if haskey(lit_dict, literal(n))
@@ -134,19 +134,19 @@ function literal_nodes(circuit::Union{Δ,ΔNode})::Dict{Lit,ΔNode}
 end
 
 "Construct a mapping from constants to their canonical node representation"
-function constant_nodes(circuit::Δ)::Tuple{Union{Nothing, ΔNode},Union{Nothing, ΔNode}}
+function constant_nodes(circuit::Δ)::Tuple{Union{Nothing, Node},Union{Nothing, Node}}
     true_node = nothing
     false_node = nothing
-    visit(n::ΔNode) = visit(GateType(n),n)
-    visit(::GateType, n::ΔNode) = ()
-    visit(::ConstantGate, n::ΔNode) = begin
-        if is_true(n)
+    visit(n::LogicNode) = visit(GateType(n),n)
+    visit(::GateType, n::LogicNode) = ()
+    visit(::ConstantGate, n::LogicNode) = begin
+        if istrue(n)
             if issomething(true_node) 
                 error("Circuit has multiple representations of true")
             end
             true_node = n
         else
-            @assert is_false(n)
+            @assert isfalse(n)
             if issomething(false_node) 
                 error("Circuit has multiple representations of false")
             end
@@ -160,16 +160,16 @@ function constant_nodes(circuit::Δ)::Tuple{Union{Nothing, ΔNode},Union{Nothing
 end
 
 "Construct a mapping from constants to their canonical node representation"
-function constant_nodes2(circuit::Union{Δ,ΔNode})::Tuple{Union{Nothing, ΔNode},Union{Nothing, ΔNode}}
+function constant_nodes2(circuit::Union{Δ,Node})::Tuple{Union{Nothing, Node},Union{Nothing, Node}}
     true_node = nothing
     false_node = nothing
     foreach(circuit) do n
         if isconstantgate(n)
-            if is_true(n)
+            if istrue(n)
                 isnothing(true_node) || error("Circuit has multiple representations of true")
                 true_node = n
             else
-                @assert is_false(n)
+                @assert isfalse(n)
                 isnothing(false_node) || error("Circuit has multiple representations of false")
                 false_node = n
             end
@@ -182,9 +182,9 @@ end
 function has_unique_literal_nodes(circuit::Δ)::Bool
     literals = Set{Lit}()
     result = true
-    visit(n::ΔNode) = visit(GateType(n),n)
-    visit(::GateType, n::ΔNode) = ()
-    visit(::LiteralGate, n::ΔNode) = begin
+    visit(n::LogicNode) = visit(GateType(n),n)
+    visit(::GateType, n::LogicNode) = ()
+    visit(::LiteralGate, n::LogicNode) = begin
         if literal(n) ∈ literals 
             result = false
         end
@@ -201,7 +201,7 @@ function has_unique_literal_nodes2(circuit::Δ)::Bool
     has_unique_literal_nodes2(circuit[end])
 end
 
-function has_unique_literal_nodes2(root::ΔNode)::Bool
+function has_unique_literal_nodes2(root::LogicNode)::Bool
     literals = Set{Lit}()
     @inline f_con(n) = true
     @inline f_lit(n) = begin
@@ -223,16 +223,16 @@ function has_unique_constant_nodes(circuit::Δ)::Bool
     seen_false = false
     seen_true = false
     result = true
-    visit(n::ΔNode) = visit(GateType(n),n)
-    visit(::GateType, n::ΔNode) = ()
-    visit(::ConstantGate, n::ΔNode) = begin
-        if is_true(n)
+    visit(n::LogicNode) = visit(GateType(n),n)
+    visit(::GateType, n::LogicNode) = ()
+    visit(::ConstantGate, n::LogicNode) = begin
+        if istrue(n)
             if seen_true 
                 result = false
             end
             seen_true = true
         else
-            @assert is_false(n)
+            @assert isfalse(n)
             if seen_false 
                 result = false
             end
@@ -249,20 +249,20 @@ function (circuit::Δ)(data::XData)
     circuit[end](data)
 end
 
-function (root::ΔNode)(data::XData)
+function (root::LogicNode)(data::XData)
     evaluate(root, data)
 end
 
 # TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
 # TODO; create a version that doesn't allocate, using fold!
-function evaluate(root::ΔNode, data::XData{Bool})::BitVector
-    @inline f_lit(n) = if positive(n) 
+function evaluate(root::LogicNode, data::XData{Bool})::BitVector
+    @inline f_lit(n) = if ispositive(n) 
         [feature_matrix(data)[:,variable(n)]]
     else
         [broadcast(!,feature_matrix(data)[:,variable(n)])]
     end
     @inline f_con(n) = 
-        [is_true(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))]
+        [istrue(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))]
     @inline fa(n, call) = begin
         if num_children(n) < 2
             return call(@inbounds children(n)[1])
@@ -291,15 +291,15 @@ function evaluate(root::ΔNode, data::XData{Bool})::BitVector
     conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
 end
 
-function evaluate2(root::ΔNode, data::DataFrame)::BitVector
+function evaluate2(root::LogicNode, data::DataFrame)::BitVector
     num_examples::Int = nrow(data)
-    @inline f_lit(n) = if positive(n) 
+    @inline f_lit(n) = if ispositive(n) 
         [data[!,variable(n)]]::Vector{BitVector}
     else
         [broadcast(!,data[!,variable(n)])]::Vector{BitVector}
     end
     @inline f_con(n) = 
-        [is_true(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
+        [istrue(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
     @inline fa(n, call) = begin
         if num_children(n) < 2
             return call(@inbounds children(n)[1])
@@ -328,15 +328,15 @@ function evaluate2(root::ΔNode, data::DataFrame)::BitVector
     conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
 end
 
-function evaluate3(root::ΔNode, data::DataFrame)::BitVector
+function evaluate3(root::LogicNode, data::DataFrame)::BitVector
     num_examples::Int = nrow(data)
-    @inline f_lit(n) = if positive(n) 
+    @inline f_lit(n) = if ispositive(n) 
         [data[!,variable(n)]]::Vector{BitVector}
     else
         [broadcast(!,data[!,variable(n)])]::Vector{BitVector}
     end
     @inline f_con(n) = 
-        [is_true(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
+        [istrue(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
     @inline fa(n, call) = begin
         if num_children(n) < 2
             return call(@inbounds children(n)[1])

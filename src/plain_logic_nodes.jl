@@ -5,22 +5,22 @@
 """
 Root of the logical circuit node hierarchy
 """
-abstract type LogicΔNode <: ΔNode end
+abstract type PlainLogicNode <: LogicNode end
 
 """
 Root of the unstructured logical circuit node hierarchy
 """
-abstract type UnstLogicΔNode <: LogicΔNode end
+abstract type UnstLogicNode <: LogicNode end
 
 """
 A logical leaf node
 """
-abstract type LogicLeafNode <: UnstLogicΔNode end
+abstract type LogicLeafNode <: UnstLogicNode end
 
 """
 A logical inner node
 """
-abstract type LogicInnerNode <: UnstLogicΔNode end
+abstract type LogicInnerNode <: UnstLogicNode end
 
 """
 A logical literal leaf node, representing the positive or negative literal of its variable
@@ -59,7 +59,7 @@ end
 A logical conjunction node (And node)
 """
 mutable struct ⋀Node <: LogicInnerNode
-    children::Vector{LogicΔNode}
+    children::Vector{LogicNode}
     data
     bit::Bool
     ⋀Node(c) = new(c, nothing, false)
@@ -69,7 +69,7 @@ end
 A logical disjunction node (Or node)
 """
 mutable struct ⋁Node <: LogicInnerNode
-    children::Vector{LogicΔNode}
+    children::Vector{LogicNode}
     data
     bit::Bool
     ⋁Node(c) = new(c, nothing, false)
@@ -78,12 +78,12 @@ end
 """
 A logical circuit represented as a bottom-up linear order of nodes
 """
-const LogicΔ = AbstractVector{<:LogicΔNode}
+const LogicΔ = AbstractVector{<:LogicNode}
 
 """
 A unstructured logical circuit represented as a bottom-up linear order of nodes
 """
-const UnstLogicΔ = AbstractVector{<:UnstLogicΔNode}
+const UnstLogicΔ = AbstractVector{<:UnstLogicNode}
 
 #####################
 # traits
@@ -101,8 +101,6 @@ Returns GateType of a node (Literal, Constant, And, Or)
 # methods
 #####################
 
-@inline node_type(::Type{<:UnstLogicΔNode}) = UnstLogicΔNode
-
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::LiteralNode)::Lit = n.literal
 
@@ -113,7 +111,7 @@ Returns GateType of a node (Literal, Constant, And, Or)
 "Get the children of a given inner node"
 @inline children(n::LogicInnerNode) = n.children
 
-@inline function conjoin_like(example::UnstLogicΔNode, arguments::Vector)
+@inline function conjoin_like(example::UnstLogicNode, arguments::Vector)
     if isempty(arguments)
         TrueNode()
     # it's unclear if we want to also optimize the following
@@ -127,7 +125,7 @@ Returns GateType of a node (Literal, Constant, And, Or)
 end
 
 "Disjoin nodes in the same way as the example"
-@inline function disjoin_like(example::UnstLogicΔNode, arguments::Vector)
+@inline function disjoin_like(example::UnstLogicNode, arguments::Vector)
     if isempty(arguments)
         FalseNode()
     # it's unclear if we want to also optimize the following
@@ -141,11 +139,11 @@ end
 end
 
 "Construct a new literal node like the given node's type"
-literal_like(::UnstLogicΔNode, lit::Lit) = LiteralNode(lit)
+literal_like(::UnstLogicNode, lit::Lit) = LiteralNode(lit)
 
 "Generate a fully factorized (logistic regression) circuit over `n` variables"
 function fully_factorized_circuit(n)
-    lin = LogicΔNode[]
+    lin = LogicNode[]
     ors = map(1:n) do v
         v = Var(v)
         pos = LiteralNode( var2lit(v))
@@ -164,12 +162,12 @@ function fully_factorized_circuit(n)
 end
 
 import Base.copy
-function copy(n::ΔNode, depth::Int64)
-    old2new = Dict{ΔNode, ΔNode}()
+function copy(n::LogicNode, depth::Int64)
+    old2new = Dict{Node, Node}()
     copy_rec(n, depth, old2new)
 end
 
-function copy_rec(n::ΔNode, depth::Int64, old2new::Dict{ΔNode, ΔNode})
+function copy_rec(n::LogicNode, depth::Int64, old2new::Dict{Node, Node})
     if depth == 0 || isliteralgate(n) || isconstantgate(n)
         n
     else
@@ -182,14 +180,14 @@ function copy_rec(n::ΔNode, depth::Int64, old2new::Dict{ΔNode, ΔNode})
     end
 end
 
-@inline copy_node(n::ΔNode, cns) = @assert false "TODO"
+@inline copy_node(n::LogicNode, cns) = @assert false "TODO"
 @inline copy_node(n::⋀Node, cns) = ⋀Node(cns)
 @inline copy_node(n::⋁Node, cns) = ⋁Node(cns)
 
 """
-Get the formula of a given ΔNode as a string
+Get the formula of a given Node as a string
 """
-function to_string(n::ΔNode)
+function to_string(n::LogicNode)
     g = GateType(n)
     if g isa LiteralGate
         "$(literal(n))"

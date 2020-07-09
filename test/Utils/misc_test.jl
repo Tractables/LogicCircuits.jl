@@ -13,8 +13,13 @@ using DataFrames: DataFrame
     @test isdisjoint(Set([1,3]),Set([5,2]),Set(["a"]))
     @test !isdisjoint(Set([1,"a"]),Set([5,2]),Set(["a"]))
 
+    # repeat a few times for expected code coverage
     @test length(pushrand!([1,2],3)) == 3
-
+    @test length(pushrand!([1,2],3)) == 3
+    @test length(pushrand!([1,2],3)) == 3
+    @test length(pushrand!([1,2],3)) == 3
+    @test length(pushrand!([1,2],3)) == 3
+    @test length(pushrand!([1,2],3)) == 3
 
     ab = init_array(Bool,5,4)
     @test size(ab) == (5,4)

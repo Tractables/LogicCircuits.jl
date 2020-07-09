@@ -23,7 +23,7 @@ function validate(::⋁Gate, n::SddNode)
       for j = i+1:size
          other_element = children(n)[j]
          # is deterministic
-         @test is_false(prime(element) & prime(other_element))
+         @test isfalse(prime(element) & prime(other_element))
          # is compressed
          @test sub(element) !== sub(other_element)
       end
@@ -37,8 +37,8 @@ function validate(::⋁Gate, n::SddNode)
    if size == 2
       e1 = children(n)[1]
       e2 = children(n)[2]
-      has_false_sub = (is_false(sub(e1)) || is_false(sub(e2)))
-      has_true_sub = (is_true(sub(e1)) || is_true(sub(e2)))
+      has_false_sub = (isfalse(sub(e1)) || isfalse(sub(e2)))
+      has_true_sub = (istrue(sub(e1)) || istrue(sub(e2)))
       @test !(has_false_sub && has_true_sub)
    end
    @test NodeType(vtree(n)) isa Inner
@@ -49,7 +49,7 @@ function validate(::⋀Gate, n::SddNode)
    @test !(GateType(prime(n)) isa ⋀Gate)
    @test !(GateType(sub(n)) isa ⋀Gate)
    # has no false prime
-   @test !is_false(prime(n))
+   @test !isfalse(prime(n))
    @test NodeType(vtree(n)) isa Inner 
    @test GateType(prime(n)) isa ConstantGate || descends_left_from(prime(n), n)
    @test GateType(sub(n)) isa ConstantGate || descends_right_from(sub(n), n)
