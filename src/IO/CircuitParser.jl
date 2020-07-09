@@ -13,7 +13,7 @@ Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 """
-function load_logical_circuit(file::String)::UnstLogicΔ
+function load_logical_circuit(file::String)::PlainLogicΔ
     compile_logical(parse_circuit_file(file))
 end
 
@@ -23,7 +23,7 @@ Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 """
-function load_smooth_logical_circuit(file::String)::UnstLogicΔ
+function load_smooth_logical_circuit(file::String)::PlainLogicΔ
     compile_smooth_logical(parse_circuit_file(file))
 end
 
@@ -260,11 +260,11 @@ Load a CNF as a logical circuit from file.
 Supppor file formats:
 * ".cnf" for CNF files
 """
-function load_cnf(file::String)::UnstLogicΔ
+function load_cnf(file::String)::PlainLogicΔ
     @assert endswith(file, ".cnf")
 
     # linearized circuit nodes
-    circuit = Vector{UnstLogicNode}()
+    circuit = Vector{PlainLogicNode}()
 
     # linearized clauses (disjunctions)
     clauses = Vector{⋁Node}()
@@ -333,11 +333,11 @@ Load a CNF as a logical circuit from file.
 Supppor file formats:
 * ".cnf" for CNF files
 """
-function load_dnf(file::String)::UnstLogicΔ
+function load_dnf(file::String)::PlainLogicΔ
     @assert endswith(file, ".dnf")
 
     # linearized circuit nodes
-    circuit = Vector{UnstLogicNode}()
+    circuit = Vector{PlainLogicNode}()
 
     # linearized clauses (conjunctions)
     clauses = Vector{⋀Node}()

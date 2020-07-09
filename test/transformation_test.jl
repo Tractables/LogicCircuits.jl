@@ -1,6 +1,7 @@
 # using Test
 # using LogicCircuits
 
+# these functions are duplicated -- put in helper
 # function little_2var()
 #     lin = LogicNode[]
 

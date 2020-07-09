@@ -8,8 +8,8 @@ include("Utils/Utils.jl")
 @reexport using .Utils
 
 include("abstract_logic_nodes.jl")
+include("plain_logic_nodes.jl")
 # include("CircuitTraversal.jl")
-# include("LogicCircuits.jl")
 # include("Queries.jl")
 # include("Transformations.jl")
 # include("vtrees/Vtree.jl")

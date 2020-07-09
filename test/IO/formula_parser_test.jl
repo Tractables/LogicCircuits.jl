@@ -7,7 +7,7 @@
 
 #    circuit = zoo_cnf("8.cnf")
 
-#    @test circuit isa UnstLogicΔ
+#    @test circuit isa PlainLogicΔ
 #    @test circuit[end] isa ⋀Node
 #    @test circuit[end - 1] isa ⋁Node
 #    @test num_variables(circuit) == 227
@@ -19,7 +19,7 @@
 
 #    circuit = zoo_dnf("8.dnf")
 
-#    @test circuit isa UnstLogicΔ
+#    @test circuit isa PlainLogicΔ
 #    @test circuit[end] isa ⋁Node
 #    @test circuit[end - 1] isa ⋀Node
 #    @test num_variables(circuit) == 227

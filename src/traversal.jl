@@ -4,10 +4,6 @@ export ⋁_nodes, ⋀_nodes, or_nodes, and_nodes
 # traversal infrastructure
 #####################
 
-@inline is⋀gate(n) = GateType(n) isa ⋀Gate
-@inline is⋁gate(n) = GateType(n) isa ⋁Gate
-@inline isliteralgate(n) = GateType(n) isa LiteralGate
-@inline isconstantgate(n) = GateType(n) isa ConstantGate
 
 import Base: foreach # extend
 

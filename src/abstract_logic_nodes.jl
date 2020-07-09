@@ -1,7 +1,9 @@
 export LogicNode, 
     GateType, InnerGate, LeafGate, LiteralGate, ConstantGate, ⋁Gate, ⋀Gate,
     literal, constant, conjoin_like, disjoin_like,
-    variable, ispositive, isnegative, istrue, isfalse, true_like, false_like
+    variable, ispositive, isnegative, istrue, isfalse,
+    conjoin, disjoin, copy, compile,
+    fully_factorized_circuit, formula_string
 
 #####################
 # Abstract infrastructure for logical circuit nodes
@@ -60,19 +62,16 @@ import ..Utils.children # make available for extension by concrete types
 @inline constant(::ConstantGate, n::LogicNode)::Bool = 
     error("Each `ConstantGate` should implement a `constant` method.  It is missing from $(typeof(n)).")
 
-"Conjoin nodes in the same way as the example"
-@inline function conjoin_like(example::LogicNode, arguments::LogicNode...)
-    conjoin_like(example, collect(arguments))
-end
-
-"Disjoin nodes in the same way as the example"
-@inline function disjoin_like(example::LogicNode, arguments::LogicNode...)
-    disjoin_like(example, collect(arguments))
-end
-
-# TODO: what about `literal_like`? and `constant_like`?
-
 # next bunch of methods are derived from the previous group
+
+"Is the node an And gate?"
+@inline is⋀gate(n) = GateType(n) isa ⋀Gate
+"Is the node an Or gate?"
+@inline is⋁gate(n) = GateType(n) isa ⋁Gate
+"Is the node a literal gate?"
+@inline isliteralgate(n) = GateType(n) isa LiteralGate
+"Is the node a constant gate?"
+@inline isconstantgate(n) = GateType(n) isa ConstantGate
 
 "Get the logical variable in a given literal leaf node"
 @inline variable(n::LogicNode)::Var = variable(GateType(n), n)
@@ -93,8 +92,90 @@ end
 @inline isfalse(::GateType, n::LogicNode)::Bool = false
 @inline isfalse(::ConstantGate, n::LogicNode)::Bool = (constant(n) == false)
 
-"Construct a true node in the hierarchy of node n"
-true_like(n) = conjoin_like(n)
+# methods to easily construct circuits
 
-"Construct a false node in the hierarchy of node n"
-false_like(n) = disjoin_like(n)
+@inline Base.:&(x::LogicNode, y::LogicNode) = conjoin(x,y)
+@inline Base.:|(x::LogicNode, y::LogicNode) = disjoin(x,y)
+
+"Conjoin nodes into a single circuit"
+@inline conjoin(xs::LogicNode...) = conjoin(collect(xs))
+
+"Disjoin nodes into a single circuit"
+@inline disjoin(xs::LogicNode...) = disjoin(collect(xs))
+
+"Create a leaf node in the given hierarchy, compiling a Bool constant or a literal"
+function compile end
+
+import Base.copy
+function copy(n::LogicNode, depth::Int64)
+    old2new = Dict{Node, Node}()
+    copy_rec(n, depth, old2new)
+end
+
+# TODO: document - only inner nodes are copied
+function copy_rec(n::LogicNode, depth::Int64, old2new::Dict{LogicNode, LogicNode})
+    if depth == 0 || isliteralgate(n) || isconstantgate(n)
+        n
+    else
+        get!(old2new, n) do
+            cns = map(children(n)) do c
+                copy_rec(c, depth - 1, old2new)
+            end
+            if is⋀gate(n)
+                conjoin(cns)
+            else
+                @assert is⋁gate(n)
+                disjoin(cns)
+            end
+        end
+    end
+end
+
+"Generate a fully factorized circuit over `n` variables"
+function fully_factorized_circuit(n, ::Type{T}) where T<:LogicNode
+    ors = map(1:n) do v
+        v = Var(v)
+        pos = compile(T, var2lit(v))
+        neg = compile(T, -var2lit(v))
+        pos | neg
+    end
+    and = conjoin(ors)
+    disjoin([and]) # see logistic circuits bias term
+end
+
+"""
+Get the formula of a given node as a string
+"""
+function formula_string(n::LogicNode)
+    g = GateType(n)
+    if g isa LiteralGate
+        "$(literal(n))"
+    elseif g isa ConstantGate
+        "$n"
+    elseif g isa ⋀Gate
+        s = ""
+        for (i,c) in enumerate(children(n))
+            if i < length(children(n))
+                s = string(s, formula_string(c), " ⋀ ")
+            else
+                s = string(s, formula_string(c))
+            end
+        end
+        s = string("(", s, ")")
+        s
+    elseif g isa ⋁Gate
+        s = ""
+        for (i,c) in enumerate(children(n))
+            if i < length(children(n))
+                s = string(s, formula_string(c), " ⋁ ")
+            else
+                s = string(s, formula_string(c))
+            end
+        end
+        s = string("(", s, ")")
+        s
+    else
+        error("Node not recognized")
+    end
+end
+
