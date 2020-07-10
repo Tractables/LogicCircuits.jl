@@ -1,8 +1,7 @@
 export variable_scope, variable_scopes,
     num_variables, issmooth, isdecomposable,
     sat_prob, model_count, prob_equiv_signature,
-    evaluate,
-    canonical_literals, canonical_constants
+    evaluate
 
 #####################
 # circuit evaluation infrastructure
@@ -276,104 +275,3 @@ function pass_up_down2(circuit::LogicNode, data)
     circuit[end](data)
     pass_down2(circuit, data)
 end
-
-#####################
-# canonization queries
-#####################
-
-"Construct a mapping from literals to their canonical node representation"
-function canonical_literals(circuit::LogicNode)::Dict{Lit,LogicNode}
-    lit_dict = Dict{Lit,LogicNode}()
-    f_lit(n)= begin
-        !haskey(lit_dict, literal(n)) || error("Circuit has multiple representations of literal $(literal(n))")
-        lit_dict[literal(n)] = n
-    end
-    foreach(circuit, noop, f_lit, noop, noop)
-    lit_dict
-end
-
-"Construct a mapping from constants to their canonical node representation"
-function canonical_constants(circuit::LogicNode)::Tuple{Union{Nothing, Node},Union{Nothing, Node}}
-    true_node::Union{Nothing, Node} = nothing
-    false_node::Union{Nothing, Node} = nothing
-    f_con(n)= begin
-        if istrue(n)
-            isnothing(true_node) || error("Circuit has multiple representations of true")
-            true_node = n
-        else
-            @assert isfalse(n)
-            isnothing(false_node) || error("Circuit has multiple representations of false")
-            false_node = n
-        end
-    end
-    foreach(circuit, f_con, noop, noop, noop)
-    (false_node, true_node)
-end
-
-# "Check whether literal nodes are unique"
-# function has_unique_canonical_literals(circuit::Δ)::Bool
-#     literals = Set{Lit}()
-#     result = true
-#     visit(n::LogicNode) = visit(GateType(n),n)
-#     visit(::GateType, n::LogicNode) = ()
-#     visit(::LiteralGate, n::LogicNode) = begin
-#         if literal(n) ∈ literals 
-#             result = false
-#         end
-#         push!(literals, literal(n))
-#     end
-#     for node in circuit
-#         visit(node)
-#     end
-#     return result
-# end
-
-# "Check whether literal nodes are unique"
-# function has_unique_canonical_literals2(circuit::Δ)::Bool
-#     has_unique_canonical_literals2(circuit[end])
-# end
-
-# function has_unique_canonical_literals2(root::LogicNode)::Bool
-#     literals = Set{Lit}()
-#     @inline f_con(n) = true
-#     @inline f_lit(n) = begin
-#         lit = literal(n)
-#         if lit in literals
-#             false
-#         else
-#             push!(literals, lit)
-#             true
-#         end
-#     end
-#     @inline f_a(n, cs) = all(cs)
-#     @inline f_o(n, cs) = all(cs)
-#     foldup_aggregate(root, f_con, f_lit, f_a, f_o, Bool)
-# end
-
-# "Check whether constant nodes are unique"
-# function has_unique_canonical_constants(circuit::Δ)::Bool
-#     seen_false = false
-#     seen_true = false
-#     result = true
-#     visit(n::LogicNode) = visit(GateType(n),n)
-#     visit(::GateType, n::LogicNode) = ()
-#     visit(::ConstantGate, n::LogicNode) = begin
-#         if istrue(n)
-#             if seen_true 
-#                 result = false
-#             end
-#             seen_true = true
-#         else
-#             @assert isfalse(n)
-#             if seen_false 
-#                 result = false
-#             end
-#             seen_false = true
-#         end
-#     end
-#     for node in circuit
-#         visit(node)
-#     end
-#     return result
-# end
- 

@@ -20,12 +20,6 @@ include("helper/plain_logic_circuits.jl")
     @test isone(sat_prob(r1))
     @test model_count(r1) == BigInt(2)^10
 
-    lit_map = canonical_literals(r1)
-    @test literal(lit_map[Lit(1)]) == Lit(1)
-    @test literal(lit_map[Lit(-5)]) == Lit(-5)
-    @test length(lit_map) == 20
-
-    @test canonical_constants(r1) == (nothing, nothing)
 
     @test r1(BitArray([1 0 1 0 1 0 1 0 1 0;
                        1 1 1 1 1 1 1 1 1 1;
@@ -70,10 +64,5 @@ include("helper/plain_logic_circuits.jl")
     @test !isdecomposable(n0c & little_2var())
     @test !issmooth(n0c | little_2var())
     @test issmooth(n0c)
-
-    con_map = canonical_constants(n0c)
-    @test isfalse(con_map[1])
-    @test istrue(con_map[2])
-    @test length(con_map) == 2
 
 end

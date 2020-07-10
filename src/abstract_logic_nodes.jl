@@ -1,11 +1,12 @@
 export LogicNode, 
     GateType, InnerGate, LeafGate, LiteralGate, ConstantGate, ⋁Gate, ⋀Gate,
     isliteralgate, isconstantgate, is⋁gate, is⋀gate,
-    ⋁_nodes, ⋀_nodes, or_nodes, and_nodes,
     literal, constant, conjoin, disjoin,
     variable, ispositive, isnegative, istrue, isfalse,
     conjoin, disjoin, copy, compile,
-    fully_factorized_circuit, tree_formula_string
+    fully_factorized_circuit, 
+    ⋁_nodes, ⋀_nodes, or_nodes, and_nodes, 
+    canonical_literals, canonical_constants, tree_formula_string
 
 #####################
 # Abstract infrastructure for logical circuit nodes
@@ -82,18 +83,6 @@ function compile end
 "Is the node a constant gate?"
 @inline isconstantgate(n) = GateType(n) isa ConstantGate
 
-"Get the list of conjunction nodes in a given circuit"
-⋀_nodes(c::LogicNode) = filter(is⋀gate, c)
-
-"Get the list of And nodes in a given circuit"
-@inline and_nodes(c::LogicNode) = ⋀_nodes(c)
-
-"Get the list of disjunction nodes in a given circuit"
-⋁_nodes(c::LogicNode) = filter(is⋁gate, c)
-
-"Get the list of or nodes in a given circuit"
-@inline or_nodes(c::LogicNode) = ⋁_nodes(c)
-
 "Get the logical variable in a given literal leaf node"
 @inline variable(n::LogicNode)::Var = variable(GateType(n), n)
 @inline variable(::LiteralGate, n::LogicNode)::Var = lit2var(literal(n))
@@ -113,7 +102,9 @@ function compile end
 @inline isfalse(::GateType, n::LogicNode)::Bool = false
 @inline isfalse(::ConstantGate, n::LogicNode)::Bool = (constant(n) == false)
 
+#####################
 # methods to easily construct circuits
+#####################
 
 @inline Base.:&(x::LogicNode, y::LogicNode) = conjoin(x,y)
 @inline Base.:|(x::LogicNode, y::LogicNode) = disjoin(x,y)
@@ -130,6 +121,51 @@ function fully_factorized_circuit(n, ::Type{T}) where T<:LogicNode
     end
     and = conjoin(ors)
     disjoin([and]) # see logistic circuits bias term
+end
+
+#####################
+# circuit inspection
+#####################
+
+"Get the list of conjunction nodes in a given circuit"
+⋀_nodes(c::LogicNode) = filter(is⋀gate, c)
+
+"Get the list of And nodes in a given circuit"
+@inline and_nodes(c::LogicNode) = ⋀_nodes(c)
+
+"Get the list of disjunction nodes in a given circuit"
+⋁_nodes(c::LogicNode) = filter(is⋁gate, c)
+
+"Get the list of or nodes in a given circuit"
+@inline or_nodes(c::LogicNode) = ⋁_nodes(c)
+
+"Construct a mapping from literals to their canonical node representation"
+function canonical_literals(circuit::LogicNode)::Dict{Lit,LogicNode}
+    lit_dict = Dict{Lit,LogicNode}()
+    f_lit(n)= begin
+        !haskey(lit_dict, literal(n)) || error("Circuit has multiple representations of literal $(literal(n))")
+        lit_dict[literal(n)] = n
+    end
+    foreach(circuit, noop, f_lit, noop, noop)
+    lit_dict
+end
+
+"Construct a mapping from constants to their canonical node representation"
+function canonical_constants(circuit::LogicNode)::Tuple{Union{Nothing, Node},Union{Nothing, Node}}
+    true_node::Union{Nothing, Node} = nothing
+    false_node::Union{Nothing, Node} = nothing
+    f_con(n)= begin
+        if istrue(n)
+            isnothing(true_node) || error("Circuit has multiple representations of true")
+            true_node = n
+        else
+            @assert isfalse(n)
+            isnothing(false_node) || error("Circuit has multiple representations of false")
+            false_node = n
+        end
+    end
+    foreach(circuit, f_con, noop, noop, noop)
+    (false_node, true_node)
 end
 
 """
@@ -165,4 +201,3 @@ function tree_formula_string(n::LogicNode)
         s
     end
 end
-

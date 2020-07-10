@@ -7,6 +7,7 @@ include("helper/plain_logic_circuits.jl")
     n1 = little_2var()
     n0 = little_3var()
     n0c = little_3var_constants()
+    r1 = fully_factorized_circuit(10,PlainLogicNode)
 
     @test length(and_nodes(n0c)) == 6
     @test length(or_nodes(n0c)) == 5
@@ -40,6 +41,18 @@ include("helper/plain_logic_circuits.jl")
     @test tree_formula_string(n1) == "((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))"
     @test tree_formula_string(n0) == "((3 ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))) ⋁ (-3 ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))))"
     @test tree_formula_string(n0c) == "(((3 ⋀ true) ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))) ⋁ ((-3 ⋀ false) ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))))"
+
+    con_map = canonical_constants(n0c)
+    @test isfalse(con_map[1])
+    @test istrue(con_map[2])
+    @test length(con_map) == 2
+
+    lit_map = canonical_literals(r1)
+    @test literal(lit_map[Lit(1)]) == Lit(1)
+    @test literal(lit_map[Lit(-5)]) == Lit(-5)
+    @test length(lit_map) == 20
+
+    @test canonical_constants(r1) == (nothing, nothing)
 
 # TODO: reinstate
 #     c1 = load_logical_circuit(zoo_psdd_file("plants.psdd"))[end]
