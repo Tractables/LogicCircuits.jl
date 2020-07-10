@@ -16,6 +16,10 @@ include("helper/plain_logic_circuits.jl")
     @test isfalse(compile(PlainLogicNode,false))
     @test !istrue(compile(PlainLogicNode,false))
     @test !isfalse(compile(PlainLogicNode,true))
+    @test !istrue(compile(PlainLogicNode,Lit(2)))
+    @test !isfalse(compile(PlainLogicNode,Lit(2)))
+    @test !istrue(n1)
+    @test !isfalse(n1)
     
     @test num_nodes(fully_factorized_circuit(10, PlainLogicNode)) == 32
     @test num_edges(fully_factorized_circuit(10, PlainLogicNode)) == 31

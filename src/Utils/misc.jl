@@ -63,9 +63,6 @@ const Lit = Int32 # variable with a positive or negative sign
 "Convert a literal its variable, removing the sign of the literal"
 @inline lit2var(l::Lit)::Var = convert(Var,abs(l))
 
-var(v::Int) = convert(Var, v)
-lit(v::Int) = convert(Lit, v)
-
 #####################
 # probability semantics
 #####################

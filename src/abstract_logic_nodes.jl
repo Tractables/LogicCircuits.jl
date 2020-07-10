@@ -53,14 +53,10 @@ import ..Utils.NodeType # make available for extension
 import ..Utils.children # make available for extension by concrete types
 
 "Get the logical literal in a given literal leaf node"
-@inline literal(n::LogicNode)::Lit = literal(GateType(n), n)
-@inline literal(::LiteralGate, n::LogicNode)::Lit = 
-    error("Each `LiteralGate` should implement a `literal` method. It is missing from $(typeof(n)).")
+function literal end
 
 "Get the logical constant in a given constant leaf node"
-@inline constant(n::LogicNode)::Bool = literal(GateType(n), n)
-@inline constant(::ConstantGate, n::LogicNode)::Bool = 
-    error("Each `ConstantGate` should implement a `constant` method.  It is missing from $(typeof(n)).")
+function constant end
 
 # next bunch of methods are derived from the previous group
 
@@ -137,7 +133,8 @@ function tree_formula_string(n::LogicNode)
         end
         s = string("(", s, ")")
         s
-    elseif is⋁gate(n)
+    else
+        @assert is⋁gate(n)
         s = ""
         for (i,c) in enumerate(children(n))
             if i < length(children(n))
@@ -148,8 +145,6 @@ function tree_formula_string(n::LogicNode)
         end
         s = string("(", s, ")")
         s
-    else
-        error("Node not recognized")
     end
 end
 

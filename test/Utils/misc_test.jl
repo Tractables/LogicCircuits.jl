@@ -28,7 +28,6 @@ using DataFrames: DataFrame
     ab = init_array(Float32,5,4)
     @test size(ab) == (5,4)
 
-
     ab = always(Bool,5,4)
     @test size(ab) == (5,4)
     @test all(x -> x == 1, ab)

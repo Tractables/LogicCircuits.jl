@@ -47,8 +47,7 @@ struct Inner <: NodeType end
 @inline NodeType(node::Node) = NodeType(typeof(node))
 
 "Get the children of a given inner node"
-@inline children(n::Node)::Vector{<:Node} = children(NodeType(n), n)
-@inline children(::Inner, n::Node)::Vector{<:Node} = error("Each inner node should implement a `children` method; one is missing for $(typeof(n))")
+function children end
 
 #####################
 # derived node functions
