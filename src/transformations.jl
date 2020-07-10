@@ -27,7 +27,7 @@ function smooth(root::Δ)::Δ
 end
 
 function smooth(root::LogicNode)::LogicNode
-    lit_nodes = literal_nodes(root)
+    lit_nodes = canonical_literals(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
     f_a(n, call) = begin
@@ -74,7 +74,7 @@ Warning: this may or may not destroy the determinism property.
 """
 function forget(is_forgotten::Function, circuit::Δ)
     forgotten = Dict{Node,Node}()
-    (_, true_node) = constant_nodes(circuit) # reuse constants when possible
+    (_, true_node) = canonical_constants(circuit) # reuse constants when possible
     if isnothing(true_node)
         true_node = true_like(circuit[end])
     end
@@ -102,7 +102,7 @@ function forget2(is_forgotten::Function, circuit::Δ)::Δ
 end
 
 function forget2(is_forgotten::Function, root::LogicNode)::LogicNode
-    (_, true_node) = constant_nodes2(root) # reuse constants when possible
+    (_, true_node) = canonical_constants(root) # reuse constants when possible
     if isnothing(true_node)
         true_node = true_like(root)
     end
@@ -151,8 +151,8 @@ function condition(circuit::Δ, lit::Lit)::Δ
 end
 
 function condition(root::LogicNode, lit::Lit)::LogicNode
-    literals = literal_nodes(root)
-    (false_node, ) = constant_nodes2(root) # reuse constants when possible
+    literals = canonical_literals(root)
+    (false_node, ) = canonical_constants(root) # reuse constants when possible
     if isnothing(false_node)
         false_node = false_like(root)
     end
@@ -212,7 +212,7 @@ function split(circuit::Union{Δ, Node}, edge::Tuple{Node, Node}, var::Var; dept
         else
             # TODO
         end
-        literals = literal_nodes(and)
+        literals = canonical_literals(and)
         @assert haskey(literals, var2lit(var)) && haskey(literals, - var2lit(var))
     end
 

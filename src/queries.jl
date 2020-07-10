@@ -2,7 +2,7 @@ export variable_scope, variable_scopes,
     num_variables, issmooth, isdecomposable
 
 #####################
-# circuit traversal infrastructure
+# circuit evaluation infrastructure
 #####################
 
 import Base: foreach # extend
@@ -106,181 +106,45 @@ function isdecomposable(root::LogicNode)::Bool
 end
 
 #####################
-# algebraic model count queries
+# algebraic model counting queries
 #####################
 
-# "Get the probability that a random world satisties the circuit"
-# function sat_prob(circuit::Union{Node,Δ})::Rational{BigInt}
-#     sat_prob(circuit, v -> BigInt(1) // BigInt(2))
-# end
+"Get the probability that a random world satisties the circuit"
+function sat_prob(root::LogicNode, 
+                  varprob::Function = v -> BigInt(1) // BigInt(2))::Rational{BigInt}
+    f_con(n) = istrue(n) ? one(Rational{BigInt}) : zero(Rational{BigInt})
+    f_lit(n) = ispositive(n) ? varprob(variable(n)) : one(Rational{BigInt}) - varprob(variable(n))
+    f_a(n, call) = mapreduce(call, *, children(n))
+    f_o(n, call) = mapreduce(call, +, children(n))
+    foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt})
+end
 
-# function sat_prob(circuit::Δ, varprob::Function)::Rational{BigInt}
-#     sat_prob(circuit[end], varprob)
-# end
+"Get the model count of the circuit"
+function model_count(c::LogicNode, num_vars_in_scope::Int = num_variables(c))::BigInt
+    # note that num_vars_in_scope for computing the model count can be more than num_variables(circuit); in particular when variables in the application are missing from the circuit
+    BigInt(sat_prob(circuit) * BigInt(2)^num_vars_in_scope)
+end
 
-# function sat_prob(root::LogicNode, varprob::Function)::Rational{BigInt}
-#     f_con(n) = istrue(n) ? one(Rational{BigInt}) : zero(Rational{BigInt})
-#     f_lit(n) = ispositive(n) ? varprob(variable(n)) : one(Rational{BigInt}) - varprob(variable(n))
-#     f_a(n, callback) = mapreduce(callback, *, children(n))
-#     f_o(n, callback) = mapreduce(callback, +, children(n))
-#     foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt})
-# end
+const Signature = Vector{Rational{BigInt}}
 
-# "Get the model count of the circuit"
-# function model_count(circuit::Δ, num_vars_in_scope::Int = num_variables(circuit))::BigInt
-#     # note that num_vars_in_scope can be more than num_variables(circuit)
-#     BigInt(sat_prob(circuit) * BigInt(2)^num_vars_in_scope)
-# end
+"""
+Get a signature for each node using probabilistic equivalence checking.
+Note that this implentation may not have any formal guarantees as such.
+"""
+function prob_equiv_signature(circuit::LogicNode, k::Int)::Dict{Union{Var,Node},Signature}
+    # uses probability instead of integers to circumvent smoothing, no mod though
+    signs::Dict{Union{Var,Node},Signature} = Dict{Union{Var,Node},Signature}()
+    prime::Int = 7919 #TODO set as smallest prime larger than num_variables
+    randprob() = BigInt(1) .// rand(1:prime,k)
+    do_signs(v::Var) = get!(randprob, signs, v)
+    f_con(n) = (signs[n] = (istrue(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)))
+    f_lit(n) = (signs[n] = (ispositive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))))
+    f_a(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .* y), children(n))))
+    f_o(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .+ y), children(n))))
+    foldup(circuit, f_con, f_lit, f_a, f_o, Signature)
+    signs
+end
 
-# const Signature = Vector{Rational{BigInt}}
-
-# """
-# Get a signature for each node using probabilistic equivalence checking
-# """
-# function prob_equiv_signature(circuit::Δ, k::Int)::Dict{Union{Var,Node},Signature}
-#     prob_equiv_signature(circuit[end],k)
-# end
-
-# function prob_equiv_signature(circuit::LogicNode, k::Int)::Dict{Union{Var,Node},Signature}
-#     # uses probability instead of integers to circumvent smoothing, no mod though
-#     signs::Dict{Union{Var,Node},Signature} = Dict{Union{Var,Node},Signature}()
-#     prime::Int = 7919 #TODO set as smallest prime larger than num_variables
-#     randprob() = BigInt(1) .// rand(1:prime,k)
-#     do_signs(v::Var) = get!(randprob, signs, v)
-#     f_con(n) = (signs[n] = (istrue(n) ? ones(Rational{BigInt}, k) : zeros(Rational{BigInt}, k)))
-#     f_lit(n) = (signs[n] = (ispositive(n) ? do_signs(variable(n)) : BigInt(1) .- do_signs(variable(n))))
-#     f_a(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .* y), children(n))))
-#     f_o(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .+ y), children(n))))
-#     foldup(circuit, f_con, f_lit, f_a, f_o, Signature)
-#     signs
-# end
-
-
-# "Construct a mapping from literals to their canonical node representation"
-# function literal_nodes(circuit::Union{Δ,Node})::Dict{Lit,Node}
-#     lit_dict = Dict{Lit,Node}()
-#     foreach(circuit) do n
-#         if isliteralgate(n)
-#             if haskey(lit_dict, literal(n))
-#                 error("Circuit has multiple representations of literal $(literal(n))")
-#             end
-#             lit_dict[literal(n)] = n
-#         end
-#     end
-#     lit_dict
-# end
-
-# "Construct a mapping from constants to their canonical node representation"
-# function constant_nodes(circuit::Δ)::Tuple{Union{Nothing, Node},Union{Nothing, Node}}
-#     true_node = nothing
-#     false_node = nothing
-#     visit(n::LogicNode) = visit(GateType(n),n)
-#     visit(::GateType, n::LogicNode) = ()
-#     visit(::ConstantGate, n::LogicNode) = begin
-#         if istrue(n)
-#             if issomething(true_node) 
-#                 error("Circuit has multiple representations of true")
-#             end
-#             true_node = n
-#         else
-#             @assert isfalse(n)
-#             if issomething(false_node) 
-#                 error("Circuit has multiple representations of false")
-#             end
-#             false_node = n
-#         end
-#     end
-#     for node in circuit
-#         visit(node)
-#     end
-#     (false_node, true_node)
-# end
-
-# "Construct a mapping from constants to their canonical node representation"
-# function constant_nodes2(circuit::Union{Δ,Node})::Tuple{Union{Nothing, Node},Union{Nothing, Node}}
-#     true_node = nothing
-#     false_node = nothing
-#     foreach(circuit) do n
-#         if isconstantgate(n)
-#             if istrue(n)
-#                 isnothing(true_node) || error("Circuit has multiple representations of true")
-#                 true_node = n
-#             else
-#                 @assert isfalse(n)
-#                 isnothing(false_node) || error("Circuit has multiple representations of false")
-#                 false_node = n
-#             end
-#         end
-#     end
-#     (false_node, true_node)
-# end
-
-# "Check whether literal nodes are unique"
-# function has_unique_literal_nodes(circuit::Δ)::Bool
-#     literals = Set{Lit}()
-#     result = true
-#     visit(n::LogicNode) = visit(GateType(n),n)
-#     visit(::GateType, n::LogicNode) = ()
-#     visit(::LiteralGate, n::LogicNode) = begin
-#         if literal(n) ∈ literals 
-#             result = false
-#         end
-#         push!(literals, literal(n))
-#     end
-#     for node in circuit
-#         visit(node)
-#     end
-#     return result
-# end
-
-# "Check whether literal nodes are unique"
-# function has_unique_literal_nodes2(circuit::Δ)::Bool
-#     has_unique_literal_nodes2(circuit[end])
-# end
-
-# function has_unique_literal_nodes2(root::LogicNode)::Bool
-#     literals = Set{Lit}()
-#     @inline f_con(n) = true
-#     @inline f_lit(n) = begin
-#         lit = literal(n)
-#         if lit in literals
-#             false
-#         else
-#             push!(literals, lit)
-#             true
-#         end
-#     end
-#     @inline f_a(n, cs) = all(cs)
-#     @inline f_o(n, cs) = all(cs)
-#     foldup_aggregate(root, f_con, f_lit, f_a, f_o, Bool)
-# end
-
-# "Check whether constant nodes are unique"
-# function has_unique_constant_nodes(circuit::Δ)::Bool
-#     seen_false = false
-#     seen_true = false
-#     result = true
-#     visit(n::LogicNode) = visit(GateType(n),n)
-#     visit(::GateType, n::LogicNode) = ()
-#     visit(::ConstantGate, n::LogicNode) = begin
-#         if istrue(n)
-#             if seen_true 
-#                 result = false
-#             end
-#             seen_true = true
-#         else
-#             @assert isfalse(n)
-#             if seen_false 
-#                 result = false
-#             end
-#             seen_false = true
-#         end
-#     end
-#     for node in circuit
-#         visit(node)
-#     end
-#     return result
-# end
 
 # function (circuit::Δ)(data::XData)
 #     circuit[end](data)
@@ -420,7 +284,11 @@ end
 #         @inbounds @. x = op(x, elems[1] & elems[2])
 #     end
 # end
- 
+
+#####################
+# backpropagation queries
+#####################
+
 # function pass_down2(circuit::Δ, data::XData{Bool})
 #     num = num_examples(data)
 #     @inline f_root(n, f_s) = begin
@@ -450,3 +318,107 @@ end
 #     circuit[end](data)
 #     pass_down2(circuit, data)
 # end
+
+#####################
+# canonization queries
+#####################
+
+"Construct a mapping from literals to their canonical node representation"
+function canonical_literals(circuit::LogicNode)::Dict{Lit,LogicNode}
+    lit_dict = Dict{Lit,LogicNode}()
+    foreach(circuit) do n
+        if isliteralgate(n)
+            if haskey(lit_dict, literal(n))
+                error("Circuit has multiple representations of literal $(literal(n))")
+            end
+            lit_dict[literal(n)] = n
+        end
+    end
+    lit_dict
+end
+
+"Construct a mapping from constants to their canonical node representation"
+function canonical_constants(circuit::LogicNode)::Tuple{Union{Nothing, Node},Union{Nothing, Node}}
+    true_node::Union{Nothing, Node} = nothing
+    false_node::Union{Nothing, Node} = nothing
+    f_con(n)= begin
+        if istrue(n)
+            isnothing(true_node) || error("Circuit has multiple representations of true")
+            true_node = n
+        else
+            @assert isfalse(n)
+            isnothing(false_node) || error("Circuit has multiple representations of false")
+            false_node = n
+        end
+    end
+    foreach(visit, f_con, noop, noop, noop)
+    (false_node, true_node)
+end
+
+# "Check whether literal nodes are unique"
+# function has_unique_canonical_literals(circuit::Δ)::Bool
+#     literals = Set{Lit}()
+#     result = true
+#     visit(n::LogicNode) = visit(GateType(n),n)
+#     visit(::GateType, n::LogicNode) = ()
+#     visit(::LiteralGate, n::LogicNode) = begin
+#         if literal(n) ∈ literals 
+#             result = false
+#         end
+#         push!(literals, literal(n))
+#     end
+#     for node in circuit
+#         visit(node)
+#     end
+#     return result
+# end
+
+# "Check whether literal nodes are unique"
+# function has_unique_canonical_literals2(circuit::Δ)::Bool
+#     has_unique_canonical_literals2(circuit[end])
+# end
+
+# function has_unique_canonical_literals2(root::LogicNode)::Bool
+#     literals = Set{Lit}()
+#     @inline f_con(n) = true
+#     @inline f_lit(n) = begin
+#         lit = literal(n)
+#         if lit in literals
+#             false
+#         else
+#             push!(literals, lit)
+#             true
+#         end
+#     end
+#     @inline f_a(n, cs) = all(cs)
+#     @inline f_o(n, cs) = all(cs)
+#     foldup_aggregate(root, f_con, f_lit, f_a, f_o, Bool)
+# end
+
+# "Check whether constant nodes are unique"
+# function has_unique_canonical_constants(circuit::Δ)::Bool
+#     seen_false = false
+#     seen_true = false
+#     result = true
+#     visit(n::LogicNode) = visit(GateType(n),n)
+#     visit(::GateType, n::LogicNode) = ()
+#     visit(::ConstantGate, n::LogicNode) = begin
+#         if istrue(n)
+#             if seen_true 
+#                 result = false
+#             end
+#             seen_true = true
+#         else
+#             @assert isfalse(n)
+#             if seen_false 
+#                 result = false
+#             end
+#             seen_false = true
+#         end
+#     end
+#     for node in circuit
+#         visit(node)
+#     end
+#     return result
+# end
+ 

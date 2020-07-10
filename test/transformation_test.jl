@@ -66,7 +66,7 @@
 
 #     lit1 = Lit(1)
 #     c2 = condition(c1, lit1)
-#     dict = Logic.literal_nodes(c2)
+#     dict = Logic.canonical_literals(c2)
 #     @test haskey(dict, lit1)
 #     @test !haskey(dict, -lit1) 
 #     c3 = condition(c2, -lit1)

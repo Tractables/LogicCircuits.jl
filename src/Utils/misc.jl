@@ -3,7 +3,7 @@
 export issomething, order_asc, isdisjoint, pushrand!, init_array,
        Var, Lit, var2lit, lit2var,
        always, never, uniform, logsumexp,
-       map_values, groupby
+       noop, map_values, groupby
 
 "Is the argument not `nothing`?"
 @inline issomething(x) = !isnothing(x)
@@ -89,6 +89,9 @@ end
 #####################
 # functional programming
 #####################
+
+"Function that does nothing"
+noop(_...) = nothing
 
 "Map the values in the dictionary, retaining the same keys"
 function map_values(f::Function, dict::AbstractDict{K}, vtype::Type)::AbstractDict{K,vtype} where K
