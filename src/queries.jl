@@ -1,6 +1,7 @@
 export variable_scope, variable_scopes,
     num_variables, issmooth, isdecomposable,
     sat_prob, model_count, prob_equiv_signature,
+    evaluate,
     canonical_literals, canonical_constants
 
 #####################
@@ -147,178 +148,134 @@ function prob_equiv_signature(circuit::LogicNode, k::Int)::Dict{Union{Var,Node},
     signs
 end
 
-# function (circuit::Δ)(data::XData)
-#     circuit[end](data)
-# end
+function (root::LogicNode)(data)
+    evaluate(root, data)
+end
 
-# function (root::LogicNode)(data::XData)
-#     evaluate(root, data)
-# end
+# TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
+# TODO; create a version that doesn't allocate, using fold!
+function evaluate(root::LogicNode, data)::BitVector
+    @inline f_lit(n) = if ispositive(n) 
+        [data[:,variable(n)]]
+    else
+        [broadcast(!,data[:,variable(n)])]
+    end
+    @inline f_con(n) = 
+        [istrue(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))]
+    @inline fa(n, call) = begin
+        if num_children(n) < 2
+            return call(@inbounds children(n)[1])
+        else
+            c1 = call(@inbounds children(n)[1])
+            c2 = call(@inbounds children(n)[2])
+            if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
+                return [c1[1], c2[1]] # no need to allocate a new BitVector, just return pair
+            end
+            x = always(Bool, num_examples(data))
+            accumulate_elements(x, c1, &)
+            accumulate_elements(x, c2, &)
+            for c in children(n)[3:end]
+                accumulate_elements(x, call(c), &)
+            end
+            return [x]
+        end
+    end
+    @inline fo(n, call) = begin
+        x = never(Bool, num_examples(data))
+        for c in children(n)
+            accumulate_elements(x, call(c), |)
+        end
+        return [x]
+    end
+    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
+end
 
-# # TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
-# # TODO; create a version that doesn't allocate, using fold!
-# function evaluate(root::LogicNode, data::XData{Bool})::BitVector
-#     @inline f_lit(n) = if ispositive(n) 
-#         [feature_matrix(data)[:,variable(n)]]
-#     else
-#         [broadcast(!,feature_matrix(data)[:,variable(n)])]
-#     end
-#     @inline f_con(n) = 
-#         [istrue(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))]
-#     @inline fa(n, call) = begin
-#         if num_children(n) < 2
-#             return call(@inbounds children(n)[1])
-#         else
-#             c1 = call(@inbounds children(n)[1])
-#             c2 = call(@inbounds children(n)[2])
-#             if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
-#                 return [c1[1], c2[1]] # no need to allocate a new BitVector, just return pair
-#             end
-#             x = always(Bool, num_examples(data))
-#             accumulate_elements(x, c1, &)
-#             accumulate_elements(x, c2, &)
-#             for c in children(n)[3:end]
-#                 accumulate_elements(x, call(c), &)
-#             end
-#             return [x]
-#         end
-#     end
-#     @inline fo(n, call) = begin
-#         x = never(Bool, num_examples(data))
-#         for c in children(n)
-#             accumulate_elements(x, call(c), |)
-#         end
-#         return [x]
-#     end
-#     conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
-# end
+using DataFrames
+# TODO: merge this version with the above, but only do so while performance regression testing
+function evaluate2(root::LogicNode, data::DataFrame)::BitVector
+    num_examples::Int = nrow(data)
+    @inline f_lit(n) = if ispositive(n) 
+        [data[!,variable(n)]]::Vector{BitVector}
+    else
+        [broadcast(!,data[!,variable(n)])]::Vector{BitVector}
+    end
+    @inline f_con(n) = 
+        [istrue(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
+    @inline fa(n, call) = begin
+        if num_children(n) < 2
+            return call(@inbounds children(n)[1])
+        else
+            c1 = call(@inbounds children(n)[1])
+            c2 = call(@inbounds children(n)[2])
+            if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
+                return [c1[1], c2[1]] # no need to allocate a new BitVector, just return pair
+            end
+            x = always(Bool, num_examples)
+            accumulate_elements(x, c1, &)
+            accumulate_elements(x, c2, &)
+            for c in children(n)[3:end]
+                accumulate_elements(x, call(c), &)
+            end
+            return [x]
+        end
+    end
+    @inline fo(n, call) = begin
+        x = never(Bool, num_examples)
+        for c in children(n)
+            accumulate_elements(x, call(c), |)
+        end
+        return [x]
+    end
+    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
+end
 
-# using DataFrames
+@inline function conjoin_elements(elems::Vector{BitVector})::BitVector 
+    reduce((x,y) -> x .& y, elems)
+end
 
-# function evaluate2(root::LogicNode, data::DataFrame)::BitVector
-#     num_examples::Int = nrow(data)
-#     @inline f_lit(n) = if ispositive(n) 
-#         [data[!,variable(n)]]::Vector{BitVector}
-#     else
-#         [broadcast(!,data[!,variable(n)])]::Vector{BitVector}
-#     end
-#     @inline f_con(n) = 
-#         [istrue(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
-#     @inline fa(n, call) = begin
-#         if num_children(n) < 2
-#             return call(@inbounds children(n)[1])
-#         else
-#             c1 = call(@inbounds children(n)[1])
-#             c2 = call(@inbounds children(n)[2])
-#             if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
-#                 return [c1[1], c2[1]] # no need to allocate a new BitVector, just return pair
-#             end
-#             x = always(Bool, num_examples)
-#             accumulate_elements(x, c1, &)
-#             accumulate_elements(x, c2, &)
-#             for c in children(n)[3:end]
-#                 accumulate_elements(x, call(c), &)
-#             end
-#             return [x]
-#         end
-#     end
-#     @inline fo(n, call) = begin
-#         x = never(Bool, num_examples)
-#         for c in children(n)
-#             accumulate_elements(x, call(c), |)
-#         end
-#         return [x]
-#     end
-#     conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
-# end
-
-# function evaluate3(root::LogicNode, data::DataFrame)::BitVector
-#     num_examples::Int = nrow(data)
-#     @inline f_lit(n) = if ispositive(n) 
-#         [data[!,variable(n)]]::Vector{BitVector}
-#     else
-#         [broadcast(!,data[!,variable(n)])]::Vector{BitVector}
-#     end
-#     @inline f_con(n) = 
-#         [istrue(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
-#     @inline fa(n, call) = begin
-#         if num_children(n) < 2
-#             return call(@inbounds children(n)[1])
-#         else
-#             c1 = call(@inbounds children(n)[1])
-#             c2 = call(@inbounds children(n)[2])
-#             if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
-#                 return [c1[1], c2[1]] # no need to allocate a new BitVector, just return pair
-#             end
-#             x = n.data[1]
-#             accumulate_elements(x, c1, &)
-#             accumulate_elements(x, c2, &)
-#             for c in children(n)[3:end]
-#                 accumulate_elements(x, call(c), &)
-#             end
-#             return [x]
-#         end
-#     end
-#     @inline fo(n, call) = begin
-#         x = n.data[1]
-#         for c in children(n)
-#             accumulate_elements(x, call(c), |)
-#         end
-#         return [x]
-#     end
-#     conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
-# end
-
-# @inline function conjoin_elements(elems::Vector{BitVector})::BitVector 
-#     reduce((x,y) -> x .& y, elems)
-# end
-
-# @inline function disjoin_elements(elems::Vector{BitVector})::BitVector
-#     reduce((x, y) -> x .| y, elems)
-# end
-
-# @inline function accumulate_elements(x::BitVector, elems::Vector{BitVector}, op)::BitVector
-#     if length(elems) == 1
-#         @inbounds @. x = op(x, elems[1])
-#     else
-#         @assert length(elems) == 2
-#         @inbounds @. x = op(x, elems[1] & elems[2])
-#     end
-# end
+@inline function accumulate_elements(x::BitVector, elems::Vector{BitVector}, op)::BitVector
+    if length(elems) == 1
+        @inbounds @. x = op(x, elems[1])
+    else
+        @assert length(elems) == 2
+        @inbounds @. x = op(x, elems[1] & elems[2])
+    end
+end
 
 #####################
 # backpropagation queries
 #####################
 
-# function pass_down2(circuit::Δ, data::XData{Bool})
-#     num = num_examples(data)
-#     @inline f_root(n, f_s) = begin
-#         [always(Bool, num)]
-#     end
-#     @inline f_inner(n, f_s, p_s) = begin
-#         x = never(Bool, num)
-#         if length(f_s) == 2
-#             for y in p_s
-#                 @inbounds @. x = x | ( y[1] & f_s[1] & f_s[2])
-#             end
-#         else
-#             @assert length(f_s) == 1
-#             for y in p_s
-#                 @inbounds @. x = x | ( y[1] & f_s[1])
-#             end
-#         end
-#         [x]
-#     end
+# TODO: refactor
+function pass_down2(circuit::LogicNode, data)
+    num = num_examples(data)
+    @inline f_root(n, f_s) = begin
+        [always(Bool, num)]
+    end
+    @inline f_inner(n, f_s, p_s) = begin
+        x = never(Bool, num)
+        if length(f_s) == 2
+            for y in p_s
+                @inbounds @. x = x | ( y[1] & f_s[1] & f_s[2])
+            end
+        else
+            @assert length(f_s) == 1
+            for y in p_s
+                @inbounds @. x = x | ( y[1] & f_s[1])
+            end
+        end
+        [x]
+    end
 
-#     f_leaf = f_inner
+    f_leaf = f_inner
 
-#     folddown_aggregate(circuit, f_root, f_leaf, f_inner, Vector{BitVector})
-# end
+    folddown_aggregate(circuit, f_root, f_leaf, f_inner, Vector{BitVector})
+end
 
-# function pass_up_down2(circuit::Δ, data::XData{Bool})
-#     circuit[end](data)
-#     pass_down2(circuit, data)
-# end
+function pass_up_down2(circuit::LogicNode, data)
+    circuit[end](data)
+    pass_down2(circuit, data)
+end
 
 #####################
 # canonization queries
@@ -328,9 +285,7 @@ end
 function canonical_literals(circuit::LogicNode)::Dict{Lit,LogicNode}
     lit_dict = Dict{Lit,LogicNode}()
     f_lit(n)= begin
-        if haskey(lit_dict, literal(n))
-            error("Circuit has multiple representations of literal $(literal(n))")
-        end
+        !haskey(lit_dict, literal(n)) || error("Circuit has multiple representations of literal $(literal(n))")
         lit_dict[literal(n)] = n
     end
     foreach(circuit, noop, f_lit, noop, noop)

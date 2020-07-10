@@ -27,6 +27,11 @@ include("helper/plain_logic_circuits.jl")
 
     @test canonical_constants(r1) == (nothing, nothing)
 
+    @test r1(BitArray([1 0 1 0 1 0 1 0 1 0;
+                       1 1 1 1 1 1 1 1 1 1;
+                       0 0 0 0 0 0 0 0 0 0;
+                       0 1 1 0 1 0 0 1 0 1])) == [1,1,1,1]
+
     #####################
     ors = map(1:10) do v
         pos = compile(PlainLogicNode, var2lit(Var(v)))
