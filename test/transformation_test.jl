@@ -1,56 +1,22 @@
 # using Test
 # using LogicCircuits
 
-# these functions are duplicated -- put in helper
-# function little_2var()
-#     lin = LogicNode[]
+# include("helper/plain_logic_circuits.jl")
 
-#     v = Var(2)
-#     pos = LiteralNode( var2lit(v))
-#     push!(lin, pos)
-#     neg = LiteralNode(-var2lit(v))
-#     push!(lin, neg)
-#     or1 = ⋁Node([pos,neg])
-#     push!(lin, or1)
-#     or2 = ⋁Node([pos,neg])
-#     push!(lin, or2)
+# @testset "Plain logic nodes" begin
+#     n1 = little_2var()
+#     n0 = little_3var()
+#     n0c = little_3var_constants()
 
-#     v = Var(1)
-#     pos = LiteralNode( var2lit(v))
-#     push!(lin, pos)
-#     neg = LiteralNode(-var2lit(v))
-#     push!(lin, neg)
+#     n0c2 = copy(n0c)
 
-#     and1 = ⋀Node([pos, or1])
-#     and2 = ⋀Node([neg, or2])
-#     root = ⋁Node([and1, and2])
-
-#     push!(lin, and1)
-#     push!(lin, and2)
-#     push!(lin, root)
+#     @test num_nodes(n0c2) == num_nodes(n0c)
+#     @test num_edges(n0c2) == num_edges(n0c)
+#     @test left_most_descendent(n0c2) == left_most_descendent(n0c)
+#     @test right_most_descendent(n0c2) == right_most_descendent(n0c)
 # end
 
-# function little_3var()
-#     lin = little_2var()
-#     or1 = lin[end]
-#     v = Var(3)
 
-#     pos = LiteralNode( var2lit(v))
-#     push!(lin, pos)
-#     neg = LiteralNode(-var2lit(v))
-#     push!(lin, neg)
-
-#     or2 = ⋁Node(children(or1))
-#     push!(lin, or2)
-
-#     and1 = ⋀Node([pos, or1])
-#     and2 = ⋀Node([neg, or2])
-#     root = ⋁Node([and1,and2])
-#     push!(lin, and1)
-#     push!(lin, and2)
-#     push!(lin, root)
-#     lin
-# end
 
 # function little_4var()
 #     lin = LogicNode[]

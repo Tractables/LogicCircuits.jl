@@ -3,7 +3,7 @@ export LogicNode,
     literal, constant, conjoin_like, disjoin_like,
     variable, ispositive, isnegative, istrue, isfalse,
     conjoin, disjoin, copy, compile,
-    fully_factorized_circuit, formula_string
+    fully_factorized_circuit, tree_formula_string
 
 #####################
 # Abstract infrastructure for logical circuit nodes
@@ -106,31 +106,6 @@ import ..Utils.children # make available for extension by concrete types
 "Create a leaf node in the given hierarchy, compiling a Bool constant or a literal"
 function compile end
 
-import Base.copy
-function copy(n::LogicNode, depth::Int64)
-    old2new = Dict{Node, Node}()
-    copy_rec(n, depth, old2new)
-end
-
-# TODO: document - only inner nodes are copied
-function copy_rec(n::LogicNode, depth::Int64, old2new::Dict{LogicNode, LogicNode})
-    if depth == 0 || isliteralgate(n) || isconstantgate(n)
-        n
-    else
-        get!(old2new, n) do
-            cns = map(children(n)) do c
-                copy_rec(c, depth - 1, old2new)
-            end
-            if is⋀gate(n)
-                conjoin(cns)
-            else
-                @assert is⋁gate(n)
-                disjoin(cns)
-            end
-        end
-    end
-end
-
 "Generate a fully factorized circuit over `n` variables"
 function fully_factorized_circuit(n, ::Type{T}) where T<:LogicNode
     ors = map(1:n) do v
@@ -144,32 +119,31 @@ function fully_factorized_circuit(n, ::Type{T}) where T<:LogicNode
 end
 
 """
-Get the formula of a given node as a string
+Get the formula of a given circuit as a string, expanding the formula into a tree
 """
-function formula_string(n::LogicNode)
-    g = GateType(n)
-    if g isa LiteralGate
+function tree_formula_string(n::LogicNode)
+    if isliteralgate(n)
         "$(literal(n))"
-    elseif g isa ConstantGate
-        "$n"
-    elseif g isa ⋀Gate
+    elseif isconstantgate(n)
+        "$(constant(n))"
+    elseif is⋀gate(n)
         s = ""
         for (i,c) in enumerate(children(n))
             if i < length(children(n))
-                s = string(s, formula_string(c), " ⋀ ")
+                s = string(s, tree_formula_string(c), " ⋀ ")
             else
-                s = string(s, formula_string(c))
+                s = string(s, tree_formula_string(c))
             end
         end
         s = string("(", s, ")")
         s
-    elseif g isa ⋁Gate
+    elseif is⋁gate(n)
         s = ""
         for (i,c) in enumerate(children(n))
             if i < length(children(n))
-                s = string(s, formula_string(c), " ⋁ ")
+                s = string(s, tree_formula_string(c), " ⋁ ")
             else
-                s = string(s, formula_string(c))
+                s = string(s, tree_formula_string(c))
             end
         end
         s = string("(", s, ")")

@@ -1,5 +1,25 @@
 export smooth, forget, propagate_constants, condition, split, clone, replace_node, merge
 
+import Base.deepcopy
+function deepcopy(n::LogicNode, depth::Int64, old2new::Dict{LogicNode, LogicNode}== Dict{Node, Node}())
+    if depth == 0 || isliteralgate(n) || isconstantgate(n)
+        n
+    else
+        get!(old2new, n) do
+            cns = map(children(n)) do c
+                deepcopy(c, depth - 1, old2new)
+            end
+            if is⋀gate(n)
+                conjoin(cns)
+            else
+                @assert is⋁gate(n)
+                disjoin(cns)
+            end
+        end
+    end
+end
+
+
 "Create an equivalent smooth circuit from the given circuit."
 function smooth(root::Δ)::Δ
     new_root = smooth(root[end])

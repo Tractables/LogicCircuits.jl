@@ -121,7 +121,7 @@ end
 end
 
 @inline compile(::Union{PlainLogicNode,Type{<:PlainLogicNode}}, b::Bool) =
-    b ? PlainTrueNode : PlainFalseNode
+    b ? PlainTrueNode() : PlainFalseNode()
 
 @inline compile(::Union{PlainLogicNode,Type{<:PlainLogicNode}}, l::Lit) =
     PlainLiteralNode(l)

@@ -27,3 +27,20 @@ function little_3var()
     and2 = neg & or2
     and1 | and2
 end
+
+function little_3var_constants()
+    or1 = little_2var()
+    v = Var(3)
+
+    t = compile(PlainLogicNode, true)
+    f = compile(PlainLogicNode, false)
+
+    pos = compile(PlainLogicNode,  var2lit(v)) & t
+    neg = compile(PlainLogicNode, -var2lit(v)) & f
+    
+    or2 = disjoin(children(or1))
+    
+    and1 = pos & or1
+    and2 = neg & or2
+    and1 | and2
+end
