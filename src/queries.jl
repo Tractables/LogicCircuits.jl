@@ -1,5 +1,7 @@
 export variable_scope, variable_scopes,
-    num_variables, issmooth, isdecomposable
+    num_variables, issmooth, isdecomposable,
+    sat_prob, model_count, prob_equiv_signature,
+    canonical_literals, canonical_constants
 
 #####################
 # circuit evaluation infrastructure
@@ -120,9 +122,9 @@ function sat_prob(root::LogicNode,
 end
 
 "Get the model count of the circuit"
-function model_count(c::LogicNode, num_vars_in_scope::Int = num_variables(c))::BigInt
+function model_count(root::LogicNode, num_vars_in_scope::Int = num_variables(root))::BigInt
     # note that num_vars_in_scope for computing the model count can be more than num_variables(circuit); in particular when variables in the application are missing from the circuit
-    BigInt(sat_prob(circuit) * BigInt(2)^num_vars_in_scope)
+    BigInt(sat_prob(root) * BigInt(2)^num_vars_in_scope)
 end
 
 const Signature = Vector{Rational{BigInt}}
@@ -144,7 +146,6 @@ function prob_equiv_signature(circuit::LogicNode, k::Int)::Dict{Union{Var,Node},
     foldup(circuit, f_con, f_lit, f_a, f_o, Signature)
     signs
 end
-
 
 # function (circuit::Δ)(data::XData)
 #     circuit[end](data)
@@ -326,14 +327,13 @@ end
 "Construct a mapping from literals to their canonical node representation"
 function canonical_literals(circuit::LogicNode)::Dict{Lit,LogicNode}
     lit_dict = Dict{Lit,LogicNode}()
-    foreach(circuit) do n
-        if isliteralgate(n)
-            if haskey(lit_dict, literal(n))
-                error("Circuit has multiple representations of literal $(literal(n))")
-            end
-            lit_dict[literal(n)] = n
+    f_lit(n)= begin
+        if haskey(lit_dict, literal(n))
+            error("Circuit has multiple representations of literal $(literal(n))")
         end
+        lit_dict[literal(n)] = n
     end
+    foreach(circuit, noop, f_lit, noop, noop)
     lit_dict
 end
 
@@ -351,7 +351,7 @@ function canonical_constants(circuit::LogicNode)::Tuple{Union{Nothing, Node},Uni
             false_node = n
         end
     end
-    foreach(visit, f_con, noop, noop, noop)
+    foreach(circuit, f_con, noop, noop, noop)
     (false_node, true_node)
 end
 
