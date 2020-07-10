@@ -21,6 +21,16 @@ include("helper/plain_logic_circuits.jl")
     @test !istrue(n1)
     @test !isfalse(n1)
     
+    @test istrue(conjoin())
+    @test isfalse(disjoin())
+    a1 = conjoin(n1, n0, n0c)
+    o1 = disjoin(n1, n0, n0c)
+    
+    @test conjoin([n1, n0, n0c], a1) == a1
+    @test disjoin([n1, n0, n0c], o1) == o1
+    @test disjoin([n1, n0, n0c], a1) != a1
+    @test conjoin([n1, n0, n0c], o1) != o1
+
     @test num_nodes(fully_factorized_circuit(10, PlainLogicNode)) == 32
     @test num_edges(fully_factorized_circuit(10, PlainLogicNode)) == 31
 

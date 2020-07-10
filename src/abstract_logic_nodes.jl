@@ -47,7 +47,7 @@ import ..Utils.NodeType # make available for extension
 @inline NodeType(::InnerGate) = Inner()
 
 #####################
-# node functions
+# node functions that need to be implemented for each type of circuit
 #####################
 
 import ..Utils.children # make available for extension by concrete types
@@ -58,7 +58,18 @@ function literal end
 "Get the logical constant in a given constant leaf node"
 function constant end
 
-# next bunch of methods are derived from the previous group
+"Conjoin nodes into a single circuit"
+function conjoin end
+
+"Disjoin nodes into a single circuit"
+function disjoin end
+
+"Create a leaf node in the given hierarchy, compiling a Bool constant or a literal"
+function compile end
+
+#####################
+# derived node functions
+#####################
 
 "Is the node an And gate?"
 @inline is⋀gate(n) = GateType(n) isa ⋀Gate
@@ -92,15 +103,8 @@ function constant end
 
 @inline Base.:&(x::LogicNode, y::LogicNode) = conjoin(x,y)
 @inline Base.:|(x::LogicNode, y::LogicNode) = disjoin(x,y)
-
-"Conjoin nodes into a single circuit"
 @inline conjoin(xs::LogicNode...) = conjoin(collect(xs))
-
-"Disjoin nodes into a single circuit"
 @inline disjoin(xs::LogicNode...) = disjoin(collect(xs))
-
-"Create a leaf node in the given hierarchy, compiling a Bool constant or a literal"
-function compile end
 
 "Generate a fully factorized circuit over `n` variables"
 function fully_factorized_circuit(n, ::Type{T}) where T<:LogicNode
