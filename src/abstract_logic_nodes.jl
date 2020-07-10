@@ -1,6 +1,8 @@
 export LogicNode, 
     GateType, InnerGate, LeafGate, LiteralGate, ConstantGate, ⋁Gate, ⋀Gate,
-    literal, constant, conjoin_like, disjoin_like,
+    isliteralgate, isconstantgate, is⋁gate, is⋀gate,
+    ⋁_nodes, ⋀_nodes, or_nodes, and_nodes,
+    literal, constant, conjoin, disjoin,
     variable, ispositive, isnegative, istrue, isfalse,
     conjoin, disjoin, copy, compile,
     fully_factorized_circuit, tree_formula_string
@@ -79,6 +81,18 @@ function compile end
 @inline isliteralgate(n) = GateType(n) isa LiteralGate
 "Is the node a constant gate?"
 @inline isconstantgate(n) = GateType(n) isa ConstantGate
+
+"Get the list of conjunction nodes in a given circuit"
+⋀_nodes(c::LogicNode) = filter(is⋀gate, c)
+
+"Get the list of And nodes in a given circuit"
+@inline and_nodes(c::LogicNode) = ⋀_nodes(c)
+
+"Get the list of disjunction nodes in a given circuit"
+⋁_nodes(c::LogicNode) = filter(is⋁gate, c)
+
+"Get the list of or nodes in a given circuit"
+@inline or_nodes(c::LogicNode) = ⋁_nodes(c)
 
 "Get the logical variable in a given literal leaf node"
 @inline variable(n::LogicNode)::Var = variable(GateType(n), n)

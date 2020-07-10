@@ -8,10 +8,10 @@
 #     c3 = smooth(c1)
 #     c4 = smooth(c2)
 
-#     @test !is_smooth(c1)
-#     @test !is_smooth(c2)
-#     @test is_smooth(c3)
-#     @test is_smooth(c4)
+#     @test !issmooth(c1)
+#     @test !issmooth(c2)
+#     @test issmooth(c3)
+#     @test issmooth(c4)
 
 #     @test c1 !== c3
 #     @test c2 !== c4

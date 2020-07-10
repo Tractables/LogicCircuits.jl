@@ -5,7 +5,7 @@ function validate(sdd::Sdd)
       validate(n)
     end
     #TODO make one of these for structured decomposability
-    @assert is_decomposable(sdd)
+    @assert isdecomposable(sdd)
     is_unique(sdd, 5)
  end
    

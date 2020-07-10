@@ -11,8 +11,8 @@
 
 #   @test circuit isa PlainLogicΔ
 #   @test num_nodes(circuit) == 1676
-#   @test is_decomposable(circuit)
-#   @test !is_smooth(circuit)
+#   @test isdecomposable(circuit)
+#   @test !issmooth(circuit)
 #   @test any(n -> n isa FalseNode, circuit)
 #   @test any(n -> n isa TrueNode, circuit)
 #   @test num_variables(circuit) == 30
@@ -23,8 +23,8 @@
 
 #   @test prop_circuit isa PlainLogicΔ
 #   @test num_nodes(prop_circuit) == 1232
-#   @test is_decomposable(prop_circuit)
-#   @test !is_smooth(prop_circuit)
+#   @test isdecomposable(prop_circuit)
+#   @test !issmooth(prop_circuit)
 #   @test !any(n -> n isa FalseNode, prop_circuit)
 #   @test !any(n -> n isa TrueNode, prop_circuit)
 #   @test num_variables(prop_circuit) == 30
@@ -37,8 +37,8 @@
 
 #   @test smooth_circuit isa PlainLogicΔ
 #   @test num_nodes(smooth_circuit) == 2056
-#   @test is_decomposable(smooth_circuit)
-#   @test is_smooth(smooth_circuit)
+#   @test isdecomposable(smooth_circuit)
+#   @test issmooth(smooth_circuit)
 #   @test !any(n -> n isa FalseNode, smooth_circuit)
 #   @test !any(n -> n isa TrueNode, smooth_circuit)
 #   @test num_variables(smooth_circuit) == 30
@@ -52,8 +52,8 @@
 #   @test forgotten_circuit isa PlainLogicΔ
 #   @test num_nodes(forgotten_circuit) == 1648
 #   @test num_variables(forgotten_circuit) == 16
-#   @test is_decomposable(forgotten_circuit)
-#   @test !is_smooth(forgotten_circuit)
+#   @test isdecomposable(forgotten_circuit)
+#   @test !issmooth(forgotten_circuit)
 #   @test has_unique_literal_nodes(forgotten_circuit)
 #   @test has_unique_constant_nodes(forgotten_circuit)
 
@@ -63,8 +63,8 @@
 
 #   @test random_circuit isa PlainLogicΔ
 #   @test num_nodes(random_circuit) == 1956
-#   @test is_decomposable(random_circuit)
-#   @test is_smooth(random_circuit)
+#   @test isdecomposable(random_circuit)
+#   @test issmooth(random_circuit)
 #   @test !any(n -> n isa FalseNode, random_circuit)
 #   @test !any(n -> n isa TrueNode, random_circuit)
 #   @test num_variables(random_circuit) == 16

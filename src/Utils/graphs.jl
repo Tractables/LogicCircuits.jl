@@ -1,6 +1,7 @@
 export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
-       flip_bit, foreach, foreach_rec, filter, foldup, foldup_rec,
+       flip_bit, foreach, foreach_rec, filter, 
+       foldup, foldup_rec, foldup_aggregate, foldup_aggregate_rec,
        num_nodes, num_edges, tree_num_nodes,
        inodes, innernodes, leafnodes, linearize,
        left_most_descendent, right_most_descendent,
@@ -135,6 +136,7 @@ function filter(p::Function, root::Dag, ::Type{T} = Union{})::Vector where T
     results
 end
 
+# TODO: have get and set argument functions to generalize to other ways of using the data field concurrently
 """
 Compute a function bottom-up on the graph. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
