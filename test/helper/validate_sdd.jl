@@ -51,8 +51,8 @@ function validate(::⋀Gate, n::SddNode)
    # has no false prime
    @test !isfalse(prime(n))
    @test NodeType(vtree(n)) isa Inner 
-   @test GateType(prime(n)) isa ConstantGate || descends_left_from(prime(n), n)
-   @test GateType(sub(n)) isa ConstantGate || descends_right_from(sub(n), n)
+   @test GateType(prime(n)) isa ConstantGate || variable_⊆_left(prime(n), n)
+   @test GateType(sub(n)) isa ConstantGate || variable_⊆_right(sub(n), n)
 end
 
 function validate(::LiteralGate, l::SddNode)

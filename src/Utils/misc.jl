@@ -1,7 +1,7 @@
 # Miscellaneous utilities.
 
 export issomething, order_asc, isdisjoint, pushrand!, init_array,
-       Var, Lit, var2lit, lit2var, variables, num_variables,
+       Var, Lit, var2lit, lit2var, variables, num_variables, varsubset,
        always, never, uniform, logsumexp,
        noop, map_values, groupby
 
@@ -67,7 +67,11 @@ const Lit = Int32 # variable with a positive or negative sign
 function variables end
 
 "Number of variables in the data structure"
-num_variables(x)::Int = length(variables(x))
+@inline num_variables(x)::Int = length(variables(x))
+
+"Do the variables in `n` containing the variables in `m`?"
+@inline varsubset(n, m) = (n===m || variables(n) ⊆ variables(m))
+
 
 #####################
 # probability semantics

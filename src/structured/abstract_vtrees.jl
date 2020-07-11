@@ -110,3 +110,9 @@ function depth(::Leaf, n::Vtree, var::Var)::Int
     @assert var ∈ variables(n)
     return 0
 end
+
+# all vtrees are assumed to have parent fields
+@inline Utils.parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
+
+@inline varsubset_left(n, m)::Bool = varsubset(n, m.left)
+@inline varsubset_right(n, m)::Bool = varsubset(n, m.right)

@@ -1,6 +1,6 @@
 export TrimMgrNode, TrimSddMgr, XYPartition, Element, TrimSdd, TrimNode,
 compress, unique⋁, canonicalize,
-compile, conjoin, disjoin, negate, descends_from, descends_left_from, descends_right_from
+compile, conjoin, disjoin, negate, variable_⊆, variable_⊆_left, variable_⊆_right
 
 using DataStructures
 using Random
@@ -106,7 +106,7 @@ TrimMgrNode(left::TrimMgrNode, right::TrimMgrNode) = TrimSddMgrInnerNode(left, r
 @inline variables(n::TrimSddMgrLeafNode)::BitSet = BitSet(n.var)
 @inline variables(n::TrimSddMgrInnerNode)::BitSet = n.variables
 
-import ..Utils: parent, descends_from, lca # make available for extension
+import ..Utils: parent, variable_⊆, lca # make available for extension
 
 @inline prime(e::Element) = e[1]
 @inline sub(e::Element) = e[2]
@@ -115,18 +115,9 @@ import ..Utils: parent, descends_from, lca # make available for extension
 
 @inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (s,t) : (t,s)
 
-#TODO replace this by a bitset subset check on the set of variables
-@inline descends_from(n::TrimNode, m::TrimNode) = descends_from(vtree(n), vtree(m))
-@inline descends_from(::TrimMgrNode, ::TrimSddMgrLeafNode) = false
-@inline descends_from(n::TrimMgrNode, m::TrimSddMgrInnerNode) = variables(n) ⊆ variables(m)
-
-@inline descends_left_from(n::TrimNode, m::TrimNode)::Bool = descends_left_from(vtree(n), vtree(m))
-@inline descends_left_from(n::TrimMgrNode, m::TrimSddMgrInnerNode)::Bool = (n === m.left) || descends_from(n, m.left)
-@inline descends_left_from(::TrimMgrNode, ::TrimSddMgrLeafNode)::Bool = false
-
-@inline descends_right_from(n::TrimNode, m::TrimNode)::Bool = descends_right_from(vtree(n), vtree(m))
-@inline descends_right_from(n::TrimMgrNode, m::TrimSddMgrInnerNode)::Bool = (n === m.right) || descends_from(n,m.right)
-@inline descends_right_from(::TrimMgrNode, ::TrimSddMgrLeafNode)::Bool = false
+@inline variable_⊆(n::TrimNode, m::TrimNode) = variable_⊆(vtree(n), vtree(m))
+@inline variable_⊆_left(n::TrimNode, m::TrimNode)::Bool = variable_⊆_left(vtree(n), vtree(m))
+@inline variable_⊆_right(n::TrimNode, m::TrimNode)::Bool = variable_⊆_right(vtree(n), vtree(m))
 
 function lca(xy::XYPartition)::TrimSddMgrInnerNode
     # @assert !isempty(xy)
@@ -268,9 +259,9 @@ end
 function conjoin(s::TrimNode, t::TrimNode)::TrimNode 
     if vtree(s) == vtree(t)
         conjoin_cartesian(t,s)
-    elseif descends_from(s,t)
+    elseif variable_⊆(s,t)
         conjoin_descendent(s,t)
-    elseif descends_from(t,s)
+    elseif variable_⊆(t,s)
         conjoin_descendent(t,s)
     else
         conjoin_indep(s,t)
@@ -341,12 +332,12 @@ Conjoin two SDDs when one descends from the other
 """
 function conjoin_descendent(d::TrimNode, n::TrimNode)::TrimNode
     get!(vtree(n).conjoin_cache, (d,n)) do 
-        if descends_left_from(d, n)
+        if variable_⊆_left(d, n)
             elements = Element[Element(conjoin(prime(e),d), sub(e)) for e in children(n)]
             elements = remove_false_primes(elements)
             push!(elements, Element(!d, trimfalse))
         else 
-            # @assert descends_right_from(d, n)
+            # @assert variable_⊆_right(d, n)
             elements = Element[Element(prime(e),conjoin(sub(e),d)) for e in children(n)]
         end
         #TODO are there cases where we don't need all of compress-trim-unique?
@@ -363,12 +354,12 @@ function conjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
     # @assert vtree(s) != mgr && vtree(t) != mgr
     (s,t) = pointer_sort(s,t)
     get!(mgr.conjoin_cache, (s,t)) do 
-        if descends_left_from(vtree(s), mgr)
-            # @assert descends_right_from(vtree(t), mgr)
+        if variable_⊆_left(vtree(s), mgr)
+            # @assert variable_⊆_right(vtree(t), mgr)
             elements = Element[Element(s,t),Element(!s,trimfalse)]
         else 
-            # @assert descends_left_from(vtree(t), mgr)
-            # @assert descends_right_from(vtree(s), mgr)
+            # @assert variable_⊆_left(vtree(t), mgr)
+            # @assert variable_⊆_right(vtree(s), mgr)
             elements = Element[Element(t,s),Element(!t,trimfalse)]
         end
         # TODO: the XY partition must already be compressed and trimmed
@@ -401,9 +392,9 @@ end
 function disjoin(s::TrimNode, t::TrimNode)::TrimNode 
     if vtree(s) == vtree(t)
         disjoin_cartesian(t,s)
-    elseif descends_from(s,t)
+    elseif variable_⊆(s,t)
         disjoin_descendent(s,t)
-    elseif descends_from(t,s)
+    elseif variable_⊆(t,s)
         disjoin_descendent(t,s)
     else
         disjoin_indep(s,t)
@@ -473,13 +464,13 @@ Disjoin two SDDs when one descends from the other
 """
 function disjoin_descendent(d::TrimNode, n::TrimNode)::TrimNode
     get!(vtree(n).disjoin_cache, (d,n)) do 
-        if descends_left_from(d, n)
+        if variable_⊆_left(d, n)
             not_d = !d
             elements = Element[Element(conjoin(prime(e),not_d), sub(e)) for e in children(n)]
             elements = remove_false_primes(elements)
             push!(elements,Element(d, trimtrue))
         else 
-            # @assert descends_right_from(d, n)
+            # @assert variable_⊆_right(d, n)
             elements = Element[Element(prime(e),disjoin(sub(e),d)) for e in children(n)]
         end
         #TODO are there cases where we don't need all of compress-trim-unique?
@@ -496,12 +487,12 @@ function disjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
     # @assert vtree(s) != mgr && vtree(t) != mgr
     (s,t) = pointer_sort(s,t)
     get!(mgr.disjoin_cache, (s,t)) do 
-        if descends_left_from(vtree(s), mgr)
-            # @assert descends_right_from(vtree(t), mgr)
+        if variable_⊆_left(vtree(s), mgr)
+            # @assert variable_⊆_right(vtree(t), mgr)
             elements = Element[Element(s,trimtrue),Element(!s,t)]
         else 
-            # @assert descends_left_from(vtree(t), mgr)
-            # @assert descends_right_from(vtree(s), mgr)
+            # @assert variable_⊆_left(vtree(t), mgr)
+            # @assert variable_⊆_right(vtree(s), mgr)
             elements = Element[Element(t,trimtrue),Element(!t,s)]
         end
         # TODO: the XY partition must already be compressed and trimmed

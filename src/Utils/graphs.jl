@@ -5,7 +5,6 @@ export Node, Dag, NodeType, Leaf, Inner,
        num_nodes, num_edges, tree_num_nodes, tree_num_edges,
        inodes, innernodes, leafnodes, linearize,
        left_most_descendent, right_most_descendent,
-       descends_from, parent, lca,
        node_stats, inode_stats, leaf_stats
 
 
@@ -36,7 +35,7 @@ struct Leaf <: NodeType end
 struct Inner <: NodeType end
 
 #####################
-# required fields and methods
+# basic fields and methods
 #####################
 
 # Each `Node` is required to have fields
@@ -49,6 +48,7 @@ struct Inner <: NodeType end
 
 "Get the children of a given inner node"
 function children end
+
 
 #####################
 # derived node functions
@@ -326,30 +326,6 @@ function right_most_descendent(root::Dag)::Dag
     root
 end
 
-"""
-Find the least common ancestor (assumes the graph has a parent pointer and a list of descendents)
-"""
-lca(v::Dag)::Dag = v
-lca(v::Dag, w::Dag)::Dag = begin
-    if v == w 
-        return v
-    end
-    if descends_from(w,v)
-        return v
-    end
-    candidate::Union{Dag,Nothing} = w
-    while issomething(candidate)
-        if descends_from(v,candidate)
-            return candidate
-        end
-        candidate = parent(candidate)
-    end
-    error("First argument is not contained in the root of second argument. There is no LCA.")
-end
-lca(v::Dag, w::Dag, u::Dag, r::Dag...)::Dag = lca(lca(v,w), u, r...)
-
-function descends_from end
-function parent end
 
 #####################
 # debugging methods (not performance critical)

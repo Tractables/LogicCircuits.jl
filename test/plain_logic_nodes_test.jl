@@ -25,8 +25,8 @@ include("helper/plain_logic_circuits.jl")
     @test !istrue(n1)
     @test !isfalse(n1)
     
-    @test istrue(conjoin())
-    @test isfalse(disjoin())
+    @test istrue(conjoin(PlainLogicCircuit[]))
+    @test isfalse(disjoin(PlainLogicCircuit[]))
     a1 = conjoin(n1, n0, n0c)
     o1 = disjoin(n1, n0, n0c)
     

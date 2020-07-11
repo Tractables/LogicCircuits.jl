@@ -1,4 +1,4 @@
-export PlainVtree, PlainVtreeLeafNode, PlainVtreeInnerNode, PlainVtree
+export PlainVtree, PlainVtreeLeafNode, PlainVtreeInnerNode
 
 #############
 # PlainVtree
@@ -7,29 +7,30 @@ export PlainVtree, PlainVtreeLeafNode, PlainVtreeInnerNode, PlainVtree
 "Root of the plain vtree node hierarchy"
 abstract type PlainVtree <: Vtree end
 
-mutable struct PlainVtreeLeafNode <: PlainVtree
-    var::Var
-end
-
 mutable struct PlainVtreeInnerNode <: PlainVtree
     left::PlainVtree
     right::PlainVtree
     variables::BitSet
+    parent::Union{Nothing,PlainVtreeInnerNode}
+    PlainVtreeInnerNode(left::PlainVtree, right::PlainVtree) = begin
+        @assert isdisjoint(variables(left), variables(right))
+        this = new(left, right, variables(left) ∪ variables(right), nothing)
+        @assert left.parent isa Nothing "Left child of new vtree node already has a parent."
+        left.parent = this
+        @assert right.parent isa Nothing "Right child of new vtree node already has a parent."
+        right.parent = this
+    end
+end
+
+mutable struct PlainVtreeLeafNode <: PlainVtree
+    var::Var
+    parent::Union{Nothing,PlainVtreeInnerNode}
+    PlainVtreeLeafNode(v) = new(v, nothing)
 end
 
 #####################
 # Constructor
 #####################
-
-function PlainVtreeInnerNode(left::PlainVtree, right::PlainVtree)
-    @assert isempty(intersect(variables(left), variables(right)))
-    PlainVtreeInnerNode(left, right, variables(left) ∪ variables(right))
-end
-
-function PlainVtreeLeafNode(vars::Vector{Var})
-    @assert length(vars) == 1
-    PlainVtreeLeafNode(vars[1])
-end
 
 PlainVtree(v::Var) = PlainVtreeLeafNode(v)
 PlainVtree(left::PlainVtree, right::PlainVtree) = PlainVtreeInnerNode(left, right)
@@ -45,12 +46,13 @@ PlainVtree(left::PlainVtree, right::PlainVtree) = PlainVtreeInnerNode(left, righ
 # Methods
 #####################
 
+import ..Utils: children, variables, isequal_local
+
 @inline children(n::PlainVtreeInnerNode) = vcat(n.left, n.right)
 
 variables(n::PlainVtreeLeafNode) = BitSet([n.var])
 variables(n::PlainVtreeInnerNode) = n.variables
 
-import ..Utils.isequal_local
 """
 Compare whether two vtree nodes are locally equal (enables `==` for `Tree`s)
 """

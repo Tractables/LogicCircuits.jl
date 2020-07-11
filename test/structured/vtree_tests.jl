@@ -24,8 +24,8 @@ using LogicCircuits
     v1r = PlainVtree(Var(1))
     v2r = PlainVtree(Var(2))
     v3r = PlainVtree(Var(3))
-    i1r = PlainVtree(v2,v1)
-    rr = PlainVtree(v3,i1)
+    i1r = PlainVtree(v2r,v1r)
+    rr = PlainVtree(v3r,i1r)
     
     @test r == r
     @test v1 == v1r

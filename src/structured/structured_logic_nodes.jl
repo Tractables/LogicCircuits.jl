@@ -1,5 +1,6 @@
-export StructLogicCircuit, StructLogicLeafNode, StructLogicΔ
-    StructLiteralNode, StructConstantNode, Struct⋁Node, Struct⋀Node, vtree
+export StructLogicCircuit, StructLogicLeafNode, StructLogicInnerNode,
+    StructLiteralNode, StructConstantNode, StructTrueNode, StructFalseNode,
+    Struct⋀Node, Struct⋁Node
 
 #####################
 # Logic circuits that are structured,
@@ -7,63 +8,60 @@ export StructLogicCircuit, StructLogicLeafNode, StructLogicΔ
 #####################
 
 "Root of the structure logical circuit node hierarchy"
-abstract type StructLogicCircuit{V<:Vtree} <: LogicCircuit end
+abstract type StructLogicCircuit <: LogicCircuit end
 
 "A structured logical leaf node"
-abstract type StructLogicLeafNode{V} <: StructLogicCircuit{V} end
+abstract type StructLogicLeafNode <: StructLogicCircuit end
 
 "A structured logical inner node"
-abstract type StructLogicInnerNode{V} <: StructLogicCircuit{V} end
+abstract type StructLogicInnerNode <: StructLogicCircuit end
 
 "A structured logical literal leaf node, representing the positive or negative literal of its variable"
-mutable struct StructLiteralNode{V} <: StructLogicLeafNode{V}
+mutable struct StructLiteralNode <: StructLogicLeafNode
     literal::Lit
-    vtree::V
+    vtree::Vtree
     data
     bit::Bool
-    StructLiteralNode{V}(l,v::V) where V = new{V}(l, v, nothing, false)
+    StructLiteralNode(l,v) = new(l, v, nothing, false)
 end
 
 """
 A structured logical constant leaf node, representing true or false.
 These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
 """
-abstract type StructConstantNode{V} <: StructLogicInnerNode{V} end
+abstract type StructConstantNode <: StructLogicInnerNode end
 
-mutable struct StructTrueNode{V} <: StructConstantNode{V}
+mutable struct StructTrueNode <: StructConstantNode
     data
     bit::Bool
-    StructTrueNode{V}() where V = new{V}(nothing, false)
+    StructTrueNode() = new(nothing, false)
 end
 
-mutable struct StructFalseNode{V} <: StructConstantNode{V}
+mutable struct StructFalseNode <: StructConstantNode
     data
     bit::Bool
-    StructFalseNode{V}() where V = new{V}(nothing, false)
+    StructFalseNode() = new(nothing, false)
 end
 
 "A structured logical conjunction node"
-mutable struct Struct⋀Node{V} <: StructLogicInnerNode{V}
-    children::Vector{<:StructLogicCircuit{<:V}}
-    vtree::V
+mutable struct Struct⋀Node <: StructLogicInnerNode
+    children::Vector{StructLogicCircuit}
+    vtree::Vtree
     data
     bit::Bool
-    Struct⋀Node{V}(c,v::V) where V = new{V}(convert(Vector{StructLogicCircuit{V}}, c), v, nothing, false)
+    Struct⋀Node(c,v) = new(c, v, nothing, false)
 end
 
 "A structured logical disjunction node"
-mutable struct Struct⋁Node{V} <: StructLogicInnerNode{V}
-    children::Vector{<:StructLogicCircuit{<:V}}
-    vtree::V # could be leaf or inner
+mutable struct Struct⋁Node <: StructLogicInnerNode
+    children::Vector{StructLogicCircuit}
+    vtree::Vtree # could be leaf or inner
     data
     bit::Bool
-    Struct⋁Node{V}(c,v::V) where V = new{V}(convert(Vector{StructLogicCircuit{V}}, c), v, nothing, false)
+    Struct⋁Node(c,v) = new(c, v, nothing, false)
 end
 
 HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
-
-"A structured logical circuit represented as a bottom-up linear order of nodes"
-const StructLogicΔ{V} = AbstractVector{<:StructLogicCircuit{V}}
 
 #####################
 # traits
@@ -83,32 +81,39 @@ const StructLogicΔ{V} = AbstractVector{<:StructLogicCircuit{V}}
 @inline constant(n::StructFalseNode)::Bool = false
 @inline children(n::StructLogicInnerNode) = n.children
 
-@inline vtree(n::HasVtree) = n.vtree
+"Get the vtree corresponding to the argument"
+@inline vtree(n::HasVtree)::Vtree = n.vtree
+@inline vtree(v::Vtree)::Vtree = v
 
-"Conjoin nodes in the same way as the example"
-@inline function conjoin_like(example::StructLogicCircuit, arguments::Vector)
+# requires an example to get a vtree
+@inline function conjoin(arguments::Vector{<:StructLogicCircuit},
+                         example::Union{StructLogicCircuit,Vtree}) 
     if isempty(arguments)
-        StructTrueNode{PlainVtree}()
+        StructTrueNode()
     elseif example isa Struct⋀Node && children(example) == arguments
         example
     else
-        Struct⋀Node{PlainVtree}(arguments, vtree(example))
+        # careful: there is no check on the vtree here
+        Struct⋀Node(arguments, vtree(example))
     end
 end
 
-"Disjoin nodes in the same way as the example"
-@inline function disjoin_like(example::StructLogicCircuit, arguments::Vector)
+# requires an example to get a vtree
+@inline function disjoin(arguments::Vector{<:StructLogicCircuit}, 
+                         example::Union{StructLogicCircuit,Vtree})
     if isempty(arguments)
-        StructFalseNode{PlainVtree}()
+        StructFalseNode()
     elseif example isa Struct⋁Node && children(example) == arguments
         example
     else
-        Struct⋁Node{PlainVtree}(arguments, vtree(example))
+        # careful: there is no check on the vtree here
+        Struct⋁Node(arguments, vtree(example))
     end
 end
 
-"Construct a new literal node like the given node's type"
-literal_like(example::StructLogicCircuit, lit::Lit) = StructLiteralNode{PlainVtree}(lit, vtree(example))
 
-@inline copy_node(n::Struct⋁Node, cns) = Struct⋁Node{PlainVtree}(cns, vtree(n))
-@inline copy_node(n::Struct⋀Node, cns) = Struct⋀Node{PlainVtree}(cns, vtree(n))
+@inline compile(::Union{StructLogicCircuit,Type{<:StructLogicCircuit}}, b::Bool) =
+    b ? StructTrueNode() : StructFalseNode()
+
+@inline compile(::Union{StructLogicCircuit,Type{<:StructLogicCircuit}}, l::Lit, vtree::Vtree) =
+    StructLiteralNode(l,vtree)

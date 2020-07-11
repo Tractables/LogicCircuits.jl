@@ -1,6 +1,6 @@
 using DataStructures
 
-export Tree, isequal_local
+export parent, has_parent, isroot, lca, Tree, isequal_local
 
 #####################
 # types and traits
@@ -10,9 +10,48 @@ export Tree, isequal_local
 abstract type Tree <: Dag end
 
 #####################
-# traversal
+# methods
 #####################
 
+"Get the parent of a given tree node (or nothing if the node is root)"
+function parent end
+
+"Does the node have a parent?"
+@inline has_parent(n::Tree)::Bool = issomething(parent(n))
+
+"Is the node the root of its tree?"
+@inline isroot(n::Tree)::Bool = !has_parent(n)
+
+"Is one node equal to another locally, ignoring children?"
+function isequal_local end
+
+function Base.:(==)(n1::Tree, n2::Tree)::Bool
+    (n1 === n2) && return true
+    !isequal_local(n1,n2) && return false
+    isleaf(n1) && isleaf(n2) && return true
+    (num_children(n1) != num_children(n2)) && return false
+    return all(cs -> (cs[1] == cs[2]), zip(children(n1), children(n2)))
+end
+
+"""
+Find the least common ancestor. Assumes the `Tree` has access to a `parent`. 
+A given `descends_from` function is required to quickly check whether a node is an ancestor.
+"""
+function lca(v::Tree, w::Tree, descends_from::Function)
+    v == w && return v
+    descends_from(w,v) && return v
+    candidate::Union{Dag,Nothing} = w
+    while issomething(candidate)
+        descends_from(v,candidate) && return candidate
+        candidate = parent(candidate)
+    end
+    error("First argument is not contained in the root of second argument. There is no LCA.")
+end
+lca(v::Dag, w::Dag, u::Dag, r::Dag...)::Dag = lca(lca(v,w), u, r...)
+
+#####################
+# traversal
+#####################
 
 function foreach(f::Function, node::Tree)
     if isinner(node)
@@ -44,19 +83,4 @@ function foldup_aggregate(node::Tree, f_leaf::Function, f_inner::Function, ::Typ
         f_leaf(node)::T
     end
     return v
-end
-
-#####################
-# methods
-#####################
-
-"Is one node equal to another locally, ignoring children?"
-function isequal_local end
-
-function Base.:(==)(n1::Tree, n2::Tree)::Bool
-    (n1 === n2) && return true
-    !isequal_local(n1,n2) && return false
-    isleaf(n1) && isleaf(n2) && return true
-    (num_children(n1) != num_children(n2)) && return false
-    return all(cs -> (cs[1] == cs[2]), zip(children(n1), children(n2)))
 end
