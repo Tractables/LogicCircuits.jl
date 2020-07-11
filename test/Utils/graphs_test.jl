@@ -103,7 +103,7 @@ module TestNodes
         @test issetequal(innernodes(r), [i1,i2,i12,j1,j2,j12,r])
         @test issetequal(leafnodes(r), [l1,l2])
         
-        @test tree_num_nodes(r) == 14 # unverified
+        @test tree_num_edges(r) == 14 # unverified
 
         @test linearize(r)[end] == r
         @test linearize(r)[1] == l1 || linearize(r)[1] == l2

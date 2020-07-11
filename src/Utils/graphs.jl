@@ -2,7 +2,7 @@ export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
        flip_bit, foreach, foreach_rec, filter, 
        foldup, foldup_rec, foldup_aggregate, foldup_aggregate_rec,
-       num_nodes, num_edges, tree_num_nodes,
+       num_nodes, num_edges, tree_num_nodes, tree_num_edges,
        inodes, innernodes, leafnodes, linearize,
        left_most_descendent, right_most_descendent,
        descends_from, parent, lca,
@@ -271,6 +271,15 @@ end
 Compute the number of nodes in of a tree-unfolding of the `Dag`. 
 """
 function tree_num_nodes(node::Dag)::BigInt
+    @inline f_leaf(n) = one(BigInt)
+    @inline f_inner(n, call) = (1 + mapreduce(c -> call(c), +, children(n)))
+    foldup(node, f_leaf, f_inner, BigInt)
+end
+
+"""
+Compute the number of edges in of a tree-unfolding of the `Dag`. 
+"""
+function tree_num_edges(node::Dag)::BigInt
     @inline f_leaf(n) = zero(BigInt)
     @inline f_inner(n, call) = (num_children(n) + mapreduce(c -> call(c), +, children(n)))
     foldup(node, f_leaf, f_inner, BigInt)

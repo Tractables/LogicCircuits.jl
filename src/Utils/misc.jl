@@ -1,7 +1,7 @@
 # Miscellaneous utilities.
 
 export issomething, order_asc, isdisjoint, pushrand!, init_array,
-       Var, Lit, var2lit, lit2var,
+       Var, Lit, var2lit, lit2var, variables, num_variables,
        always, never, uniform, logsumexp,
        noop, map_values, groupby
 
@@ -62,6 +62,12 @@ const Lit = Int32 # variable with a positive or negative sign
 
 "Convert a literal its variable, removing the sign of the literal"
 @inline lit2var(l::Lit)::Var = convert(Var,abs(l))
+
+"Get the `BitSet` of variables in the data structure"
+function variables end
+
+"Number of variables in the data structure"
+num_variables(x)::Int = length(variables(x))
 
 #####################
 # probability semantics

@@ -7,7 +7,7 @@ SddLiteralNode, SddConstantNode, Sdd⋁Node, Sdd⋀Node
 #############
 
 "Root of the SDD manager node hierarchy"
-abstract type SddMgrNode <: VTree end
+abstract type SddMgrNode <: Vtree end
 
 const SddMgr = AbstractVector{<:SddMgrNode}
 
@@ -16,7 +16,7 @@ const SddMgr = AbstractVector{<:SddMgrNode}
 #############
 
 "Root of the SDD circuit node hierarchy"
-abstract type SddNode{V<:SddMgrNode} <: StructLogicNode{V} end
+abstract type SddNode{V<:SddMgrNode} <: StructLogicCircuit{V} end
 
 "A SDD logical leaf node"
 abstract type SddLeafNode{V} <: SddNode{V} end
@@ -116,3 +116,4 @@ Base.show(io::IO, c::Sdd⋁Node) = begin
     elems = ["$e" for e in children(c)]
     print(io, "[$(join(elems,','))]")
 end
+

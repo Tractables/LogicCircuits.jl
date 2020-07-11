@@ -33,9 +33,9 @@ Support circuit file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 Supported vtree file formats:
- * ".vtree" for VTree files
+ * ".vtree" for Vtree files
 """
-function load_struct_smooth_logical_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicΔ{PlainVTree},PlainVtree}
+function load_struct_smooth_logical_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicΔ{PlainVtree},PlainVtree}
     circuit_lines = parse_circuit_file(circuit_file)
     vtree_lines = parse_vtree_file(vtree_file)
     compile_smooth_struct_logical(circuit_lines, vtree_lines)
@@ -264,7 +264,7 @@ function load_cnf(file::String)::PlainLogicΔ
     @assert endswith(file, ".cnf")
 
     # linearized circuit nodes
-    circuit = Vector{PlainLogicNode}()
+    circuit = Vector{PlainLogicCircuit}()
 
     # linearized clauses (disjunctions)
     clauses = Vector{⋁Node}()
@@ -337,7 +337,7 @@ function load_dnf(file::String)::PlainLogicΔ
     @assert endswith(file, ".dnf")
 
     # linearized circuit nodes
-    circuit = Vector{PlainLogicNode}()
+    circuit = Vector{PlainLogicCircuit}()
 
     # linearized clauses (conjunctions)
     clauses = Vector{⋀Node}()

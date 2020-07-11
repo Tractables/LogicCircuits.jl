@@ -10,7 +10,7 @@
 #   end
 
 #   mktempdir() do tmp
-#     lin = LogicNode[]
+#     lin = LogicCircuit[]
 #     ors = map(1:10) do v
 #         pos = LiteralNode(var2lit(Var(v)))
 #         push!(lin, pos)

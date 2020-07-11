@@ -19,7 +19,7 @@
 
 
 # function little_4var()
-#     lin = LogicNode[]
+#     lin = LogicCircuit[]
 #     n = 4
 #     ors = map(1:n) do v
 #         v = Var(v)

@@ -1,7 +1,7 @@
 export smooth, forget, propagate_constants, condition, split, clone, replace_node, merge
 
 import Base.deepcopy
-function deepcopy(n::LogicNode, depth::Int64, old2new::Dict{LogicNode, LogicNode}== Dict{Node, Node}())
+function deepcopy(n::LogicCircuit, depth::Int64, old2new::Dict{LogicCircuit, LogicCircuit}== Dict{Node, Node}())
     if depth == 0 || isliteralgate(n) || isconstantgate(n)
         n
     else
@@ -19,14 +19,13 @@ function deepcopy(n::LogicNode, depth::Int64, old2new::Dict{LogicNode, LogicNode
     end
 end
 
-
 "Create an equivalent smooth circuit from the given circuit."
 function smooth(root::Δ)::Δ
     new_root = smooth(root[end])
     linearize(new_root)
 end
 
-function smooth(root::LogicNode)::LogicNode
+function smooth(root::LogicCircuit)::LogicCircuit
     lit_nodes = canonical_literals(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
@@ -53,7 +52,7 @@ function smooth(root::LogicNode)::LogicNode
 end
 
 "Return a smooth version of the node where the `missing_scope` variables are added to the scope, using literals from `lit_nodes`"
-function smooth_node(node::LogicNode, missing_scope, lit_nodes)
+function smooth_node(node::LogicCircuit, missing_scope, lit_nodes)
     if isempty(missing_scope)
         return node
     else
@@ -78,15 +77,15 @@ function forget(is_forgotten::Function, circuit::Δ)
     if isnothing(true_node)
         true_node = true_like(circuit[end])
     end
-    forget_node(n::LogicNode) = forget_node(GateType(n),n)
-    forget_node(::ConstantGate, n::LogicNode) = n
-    forget_node(::LiteralGate, n::LogicNode) =
+    forget_node(n::LogicCircuit) = forget_node(GateType(n),n)
+    forget_node(::ConstantGate, n::LogicCircuit) = n
+    forget_node(::LiteralGate, n::LogicCircuit) =
         is_forgotten(variable(n)) ? true_node : n
-    function forget_node(::⋀Gate, n::LogicNode)
+    function forget_node(::⋀Gate, n::LogicCircuit)
         forgotten_children = map(c -> forgotten[c], children(n))
         conjoin_like(n, forgotten_children...)
     end
-    function forget_node(::⋁Gate, n::LogicNode)
+    function forget_node(::⋁Gate, n::LogicCircuit)
         forgotten_children = map(c -> forgotten[c], children(n))
         disjoin_like(n, forgotten_children...)
     end
@@ -101,7 +100,7 @@ function forget2(is_forgotten::Function, circuit::Δ)::Δ
     linearize(new_root)
 end
 
-function forget2(is_forgotten::Function, root::LogicNode)::LogicNode
+function forget2(is_forgotten::Function, root::LogicCircuit)::LogicCircuit
     (_, true_node) = canonical_constants(root) # reuse constants when possible
     if isnothing(true_node)
         true_node = true_like(root)
@@ -116,9 +115,9 @@ end
 "Remove all constant leafs from the circuit"
 function propagate_constants(circuit::Δ)
     proped = Dict{Node,Node}()
-    propagate(n::LogicNode) = propagate(GateType(n),n)
-    propagate(::LeafGate, n::LogicNode) = n
-    function propagate(::⋀Gate, n::LogicNode)
+    propagate(n::LogicCircuit) = propagate(GateType(n),n)
+    propagate(::LeafGate, n::LogicCircuit) = n
+    function propagate(::⋀Gate, n::LogicCircuit)
         proped_children = map(c -> proped[c], children(n))
         if any(c -> isfalse(c), proped_children)
             false_like(n)
@@ -127,7 +126,7 @@ function propagate_constants(circuit::Δ)
             conjoin_like(n, proped_children...)
         end
     end
-    function propagate(::⋁Gate, n::LogicNode)
+    function propagate(::⋁Gate, n::LogicCircuit)
         proped_children = map(c -> proped[c], children(n))
         if any(c -> istrue(c), proped_children)
             true_like(n)
@@ -142,7 +141,7 @@ function propagate_constants(circuit::Δ)
     linearize(proped[circuit[end]])
 end
 
-@inline normalize(n::LogicNode, old_n::LogicNode, kept) = ()
+@inline normalize(n::LogicCircuit, old_n::LogicCircuit, kept) = ()
 
 "Return the circuit conditioned on given constrains"
 function condition(circuit::Δ, lit::Lit)::Δ
@@ -150,7 +149,7 @@ function condition(circuit::Δ, lit::Lit)::Δ
     linearize(new_root)
 end
 
-function condition(root::LogicNode, lit::Lit)::LogicNode
+function condition(root::LogicCircuit, lit::Lit)::LogicCircuit
     literals = canonical_literals(root)
     (false_node, ) = canonical_constants(root) # reuse constants when possible
     if isnothing(false_node)
@@ -234,7 +233,7 @@ function split(circuit::Union{Δ, Node}, edge::Tuple{Node, Node}, var::Var; dept
 end
 
 "Clone the `and` node and redirect one of its parents to the new copy"
-function clone(circuit::Union{Δ, Node}, or1::LogicNode, or2::LogicNode, and::LogicNode; depth=1)
+function clone(circuit::Union{Δ, Node}, or1::LogicCircuit, or2::LogicCircuit, and::LogicCircuit; depth=1)
     # sanity check
     @assert depth >= 1
     @assert GateType(or1) isa ⋁Gate && GateType(or2) isa ⋁Gate && GateType(and) isa ⋀Gate
@@ -254,7 +253,7 @@ end
 
 import Base.merge
 
-function merge(circuit::Union{Δ, Node}, or1::LogicNode, or2::LogicNode)
+function merge(circuit::Union{Δ, Node}, or1::LogicCircuit, or2::LogicCircuit)
     # sanity check
     @assert GateType(or1) isa ⋁Gate && GateType(or2) isa ⋁Gate
     if circuit isa Δ
@@ -274,11 +273,11 @@ function merge(circuit::Union{Δ, Node}, or1::LogicNode, or2::LogicNode)
     end
 end
 
-function replace_node(circuit::Δ, old::LogicNode, new::LogicNode)::Δ
+function replace_node(circuit::Δ, old::LogicCircuit, new::LogicCircuit)::Δ
     linearize(replace_node(circuit[end], old, new))
 end
 
-function replace_node(root::LogicNode, old::LogicNode, new::LogicNode)::LogicNode
+function replace_node(root::LogicCircuit, old::LogicCircuit, new::LogicCircuit)::LogicCircuit
     @assert GateType(old) == GateType(new)
     f_con(n) = old == n ? new : n
     f_lit = f_con

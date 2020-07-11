@@ -1,4 +1,4 @@
-export PlainLogicNode, PlainLogicLeafNode, PlainLogicInnerNode,
+export PlainLogicCircuit, PlainLogicLeafNode, PlainLogicInnerNode,
     PlainLiteralNode, PlainConstantNode, PlainTrueNode, PlainFalseNode,
     Plain⋀Node, Plain⋁Node
 
@@ -9,17 +9,17 @@ export PlainLogicNode, PlainLogicLeafNode, PlainLogicInnerNode,
 """
 Root of the plain logical circuit node hierarchy
 """
-abstract type PlainLogicNode <: LogicNode end
+abstract type PlainLogicCircuit <: LogicCircuit end
 
 """
 A plain logical leaf node
 """
-abstract type PlainLogicLeafNode <: PlainLogicNode end
+abstract type PlainLogicLeafNode <: PlainLogicCircuit end
 
 """
 A plain logical inner node
 """
-abstract type PlainLogicInnerNode <: PlainLogicNode end
+abstract type PlainLogicInnerNode <: PlainLogicCircuit end
 
 """
 A plain logical literal leaf node, representing the positive or negative literal of its variable
@@ -58,7 +58,7 @@ end
 A plain logical conjunction node (And node)
 """
 mutable struct Plain⋀Node <: PlainLogicInnerNode
-    children::Vector{PlainLogicNode}
+    children::Vector{PlainLogicCircuit}
     data
     bit::Bool
     Plain⋀Node(c) = new(c, nothing, false)
@@ -68,7 +68,7 @@ end
 A plain logical disjunction node (Or node)
 """
 mutable struct Plain⋁Node <: PlainLogicInnerNode
-    children::Vector{PlainLogicNode}
+    children::Vector{PlainLogicCircuit}
     data
     bit::Bool
     Plain⋁Node(c) = new(c, nothing, false)
@@ -97,8 +97,8 @@ end
 "Get the children of a given inner node"
 @inline children(n::PlainLogicInnerNode) = n.children
 
-@inline function conjoin(arguments::Vector{<:PlainLogicNode}, 
-                         example::Union{Nothing,PlainLogicNode} = nothing)
+@inline function conjoin(arguments::Vector{<:PlainLogicCircuit}, 
+                         example::Union{Nothing,PlainLogicCircuit} = nothing)
     if isempty(arguments)
         PlainTrueNode()
     elseif example isa Plain⋀Node && children(example) == arguments
@@ -109,8 +109,8 @@ end
 end
 
 
-@inline function disjoin(arguments::Vector{<:PlainLogicNode}, 
-                         example::Union{Nothing,PlainLogicNode} = nothing)
+@inline function disjoin(arguments::Vector{<:PlainLogicCircuit}, 
+                         example::Union{Nothing,PlainLogicCircuit} = nothing)
     if isempty(arguments)
         PlainFalseNode()
     elseif example isa Plain⋁Node && children(example) == arguments
@@ -120,8 +120,8 @@ end
     end
 end
 
-@inline compile(::Union{PlainLogicNode,Type{<:PlainLogicNode}}, b::Bool) =
+@inline compile(::Union{PlainLogicCircuit,Type{<:PlainLogicCircuit}}, b::Bool) =
     b ? PlainTrueNode() : PlainFalseNode()
 
-@inline compile(::Union{PlainLogicNode,Type{<:PlainLogicNode}}, l::Lit) =
+@inline compile(::Union{PlainLogicCircuit,Type{<:PlainLogicCircuit}}, l::Lit) =
     PlainLiteralNode(l)

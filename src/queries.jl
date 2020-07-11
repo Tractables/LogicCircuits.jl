@@ -1,5 +1,4 @@
-export variable_scope, variable_scopes,
-    num_variables, issmooth, isdecomposable,
+export variables_by_node, issmooth, isdecomposable,
     sat_prob, model_count, prob_equiv_signature,
     evaluate
 
@@ -9,7 +8,7 @@ export variable_scope, variable_scopes,
 
 import Base: foreach # extend
 
-function foreach(node::LogicNode, f_con::Function, f_lit::Function, 
+function foreach(node::LogicCircuit, f_con::Function, f_lit::Function, 
                                   f_a::Function, f_o::Function)
     f_leaf(n) = isliteralgate(n) ? f_lit(n) : f_con(n)
     f_inner(n) = is⋀gate(n) ? f_a(n) : f_o(n)
@@ -25,7 +24,7 @@ Compute a function bottom-up on the circuit.
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
-function foldup(node::LogicNode, f_con::Function, f_lit::Function, 
+function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
                 f_a::Function, f_o::Function, ::Type{T})::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)::T
@@ -40,7 +39,7 @@ Compute a function bottom-up on the circuit.
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an aggregate vector from the children.
 """
-function foldup_aggregate(node::LogicNode, f_con::Function, f_lit::Function, 
+function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
                           f_a::Function, f_o::Function, ::Type{T})::T where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
@@ -55,8 +54,9 @@ end
 # variable-scope-based queries
 #####################
 
-"Get the variable scope of the circuit"
-function variable_scope(root::LogicNode)::BitSet
+import .Utils.variables # extend
+
+function variables(root::LogicCircuit)::BitSet
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
     f_inner(n, call) = mapreduce(call, union, children(n))
@@ -64,8 +64,8 @@ function variable_scope(root::LogicNode)::BitSet
 end
 
 "Get the variable scope of each node in the circuit"
-function variable_scopes(root::LogicNode)::Dict{LogicNode,BitSet}
-    # variable_scopes(linearize(root))
+function variables_by_node(root::LogicCircuit)::Dict{LogicCircuit,BitSet}
+    # variables_by_node(linearize(root))
     scope = Dict{Node,BitSet}()
     f_con(n) = scope[n] = BitSet()
     f_lit(n) = scope[n] = BitSet(variable(n))
@@ -74,11 +74,8 @@ function variable_scopes(root::LogicNode)::Dict{LogicNode,BitSet}
     scope
 end
 
-"Number of variables in the circuit"
-num_variables(c::LogicNode) = length(variable_scope(c))
-
 "Is the circuit smooth?"
-function issmooth(root::LogicNode)::Bool
+function issmooth(root::LogicCircuit)::Bool
     result::Bool = true
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -94,7 +91,7 @@ end
 
 
 "Is the circuit decomposable?"
-function isdecomposable(root::LogicNode)::Bool
+function isdecomposable(root::LogicCircuit)::Bool
     result::Bool = true
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -112,7 +109,7 @@ end
 #####################
 
 "Get the probability that a random world satisties the circuit"
-function sat_prob(root::LogicNode, 
+function sat_prob(root::LogicCircuit, 
                   varprob::Function = v -> BigInt(1) // BigInt(2))::Rational{BigInt}
     f_con(n) = istrue(n) ? one(Rational{BigInt}) : zero(Rational{BigInt})
     f_lit(n) = ispositive(n) ? varprob(variable(n)) : one(Rational{BigInt}) - varprob(variable(n))
@@ -122,7 +119,7 @@ function sat_prob(root::LogicNode,
 end
 
 "Get the model count of the circuit"
-function model_count(root::LogicNode, num_vars_in_scope::Int = num_variables(root))::BigInt
+function model_count(root::LogicCircuit, num_vars_in_scope::Int = num_variables(root))::BigInt
     # note that num_vars_in_scope for computing the model count can be more than num_variables(circuit); in particular when variables in the application are missing from the circuit
     BigInt(sat_prob(root) * BigInt(2)^num_vars_in_scope)
 end
@@ -133,7 +130,7 @@ const Signature = Vector{Rational{BigInt}}
 Get a signature for each node using probabilistic equivalence checking.
 Note that this implentation may not have any formal guarantees as such.
 """
-function prob_equiv_signature(circuit::LogicNode, k::Int)::Dict{Union{Var,Node},Signature}
+function prob_equiv_signature(circuit::LogicCircuit, k::Int)::Dict{Union{Var,Node},Signature}
     # uses probability instead of integers to circumvent smoothing, no mod though
     signs::Dict{Union{Var,Node},Signature} = Dict{Union{Var,Node},Signature}()
     prime::Int = 7919 #TODO set as smallest prime larger than num_variables
@@ -147,13 +144,13 @@ function prob_equiv_signature(circuit::LogicNode, k::Int)::Dict{Union{Var,Node},
     signs
 end
 
-function (root::LogicNode)(data)
+function (root::LogicCircuit)(data)
     evaluate(root, data)
 end
 
 # TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
 # TODO; create a version that doesn't allocate, using fold!
-function evaluate(root::LogicNode, data)::BitVector
+function evaluate(root::LogicCircuit, data)::BitVector
     @inline f_lit(n) = if ispositive(n) 
         [data[:,variable(n)]]
     else
@@ -191,7 +188,7 @@ end
 
 using DataFrames
 # TODO: merge this version with the above, but only do so while performance regression testing
-function evaluate2(root::LogicNode, data::DataFrame)::BitVector
+function evaluate2(root::LogicCircuit, data::DataFrame)::BitVector
     num_examples::Int = nrow(data)
     @inline f_lit(n) = if ispositive(n) 
         [data[!,variable(n)]]::Vector{BitVector}
@@ -246,7 +243,7 @@ end
 #####################
 
 # TODO: refactor
-function pass_down2(circuit::LogicNode, data)
+function pass_down2(circuit::LogicCircuit, data)
     num = num_examples(data)
     @inline f_root(n, f_s) = begin
         [always(Bool, num)]
@@ -271,7 +268,7 @@ function pass_down2(circuit::LogicNode, data)
     folddown_aggregate(circuit, f_root, f_leaf, f_inner, Vector{BitVector})
 end
 
-function pass_up_down2(circuit::LogicNode, data)
+function pass_up_down2(circuit::LogicCircuit, data)
     circuit[end](data)
     pass_down2(circuit, data)
 end

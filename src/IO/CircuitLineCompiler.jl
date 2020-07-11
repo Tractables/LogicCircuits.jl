@@ -15,10 +15,10 @@ while keeping track of id-to-node mappings
 function compile_logical_m(lines::CircuitFormatLines)
 
     # linearized circuit nodes
-    circuit = Vector{PlainLogicNode}()
+    circuit = Vector{PlainLogicCircuit}()
     
     # mapping from circuit node ids to node objects
-    id2node = Dict{ID,PlainLogicNode}()
+    id2node = Dict{ID,PlainLogicCircuit}()
     
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
     lit_cache = Dict{Lit,LogicLeafNode}()
@@ -100,10 +100,10 @@ while keeping track of id-to-node mappings
 function compile_smooth_logical_m(lines::CircuitFormatLines)
 
     # linearized circuit nodes
-    circuit = Vector{PlainLogicNode}()
+    circuit = Vector{PlainLogicCircuit}()
     
     # mapping from circuit node ids to node objects
-    id2node = Dict{ID,PlainLogicNode}()
+    id2node = Dict{ID,PlainLogicCircuit}()
     
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
     lit_cache = Dict{Lit,LogicLeafNode}()
@@ -197,18 +197,18 @@ Compile circuit lines and vtree node mapping into a structured logical circuit,
 while keeping track of id-to-node mappings
 """
 function compile_smooth_struct_logical_m(lines::CircuitFormatLines, 
-                                         id2vtree::Dict{ID, PlainVTree})
+                                         id2vtree::Dict{ID, PlainVtree})
 
     # linearized circuit nodes
-    circuit = Vector{StructLogicNode{PlainVTree}}()
+    circuit = Vector{StructLogicCircuit{PlainVtree}}()
     
     # mapping from node ids to node objects
-    id2node = Dict{ID,StructLogicNode{PlainVTree}}()
+    id2node = Dict{ID,StructLogicCircuit{PlainVtree}}()
 
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,StructLogicLeafNode{PlainVTree}}()
-    literal_node(l::Lit, v::PlainVTree) = get!(lit_cache, l) do
-        leaf = StructLiteralNode{PlainVTree}(l,v)
+    lit_cache = Dict{Lit,StructLogicLeafNode{PlainVtree}}()
+    literal_node(l::Lit, v::PlainVtree) = get!(lit_cache, l) do
+        leaf = StructLiteralNode{PlainVtree}(l,v)
         push!(circuit,leaf) # also add new leaf to linearized circuit before caller
         leaf
     end
@@ -226,7 +226,7 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         # Here making that explicit in the Circuit
         @assert is_normalized(ln) smoothing_warning
         lit_node = literal_node(ln.literal, id2vtree[ln.vtree_id])
-        or_node = Struct⋁Node{PlainVTree}([lit_node], id2vtree[ln.vtree_id])
+        or_node = Struct⋁Node{PlainVtree}([lit_node], id2vtree[ln.vtree_id])
 
         push!(circuit, lit_node)
         push!(circuit, or_node)
@@ -247,29 +247,29 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         end
         if constant(ln) == true
             # because we promise to compile a smooth circuit, here we need to add an or gate
-            n = Struct⋁Node{PlainVTree}([literal_node(var2lit(variable), vtree), literal_node(-var2lit(variable), vtree)], vtree)
+            n = Struct⋁Node{PlainVtree}([literal_node(var2lit(variable), vtree), literal_node(-var2lit(variable), vtree)], vtree)
         else
             error("False leaf logical circuit nodes not yet implemented")
         end
         push!(circuit,n)
         id2node[ln.node_id] = n
     end
-    function compile_elements(e::TrimmedElement, ::PlainVTree)
+    function compile_elements(e::TrimmedElement, ::PlainVtree)
         error(smoothing_warning)
     end
-    function compile_elements(e::NormalizedElement, v::PlainVTree)
-        n = Struct⋀Node{PlainVTree}([id2node[e.prime_id], id2node[e.sub_id]], v)
+    function compile_elements(e::NormalizedElement, v::PlainVtree)
+        n = Struct⋀Node{PlainVtree}([id2node[e.prime_id], id2node[e.sub_id]], v)
         push!(circuit,n)
         n
     end
     function compile(ln::DecisionLine)
         vtree = id2vtree[ln.vtree_id]
-        n = Struct⋁Node{PlainVTree}(map(e -> compile_elements(e, vtree), ln.elements), vtree)
+        n = Struct⋁Node{PlainVtree}(map(e -> compile_elements(e, vtree), ln.elements), vtree)
         push!(circuit,n)
         id2node[ln.node_id] = n
     end
     function compile(ln::BiasLine)
-        n = Struct⋁Node{PlainVTree}([circuit[end]], circuit[end].vtree)
+        n = Struct⋁Node{PlainVtree}([circuit[end]], circuit[end].vtree)
         push!(circuit,n)
         id2node[ln.node_id] = n
     end

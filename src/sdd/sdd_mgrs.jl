@@ -9,15 +9,15 @@ function SddMgr(::Type{T}, vtree::Vtree)::T where {T<:SddMgr}
     linearize(SddMgr(TrimMgrNode, vtree[end]))
 end
 
-function SddMgr(::Type{T}, vtree::VTree)::T where {T<:SddMgrNode}
+function SddMgr(::Type{T}, vtree::Vtree)::T where {T<:SddMgrNode}
     SddMgr(T, NodeType(vtree), vtree)
 end
 
-function SddMgr(::Type{T}, ::Inner, vtree::VTree)::T where {T<:SddMgrNode}
+function SddMgr(::Type{T}, ::Inner, vtree::Vtree)::T where {T<:SddMgrNode}
     T(SddMgr(T, vtree.left), SddMgr(T, vtree.right))
 end
 
-function SddMgr(::Type{T}, ::Leaf, vtree::VTree)::T where {T<:SddMgrNode}
+function SddMgr(::Type{T}, ::Leaf, vtree::Vtree)::T where {T<:SddMgrNode}
     @assert num_variables(vtree) == 1
     T(first(variables(vtree)))
 end
@@ -30,7 +30,7 @@ function compile_clause(mgr::SddMgr, clause::Δ)::SddNode
     compile_clause(mgr, cnf[end])
  end
 
-function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicNode)::SddNode
+function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicCircuit)::SddNode
     @assert GateType(clause) isa ⋁Gate
     literals = children(clause)
     clauseΔ = compile(mgr, literal(literals[1]))
@@ -44,7 +44,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicNode)::SddNo
     compile_cnf(mgr, cnf[end], strategy, progress)
  end
 
- function compile_cnf(mgr::SddMgr, cnf::LogicNode, strategy="tree", progress=false)::SddNode
+ function compile_cnf(mgr::SddMgr, cnf::LogicCircuit, strategy="tree", progress=false)::SddNode
     if strategy == "naive"
         compile_cnf_naive(mgr, cnf, progress)
     elseif strategy == "tree"
@@ -54,7 +54,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicNode)::SddNo
     end
  end
 
- function compile_cnf_naive(mgr::SddMgr, cnf::LogicNode, progress=false)::SddNode
+ function compile_cnf_naive(mgr::SddMgr, cnf::LogicCircuit, progress=false)::SddNode
     @assert GateType(cnf) isa ⋀Gate
     cnfΔ = compile(true)
     i = 0
@@ -66,9 +66,9 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicNode)::SddNo
     cnfΔ
  end
 
- function compile_cnf_tree(mgr::SddMgr, cnf::LogicNode, progress=false)::SddNode
+ function compile_cnf_tree(mgr::SddMgr, cnf::LogicCircuit, progress=false)::SddNode
     @assert GateType(cnf) isa ⋀Gate
-    compile_cnf_tree(NodeType(mgr[end]), mgr[end], children(cnf), variable_scopes(cnf), progress)
+    compile_cnf_tree(NodeType(mgr[end]), mgr[end], children(cnf), variables_by_node(cnf), progress)
  end
 
  function compile_cnf_tree(::Inner, mgr::SddMgrNode, clauses::Vector{<:Node}, 

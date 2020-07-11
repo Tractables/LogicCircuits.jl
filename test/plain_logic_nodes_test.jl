@@ -7,7 +7,7 @@ include("helper/plain_logic_circuits.jl")
     n1 = little_2var()
     n0 = little_3var()
     n0c = little_3var_constants()
-    r1 = fully_factorized_circuit(10,PlainLogicNode)
+    r1 = fully_factorized_circuit(10,PlainLogicCircuit)
 
     @test length(and_nodes(n0c)) == 6
     @test length(or_nodes(n0c)) == 5
@@ -16,12 +16,12 @@ include("helper/plain_logic_circuits.jl")
     @test ispositive(left_most_descendent(n1))
     @test !isnegative(left_most_descendent(n1))
 
-    @test istrue(compile(PlainLogicNode,true))
-    @test isfalse(compile(PlainLogicNode,false))
-    @test !istrue(compile(PlainLogicNode,false))
-    @test !isfalse(compile(PlainLogicNode,true))
-    @test !istrue(compile(PlainLogicNode,Lit(2)))
-    @test !isfalse(compile(PlainLogicNode,Lit(2)))
+    @test istrue(compile(PlainLogicCircuit,true))
+    @test isfalse(compile(PlainLogicCircuit,false))
+    @test !istrue(compile(PlainLogicCircuit,false))
+    @test !isfalse(compile(PlainLogicCircuit,true))
+    @test !istrue(compile(PlainLogicCircuit,Lit(2)))
+    @test !isfalse(compile(PlainLogicCircuit,Lit(2)))
     @test !istrue(n1)
     @test !isfalse(n1)
     
@@ -35,8 +35,8 @@ include("helper/plain_logic_circuits.jl")
     @test disjoin([n1, n0, n0c], a1) != a1
     @test conjoin([n1, n0, n0c], o1) != o1
 
-    @test num_nodes(fully_factorized_circuit(10, PlainLogicNode)) == 32
-    @test num_edges(fully_factorized_circuit(10, PlainLogicNode)) == 31
+    @test num_nodes(fully_factorized_circuit(10, PlainLogicCircuit)) == 32
+    @test num_edges(fully_factorized_circuit(10, PlainLogicCircuit)) == 31
 
     @test tree_formula_string(n1) == "((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))"
     @test tree_formula_string(n0) == "((3 ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))) ⋁ (-3 ⋀ ((1 ⋀ (2 ⋁ -2)) ⋁ (-1 ⋀ (2 ⋁ -2)))))"

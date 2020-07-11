@@ -27,7 +27,7 @@ decompile(n::Struct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} =
 make_element(n::Struct⋀Node, node2id) = 
     SDDElement(node2id[n.children[1]],  node2id[n.children[2]])
 
-make_element(n::StructLogicNode, node2id) = 
+make_element(n::StructLogicCircuit, node2id) = 
     error("Given circuit is not an SDD, its decision node elements are not conjunctions.")
 
 # TODO: decompile for logical circuit to some file format
@@ -48,8 +48,8 @@ function get_node2id(ln::AbstractVector{X}, T::Type)where X #<: T#::Dict{T, ID}
     node2id
 end
 
-function get_vtree2id(ln::PlainVtree):: Dict{PlainVTree, ID}
-    vtree2id = Dict{PlainVTree, ID}()
+function get_vtree2id(ln::PlainVtree):: Dict{PlainVtree, ID}
+    vtree2id = Dict{PlainVtree, ID}()
     sizehint!(vtree2id, length(ln))
     index = ID(0) # vtree id start from 0
 
@@ -82,14 +82,14 @@ function sdd_header()
 end
 
 function save_sdd_file(name::String, circuit::DecoratorΔ, vtree::PlainVtree)
-    save_sdd_file(name, origin(circuit, StructLogicNode), vtree)
+    save_sdd_file(name, origin(circuit, StructLogicCircuit), vtree)
 end
 
 "Save a SDD circuit to file"
 function save_sdd_file(name::String, circuit::StructLogicΔ, vtree::PlainVtree)
     #TODO no need to pass the vtree, we can infer it from origin?
     @assert endswith(name, ".sdd")
-    node2id = get_node2id(circuit, StructLogicNode)
+    node2id = get_node2id(circuit, StructLogicCircuit)
     vtree2id = get_vtree2id(vtree)
     formatlines = Vector{CircuitFormatLine}()
     append!(formatlines, parse_sdd_file(IOBuffer(sdd_header())))
@@ -127,13 +127,13 @@ function get_nodes_level(circuit::Δ)
     return levels
 end
 
-function save_as_dot(root::LogicNode, file::String)
+function save_as_dot(root::LogicCircuit, file::String)
     return save_as_dot(linearize(root), file)
 end
 
 "Save logic circuit to .dot file"
 function save_as_dot(circuit::LogicΔ, file::String)
-    node_cache = Dict{LogicNode, Int64}()
+    node_cache = Dict{LogicCircuit, Int64}()
     for (i, n) in enumerate(circuit)
         node_cache[n] = i
     end

@@ -5,14 +5,14 @@ include("helper/plain_logic_circuits.jl")
 
 @testset "Queries test" begin
     
-    r1 = fully_factorized_circuit(10,PlainLogicNode)
+    r1 = fully_factorized_circuit(10,PlainLogicCircuit)
     
     @test isdecomposable(r1)
-    @test isdecomposable(compile(PlainLogicNode, Lit(1)))
+    @test isdecomposable(compile(PlainLogicCircuit, Lit(1)))
 
-    @test variable_scope(r1) == BitSet(1:10)
-    @test variable_scopes(r1)[r1] == BitSet(1:10)
-    @test variable_scopes(r1)[children(children(r1)[1])[5]] == BitSet(5)
+    @test variables(r1) == BitSet(1:10)
+    @test variables_by_node(r1)[r1] == BitSet(1:10)
+    @test variables_by_node(r1)[children(children(r1)[1])[5]] == BitSet(5)
 
     @test num_variables(r1) == 10
     @test issmooth(r1)
@@ -28,8 +28,8 @@ include("helper/plain_logic_circuits.jl")
 
     #####################
     ors = map(1:10) do v
-        pos = compile(PlainLogicNode, var2lit(Var(v)))
-        neg = compile(PlainLogicNode, -var2lit(Var(v)))
+        pos = compile(PlainLogicCircuit, var2lit(Var(v)))
+        neg = compile(PlainLogicCircuit, -var2lit(Var(v)))
         pos | neg
     end
     and1 = conjoin(ors[1], ors[2], ors[1], ors[3])
@@ -39,8 +39,8 @@ include("helper/plain_logic_circuits.jl")
 
     #######################
     ors = map(1:10) do v
-        pos = compile(PlainLogicNode, var2lit(Var(v)))
-        neg = compile(PlainLogicNode, -var2lit(Var(v)))
+        pos = compile(PlainLogicCircuit, var2lit(Var(v)))
+        neg = compile(PlainLogicCircuit, -var2lit(Var(v)))
         pos | neg
     end
     and1 = conjoin(ors[1:3])
@@ -53,8 +53,8 @@ include("helper/plain_logic_circuits.jl")
     @test !isdecomposable(and5)
 
     #######################
-    leaf1 = compile(PlainLogicNode, Lit(1))
-    leaf2 = compile(PlainLogicNode, Lit(-1))
+    leaf1 = compile(PlainLogicCircuit, Lit(1))
+    leaf2 = compile(PlainLogicCircuit, Lit(-1))
     and = leaf1 & leaf2
     @test !isdecomposable(and)
 

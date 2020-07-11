@@ -1,6 +1,6 @@
 using DataStructures
 
-export Tree, isequal_local, isequal
+export Tree, isequal_local
 
 #####################
 # types and traits
@@ -47,37 +47,16 @@ function foldup_aggregate(node::Tree, f_leaf::Function, f_inner::Function, ::Typ
 end
 
 #####################
-# methods using tree traversal
+# methods
 #####################
 
 "Is one node equal to another locally, ignoring children?"
 function isequal_local end
 
-import Base.isequal
-
-"Is one ordered tree equal to another?"
-isequal(n1::Tree, n2::Tree)::Bool = 
-    isequal_local(n1,n2) && isequal_rec(NodeType(n1), NodeType(n2), n1, n2)
-
-isequal_rec(::Leaf, ::Leaf, ::Tree, ::Tree)::Bool = true
-function isequal_rec(::Inner, ::Inner, n1::Tree, n2::Tree)::Bool
-    foreach(children(n1), children(n2)) do c1, c2 # we need all to support varagrs!
-        if !isequal(c1, c2)
-            return false
-        end
-    end
-    return true
-end
-
-"Is one unordered tree equal to another?"
-isequal_unordered(n1::Tree, n2::Tree)::Bool = 
-    isequal_local(n1,n2) && isequal_unordered_rec(NodeType(n1), NodeType(n2), n1, n2)
-
-isequal_unordered_rec(::Leaf, ::Leaf, ::Tree, ::Tree)::Bool = true
-function isequal_unordered_rec(::Inner, ::Inner, n1::Tree, n2::Tree)::Bool
-    @assert num_children(n1) == 2 && num_children(n2) == 2 "`isequal_unordered` is only implemented for binary trees"
-    c1 = children(n1)
-    c2 = children(n2)
-    return ((isequal_unordered(c1[1],c2[1]) &&  isequal_unordered(c1[2],c2[2])) 
-            || (isequal_unordered(c1[1],c2[2]) && isequal_unordered(c1[2],c2[1])))
+function Base.:(==)(n1::Tree, n2::Tree)::Bool
+    (n1 === n2) && return true
+    !isequal_local(n1,n2) && return false
+    isleaf(n1) && isleaf(n2) && return true
+    (num_children(n1) != num_children(n2)) && return false
+    return all(cs -> (cs[1] == cs[2]), zip(children(n1), children(n2)))
 end
