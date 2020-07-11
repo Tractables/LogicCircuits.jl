@@ -161,7 +161,7 @@ This reproduces the bug that for multiple depths, the result is the same
     c3, _ = split(c0, (or, and), v; depth=2)
     c4, _ = split(c0, (or, and), v; depth=3)
 
-    @test num_nodes(c1) == num_nodes(c2) == num_nodes(c3) == num_nodes(c4)
+    @test num_nodes(c1) < num_nodes(c4)
 end
 
 @testset "Copy test" begin
