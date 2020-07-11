@@ -148,9 +148,6 @@ end
     @test n1.children[1] == n2.children[1]
 end
 
-"""
-This reproduces the bug that for multiple depths, the result is the same
-"""
 @testset "Minimal Split Bug Test" begin
     c0 = little_5var()
     or = c0[end]
