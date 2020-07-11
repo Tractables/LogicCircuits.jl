@@ -148,6 +148,22 @@ end
     @test n1.children[1] == n2.children[1]
 end
 
+"""
+This reproduces the bug that for multiple depths, the result is the same
+"""
+@testset "Minimal Split Bug Test" begin
+    c0 = little_5var()
+    or = c0[end]
+    and = children(or)[1]
+    v = Var(1)
+    c1, _ = split(c0, (or, and), v; depth=0)
+    c2, _ = split(c0, (or, and), v; depth=1)
+    c3, _ = split(c0, (or, and), v; depth=2)
+    c4, _ = split(c0, (or, and), v; depth=3)
+
+    @test num_nodes(c1) == num_nodes(c2) == num_nodes(c3) == num_nodes(c4)
+end
+
 @testset "Copy test" begin
     n0 = little_2var()[end]
     n1 = copy(n0, 0)
