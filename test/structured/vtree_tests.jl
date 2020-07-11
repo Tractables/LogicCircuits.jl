@@ -9,6 +9,17 @@ using LogicCircuits
     i1 = PlainVtree(v1,v2)
     r = PlainVtree(i1,v3)
 
+    @test isroot(r)
+    @test !isroot(i1)
+    @test !isroot(v1)
+    @test lca(v1,v2) == i1
+    @test lca(v1,v3) == r
+    @test lca(r,r) == r
+    @test lca(i1,v3) == r
+    @test lca(i1,v1) == i1
+    @test lca(v1,i1) == i1
+    
+    @test parent(i1) == r
     @test num_nodes(r) == 5
     @test tree_num_nodes(r) == 5
     @test tree_num_edges(r) == 4

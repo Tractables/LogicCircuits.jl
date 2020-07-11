@@ -48,7 +48,7 @@ PlainVtree(left::PlainVtree, right::PlainVtree) = PlainVtreeInnerNode(left, righ
 
 import ..Utils: children, variables, isequal_local
 
-@inline children(n::PlainVtreeInnerNode) = vcat(n.left, n.right)
+@inline children(n::PlainVtreeInnerNode) = [n.left, n.right]
 
 variables(n::PlainVtreeLeafNode) = BitSet([n.var])
 variables(n::PlainVtreeInnerNode) = n.variables

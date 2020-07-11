@@ -13,6 +13,8 @@ abstract type Tree <: Dag end
 # methods
 #####################
 
+import Base: parent
+
 "Get the parent of a given tree node (or nothing if the node is root)"
 function parent end
 

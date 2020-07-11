@@ -111,8 +111,18 @@ function depth(::Leaf, n::Vtree, var::Var)::Int
     return 0
 end
 
+import Base.parent # extend
+
 # all vtrees are assumed to have parent fields
-@inline Utils.parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
+@inline parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
 
 @inline varsubset_left(n, m)::Bool = varsubset(n, m.left)
 @inline varsubset_right(n, m)::Bool = varsubset(n, m.right)
+
+import .Utils: lca # extend
+
+"""
+Compute the lowest common ancestor of two vtree nodes
+Warning: this method uses an imcomplete `varsubset` check for `descends_from` and is only correct when `v` and `w` are part of the same larger vtree.
+"""
+lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
