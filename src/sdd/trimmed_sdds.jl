@@ -244,7 +244,7 @@ function compile(n::TrimSddMgrInnerNode, l::Lit)::TrimLiteral
     end
 end
 
-# TODO add type
+# TODO: add type argument to distinguish from other circuit compilers for constants
 function compile(constant::Bool)::TrimConstant
     if constant == true
         trimtrue

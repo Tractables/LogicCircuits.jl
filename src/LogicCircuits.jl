@@ -19,6 +19,7 @@ include("structured/structured_logic_nodes.jl")
 
 include("sdd/sdds.jl")
 include("sdd/trimmed_sdds.jl")
+include("sdd/trimmed_apply.jl")
 
 # include("IO/module.jl")
 # @reexport using .IO

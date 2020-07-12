@@ -2,7 +2,7 @@ using Test
 using LogicCircuits
 using LogicCircuits: Element, XYPartition # test some internals
 
-@testset "Trimmed SDD Test" begin
+@testset "Trimmed SDD test" begin
 
     num_vars = 7
     mgr = balanced_vtree(TrimSddMgr, num_vars)
