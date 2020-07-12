@@ -1,4 +1,5 @@
-export Vtree, balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree, depth
+export Vtree, balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree, 
+       depth, varsubset_left, varsubset_right
 
 #############
 # Vtree

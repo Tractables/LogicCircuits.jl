@@ -54,6 +54,12 @@ include("helper/plain_logic_circuits.jl")
 
     @test canonical_constants(r1) == (nothing, nothing)
 
+    @test node_stats(n0c)[PlainFalseNode] == 1
+
+    io = IOBuffer()
+    show(io,n0c)
+    @test length(String(take!(io))) > 0
+
 # TODO: reinstate
 #     c1 = load_logical_circuit(zoo_psdd_file("plants.psdd"))[end]
 #     c2 = load_logical_circuit(zoo_sdd_file("random.sdd"))[end]

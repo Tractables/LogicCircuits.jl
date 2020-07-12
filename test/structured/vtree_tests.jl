@@ -18,8 +18,17 @@ using LogicCircuits
     @test lca(i1,v3) == r
     @test lca(i1,v1) == i1
     @test lca(v1,i1) == i1
-    
+    @test lca(v1,i1,v1) == i1
+    @test lca(v1,v2,v3) == r
+
+    @test_throws ErrorException lca(i1,PlainVtree(Var(4)))
+    @test varsubset_left(v1,r)
+    @test !varsubset_left(v3,r)
+    @test !varsubset_right(v1,r)
+    @test varsubset_right(v3,r)
+
     @test parent(i1) == r
+    @test num_nodes(r) == 5
     @test num_nodes(r) == 5
     @test tree_num_nodes(r) == 5
     @test tree_num_edges(r) == 4

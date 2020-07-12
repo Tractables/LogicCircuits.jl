@@ -22,7 +22,10 @@ mutable struct StructLiteralNode <: StructLogicLeafNode
     vtree::Vtree
     data
     bit::Bool
-    StructLiteralNode(l,v) = new(l, v, nothing, false)
+    StructLiteralNode(l,v) = begin
+        @assert lit2var(l) ∈ variables(v) 
+        new(l, v, nothing, false)
+    end
 end
 
 """
@@ -31,12 +34,14 @@ These are the only structured nodes that don't have an associated vtree node (cf
 """
 abstract type StructConstantNode <: StructLogicInnerNode end
 
+"A structured logical true constant. Never construct one, use `structtrue` to access its unique instance"
 mutable struct StructTrueNode <: StructConstantNode
     data
     bit::Bool
     StructTrueNode() = new(nothing, false)
 end
 
+"A structured logical false constant.  Never construct one, use `structfalse` to access its unique instance"
 mutable struct StructFalseNode <: StructConstantNode
     data
     bit::Bool
@@ -61,7 +66,13 @@ mutable struct Struct⋁Node <: StructLogicInnerNode
     Struct⋁Node(c,v) = new(c, v, nothing, false)
 end
 
+"All structured logical nodes with a vtree"
 HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
+
+"The unique structured logical true constant"
+const structtrue = StructTrueNode()
+"The unique structured logical false constant"
+const structfalse = StructFalseNode()
 
 #####################
 # traits
@@ -85,35 +96,25 @@ HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
 @inline vtree(n::HasVtree)::Vtree = n.vtree
 @inline vtree(v::Vtree)::Vtree = v
 
-# requires an example to get a vtree
 @inline function conjoin(arguments::Vector{<:StructLogicCircuit},
-                         example::Union{StructLogicCircuit,Vtree}) 
-    if isempty(arguments)
-        StructTrueNode()
-    elseif example isa Struct⋀Node && children(example) == arguments
-        example
-    else
-        # careful: there is no check on the vtree here
-        Struct⋀Node(arguments, vtree(example))
-    end
+                         example::Union{StructLogicCircuit,Nothing}) 
+    all(istrue, arguments) && return structtrue
+    all(isconstant, arguments) && return structfalse
+    example isa Struct⋀Node && children(example) == arguments && return example
+    return Struct⋀Node(arguments, mapreduce(vtree, lca, arguments))
 end
 
-# requires an example to get a vtree
 @inline function disjoin(arguments::Vector{<:StructLogicCircuit}, 
-                         example::Union{StructLogicCircuit,Vtree})
-    if isempty(arguments)
-        StructFalseNode()
-    elseif example isa Struct⋁Node && children(example) == arguments
-        example
-    else
-        # careful: there is no check on the vtree here
-        Struct⋁Node(arguments, vtree(example))
-    end
+                         example::Union{StructLogicCircuit,Nothing})
+    all(isfalse, arguments) && return structfalse
+    all(isconstant, arguments) && return structtrue
+    example isa Struct⋁Node && children(example) == arguments && return example
+    return Struct⋁Node(arguments, mapreduce(vtree, lca, arguments))
 end
 
 
-@inline compile(::Union{StructLogicCircuit,Type{<:StructLogicCircuit}}, b::Bool) =
-    b ? StructTrueNode() : StructFalseNode()
+@inline compile(::Type{<:StructLogicCircuit}, b::Bool) =
+    b ? structtrue : structfalse
 
-@inline compile(::Union{StructLogicCircuit,Type{<:StructLogicCircuit}}, l::Lit, vtree::Vtree) =
+@inline compile(::Type{<:StructLogicCircuit}, l::Lit, vtree::Vtree) =
     StructLiteralNode(l,vtree)

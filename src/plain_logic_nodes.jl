@@ -120,8 +120,8 @@ end
     end
 end
 
-@inline compile(::Union{PlainLogicCircuit,Type{<:PlainLogicCircuit}}, b::Bool) =
+@inline compile(::Type{<:PlainLogicCircuit}, b::Bool) =
     b ? PlainTrueNode() : PlainFalseNode()
 
-@inline compile(::Union{PlainLogicCircuit,Type{<:PlainLogicCircuit}}, l::Lit) =
+@inline compile(::Type{<:PlainLogicCircuit}, l::Lit) =
     PlainLiteralNode(l)
