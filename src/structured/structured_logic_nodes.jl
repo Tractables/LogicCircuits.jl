@@ -50,11 +50,16 @@ end
 
 "A structured logical conjunction node"
 mutable struct Struct⋀Node <: StructLogicInnerNode
-    children::Vector{StructLogicCircuit}
+    prime::StructLogicCircuit
+    sub::StructLogicCircuit
     vtree::Vtree
     data
     bit::Bool
-    Struct⋀Node(c,v) = new(c, v, nothing, false)
+    Struct⋀Node(p,s,v) = begin
+        @assert varsubset_left(vtree(p),v)
+        @assert varsubset_right(vtree(s), v)
+        new(p,s, v, nothing, false)
+    end
 end
 
 "A structured logical disjunction node"
@@ -90,31 +95,46 @@ const structfalse = StructFalseNode()
 @inline literal(n::StructLiteralNode)::Lit = n.literal
 @inline constant(n::StructTrueNode)::Bool = true
 @inline constant(n::StructFalseNode)::Bool = false
-@inline children(n::StructLogicInnerNode) = n.children
+@inline children(n::Struct⋁Node) = n.children
+@inline children(n::Struct⋀Node) = [n.prime,n.sub]
 
 "Get the vtree corresponding to the argument"
 @inline vtree(n::HasVtree)::Vtree = n.vtree
 @inline vtree(v::Vtree)::Vtree = v
 
 @inline function conjoin(arguments::Vector{<:StructLogicCircuit},
-                         example::Union{StructLogicCircuit,Nothing}) 
+            example::Union{StructLogicCircuit,Nothing}= nothing) 
+    @assert length(arguments)==0 || length(arguments)==2 "Can only conjoin two arguments in structured circuits"
     all(istrue, arguments) && return structtrue
-    all(isconstant, arguments) && return structfalse
+    all(isconstantgate, arguments) && return structfalse
     example isa Struct⋀Node && children(example) == arguments && return example
-    return Struct⋀Node(arguments, mapreduce(vtree, lca, arguments))
+    return Struct⋀Node(arguments[1], arguments[2], 
+                    mapreduce(vtree, lca, arguments))
 end
 
 @inline function disjoin(arguments::Vector{<:StructLogicCircuit}, 
-                         example::Union{StructLogicCircuit,Nothing})
+            example::Union{StructLogicCircuit,Nothing}=nothing)
     all(isfalse, arguments) && return structfalse
-    all(isconstant, arguments) && return structtrue
+    all(isconstantgate, arguments) && return structtrue
     example isa Struct⋁Node && children(example) == arguments && return example
     return Struct⋁Node(arguments, mapreduce(vtree, lca, arguments))
 end
-
 
 @inline compile(::Type{<:StructLogicCircuit}, b::Bool) =
     b ? structtrue : structfalse
 
 @inline compile(::Type{<:StructLogicCircuit}, l::Lit, vtree::Vtree) =
-    StructLiteralNode(l,vtree)
+    StructLiteralNode(l,find_leaf(lit2var(l),vtree))
+
+
+function fully_factorized_circuit(vtree::Vtree, ::Type{<:StructLogicCircuit})
+    f_leaf(l) = begin
+        v = variable(l)
+        pos = compile(StructLogicCircuit, var2lit(v), vtree)
+        neg = compile(StructLogicCircuit, -var2lit(v), vtree)
+        pos | neg
+    end
+    f_inner(i,cs) = conjoin(cs)
+    c = foldup_aggregate(vtree, f_leaf, f_inner, StructLogicCircuit)
+    disjoin([c]) # "bias term"
+end

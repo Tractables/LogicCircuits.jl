@@ -99,25 +99,16 @@ end
 
 @inline function conjoin(arguments::Vector{<:PlainLogicCircuit}, 
                          example::Union{Nothing,PlainLogicCircuit} = nothing)
-    if isempty(arguments)
-        PlainTrueNode()
-    elseif example isa Plain⋀Node && children(example) == arguments
-        example
-    else
-        Plain⋀Node(arguments)
-    end
+    isempty(arguments) && return  PlainTrueNode()
+    example isa Plain⋀Node && children(example) == arguments && return example
+    return Plain⋀Node(arguments)
 end
-
 
 @inline function disjoin(arguments::Vector{<:PlainLogicCircuit}, 
                          example::Union{Nothing,PlainLogicCircuit} = nothing)
-    if isempty(arguments)
-        PlainFalseNode()
-    elseif example isa Plain⋁Node && children(example) == arguments
-        example
-    else
-        Plain⋁Node(arguments)
-    end
+    isempty(arguments) && return PlainFalseNode()
+    example isa Plain⋁Node && children(example) == arguments && return example
+    return Plain⋁Node(arguments)
 end
 
 @inline compile(::Type{<:PlainLogicCircuit}, b::Bool) =
@@ -125,3 +116,14 @@ end
 
 @inline compile(::Type{<:PlainLogicCircuit}, l::Lit) =
     PlainLiteralNode(l)
+
+function fully_factorized_circuit(n, ::Type{<:PlainLogicCircuit})
+    ors = map(1:n) do v
+        v = Var(v)
+        pos = compile(PlainLogicCircuit, var2lit(v))
+        neg = compile(PlainLogicCircuit, -var2lit(v))
+        pos | neg
+    end
+    and = conjoin(ors)
+    disjoin([and]) # see logistic circuits bias term
+end

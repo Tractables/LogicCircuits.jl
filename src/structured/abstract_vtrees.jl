@@ -1,5 +1,6 @@
-export Vtree, balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree, 
-       depth, varsubset_left, varsubset_right
+export Vtree, variable, goes_left, goes_right, find_leaf,
+    varsubset_left, varsubset_right, depth,
+    balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree
 
 #############
 # Vtree
@@ -7,6 +8,74 @@ export Vtree, balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree,
 
 "Root of the vtree node hiearchy"
 abstract type Vtree <: Tree end
+
+#############
+# Methods
+#############
+
+"Get the variable in a vtree leaf"
+function variable end
+
+import Base.parent # extend
+
+# all vtrees are assumed to have parent fields
+@inline parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
+
+"Is the variable `v` contained in the left branch of `m`?"
+@inline goes_left(v, m)::Bool = goes_left(v, m, NodeType(m))
+@inline goes_left(v, m, ::Inner)::Bool = v ∈ variables(m.left)
+@inline goes_left(v, m, ::Leaf)::Bool = false
+
+"Is the variable `v` contained in the right branch of `m`?"
+@inline goes_right(v, m)::Bool = goes_right(v, m, NodeType(m))
+@inline goes_right(v, m, ::Inner)::Bool = v ∈ variables(m.right)
+@inline goes_right(v, m, ::Leaf)::Bool = false
+
+"Find the leaf in the vtree that represents the given variable"
+find_leaf(v, n) = find_leaf(v, n, NodeType(n))
+@inline function find_leaf(v, n, ::Leaf)
+    @assert variable(n) == v "Variable is not contained in vtree"
+    return n   
+end
+@inline function find_leaf(v, n, ::Inner)
+    goes_left(v, n) && return find_leaf(v, n.left)
+    goes_right(v, n) && return find_leaf(v, n.right)
+    @assert false "Variable is not contained in vtree"
+end
+
+"Are the variables in `n` contained in the left branch of `m`?"
+@inline varsubset_left(n, m)::Bool = varsubset(n, m.left)
+
+"Are the variables in `n` contained in the right branch of `m`?"
+@inline varsubset_right(n, m)::Bool = varsubset(n, m.right)
+
+"""
+Compute the path length from vtree node `n` to leaf node which contains `var`
+"""
+depth(n::Vtree, var::Var)::Int = depth(NodeType(n), n, var)
+
+function depth(::Inner, n::Vtree, var::Var)::Int
+    @assert var in variables(n)
+    if var in variables(n.left)
+        return 1 + depth(n.left, var)
+    else
+        return 1 + depth(n.right, var)
+    end
+end
+
+function depth(::Leaf, n::Vtree, var::Var)::Int
+    @assert var ∈ variables(n)
+    return 0
+end
+
+import .Utils: lca # extend
+
+"""
+Compute the lowest common ancestor of two vtree nodes
+Warning: this method uses an imcomplete `varsubset` check for `descends_from` and is only correct when `v` and `w` are part of the same larger vtree.
+"""
+lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
+
 
 #############
 # Constructors
@@ -88,42 +157,3 @@ function bottom_up_vtree(::Type{VN}, vars::Vector{Var}, combine_method!::Functio
     "3. clean up"
     ln[end]
 end
-
-#############
-# Methods
-#############
-
-"""
-Compute the path length from vtree node `n` to leaf node which contains `var`
-"""
-depth(n::Vtree, var::Var)::Int = depth(NodeType(n), n, var)
-
-function depth(::Inner, n::Vtree, var::Var)::Int
-    @assert var in variables(n)
-    if var in variables(n.left)
-        return 1 + depth(n.left, var)
-    else
-        return 1 + depth(n.right, var)
-    end
-end
-
-function depth(::Leaf, n::Vtree, var::Var)::Int
-    @assert var ∈ variables(n)
-    return 0
-end
-
-import Base.parent # extend
-
-# all vtrees are assumed to have parent fields
-@inline parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
-
-@inline varsubset_left(n, m)::Bool = varsubset(n, m.left)
-@inline varsubset_right(n, m)::Bool = varsubset(n, m.right)
-
-import .Utils: lca # extend
-
-"""
-Compute the lowest common ancestor of two vtree nodes
-Warning: this method uses an imcomplete `varsubset` check for `descends_from` and is only correct when `v` and `w` are part of the same larger vtree.
-"""
-lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)

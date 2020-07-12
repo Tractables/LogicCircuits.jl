@@ -50,6 +50,7 @@ import ..Utils: children, variables, isequal_local
 
 @inline children(n::PlainVtreeInnerNode) = [n.left, n.right]
 
+variable(n::PlainVtreeLeafNode) = n.var
 variables(n::PlainVtreeLeafNode) = BitSet([n.var])
 variables(n::PlainVtreeInnerNode) = n.variables
 

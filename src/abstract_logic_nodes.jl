@@ -111,17 +111,8 @@ function compile end
 @inline conjoin(xs::LogicCircuit...) = conjoin(collect(xs))
 @inline disjoin(xs::LogicCircuit...) = disjoin(collect(xs))
 
-"Generate a fully factorized circuit over `n` variables"
-function fully_factorized_circuit(n, ::Type{T}) where T<:LogicCircuit
-    ors = map(1:n) do v
-        v = Var(v)
-        pos = compile(T, var2lit(v))
-        neg = compile(T, -var2lit(v))
-        pos | neg
-    end
-    and = conjoin(ors)
-    disjoin([and]) # see logistic circuits bias term
-end
+"Generate a fully factorized circuit over the given range of variables"
+function fully_factorized_circuit end
 
 #####################
 # circuit inspection
