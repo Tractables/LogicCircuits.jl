@@ -17,8 +17,8 @@ include("structured/abstract_vtrees.jl")
 include("structured/plain_vtrees.jl")
 include("structured/structured_logic_nodes.jl")
 
-include("sdd/sdd_nodes.jl")
-# include("sdd/trim_sdd_mgrs.jl")
+include("sdd/sdds.jl")
+include("sdd/trimmed_sdds.jl")
 
 # include("IO/module.jl")
 # @reexport using .IO

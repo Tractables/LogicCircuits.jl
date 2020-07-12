@@ -25,7 +25,7 @@ function parent end
 @inline isroot(n::Tree)::Bool = !has_parent(n)
 
 "Is one node equal to another locally, ignoring children?"
-function isequal_local end
+isequal_local(::Tree, ::Tree)::Bool = false #default to only `===`` equality; can be extended to support value equality for certain types of trees
 
 function Base.:(==)(n1::Tree, n2::Tree)::Bool
     (n1 === n2) && return true

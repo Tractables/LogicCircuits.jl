@@ -16,6 +16,8 @@ abstract type SddMgr <: Vtree end
 "Root of the SDD circuit node hierarchy"
 abstract type Sdd{V} <: StructLogicCircuit where V<:SddMgr end
 
+# TODO: replace this entire hierarchy because it's identical to `StructLogicCircuit` except for the type parameter, which we should add back to `StructLogicCircuit` and just alias it as `SDD`.
+
 "A SDD logical leaf node"
 abstract type SddLeafNode{V} <: Sdd{V} end
 

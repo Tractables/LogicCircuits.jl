@@ -1,4 +1,4 @@
-export Vtree, variable, goes_left, goes_right, find_leaf,
+export Vtree, vtree, variable, goes_left, goes_right, find_leaf,
     varsubset_left, varsubset_right, depth,
     balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree
 
@@ -75,7 +75,6 @@ Warning: this method uses an imcomplete `varsubset` check for `descends_from` an
 """
 lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
 
-
 #############
 # Constructors
 #############
@@ -84,6 +83,11 @@ function Vtree(::Type{T}, vtree::Vtree)::T where {T<:Vtree}
     f_leaf(l) = T(variable(l))
     f_inner(i,call) = T(call(i.left), call(i.right))
     foldup(vtree,f_leaf, f_inner,T)
+end
+
+"Construct a balanced vtree with the given number of variables"
+function balanced_vtree(::Type{VN}, num_vars::Int)::VN where {VN <: Vtree}
+    balanced_vtree(VN, Var(1), Var(num_vars))
 end
 
 "Construct a balanced vtree with variables ranging from `first` to `last` (inclusive)"

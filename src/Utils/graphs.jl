@@ -2,7 +2,7 @@ export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
        flip_bit, foreach, foreach_rec, filter, 
        foldup, foldup_rec, foldup_aggregate, foldup_aggregate_rec,
-       num_nodes, num_edges, tree_num_nodes, tree_num_edges,
+       num_nodes, num_edges, tree_num_nodes, tree_num_edges, in,
        inodes, innernodes, leafnodes, linearize,
        left_most_descendent, right_most_descendent,
        node_stats, inode_stats, leaf_stats
@@ -91,6 +91,7 @@ import Base.foreach #extend
 
 "Apply a function to each node in a graph, bottom up"
 function foreach(f::Function, node::Dag)
+    @assert node.bit == false "Another algorithm is already traversing this circuit and using the `bit` field"
     foreach_rec(f, node)
     flip_bit(node)
     nothing # returning nothing helps save some allocations and time
@@ -143,6 +144,7 @@ Compute a function bottom-up on the graph.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
 function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
+    @assert node.bit == false "Another algorithm is already traversing this circuit and using the `bit` field"
     v = foldup_rec(node, f_leaf, f_inner, T)
     flip_bit(node)
     v
@@ -178,7 +180,7 @@ as a vector from the children.
 """
 # TODO: see whether we could standardize on `foldup` and remove this version?
 function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T})::T where {T}
-    @assert node.bit == false
+    @assert node.bit == false "Another algorithm is already traversing this circuit and using the `bit` field"
     v = foldup_aggregate_rec(node, f_leaf, f_inner, T)
     flip_bit(node)
     return v
@@ -293,6 +295,16 @@ function num_edges(node::Dag)
     end
     count
 end
+
+"Is the node contained in the `Dag`?"
+function Base.in(needle::Dag, circuit::Dag)
+    contained::Bool = false
+    foreach(circuit) do n
+        contained |= (n == needle)
+    end
+    contained
+end
+
 
 "Get the list of inner nodes in a given graph"
 inodes(c::Dag) = filter(isinner, c)

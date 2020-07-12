@@ -54,10 +54,7 @@ variable(n::PlainVtreeLeafNode) = n.var
 variables(n::PlainVtreeLeafNode) = BitSet([n.var])
 variables(n::PlainVtreeInnerNode) = n.variables
 
-"""
-Compare whether two vtree nodes are locally equal (enables `==` for `Tree`s)
-"""
-isequal_local(leaf1::PlainVtree, leaf2::PlainVtree)::Bool = false #default
+# Enable `==` for plain vtrees when they have the same variables
 isequal_local(leaf1::PlainVtreeLeafNode, leaf2::PlainVtreeLeafNode)::Bool =
     (leaf1.var == leaf2.var)
 isequal_local(inner1::PlainVtreeInnerNode, inner2::PlainVtreeInnerNode)::Bool =
