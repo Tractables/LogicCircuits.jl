@@ -10,7 +10,7 @@ using Random
 #############
 
 "Root of the trimmed SDD manager node hierarchy"
-abstract type TrimMgrNode <: SddMgrNode end
+abstract type TrimMgrNode <: SddMgr end
 
 # alias structured logical nodes with a trimmed sdd manager vtree
 const TrimTrue = SddTrueNode{TrimMgrNode}
@@ -21,7 +21,7 @@ const trimfalse = TrimFalse()
 const TrimConstant = SddConstantNode{TrimMgrNode}
 const Trim⋁ = Sdd⋁Node{TrimMgrNode}
 const Trim⋀ = Sdd⋀Node{TrimMgrNode}
-const TrimNode = SddNode{<:TrimMgrNode} # would this be better?: Union{TrimTrue,TrimFalse,TrimConstant,Trim⋁,Trim⋀}
+const TrimNode = Sdd{<:TrimMgrNode} # would this be better?: Union{TrimTrue,TrimFalse,TrimConstant,Trim⋁,Trim⋀}
 
 # alias SDD terminology
 const Element = Tuple{TrimNode,TrimNode}

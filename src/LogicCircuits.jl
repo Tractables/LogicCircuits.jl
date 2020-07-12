@@ -17,7 +17,7 @@ include("structured/abstract_vtrees.jl")
 include("structured/plain_vtrees.jl")
 include("structured/structured_logic_nodes.jl")
 
-# include("Sdd.jl")
+include("sdd/sdd_nodes.jl")
 # include("vtrees/SddMgr.jl")
 # include("vtrees/TrimSddMgr.jl")
 

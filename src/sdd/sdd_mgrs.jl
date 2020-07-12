@@ -9,15 +9,15 @@ function SddMgr(::Type{T}, vtree::Vtree)::T where {T<:SddMgr}
     linearize(SddMgr(TrimMgrNode, vtree[end]))
 end
 
-function SddMgr(::Type{T}, vtree::Vtree)::T where {T<:SddMgrNode}
+function SddMgr(::Type{T}, vtree::Vtree)::T where {T<:SddMgr}
     SddMgr(T, NodeType(vtree), vtree)
 end
 
-function SddMgr(::Type{T}, ::Inner, vtree::Vtree)::T where {T<:SddMgrNode}
+function SddMgr(::Type{T}, ::Inner, vtree::Vtree)::T where {T<:SddMgr}
     T(SddMgr(T, vtree.left), SddMgr(T, vtree.right))
 end
 
-function SddMgr(::Type{T}, ::Leaf, vtree::Vtree)::T where {T<:SddMgrNode}
+function SddMgr(::Type{T}, ::Leaf, vtree::Vtree)::T where {T<:SddMgr}
     @assert num_variables(vtree) == 1
     T(first(variables(vtree)))
 end
@@ -26,11 +26,11 @@ sdd_size(sdd::Sdd) = mapreduce(n -> num_children(n), +, ⋁_nodes(sdd); init=0) 
 
 sdd_num_nodes(sdd::Sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
 
-function compile_clause(mgr::SddMgr, clause::Δ)::SddNode
+function compile_clause(mgr::SddMgr, clause::Δ)::Sdd
     compile_clause(mgr, cnf[end])
  end
 
-function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicCircuit)::SddNode
+function compile_clause(mgr::Union{SddMgr,SddMgr}, clause::LogicCircuit)::Sdd
     @assert GateType(clause) isa ⋁Gate
     literals = children(clause)
     clauseΔ = compile(mgr, literal(literals[1]))
@@ -40,11 +40,11 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicCircuit)::Sd
     clauseΔ
  end
  
- function compile_cnf(mgr::SddMgr, cnf::Δ, strategy="tree", progress=false)::SddNode
+ function compile_cnf(mgr::SddMgr, cnf::Δ, strategy="tree", progress=false)::Sdd
     compile_cnf(mgr, cnf[end], strategy, progress)
  end
 
- function compile_cnf(mgr::SddMgr, cnf::LogicCircuit, strategy="tree", progress=false)::SddNode
+ function compile_cnf(mgr::SddMgr, cnf::LogicCircuit, strategy="tree", progress=false)::Sdd
     if strategy == "naive"
         compile_cnf_naive(mgr, cnf, progress)
     elseif strategy == "tree"
@@ -54,7 +54,7 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicCircuit)::Sd
     end
  end
 
- function compile_cnf_naive(mgr::SddMgr, cnf::LogicCircuit, progress=false)::SddNode
+ function compile_cnf_naive(mgr::SddMgr, cnf::LogicCircuit, progress=false)::Sdd
     @assert GateType(cnf) isa ⋀Gate
     cnfΔ = compile(true)
     i = 0
@@ -66,13 +66,13 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicCircuit)::Sd
     cnfΔ
  end
 
- function compile_cnf_tree(mgr::SddMgr, cnf::LogicCircuit, progress=false)::SddNode
+ function compile_cnf_tree(mgr::SddMgr, cnf::LogicCircuit, progress=false)::Sdd
     @assert GateType(cnf) isa ⋀Gate
     compile_cnf_tree(NodeType(mgr[end]), mgr[end], children(cnf), variables_by_node(cnf), progress)
  end
 
- function compile_cnf_tree(::Inner, mgr::SddMgrNode, clauses::Vector{<:Node}, 
-                           scopes::Dict{Node,BitSet}, progress=false)::SddNode
+ function compile_cnf_tree(::Inner, mgr::SddMgr, clauses::Vector{<:Node}, 
+                           scopes::Dict{Node,BitSet}, progress=false)::Sdd
     left_clauses = filter(c -> scopes[c] ⊆ variables(mgr.left), clauses)
     leftΔ = compile_cnf_tree(NodeType(mgr.left), mgr.left, left_clauses, scopes, progress)
     right_clauses = filter(c -> scopes[c] ⊆ variables(mgr.right), clauses)
@@ -93,8 +93,8 @@ function compile_clause(mgr::Union{SddMgr,SddMgrNode}, clause::LogicCircuit)::Sd
     joinΔ
  end
 
- function compile_cnf_tree(::Leaf, mgr::SddMgrNode, clauses::Vector{<:Node}, 
-                            scopes::Dict{Node,BitSet}, progress=false)::SddNode
+ function compile_cnf_tree(::Leaf, mgr::SddMgr, clauses::Vector{<:Node}, 
+                            scopes::Dict{Node,BitSet}, progress=false)::Sdd
     joinΔ = compile(true)
     for clause in clauses
         joinΔ = joinΔ & compile_clause(mgr, clause)

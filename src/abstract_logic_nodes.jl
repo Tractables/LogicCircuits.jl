@@ -1,5 +1,5 @@
-export LogicCircuit, 
-    GateType, InnerGate, LeafGate, LiteralGate, ConstantGate, ⋁Gate, ⋀Gate,
+export LogicCircuit, GateType, InnerGate, LeafGate, 
+    LiteralGate, ConstantGate, ⋁Gate, ⋀Gate,
     isliteralgate, isconstantgate, is⋁gate, is⋀gate,
     literal, constant, conjoin, disjoin,
     variable, ispositive, isnegative, istrue, isfalse,
@@ -56,7 +56,7 @@ import ..Utils.NodeType # make available for extension
 import ..Utils.children # make available for extension by concrete types
 
 "Get the logical literal in a given literal leaf node"
-function literal end
+@inline literal(n::LogicCircuit)::Lit = n.literal # override when needed
 
 "Get the logical constant in a given constant leaf node"
 function constant end

@@ -69,9 +69,6 @@ mutable struct Struct⋁Node <: StructLogicInnerNode
     Struct⋁Node(c,v) = new(c, v, nothing, false)
 end
 
-"All structured logical nodes with a vtree"
-HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
-
 "The unique structured logical true constant"
 const structtrue = StructTrueNode(nothing, false)
 "The unique structured logical false constant"
@@ -95,10 +92,6 @@ const structfalse = StructFalseNode(nothing, false)
 @inline constant(n::StructFalseNode)::Bool = false
 @inline children(n::Struct⋁Node) = n.children
 @inline children(n::Struct⋀Node) = [n.prime,n.sub]
-
-"Get the vtree corresponding to the argument"
-@inline vtree(n::HasVtree)::Vtree = n.vtree
-@inline vtree(v::Vtree)::Vtree = v
 
 @inline function conjoin(arguments::Vector{<:StructLogicCircuit},
             example::Union{StructLogicCircuit,Nothing}= nothing) 

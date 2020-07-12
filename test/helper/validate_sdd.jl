@@ -9,11 +9,11 @@ function validate(sdd::Sdd)
     is_unique(sdd, 5)
  end
    
-function validate(n::SddNode)
+function validate(n::Sdd)
    validate(GateType(n), n)
 end
 
-function validate(::⋁Gate, n::SddNode)
+function validate(::⋁Gate, n::Sdd)
    size = num_children(n)
    primes = compile(false)
    for i = 1:size
@@ -44,7 +44,7 @@ function validate(::⋁Gate, n::SddNode)
    @test NodeType(vtree(n)) isa Inner
 end
 
-function validate(::⋀Gate, n::SddNode)
+function validate(::⋀Gate, n::Sdd)
    @test num_children(n) == 2
    @test !(GateType(prime(n)) isa ⋀Gate)
    @test !(GateType(sub(n)) isa ⋀Gate)
@@ -55,11 +55,11 @@ function validate(::⋀Gate, n::SddNode)
    @test GateType(sub(n)) isa ConstantGate || varsubset_right(sub(n), n)
 end
 
-function validate(::LiteralGate, l::SddNode)
+function validate(::LiteralGate, l::Sdd)
    @test variable(l) == first(variables(vtree(l)))
 end
 
-function validate(::ConstantGate, ::SddNode)
+function validate(::ConstantGate, ::Sdd)
    # nothing to check?
 end
 

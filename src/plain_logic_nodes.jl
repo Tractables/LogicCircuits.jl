@@ -87,9 +87,6 @@ end
 # methods
 #####################
 
-"Get the logical literal in a given literal leaf node"
-@inline literal(n::PlainLiteralNode)::Lit = n.literal
-
 "Get the logical constant in a given constant leaf node"
 @inline constant(n::PlainTrueNode)::Bool = true
 @inline constant(n::PlainFalseNode)::Bool = false

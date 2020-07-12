@@ -21,6 +21,9 @@ import Base.parent # extend
 # all vtrees are assumed to have parent fields
 @inline parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
 
+"Get the vtree corresponding to the argument"
+@inline vtree(n)::Vtree = n.vtree # override when needed
+
 "Is the variable `v` contained in the left branch of `m`?"
 @inline goes_left(v, m)::Bool =  v ∈ variables(m.left)
 

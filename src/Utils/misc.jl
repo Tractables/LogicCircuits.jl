@@ -72,7 +72,6 @@ function variables end
 "Do the variables in `n` containing the variables in `m`?"
 @inline varsubset(n, m) = (n===m || variables(n) ⊆ variables(m))
 
-
 #####################
 # probability semantics
 #####################
