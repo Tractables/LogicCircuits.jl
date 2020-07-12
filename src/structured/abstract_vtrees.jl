@@ -80,6 +80,12 @@ lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
 # Constructors
 #############
 
+function Vtree(::Type{T}, vtree::Vtree)::T where {T<:Vtree}
+    f_leaf(l) = T(variable(l))
+    f_inner(i,call) = T(call(i.left), call(i.right))
+    foldup(vtree,f_leaf, f_inner,T)
+end
+
 "Construct a balanced vtree with variables ranging from `first` to `last` (inclusive)"
 function balanced_vtree(::Type{VN}, first::Var, last::Var)::VN where {VN <: Vtree}
     @assert last >= first "Must have $last >= $first"
