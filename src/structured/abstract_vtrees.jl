@@ -22,14 +22,10 @@ import Base.parent # extend
 @inline parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
 
 "Is the variable `v` contained in the left branch of `m`?"
-@inline goes_left(v, m)::Bool = goes_left(v, m, NodeType(m))
-@inline goes_left(v, m, ::Inner)::Bool = v ∈ variables(m.left)
-@inline goes_left(v, m, ::Leaf)::Bool = false
+@inline goes_left(v, m)::Bool =  v ∈ variables(m.left)
 
 "Is the variable `v` contained in the right branch of `m`?"
-@inline goes_right(v, m)::Bool = goes_right(v, m, NodeType(m))
-@inline goes_right(v, m, ::Inner)::Bool = v ∈ variables(m.right)
-@inline goes_right(v, m, ::Leaf)::Bool = false
+@inline goes_right(v, m)::Bool = v ∈ variables(m.right)
 
 "Find the leaf in the vtree that represents the given variable"
 find_leaf(v, n) = find_leaf(v, n, NodeType(n))

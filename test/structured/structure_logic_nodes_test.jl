@@ -33,6 +33,21 @@ using LogicCircuits
     @test length(lit_map) == 20
 
     @test canonical_constants(f) == (nothing, nothing)
+    
+    @test isdecomposable(f)
 
+    @test variables(f) == BitSet(1:10)
+    @test variables_by_node(f)[f] == BitSet(1:10)
+
+    @test num_variables(f) == 10
+    @test issmooth(f)
+
+    @test isone(sat_prob(f))
+    @test model_count(f) == BigInt(2)^10
+
+    @test f(BitArray([1 0 1 0 1 0 1 0 1 0;
+                       1 1 1 1 1 1 1 1 1 1;
+                       0 0 0 0 0 0 0 0 0 0;
+                       0 1 1 0 1 0 0 1 0 1])) == [1,1,1,1]
 end
 

@@ -38,14 +38,12 @@ abstract type StructConstantNode <: StructLogicInnerNode end
 mutable struct StructTrueNode <: StructConstantNode
     data
     bit::Bool
-    StructTrueNode() = new(nothing, false)
 end
 
 "A structured logical false constant.  Never construct one, use `structfalse` to access its unique instance"
 mutable struct StructFalseNode <: StructConstantNode
     data
     bit::Bool
-    StructFalseNode() = new(nothing, false)
 end
 
 "A structured logical conjunction node"
@@ -75,9 +73,9 @@ end
 HasVtree = Union{Struct⋁Node,Struct⋀Node,StructLiteralNode}
 
 "The unique structured logical true constant"
-const structtrue = StructTrueNode()
+const structtrue = StructTrueNode(nothing, false)
 "The unique structured logical false constant"
-const structfalse = StructFalseNode()
+const structfalse = StructFalseNode(nothing, false)
 
 #####################
 # traits

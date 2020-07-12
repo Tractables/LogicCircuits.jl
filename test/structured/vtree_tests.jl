@@ -26,6 +26,7 @@ using LogicCircuits
     @test !varsubset_left(v3,r)
     @test !varsubset_right(v1,r)
     @test varsubset_right(v3,r)
+    @test_throws AssertionError find_leaf(Var(4),r)
 
     @test parent(i1) == r
     @test num_nodes(r) == 5
