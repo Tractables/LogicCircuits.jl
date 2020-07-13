@@ -2,22 +2,26 @@
 
 module LogicCircuits
 
-# USE EXTERNAL MODULES
-
 using Reexport
 
 include("Utils/Utils.jl")
-include("Data/Data.jl")
-
-@reexport using .Data
 @reexport using .Utils
 
-# INCLUDE CHILD MODULES
-include("Logical/Logical.jl")
-include("IO/IO.jl")
+include("abstract_logic_nodes.jl")
+include("queries.jl")
+# TODO: include transformations during structure primitive hackathon
+# include("transformations.jl")
+include("plain_logic_nodes.jl")
 
-# USE CHILD MODULES (in order to re-export some functions)
-@reexport using .Logical
-@reexport using .IO
+include("structured/abstract_vtrees.jl")
+include("structured/plain_vtrees.jl")
+include("structured/structured_logic_nodes.jl")
+
+include("sdd/sdds.jl")
+include("sdd/trimmed_sdds.jl")
+include("sdd/trimmed_apply.jl")
+
+include("LoadSave/LoadSave.jl")
+@reexport using .LoadSave
 
 end

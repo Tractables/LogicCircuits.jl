@@ -1,6 +1,6 @@
 
-# [Logical](@id api-internal-logical)
+# [Logic](@id api-internal-logical)
 
 ```@autodocs
-Modules = [LogicCircuits.Logical]
+Modules = [LogicCircuits]
 ```

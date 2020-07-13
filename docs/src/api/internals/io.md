@@ -1,6 +1,7 @@
 
 # [IO](@id api-internal-io)
 
-```@autodocs
-Modules = [LogicCircuits.IO]
-```
+# Uncomment when IO module is reinstated
+# ```@autodocs
+# Modules = [LogicCircuits.IO]
+# ```
