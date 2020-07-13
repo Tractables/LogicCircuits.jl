@@ -1,3 +1,5 @@
+export save_as_dot, istrue_node, save_circuit
+
 #####################
 # Save lines
 #####################

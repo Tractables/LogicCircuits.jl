@@ -1,5 +1,4 @@
-
-
+export save_vtree
 
 const VTREE_FORMAT = """c ids of vtree nodes start at 0
 c ids of variables start at 1
@@ -46,7 +45,7 @@ end
 """
 Saves a vtree in the given file path.
 """
-function save(vtree::PlainVtree, file::AbstractString)
+function save_vtree(vtree::PlainVtree, file::AbstractString)
 
     "1. decide file type and open file"
     if endswith(file,".vtree")
@@ -67,9 +66,8 @@ function save(vtree::PlainVtree, file::AbstractString)
 
     "3. saving methods for header, nodes, tailer"
     function save_vtree_header(vtree::PlainVtree, f::VtreeConfigFile)
-        vtree_count = length(vtree)
         write(f.file, VTREE_FORMAT)
-        write(f.file, "vtree $vtree_count\n")
+        write(f.file, "vtree $(num_nodes(vtree))\n")
     end
 
     function save_vtree_header(vtree::PlainVtree, f::VtreeDotFile)
@@ -104,10 +102,10 @@ function save(vtree::PlainVtree, file::AbstractString)
         end
     end
 
-    function save_vtree_tailer(f::VtreeConfigFile)
+    function save_vtree_footer(f::VtreeConfigFile)
     end #do nothing
 
-    function save_vtree_tailer(f::VtreeDotFile)
+    function save_vtree_footer(f::VtreeDotFile)
         write(f.file, "}\n")
 
         reverse_order(f)
@@ -115,15 +113,9 @@ function save(vtree::PlainVtree, file::AbstractString)
     end
 
     " 4. saving frame"
-    order = linearize(vtree[end])
-
     save_vtree_header(vtree, f)
-
-    for node in order
-        save_vtree_node(node,f)
-    end
-
-    save_vtree_tailer(f)
+    foreach(n -> save_vtree_node(n,f), vtree)
+    save_vtree_footer(f)
 
     close(f.file)
 

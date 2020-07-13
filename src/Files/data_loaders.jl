@@ -1,3 +1,8 @@
+export mnist, sampled_mnist, twenty_datasets, twenty_dataset_names, dataset, 
+    zoo_vtree_file, zoo_vtree, zoo_psdd, zoo_lc, zoo_clt,
+    zoo_cnf_file, zoo_cnf, zoo_dnf_file, zoo_dnf,
+    zoo_lc_file, zoo_psdd_file, zoo_clt_file, zoo_sdd_file
+
 using ..Data
 using MLDatasets
 using CSV
@@ -13,7 +18,6 @@ const twenty_dataset_names = [
         "binarized_mnist"
 ];
 
-const zoo_version = "/Circuit-Model-Zoo-0.1.2";
 
 #####################
 # Data loaders
@@ -58,38 +62,3 @@ function twenty_datasets(name)
     XDataset(train,valid,test)
 end
 
-#####################
-# Circuit loaders
-#####################
-
-zoo_vtree_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/vtrees/$name"
-
-zoo_cnf_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/cnfs/$name"
-
-zoo_dnf_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/dnfs/$name"
-
-zoo_lc_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/lcs/$name"
-
-zoo_clt_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/clts/$name"
-
-zoo_psdd_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/psdds/$name"
-
-zoo_sdd_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
-
-# loaders
-
-zoo_vtree(name) = 
-    load_vtree(zoo_vtree_file(name))
-
-zoo_dnf(name) = 
-    load_dnf(zoo_dnf_file(name))
-
-zoo_cnf(name) = 
-    load_cnf(zoo_cnf_file(name))

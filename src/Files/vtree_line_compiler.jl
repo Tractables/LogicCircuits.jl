@@ -2,7 +2,7 @@
 abstract type FormatLine end
 
 """
-A line in one vtree file format
+A line in the vtree file format
 """
 abstract type VtreeFormatLine <: FormatLine end
 
@@ -25,13 +25,12 @@ struct VtreeLeafLine <: VtreeFormatLine
     variable::Var
 end
 
+# TODO: parameterize by Vtree type, and PlainVtree as default
 compile_vtree_format_lines(lines::VtreeFormatLines)::PlainVtree = 
     compile_vtree_format_lines_m(lines)[1]
 
+# TODO: parameterize by Vtree type, and PlainVtree as default
 function compile_vtree_format_lines_m(lines::VtreeFormatLines)
-
-    # linearized vtree nodes
-    vtree = Vector{PlainVtree}()
 
     # map from index to PlainVtree for input
     id2node = Dict{UInt32, PlainVtree}()
@@ -43,7 +42,6 @@ function compile_vtree_format_lines_m(lines::VtreeFormatLines)
     function compile(ln::VtreeLeafLine)
         n = PlainVtreeLeafNode(ln.variable)
         id2node[ln.node_id] = n
-        push!(vtree, n)
     end
 
     function compile(ln::VtreeInnerLine)
@@ -51,12 +49,11 @@ function compile_vtree_format_lines_m(lines::VtreeFormatLines)
         right_node = id2node[ln.right_id]
         n = PlainVtreeInnerNode(left_node,right_node)
         id2node[ln.node_id] = n
-        push!(vtree, n)
     end
 
     for ln in lines
         compile(ln)
     end
 
-    vtree, id2node
+    id2node[lines[end].node_id], id2node
 end

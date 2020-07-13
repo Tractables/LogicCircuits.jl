@@ -21,7 +21,7 @@ include("sdd/sdds.jl")
 include("sdd/trimmed_sdds.jl")
 include("sdd/trimmed_apply.jl")
 
-# include("IO/module.jl")
-# @reexport using .IO
+include("Files/Files.jl")
+@reexport using .Files
 
 end

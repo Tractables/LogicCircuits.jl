@@ -1,7 +1,16 @@
+export load_vtree, zoo_vtree
 
 function load_vtree(file::String)::PlainVtree
     return compile_vtree_format_lines(parse_vtree_file(file))
 end
+
+using Pkg.Artifacts
+
+zoo_vtree_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/vtrees/$name"
+
+zoo_vtree(name) = 
+    load_vtree(zoo_vtree_file(name))
 
 function parse_vtree_comment_line(ln::String)
     VtreeCommentLine(lstrip(chop(ln, head = 1, tail = 0)))

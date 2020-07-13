@@ -1,3 +1,10 @@
+export load_logical_circuit, 
+    load_smooth_logical_circuit, 
+    load_struct_smooth_logical_circuit, 
+    load_psdd_logical_circuit,
+    load_lc_logical_circuit, 
+    parse_lc_file, 
+    parse_psdd_file,
 
 #####################
 # general parser infrastructure for circuits
@@ -392,3 +399,30 @@ function load_dnf(file::String)::PlainLogicΔ
 
     circuit
 end
+
+
+zoo_cnf_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/cnfs/$name"
+
+zoo_dnf_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/dnfs/$name"
+
+zoo_lc_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/lcs/$name"
+
+zoo_clt_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/clts/$name"
+
+zoo_psdd_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/psdds/$name"
+
+zoo_sdd_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
+
+# loaders
+
+zoo_dnf(name) = 
+    load_dnf(zoo_dnf_file(name))
+
+zoo_cnf(name) = 
+    load_cnf(zoo_cnf_file(name))
