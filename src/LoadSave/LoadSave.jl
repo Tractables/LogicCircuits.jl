@@ -1,7 +1,4 @@
-"""
-Module to load and save circuits, vtrees, and data.
-"""
-module Files # can no longer be called `IO` because it conflicts with `Base.IO`
+module LoadSave # can no longer be called `IO` because it conflicts with `Base.IO`
 
 using ..Utils
 using ...LogicCircuits

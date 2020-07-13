@@ -114,7 +114,8 @@ end
 @inline compile(::Type{<:PlainLogicCircuit}, l::Lit) =
     PlainLiteralNode(l)
 
-function fully_factorized_circuit(n, ::Type{<:PlainLogicCircuit})
+function fully_factorized_circuit(n::Int, 
+                ::Type{<:PlainLogicCircuit}=PlainLogicCircuit)
     ors = map(1:n) do v
         v = Var(v)
         pos = compile(PlainLogicCircuit, var2lit(v))

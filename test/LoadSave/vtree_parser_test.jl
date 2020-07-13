@@ -1,6 +1,6 @@
  using Test
  using LogicCircuits
- using LogicCircuits.Files: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine, zoo_vtree_file, parse_vtree_file, compile_vtree_format_lines
+ using LogicCircuits.LoadSave: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine, zoo_vtree_file, parse_vtree_file, compile_vtree_format_lines
 
 @testset "Vtree file loader test" begin
 
@@ -46,4 +46,9 @@
         dot_path = "$tmp/little_4var_temp.bad_extension"
         @test_throws String save_vtree(vtree, dot_path);
     end
+
+    vtree = zoo_vtree("easy/C17_mince.min.vtree");
+    @test num_nodes(vtree) == 33
+    @test num_variables(vtree) == 17
+
 end

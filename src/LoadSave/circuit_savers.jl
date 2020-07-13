@@ -150,17 +150,17 @@ function save_as_dot(circuit::LogicCircuit, file::String)
     end
 
     for n in reverse(circuit_nodes)
-        if n isa ⋀Node
+        if is⋀gate(n)
             write(f, "$(node_cache[n]) [label=\"*$(node_cache[n])\"]\n")
-        elseif n isa ⋁Node
+        elseif is⋁gate(n)
             write(f, "$(node_cache[n]) [label=\"+$(node_cache[n])\"]\n")
-        elseif n isa LiteralNode && ispositive(n)
+        elseif isliteralgate(n) && ispositive(n)
             write(f, "$(node_cache[n]) [label=\"+$(variable(n))\"]\n")
-        elseif n isa LiteralNode && isnegative(n)
+        elseif isliteralgate(n)  && isnegative(n)
             write(f, "$(node_cache[n]) [label=\"-$(variable(n))\"]\n")
-        elseif n isa FalseNode
+        elseif isfalse(n)
             write(f, "$(node_cache[n]) [label=\"F\"]\n")
-        elseif n isa TrueNode
+        elseif istrue(n)
             write(f, "$(node_cache[n]) [label=\"T\"]\n")
         else
             throw("unknown node type")
@@ -168,7 +168,7 @@ function save_as_dot(circuit::LogicCircuit, file::String)
     end
 
     for n in reverse(circuit_nodes)
-        if n isa ⋀Node || n isa ⋁Node
+        if isinnergate(n)
             for c in n.children
                 write(f, "$(node_cache[n]) -> $(node_cache[c])\n")
             end

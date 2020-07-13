@@ -126,6 +126,7 @@ end
 "Compile a clause into an SDD"
 function compile_clause(mgr::SddMgr, clause::LogicCircuit)::Sdd
     @assert is⋁gate(clause)
+    @assert varsubset(clause, mgr)  
     literals = children(clause)
     @assert all(isliteralgate,children(clause))
     mapreduce(l -> compile(mgr, literal(l)), |, children(clause))
@@ -144,7 +145,7 @@ function compile_clause(mgr::SddMgr, clause::LogicCircuit)::Sdd
 
  "Compile a CNF into an SDD naively, by conjoining clauses in order of the CNF"
  function compile_cnf_naive(mgr::SddMgr, cnf::LogicCircuit, progress=false)::Sdd
-    @assert is⋀gate(clause)
+    @assert all(is⋁gate, clauses)
     cnfcircuit = compile(true)
     i = 0
     for clause in children(cnf)
@@ -160,9 +161,9 @@ function compile_clause(mgr::SddMgr, clause::LogicCircuit)::Sdd
     compile_cnf_tree(NodeType(mgr), mgr, children(cnf), variables_by_node(cnf), progress)
  end
 
- function compile_cnf_tree(::Inner, mgr::SddMgr, clauses::Vector{<:Node}, 
-                           scopes::Dict{Node,BitSet}, progress=false)::Sdd
-    @assert is⋀gate(clause)
+ function compile_cnf_tree(::Inner, mgr::SddMgr, 
+            clauses::Vector{<:Node}, scopes, progress=false)::Sdd
+    @assert all(is⋁gate, clauses)
     left_clauses = filter(c -> scopes[c] ⊆ variables(mgr.left), clauses)
     leftΔ = compile_cnf_tree(NodeType(mgr.left), mgr.left, left_clauses, scopes, progress)
     right_clauses = filter(c -> scopes[c] ⊆ variables(mgr.right), clauses)
@@ -177,14 +178,14 @@ function compile_clause(mgr::SddMgr, clause::LogicCircuit)::Sdd
     #     -num_children(c)
     # end
     # sort!(mixed_clauses, by = left_degree)
-    mapreduce(c -> compile_clause(mgr,c), &, mixed_clauses; init=joinΔ)
+    joinΔ = mapreduce(c -> compile_clause(mgr,c), &, mixed_clauses; init=joinΔ)
     progress && println(" into sdd of size $(sdd_size(linearize(joinΔ)))")
     joinΔ
  end
 
- function compile_cnf_tree(::Leaf, mgr::SddMgr, clauses::Vector{<:Node}, 
-                            ::Dict{Node,BitSet}, ::Bool=false)::Sdd
-    @assert is⋀gate(clause)
+ function compile_cnf_tree(::Leaf, mgr::SddMgr, 
+            clauses::Vector{<:LogicCircuit}, scopes, ::Bool=false)::Sdd
+    @assert all(is⋁gate, clauses)
     mapreduce(c -> compile_clause(mgr,c), &, clauses; init=compile(true))
  end
 

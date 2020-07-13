@@ -1,9 +1,7 @@
 # helper test functions to check for SDD properties holding
 
 function validate(sdd::Sdd)
-    for n in sdd
-      validate(n)
-    end
+    foreach(validate, sdd) 
     #TODO make one of these for structured decomposability
     @assert isdecomposable(sdd)
     is_unique(sdd, 5)

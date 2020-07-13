@@ -21,7 +21,7 @@ include("sdd/sdds.jl")
 include("sdd/trimmed_sdds.jl")
 include("sdd/trimmed_apply.jl")
 
-include("Files/Files.jl")
-@reexport using .Files
+include("LoadSave/LoadSave.jl")
+@reexport using .LoadSave
 
 end

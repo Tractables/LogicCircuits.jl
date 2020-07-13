@@ -297,14 +297,14 @@ Suppported file formats:
 function load_cnf(file::String; dual=false)::PlainLogicCircuit
     @assert !dual && endswith(file, ".cnf") || dual && endswith(file, ".dnf")
 
-    Clause = dual ? ⋀Node : ⋁Node
+    Clause = dual ? Plain⋀Node : Plain⋁Node
     # record the current clause
     clause = Clause([])
     # linearized clauses (disjunctions)
     clauses = Vector{Clause}()
 
     # literal cache is responsible for making leaf literals nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,LogicLeafNode}()
+    lit_cache = Dict{Lit,PlainLiteralNode}()
 
     open(file) do file
 
@@ -327,7 +327,7 @@ function load_cnf(file::String; dual=false)::PlainLogicCircuit
                         clause = Clause([])
                     else
                         push!(clause.children, get!(lit_cache, literal) do
-                            LiteralNode(literal)
+                            PlainLiteralNode(literal)
                         end)
                     end
                 end
