@@ -12,7 +12,7 @@ import Statistics: mean, std
 
 export num_examples, num_features, 
        example, feature_values,
-       is_numeric, is_binary,
+       isnumericdata, isbinarydata,
        shuffle_examples, threshold,
        ll_per_example, bits_per_pixel
 
@@ -33,14 +33,14 @@ feature_values(df::DataFrame, i) = df[!,i]
 feature_values(m::AbstractMatrix, i) = m[:,i]
 
 "Is the dataset numeric?"
-is_numeric(::AbstractMatrix) = false
-is_numeric(::AbstractMatrix{<:Number}) = true
-is_numeric(df::DataFrame) = all(t -> t <: Number, eltypes(df))
+isnumericdata(::AbstractMatrix) = false
+isnumericdata(::AbstractMatrix{<:Number}) = true
+isnumericdata(df::DataFrame) = all(t -> t <: Number, eltypes(df))
 
 "Is the dataset binary?"
-is_binary(::AbstractMatrix) = false
-is_binary(::AbstractMatrix{Bool}) = true
-is_binary(df::DataFrame) = all(t -> t <: Bool, eltypes(df))
+isbinarydata(::AbstractMatrix) = false
+isbinarydata(::AbstractMatrix{Bool}) = true
+isbinarydata(df::DataFrame) = all(t -> t <: Bool, eltypes(df))
 
 
 # DATA TRANSFORMATIONS
@@ -54,7 +54,7 @@ shuffle_examples(m::AbstractMatrix) = m[shuffle(1:end), :]
 threshold(d) = threshold(d, 0.05) # default threshold offset (used for MNIST)
 
 function threshold(df::DataFrame, offset)
-    @assert is_numeric(df) "DataFrame to be thresholded contains non-numeric columns: $(eltypes(x))"
+    @assert isnumericdata(df) "DataFrame to be thresholded contains non-numeric columns: $(eltypes(x))"
     m = convert(Matrix,df)
     m_thresholded, threshold_value = threshold(m)
     return DataFrame(m_thresholded), threshold_value
@@ -87,6 +87,6 @@ function fully_factorized_log_likelihood(m::AbstractMatrix{<:Bool}; pseudocount=
 end
 
 function fully_factorized_log_likelihood(df::DataFrame; pseudocount=0)
-    @assert is_binary(df) "This method requires binary data"
+    @assert isbinarydata(df) "This method requires binary data"
     fully_factorized_log_likelihood(convert(Matrix,df); pseudocount)
 end

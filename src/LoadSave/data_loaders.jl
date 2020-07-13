@@ -33,7 +33,7 @@ function mnist(labeled = false)
     
     train = DataFrame(train_x)
     valid = nothing # why is there no validation set in `MLDataSets`??
-    test - DataFrame(test_x)
+    test = DataFrame(test_x)
     if (labeled)
         train_y::Vector{UInt8} = MNIST.trainlabels()
         test_y::Vector{UInt8}  = MNIST.testlabels()

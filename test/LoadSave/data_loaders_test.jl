@@ -1,21 +1,44 @@
-# using Test
-# using LogicCircuits
+using Test
+using LogicCircuits
+using DataFrames
 
-# @testset "MNIST Loader tests" begin
-#     data = LogicCircuits.IO.mnist();
+@testset "MNIST Loader tests" begin
     
-#     @test typeof(data) == XYDataset{Float32, UInt8}
-#     @test size(feature_matrix(train(data))) == (60000, 784)
-#     @test isnothing(valid(data))
-#     @test size(feature_matrix(test(data))) == (10000, 784)
+    train, _, test = mnist();
+    
+    @test train isa DataFrame
+    @test test isa DataFrame
 
-#     @test typeof(feature_matrix(train(data))) == Array{Float32,2};
-#     @test typeof(labels(train(data))) == Array{UInt8,1}; 
+    @test num_features(train) == 784
+    @test num_examples(train) == 60000
+    @test num_features(test) == 784
+    @test num_examples(test) == 10000
+    @test isnumericdata(train)
+    @test !isbinarydata(train)
+    @test isnumericdata(test)
+    @test !isbinarydata(test)
+    
+    @test feature_values(train, 1) isa Vector{Float32}
+    @test feature_values(train, 784) isa Vector{Float32}
+    @test convert(Matrix,train) isa Array{Float32,2};
 
+    ####################################
+    train, valid, test = sampled_mnist()
 
-#     data2 = LogicCircuits.IO.sampled_mnist();
-#     @test typeof(data2) == XDataset{Bool}
+    @test num_features(train) == 784
+    @test num_examples(train) == 50000
+    @test num_features(valid) == 784
+    @test num_examples(valid) == 10000
+    @test num_features(test) == 784
+    @test num_examples(test) == 10000
 
-#     @test size(feature_matrix(train(data2))) == (50000, 784)
-#     @test size(feature_matrix(test(data2))) == (10000, 784)
-# end
+    @test isnumericdata(train)
+    @test isbinarydata(train)
+    @test isnumericdata(valid)
+    @test isbinarydata(valid)
+    @test isnumericdata(test)
+    @test isbinarydata(test)
+    
+    @test feature_values(train, 1) isa BitVector
+    @test feature_values(train, 784) isa BitVector
+end

@@ -31,17 +31,17 @@ using DataFrames: DataFrame, DataFrameRow
     @test feature_values(dfb,2) isa BitVector
     @test feature_values(dfb,2) == BitVector([false,true,true])
 
-    @test is_numeric(m)
-    @test is_numeric(mb)
-    @test is_numeric(df)
-    @test is_numeric(dfb)
-    @test !is_numeric([1 "2"; 3 "4"])
-    @test !is_numeric(DataFrame([1 "2"; 3 "4"]))
+    @test isnumericdata(m)
+    @test isnumericdata(mb)
+    @test isnumericdata(df)
+    @test isnumericdata(dfb)
+    @test !isnumericdata([1 "2"; 3 "4"])
+    @test !isnumericdata(DataFrame([1 "2"; 3 "4"]))
 
-    @test !is_binary(m)
-    @test is_binary(mb)
-    @test !is_binary(df)
-    @test is_binary(dfb)
+    @test !isbinarydata(m)
+    @test isbinarydata(mb)
+    @test !isbinarydata(df)
+    @test isbinarydata(dfb)
 
     @test num_examples(shuffle_examples(m)) == 3
     @test num_examples(shuffle_examples(df)) == 3
