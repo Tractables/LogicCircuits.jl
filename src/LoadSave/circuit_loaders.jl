@@ -1,8 +1,8 @@
 export zoo_cnf, zoo_dnf,
-    load_logical_circuit, 
-    load_smooth_logical_circuit, 
-    load_struct_smooth_logical_circuit, 
-    load_cnf, load_dnf
+    load_logic_circuit, load_smooth_logic_circuit, 
+    load_struct_smooth_logic_circuit, 
+    load_cnf, load_dnf,
+    zoo_cnf_file, zoo_dnf_file, zoo_lc_file, zoo_psdd_file, zoo_sdd_file
 
 
 #####################
@@ -46,7 +46,7 @@ Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 """
-function load_logical_circuit(file::String)::PlainLogicCircuit
+function load_logic_circuit(file::String)::PlainLogicCircuit
     compile_logical(parse_circuit_file(file))
 end
 
@@ -56,7 +56,7 @@ Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 """
-function load_smooth_logical_circuit(file::String)::PlainLogicCircuit
+function load_smooth_logic_circuit(file::String)::PlainLogicCircuit
     compile_smooth_logical(parse_circuit_file(file))
 end
 
@@ -68,7 +68,7 @@ Support circuit file formats:
 Supported vtree file formats:
  * ".vtree" for Vtree files
 """
-function load_struct_smooth_logical_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicCircuit,PlainVtree}
+function load_struct_smooth_logic_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicCircuit,PlainVtree}
     circuit_lines = parse_circuit_file(circuit_file)
     vtree_lines = parse_vtree_file(vtree_file)
     compile_smooth_struct_logical(circuit_lines, vtree_lines)
@@ -341,7 +341,7 @@ function load_cnf(file::String; dual=false)::PlainLogicCircuit
         push!(clauses, clause)
     end
     
-    dual ? disjoint(clauses) : conjoin(clauses)
+    dual ? disjoin(clauses) : conjoin(clauses)
 end
 
 load_dnf(file::String)::PlainLogicCircuit =

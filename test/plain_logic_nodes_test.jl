@@ -60,9 +60,10 @@ include("helper/plain_logic_circuits.jl")
     show(io,n0c)
     @test length(String(take!(io))) > 0
 
-# TODO: reinstate
-#     c1 = load_logical_circuit(zoo_psdd_file("plants.psdd"))[end]
-#     c2 = load_logical_circuit(zoo_sdd_file("random.sdd"))[end]
+# TODO: reinstate when transformations are fixed
+
+#     c1 = load_logic_circuit(zoo_psdd_file("plants.psdd"))[end]
+#     c2 = load_logic_circuit(zoo_sdd_file("random.sdd"))[end]
 #     c3 = smooth(c1)
 #     c4 = smooth(c2)
 

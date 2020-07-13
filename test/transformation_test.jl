@@ -27,13 +27,13 @@
 #         push!(lin, pos)
 #         neg = LiteralNode(-var2lit(v))
 #         push!(lin, neg)
-#         or = ⋁Node([pos,neg])
+#         or = Plain⋁Node([pos,neg])
 #         push!(lin, or)
 #         or
 #     end
-#     and1 = ⋀Node(ors[1:2])
-#     and2 = ⋀Node(ors[3:4])
-#     or = ⋁Node([and1, and2])
+#     and1 = Plain⋀Node(ors[1:2])
+#     and2 = Plain⋀Node(ors[3:4])
+#     or = Plain⋁Node([and1, and2])
 #     push!(lin, and1)
 #     push!(lin, and2)
 #     push!(lin, or)
@@ -48,18 +48,18 @@
 #     push!(lin, pos)
 #     neg = LiteralNode(-var2lit(v))
 #     push!(lin, neg)
-#     or = ⋁Node([pos,neg])
+#     or = Plain⋁Node([pos,neg])
 #     push!(lin, or)
     
-#     and = ⋀Node([lin[15], lin[18]])
+#     and = Plain⋀Node([lin[15], lin[18]])
 #     push!(lin, and)
-#     or = ⋁Node([lin[19]])
+#     or = Plain⋁Node([lin[19]])
 #     push!(lin, or)
 #     lin
 # end
 
 # @testset "Condition test" begin
-#     c1 = load_logical_circuit(zoo_sdd_file("random.sdd"))[end]
+#     c1 = load_logic_circuit(zoo_sdd_file("random.sdd"))[end]
     
 #     lit = Lit(num_variables(c1) + 1)
 #     @test c1 == condition(c1, lit)
@@ -124,7 +124,7 @@
 #     @test all(children(n2) .=== children(n0))
 
 #     for depth in [5, 10, 100, 1000]
-#         n3 = load_logical_circuit(zoo_sdd_file("random.sdd"))[end]
+#         n3 = load_logic_circuit(zoo_sdd_file("random.sdd"))[end]
 #         n4 = copy(n3, depth)
 #         @test num_nodes(n3) == num_nodes(n4)
 #         @test num_edges(n3) == num_edges(n4)
@@ -154,3 +154,22 @@
 #     @test n1[end].children[1].children[2] == n1[end].children[2].children[2]
 #     @test num_nodes(n1[end]) == (num_nodes(n0[end]) - 1)
 # end
+
+
+# TODO: reinstate when transformations are fixed
+
+#     c1 = load_logic_circuit(zoo_psdd_file("plants.psdd"))[end]
+#     c2 = load_logic_circuit(zoo_sdd_file("random.sdd"))[end]
+#     c3 = smooth(c1)
+#     c4 = smooth(c2)
+
+#     @test !issmooth(c1)
+#     @test !issmooth(c2)
+#     @test issmooth(c3)
+#     @test issmooth(c4)
+
+#     @test c1 !== c3
+#     @test c2 !== c4
+
+#     @test smooth(c3) === c3
+#     @test smooth(c4) === c4

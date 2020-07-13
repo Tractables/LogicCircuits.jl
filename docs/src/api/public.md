@@ -19,8 +19,8 @@ Pages = ["public.md"]
 ## Public Interface
 
 ```@docs
-load_logical_circuit
-load_smooth_logical_circuit
+load_logic_circuit
+load_smooth_logic_circuit
 ```
 
 

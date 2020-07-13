@@ -19,13 +19,13 @@ function compile_logical_m(lines::CircuitFormatLines)
     root = nothing
     
     # literal cache is responsible for making leaf literal nodes unique
-    lit_cache = Dict{Lit,LogicLeafNode}()
+    lit_cache = Dict{Lit,PlainLogicLeafNode}()
     literal_node(l::Lit) = get!(lit_cache, l) do
-        LiteralNode(l)
+        PlainLiteralNode(l)
     end
 
-    true_node = TrueNode()
-    false_node = FalseNode()
+    true_node = PlainTrueNode()
+    false_node = PlainFalseNode()
 
     function compile(ln::CircuitFormatLine)
         error("Compilation of line $ln is not supported")
@@ -37,7 +37,7 @@ function compile_logical_m(lines::CircuitFormatLines)
         # Weighted Literal are implicitly an OR node
         # Here making that explicit in the Circuit
         lit_node = literal_node(literal(ln))
-        or_node = ⋁Node([lit_node])
+        or_node = Plain⋁Node([lit_node])
         root = id2node[ln.node_id] = or_node 
     end
     function compile(ln::LiteralLine)
@@ -52,13 +52,13 @@ function compile_logical_m(lines::CircuitFormatLines)
         root = id2node[ln.node_id] = n
     end
     function compile_elements(e::Element)
-        ⋀Node([id2node[e.prime_id],id2node[e.sub_id]])
+        Plain⋀Node([id2node[e.prime_id],id2node[e.sub_id]])
     end
     function compile(ln::DecisionLine)
-        root = id2node[ln.node_id] = ⋁Node(map(compile_elements, ln.elements))
+        root = id2node[ln.node_id] = Plain⋁Node(map(compile_elements, ln.elements))
     end
     function compile(ln::BiasLine)
-        root = id2node[ln.node_id] = ⋁Node([last(id2node)])
+        root = id2node[ln.node_id] = Plain⋁Node([root])
     end
 
     foreach(compile, lines)
@@ -84,9 +84,9 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
     root = nothing
     
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,LogicLeafNode}()
+    lit_cache = Dict{Lit,PlainLogicLeafNode}()
     literal_node(l::Lit) = get!(lit_cache, l) do
-        LiteralNode(l)
+        PlainLiteralNode(l)
     end
 
     smoothing_warning = "Cannot compile a smooth logical circuit from lines that are not normalized: there is no way to smooth without knowing the variable scope. Instead compile a non-smooth logical circuit and smooth it afterwards."
@@ -102,7 +102,7 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
         # Here making that explicit in the Circuit
         @assert is_normalized(ln) " $smoothing_warning"
         lit_node = literal_node(literal(ln))
-        or_node = ⋁Node([lit_node])
+        or_node = Plain⋁Node([lit_node])
         root = id2node[ln.node_id] = or_node 
     end
     function compile(ln::LiteralLine)
@@ -113,24 +113,24 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
     function compile(ln::WeightedNamedConstantLine)
         @assert constant(ln) == true
         # because we promise to compile a smooth circuit, here we need to add a "smoothing or gate"
-        n = ⋁Node([literal_node(var2lit(variable(ln))), 
+        n = Plain⋁Node([literal_node(var2lit(variable(ln))), 
                     literal_node(-var2lit(variable(ln)))])
         root = id2node[ln.node_id] = n
     end
-    function compile(ln::AnonymousConstantLine)
+    function compile(::AnonymousConstantLine)
         error(smoothing_warning)
     end
-    function compile_elements(e::TrimmedElement)
+    function compile_elements(::TrimmedElement)
         error(smoothing_warning)
     end
     function compile_elements(e::NormalizedElement)
-        ⋀Node([id2node[e.prime_id],id2node[e.sub_id]])
+        Plain⋀Node([id2node[e.prime_id],id2node[e.sub_id]])
     end
     function compile(ln::DecisionLine)
-        root = id2node[ln.node_id] = ⋁Node(map(compile_elements, ln.elements))
+        root = id2node[ln.node_id] = Plain⋁Node(map(compile_elements, ln.elements))
     end
     function compile(ln::BiasLine)
-        root = id2node[ln.node_id] = ⋁Node([last(id2node)])
+        root = id2node[ln.node_id] = Plain⋁Node([root])
     end
 
     foreach(compile, lines)
