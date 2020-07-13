@@ -2,34 +2,29 @@
 # Compilers to LogicCircuits data structures starting from already parsed line objects
 #####################
 
+"Helper function too get the last node in the cache"
+last(id2node) = id2node[maximum(keys(id2node))]
+
 """
 Compile lines into a unstructured logical circuit
 """
-compile_logical(lines::CircuitFormatLines)::PlainLogicΔ = 
-    compile_logical_m(lines)[1]
+compile_logical(lines::CircuitFormatLines)::PlainLogicCircuit = 
+    last(compile_logical_m(lines))
 
 """
 Compile lines into a unstructured logical circuit, 
 while keeping track of id-to-node mappings
 """
 function compile_logical_m(lines::CircuitFormatLines)
-
-    # linearized circuit nodes
-    circuit = Vector{PlainLogicCircuit}()
     
     # mapping from circuit node ids to node objects
     id2node = Dict{ID,PlainLogicCircuit}()
     
-    # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
+    # literal cache is responsible for making leaf literal nodes unique
     lit_cache = Dict{Lit,LogicLeafNode}()
     literal_node(l::Lit) = get!(lit_cache, l) do
-        leaf = LiteralNode(l)
-        push!(circuit,leaf) # also add new leaf to linearized circuit before caller
-        leaf
+        LiteralNode(l)
     end
-
-    seen_true = false
-    seen_false = false
 
     true_node = TrueNode()
     false_node = FalseNode()
@@ -45,8 +40,6 @@ function compile_logical_m(lines::CircuitFormatLines)
         # Here making that explicit in the Circuit
         lit_node = literal_node(literal(ln))
         or_node = ⋁Node([lit_node])
-        push!(circuit, lit_node)
-        push!(circuit, or_node)
         id2node[ln.node_id] = or_node 
     end
     function compile(ln::LiteralLine)
@@ -55,34 +48,23 @@ function compile_logical_m(lines::CircuitFormatLines)
     function compile(ln::ConstantLine)
         if constant(ln) == true
             n = true_node
-            seen_true || (push!(circuit,n); seen_true = true)
         else
             n = false_node
-            seen_false || (push!(circuit,n); seen_false = true)
         end
         id2node[ln.node_id] = n
     end
     function compile_elements(e::Element)
-        n = ⋀Node([id2node[e.prime_id],id2node[e.sub_id]])
-        push!(circuit,n)
-        n
+        ⋀Node([id2node[e.prime_id],id2node[e.sub_id]])
     end
     function compile(ln::DecisionLine)
-        n = ⋁Node(map(compile_elements, ln.elements))
-        push!(circuit,n)
-        id2node[ln.node_id] = n
+        id2node[ln.node_id] = ⋁Node(map(compile_elements, ln.elements))
     end
     function compile(ln::BiasLine)
-        n = ⋁Node([circuit[end]])
-        push!(circuit,n)
-        id2node[ln.node_id] = n
+        id2node[ln.node_id] = ⋁Node([last(id2node)])
     end
 
-    for ln in lines
-        compile(ln)
-    end
-
-    return circuit, id2node
+    foreach(compile, lines)
+    return id2node
 end
 
 #TODO add compile_struct_logical
@@ -90,8 +72,8 @@ end
 """
 Compile lines into a smooth unstructured logical circuit
 """
-compile_smooth_logical(lines::CircuitFormatLines)::PlainLogicΔ = 
-    compile_smooth_logical_m(lines)[1]
+compile_smooth_logical(lines::CircuitFormatLines)::PlainLogicCircuit = 
+    last(compile_smooth_logical_m(lines))
 
 """
 Compile lines into a smooth unstructured logical circuit, 
@@ -99,18 +81,13 @@ while keeping track of id-to-node mappings
 """
 function compile_smooth_logical_m(lines::CircuitFormatLines)
 
-    # linearized circuit nodes
-    circuit = Vector{PlainLogicCircuit}()
-    
     # mapping from circuit node ids to node objects
     id2node = Dict{ID,PlainLogicCircuit}()
     
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
     lit_cache = Dict{Lit,LogicLeafNode}()
     literal_node(l::Lit) = get!(lit_cache, l) do
-        leaf = LiteralNode(l)
-        push!(circuit,leaf) # also add new leaf to linearized circuit before caller
-        leaf
+        LiteralNode(l)
     end
 
     smoothing_warning = "Cannot compile a smooth logical circuit from lines that are not normalized: there is no way to smooth without knowing the variable scope. Instead compile a non-smooth logical circuit and smooth it afterwards."
@@ -127,8 +104,6 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
         @assert is_normalized(ln) " $smoothing_warning"
         lit_node = literal_node(literal(ln))
         or_node = ⋁Node([lit_node])
-        push!(circuit, lit_node)
-        push!(circuit, or_node)
         id2node[ln.node_id] = or_node 
     end
     function compile(ln::LiteralLine)
@@ -141,7 +116,6 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
         # because we promise to compile a smooth circuit, here we need to add a "smoothing or gate"
         n = ⋁Node([literal_node(var2lit(variable(ln))), 
                     literal_node(-var2lit(variable(ln)))])
-        push!(circuit,n)
         id2node[ln.node_id] = n
     end
     function compile(ln::AnonymousConstantLine)
@@ -151,26 +125,17 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
         error(smoothing_warning)
     end
     function compile_elements(e::NormalizedElement)
-        n = ⋀Node([id2node[e.prime_id],id2node[e.sub_id]])
-        push!(circuit,n)
-        n
+        ⋀Node([id2node[e.prime_id],id2node[e.sub_id]])
     end
     function compile(ln::DecisionLine)
-        n = ⋁Node(map(compile_elements, ln.elements))
-        push!(circuit,n)
-        id2node[ln.node_id] = n
+        id2node[ln.node_id] = ⋁Node(map(compile_elements, ln.elements))
     end
     function compile(ln::BiasLine)
-        n = ⋁Node([circuit[end]])
-        push!(circuit,n)
-        id2node[ln.node_id] = n
+        id2node[ln.node_id] = ⋁Node([last(id2node)])
     end
 
-    for ln in lines
-        compile(ln)
-    end
-
-    return circuit, id2node
+    foreach(compile, lines)
+    return id2node
 end
 
 """
@@ -178,7 +143,7 @@ Compile circuit and vtree lines into a structured logical circuit with its vtree
 """
 function compile_smooth_struct_logical(circuit_lines::CircuitFormatLines, 
                                 vtree_lines::VtreeFormatLines)
-    compile_smooth_struct_logical_m(circuit_lines,vtree_lines)[1:2]
+    map(last, compile_smooth_struct_logical_m(circuit_lines,vtree_lines))
 end
 
 """
@@ -187,9 +152,9 @@ while keeping track of id-to-node mappings
 """
 function compile_smooth_struct_logical_m(circuit_lines::CircuitFormatLines, 
                                   vtree_lines::VtreeFormatLines)
-    vtree, id2vtree = compile_vtree_format_lines_m(vtree_lines)
-    circuit, id2circuit = compile_smooth_struct_logical_m(circuit_lines, id2vtree)
-    return circuit, vtree, id2vtree, id2circuit
+    id2vtree = compile_vtree_format_lines_m(vtree_lines)
+    id2circuit = compile_smooth_struct_logical_m(circuit_lines, id2vtree)
+    return id2vtree, id2circuit
 end
 
 """
@@ -199,18 +164,13 @@ while keeping track of id-to-node mappings
 function compile_smooth_struct_logical_m(lines::CircuitFormatLines, 
                                          id2vtree::Dict{ID, PlainVtree})
 
-    # linearized circuit nodes
-    circuit = Vector{StructLogicCircuit{PlainVtree}}()
-    
     # mapping from node ids to node objects
     id2node = Dict{ID,StructLogicCircuit{PlainVtree}}()
 
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
     lit_cache = Dict{Lit,StructLogicLeafNode{PlainVtree}}()
     literal_node(l::Lit, v::PlainVtree) = get!(lit_cache, l) do
-        leaf = StructLiteralNode{PlainVtree}(l,v)
-        push!(circuit,leaf) # also add new leaf to linearized circuit before caller
-        leaf
+        StructLiteralNode{PlainVtree}(l,v)
     end
 
     smoothing_warning = "Cannot compile a smooth logical circuit from lines that are not normalized: functionality to determine variable scope and perform smoothing not implemented in the line compiler.  Instead compile a non-smooth logical circuit and smooth it afterwards."
@@ -227,14 +187,12 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         @assert is_normalized(ln) smoothing_warning
         lit_node = literal_node(ln.literal, id2vtree[ln.vtree_id])
         or_node = Struct⋁Node{PlainVtree}([lit_node], id2vtree[ln.vtree_id])
-
-        push!(circuit, lit_node)
-        push!(circuit, or_node)
         id2node[ln.node_id] = or_node 
     end
     function compile(ln::LiteralLine)
         @assert is_normalized(ln) smoothing_warning
-        id2node[ln.node_id] = literal_node(ln.literal, id2vtree[ln.vtree_id])
+        id2node[ln.node_id] = 
+            literal_node(ln.literal, id2vtree[ln.vtree_id])
     end
 
     function compile(ln::ConstantLine)
@@ -251,32 +209,24 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         else
             error("False leaf logical circuit nodes not yet implemented")
         end
-        push!(circuit,n)
         id2node[ln.node_id] = n
     end
     function compile_elements(e::TrimmedElement, ::PlainVtree)
         error(smoothing_warning)
     end
     function compile_elements(e::NormalizedElement, v::PlainVtree)
-        n = Struct⋀Node{PlainVtree}([id2node[e.prime_id], id2node[e.sub_id]], v)
-        push!(circuit,n)
-        n
+        Struct⋀Node{PlainVtree}([id2node[e.prime_id], id2node[e.sub_id]], v)
     end
     function compile(ln::DecisionLine)
         vtree = id2vtree[ln.vtree_id]
         n = Struct⋁Node{PlainVtree}(map(e -> compile_elements(e, vtree), ln.elements), vtree)
-        push!(circuit,n)
         id2node[ln.node_id] = n
     end
     function compile(ln::BiasLine)
-        n = Struct⋁Node{PlainVtree}([circuit[end]], circuit[end].vtree)
-        push!(circuit,n)
+        n = Struct⋁Node{PlainVtree}([last(id2node)], last(id2node).vtree)
         id2node[ln.node_id] = n
     end
 
-    for ln in lines
-        compile(ln)
-    end
-
-    return circuit, id2node
+    foreach(compile, lines)
+    return id2node
 end

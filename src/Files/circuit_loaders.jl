@@ -1,10 +1,36 @@
-export load_logical_circuit, 
+export zoo_cnf, zoo_dnf,
+    load_logical_circuit, 
     load_smooth_logical_circuit, 
     load_struct_smooth_logical_circuit, 
-    load_psdd_logical_circuit,
-    load_lc_logical_circuit, 
-    parse_lc_file, 
-    parse_psdd_file,
+    load_cnf, load_dnf
+
+
+#####################
+# loaders from model zoo
+#####################
+
+zoo_cnf(name) = 
+    load_cnf(zoo_cnf_file(name))
+
+zoo_dnf(name) = 
+    load_dnf(zoo_dnf_file(name))
+
+# zoo file identifiers
+
+zoo_cnf_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/cnfs/$name"
+
+zoo_dnf_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/dnfs/$name"
+
+zoo_lc_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/lcs/$name"
+
+zoo_psdd_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/psdds/$name"
+
+zoo_sdd_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
 
 #####################
 # general parser infrastructure for circuits
@@ -20,7 +46,7 @@ Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 """
-function load_logical_circuit(file::String)::PlainLogicΔ
+function load_logical_circuit(file::String)::PlainLogicCircuit
     compile_logical(parse_circuit_file(file))
 end
 
@@ -30,7 +56,7 @@ Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 """
-function load_smooth_logical_circuit(file::String)::PlainLogicΔ
+function load_smooth_logical_circuit(file::String)::PlainLogicCircuit
     compile_smooth_logical(parse_circuit_file(file))
 end
 
@@ -42,7 +68,7 @@ Support circuit file formats:
 Supported vtree file formats:
  * ".vtree" for Vtree files
 """
-function load_struct_smooth_logical_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicΔ{PlainVtree},PlainVtree}
+function load_struct_smooth_logical_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicCircuit,PlainVtree}
     circuit_lines = parse_circuit_file(circuit_file)
     vtree_lines = parse_vtree_file(vtree_file)
     compile_smooth_struct_logical(circuit_lines, vtree_lines)
@@ -259,41 +285,34 @@ function parse_sdd_file(file::Core.IO)::CircuitFormatLines
 end
 
 #####################
-# loader for CNF file format
+# loader for CNF/DNF file format
 #####################
 
 """
-Load a CNF as a logical circuit from file.
-Supppor file formats:
+Load a CNF/DNF as a logical circuit from file.
+Suppported file formats:
 * ".cnf" for CNF files
+* ".dnf" for DNF files
 """
-function load_cnf(file::String)::PlainLogicΔ
-    @assert endswith(file, ".cnf")
+function load_cnf(file::String; dual=false)::PlainLogicCircuit
+    @assert !dual && endswith(file, ".cnf") || dual && endswith(file, ".dnf")
 
-    # linearized circuit nodes
-    circuit = Vector{PlainLogicCircuit}()
-
+    Clause = dual ? ⋀Node : ⋁Node
+    # record the current clause
+    clause = Clause([])
     # linearized clauses (disjunctions)
-    clauses = Vector{⋁Node}()
+    clauses = Vector{Clause}()
 
     # literal cache is responsible for making leaf literals nodes unique and adding them to `circuit`
     lit_cache = Dict{Lit,LogicLeafNode}()
-    literal_node(l::Lit) = get!(lit_cache, l) do
-        leaf = LiteralNode(l)
-        push!(circuit,leaf) # also add new leaf to linearized circuit before caller
-        leaf
-    end
-
-    # record the current clause
-    clause = ⋁Node([])
-
-    count_clauses = 0
 
     open(file) do file
 
         for ln in eachline(file)
             @assert !isempty(ln)
-            if ln[1] == 'c' || startswith(ln, "p cnf")
+            if ln[1] == 'c' || 
+                !dual && startswith(ln, "p cnf") || 
+                dual && startswith(ln, "p dnf")
                 # skip comment and header lines
                 continue
             else
@@ -305,124 +324,25 @@ function load_cnf(file::String)::PlainLogicΔ
                     literal = parse(Lit, token)
                     if literal == 0
                         push!(clauses, clause)
-                        push!(circuit, clause)
-                        clause = ⋁Node([])
-                        count_clauses += 1
+                        clause = Clause([])
                     else
-                        push!(clause.children, literal_node(literal))
+                        push!(clause.children, get!(lit_cache, literal) do
+                            LiteralNode(literal)
+                        end)
                     end
                 end
             end
         end
 
-        # handle the last clause
-        if length(clause.children) > 0
-            push!(clauses, clause)
-            push!(circuit, clause)
-            count_clauses + 1
-        end
-
-        # create the root conjunction node
-        if length(clauses) > 0
-            push!(circuit, ⋀Node(clauses))
-        end
     end
 
-    circuit
+    # handle the last clause (why is this needed?)
+    if length(clause.children) > 0
+        push!(clauses, clause)
+    end
+    
+    dual ? disjoint(clauses) : conjoin(clauses)
 end
 
-#####################
-# loader for DNF file format
-#####################
-
-"""
-Load a CNF as a logical circuit from file.
-Supppor file formats:
-* ".cnf" for CNF files
-"""
-function load_dnf(file::String)::PlainLogicΔ
-    @assert endswith(file, ".dnf")
-
-    # linearized circuit nodes
-    circuit = Vector{PlainLogicCircuit}()
-
-    # linearized clauses (conjunctions)
-    clauses = Vector{⋀Node}()
-
-    # literal cache is responsible for making leaf literals nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,LogicLeafNode}()
-    literal_node(l::Lit) = get!(lit_cache, l) do
-        leaf = LiteralNode(l)
-        push!(circuit,leaf) # also add new leaf to linearized circuit before caller
-        leaf
-    end
-
-    # record the current clause
-    clause = ⋀Node([])
-
-    open(file) do file
-
-        for ln in eachline(file)
-            @assert !isempty(ln)
-            if ln[1] == 'c' || startswith(ln, "p dnf")
-                # skip comment and header lines
-                continue
-            else
-                tokens = split(ln)
-                for token in tokens
-                    if !occursin(r"^\s*[-]?[0-9]+\s*$", token)
-                        error("Cannot parse CNF file format line '$ln'")
-                    end
-                    literal = parse(Lit, token)
-                    if literal == 0
-                        push!(clauses, clause)
-                        push!(circuit, clause)
-                        clause = ⋀Node([])
-                    else
-                        push!(clause.children, literal_node(literal))
-                    end
-                end
-            end
-        end
-
-        # handle the last clause
-        if length(clause.children) > 0
-            push!(clauses, clause)
-            push!(circuit, clause)
-        end
-
-        # create the root disjunction node
-        if length(clauses) > 0
-            push!(circuit, ⋁Node(clauses))
-        end
-    end
-
-    circuit
-end
-
-
-zoo_cnf_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/cnfs/$name"
-
-zoo_dnf_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/dnfs/$name"
-
-zoo_lc_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/lcs/$name"
-
-zoo_clt_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/clts/$name"
-
-zoo_psdd_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/psdds/$name"
-
-zoo_sdd_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
-
-# loaders
-
-zoo_dnf(name) = 
-    load_dnf(zoo_dnf_file(name))
-
-zoo_cnf(name) = 
-    load_cnf(zoo_cnf_file(name))
+load_dnf(file::String)::PlainLogicCircuit =
+    load_cnf(file; dual=true)

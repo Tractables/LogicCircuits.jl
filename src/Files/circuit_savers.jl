@@ -1,4 +1,4 @@
-export save_as_dot, istrue_node, save_circuit
+export save_as_dot, save_circuit, save_as_sdd
 
 #####################
 # Save lines
@@ -20,7 +20,7 @@ end
 decompile(n::StructLiteralNode, node2id, vtree2id)::UnweightedLiteralLine = 
     UnweightedLiteralLine(node2id[n], vtree2id[n.vtree], literal(n), false)
 
-decompile(n::StructConstantNode, node2id, vtree2id)::AnonymousConstantLine = 
+decompile(n::StructConstantNode, node2id, _)::AnonymousConstantLine = 
     AnonymousConstantLine(node2id[n], constant(n), false)
 
 decompile(n::Struct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} = 
@@ -29,7 +29,7 @@ decompile(n::Struct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} =
 make_element(n::Struct⋀Node, node2id) = 
     SDDElement(node2id[n.children[1]],  node2id[n.children[2]])
 
-make_element(n::StructLogicCircuit, node2id) = 
+make_element(_::StructLogicCircuit, _) = 
     error("Given circuit is not an SDD, its decision node elements are not conjunctions.")
 
 # TODO: decompile for logical circuit to some file format
@@ -38,9 +38,9 @@ make_element(n::StructLogicCircuit, node2id) =
 # build maping
 #####################
 
-function get_node2id(ln::AbstractVector{X}, T::Type)where X #<: T#::Dict{T, ID}
+function get_node2id(circuit::LogicCircuit, T::Type) 
     node2id = Dict{T, ID}()
-    outnodes = filter(n -> !(GateType(n) isa ⋀Gate), ln)
+    outnodes = filter(n -> !is⋀gate(n), circuit)
     sizehint!(node2id, length(outnodes))
     index = ID(0) # node id start from 0
     for n in outnodes
@@ -50,12 +50,11 @@ function get_node2id(ln::AbstractVector{X}, T::Type)where X #<: T#::Dict{T, ID}
     node2id
 end
 
-function get_vtree2id(ln::PlainVtree):: Dict{PlainVtree, ID}
+function get_vtree2id(vtree::PlainVtree):: Dict{PlainVtree, ID}
     vtree2id = Dict{PlainVtree, ID}()
     sizehint!(vtree2id, length(ln))
     index = ID(0) # vtree id start from 0
-
-    for n in ln
+    foreach(vtree) do n
         vtree2id[n] = index
         index += ID(1)
     end
@@ -83,12 +82,8 @@ function sdd_header()
     c"""
 end
 
-function save_sdd_file(name::String, circuit::DecoratorΔ, vtree::PlainVtree)
-    save_sdd_file(name, origin(circuit, StructLogicCircuit), vtree)
-end
-
 "Save a SDD circuit to file"
-function save_sdd_file(name::String, circuit::StructLogicΔ, vtree::PlainVtree)
+function save_as_sdd(name::String, circuit::StructLogicCircuit, vtree::PlainVtree)
     #TODO no need to pass the vtree, we can infer it from origin?
     @assert endswith(name, ".sdd")
     node2id = get_node2id(circuit, StructLogicCircuit)
@@ -96,22 +91,23 @@ function save_sdd_file(name::String, circuit::StructLogicΔ, vtree::PlainVtree)
     formatlines = Vector{CircuitFormatLine}()
     append!(formatlines, parse_sdd_file(IOBuffer(sdd_header())))
     push!(formatlines, SddHeaderLine(num_nodes(circuit)))
-    for n in filter(n -> !(GateType(n) isa ⋀Gate), circuit)
+    for n in filter(n -> !is⋀gate(n), circuit)
         push!(formatlines, decompile(n, node2id, vtree2id))
     end
     save_lines(name, formatlines)
 end
 
 "Save a circuit to file"
-save_circuit(name::String, circuit::StructLogicΔ, vtree::PlainVtree) = save_sdd_file(name, circuit, vtree)
+save_circuit(name::String, circuit::StructLogicCircuit, vtree::PlainVtree) =
+    save_as_sdd(name, circuit, vtree)
 
 "Rank nodes in the same layer left to right"
-function get_nodes_level(circuit::Δ)
+function get_nodes_level(circuit::LogicCircuit)
     levels = Vector{Vector{Node}}()
     current = Vector{Node}()
     next = Vector{Node}()
 
-    push!(next, circuit[end])
+    push!(next, circuit)
     push!(levels, Base.copy(next))
     while !isempty(next)
         current, next = next, current
@@ -129,14 +125,11 @@ function get_nodes_level(circuit::Δ)
     return levels
 end
 
-function save_as_dot(root::LogicCircuit, file::String)
-    return save_as_dot(linearize(root), file)
-end
-
 "Save logic circuit to .dot file"
-function save_as_dot(circuit::LogicΔ, file::String)
+function save_as_dot(circuit::LogicCircuit, file::String)
+    circuit_nodes = linearize(circuit)
     node_cache = Dict{LogicCircuit, Int64}()
-    for (i, n) in enumerate(circuit)
+    for (i, n) in enumerate(circuit_nodes)
         node_cache[n] = i
     end
 
@@ -156,7 +149,7 @@ function save_as_dot(circuit::LogicΔ, file::String)
         end
     end
 
-    for n in reverse(circuit)
+    for n in reverse(circuit_nodes)
         if n isa ⋀Node
             write(f, "$(node_cache[n]) [label=\"*$(node_cache[n])\"]\n")
         elseif n isa ⋁Node
@@ -174,7 +167,7 @@ function save_as_dot(circuit::LogicΔ, file::String)
         end
     end
 
-    for n in reverse(circuit)
+    for n in reverse(circuit_nodes)
         if n isa ⋀Node || n isa ⋁Node
             for c in n.children
                 write(f, "$(node_cache[n]) -> $(node_cache[c])\n")
