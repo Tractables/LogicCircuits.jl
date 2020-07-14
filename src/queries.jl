@@ -149,51 +149,13 @@ function (root::LogicCircuit)(data)
 end
 
 # TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
-# TODO; create a version that doesn't allocate, using fold!
+# TODO; create a version that doesn't allocate, using fold! and pre-allocated fields
 function evaluate(root::LogicCircuit, data)::BitVector
+    num_examples::Int = Utils.num_examples(data)
     @inline f_lit(n) = if ispositive(n) 
-        [data[:,variable(n)]]
+        [feature_values(data,variable(n))]::Vector{BitVector}
     else
-        [broadcast(!,data[:,variable(n)])]
-    end
-    @inline f_con(n) = 
-        [istrue(n) ? always(Bool, num_examples(data)) : never(Bool, num_examples(data))]
-    @inline fa(n, call) = begin
-        if num_children(n) < 2
-            return call(@inbounds children(n)[1])
-        else
-            c1 = call(@inbounds children(n)[1])
-            c2 = call(@inbounds children(n)[2])
-            if num_children(n) == 2 && length(c1) == 1 && length(c2) == 1 
-                return [c1[1], c2[1]] # no need to allocate a new BitVector, just return pair
-            end
-            x = always(Bool, num_examples(data))
-            accumulate_elements(x, c1, &)
-            accumulate_elements(x, c2, &)
-            for c in children(n)[3:end]
-                accumulate_elements(x, call(c), &)
-            end
-            return [x]
-        end
-    end
-    @inline fo(n, call) = begin
-        x = never(Bool, num_examples(data))
-        for c in children(n)
-            accumulate_elements(x, call(c), |)
-        end
-        return [x]
-    end
-    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
-end
-
-using DataFrames
-# TODO: merge this version with the above, but only do so while performance regression testing
-function evaluate2(root::LogicCircuit, data::DataFrame)::BitVector
-    num_examples::Int = nrow(data)
-    @inline f_lit(n) = if ispositive(n) 
-        [data[!,variable(n)]]::Vector{BitVector}
-    else
-        [broadcast(!,data[!,variable(n)])]::Vector{BitVector}
+        [broadcast(!,feature_values(data,variable(n)))]::Vector{BitVector}
     end
     @inline f_con(n) = 
         [istrue(n) ? always(Bool, num_examples) : never(Bool, num_examples)]
