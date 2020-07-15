@@ -75,7 +75,7 @@ function compile end
 #####################
 
 "Is the node an inner gate?"
-@inline isinnergate(n) = GateType(n) isa ConstantGate
+@inline isinnergate(n) = GateType(n) isa InnerGate
 "Is the node an And gate?"
 @inline is⋀gate(n) = GateType(n) isa ⋀Gate
 "Is the node an Or gate?"

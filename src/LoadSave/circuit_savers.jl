@@ -169,7 +169,7 @@ function save_as_dot(circuit::LogicCircuit, file::String)
 
     for n in reverse(circuit_nodes)
         if isinnergate(n)
-            for c in n.children
+            for c in children(n)
                 write(f, "$(node_cache[n]) -> $(node_cache[c])\n")
             end
         end
