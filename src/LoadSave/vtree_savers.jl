@@ -47,7 +47,7 @@ Saves a vtree in the given file path.
 """
 function save_vtree(vtree::PlainVtree, file::AbstractString)
 
-    "1. decide file type and open file"
+    # 1. decide file type and open file
     if endswith(file,".vtree")
         f = VtreeConfigFile(file)
     elseif endswith(file, ".dot")
@@ -56,7 +56,7 @@ function save_vtree(vtree::PlainVtree, file::AbstractString)
         throw("Invalid file type")
     end
 
-    "2. map from PlainVtree to index for output"
+    #2. map from PlainVtree to index for output
     index_cache = Dict{PlainVtree, UInt32}()
     index = -1
     node2index(n::PlainVtree) =
@@ -64,7 +64,7 @@ function save_vtree(vtree::PlainVtree, file::AbstractString)
             index += 1
         end
 
-    "3. saving methods for header, nodes, tailer"
+    #3. saving methods for header, nodes, tailer
     function save_vtree_header(vtree::PlainVtree, f::VtreeConfigFile)
         write(f.file, VTREE_FORMAT)
         write(f.file, "vtree $(num_nodes(vtree))\n")
@@ -112,7 +112,7 @@ function save_vtree(vtree::PlainVtree, file::AbstractString)
 
     end
 
-    " 4. saving frame"
+    # 4. saving frame
     save_vtree_header(vtree, f)
     foreach(n -> save_vtree_node(n,f), vtree)
     save_vtree_footer(f)
