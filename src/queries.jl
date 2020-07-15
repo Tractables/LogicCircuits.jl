@@ -1,4 +1,5 @@
 export variables_by_node, issmooth, isdecomposable,
+    is_canonical,
     sat_prob, model_count, prob_equiv_signature,
     evaluate
 
@@ -102,6 +103,28 @@ function isdecomposable(root::LogicCircuit)::Bool
     f_o(_, cs) = reduce(union, cs)
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
     result
+end
+
+#####################
+# structural properties
+#####################
+
+"Does the given circuit have canonical Or gates, as determined by a probabilistic equivalence check?"
+function is_canonical(circuit::LogicCircuit, k::Int; verbose = false)
+   signatures = prob_equiv_signature(circuit, k)
+   decision_nodes_by_signature = groupby(n -> signatures[n], ⋁_nodes(circuit))
+   for (signature, nodes) in decision_nodes_by_signature
+      if length(nodes) > 1
+         if verbose
+            println("Equivalent Nodes:")
+            for node in nodes
+               println("  - Node: $node Pr: $(sat_prob(linearize(node)))")
+            end
+         end
+         return false
+      end
+   end
+   return true
 end
 
 #####################
