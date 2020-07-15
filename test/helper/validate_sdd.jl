@@ -6,7 +6,7 @@ function validate(sdd::Sdd)
    end
     #TODO make one of these for structured decomposability
     @test isdecomposable(sdd)
-    @test is_canonical(sdd, 5; verbose = true)
+    @test iscanonical(sdd, 5; verbose = true)
  end
    
 function validate_node(n::Sdd)

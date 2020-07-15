@@ -11,6 +11,7 @@ include("../helper/validate_sdd.jl")
       
    @test_throws Exception compile_cnf(mgr.left, cnf)
    @test_throws Exception compile_cnf(right_most_descendent(mgr), cnf)
+   @test_throws Exception compile_cnf(mgr, cnf, "foobar")
 
    @test compile_cnf(mgr, cnf, "tree") === compile_cnf(mgr, cnf, "naive")
 

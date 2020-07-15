@@ -1,4 +1,5 @@
 using Test
+using Suppressor
 using LogicCircuits
 
 include("helper/plain_logic_circuits.jl")
@@ -20,8 +21,9 @@ include("helper/plain_logic_circuits.jl")
     @test isone(sat_prob(r1))
     @test model_count(r1) == BigInt(2)^10
 
+    r1a = conjoin([r1]) # add a unary And gate
 
-    @test r1(BitArray([1 0 1 0 1 0 1 0 1 0;
+    @test r1a(BitArray([1 0 1 0 1 0 1 0 1 0;
                        1 1 1 1 1 1 1 1 1 1;
                        0 0 0 0 0 0 0 0 0 0;
                        0 1 1 0 1 0 0 1 0 1])) == [1,1,1,1]
@@ -64,5 +66,7 @@ include("helper/plain_logic_circuits.jl")
     @test !isdecomposable(n0c & little_2var())
     @test !issmooth(n0c | little_2var())
     @test issmooth(n0c)
+    @test @suppress_out !iscanonical(n0c & little_3var_constants(), 5, verbose=true)
+
 
 end

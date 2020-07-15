@@ -1,5 +1,5 @@
 export variables_by_node, issmooth, isdecomposable,
-    is_canonical,
+    iscanonical,
     sat_prob, model_count, prob_equiv_signature,
     evaluate
 
@@ -110,7 +110,7 @@ end
 #####################
 
 "Does the given circuit have canonical Or gates, as determined by a probabilistic equivalence check?"
-function is_canonical(circuit::LogicCircuit, k::Int; verbose = false)
+function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
    signatures = prob_equiv_signature(circuit, k)
    decision_nodes_by_signature = groupby(n -> signatures[n], ⋁_nodes(circuit))
    for (signature, nodes) in decision_nodes_by_signature
@@ -118,7 +118,7 @@ function is_canonical(circuit::LogicCircuit, k::Int; verbose = false)
          if verbose
             println("Equivalent Nodes:")
             for node in nodes
-               println("  - Node: $node Pr: $(sat_prob(linearize(node)))")
+               println("  - Node: $node MC: $(model_count(node))")
             end
          end
          return false

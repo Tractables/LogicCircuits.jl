@@ -96,6 +96,7 @@ using LogicCircuits: Element, XYPartition # test some internals
     v5 = compile(mgr, Var(5))
     v6 = compile(mgr, Var(6))
     v7 = compile(mgr, Var(7))
+    @test_throws Exception compile(mgr, Var(8))
 
     p1 = XYPartition([Element(true_c,v3)])
     @test canonicalize(p1) === v3
@@ -107,5 +108,10 @@ using LogicCircuits: Element, XYPartition # test some internals
     p4 = XYPartition([Element(!v1,v7), Element(v1,v3)])
     n2 = canonicalize(p4)
     @test n1 === n2
+
+    @test lca(p1) == parent(vtree(v3))
+    @test lca(p2) == parent(vtree(v1))
+    @test lca(XYPartition([Element(true_c,v3)])) == parent(vtree(v3))
+    @test_throws Exception lca(XYPartition([Element(true_c,false_c)])) 
 
 end

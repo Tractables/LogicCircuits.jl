@@ -129,8 +129,6 @@ function conjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
     end
 end
 
-@inline Base.:&(s,t) = conjoin(s,t)
-
 """
 Disjoin two SDDs
 """
@@ -261,5 +259,3 @@ function disjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
         unique⋁(XYPartition(elements), mgr)
     end
 end
-
-@inline Base.:|(s,t) = disjoin(s,t)

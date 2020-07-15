@@ -39,7 +39,7 @@ end
 Find the least common ancestor. Assumes the `Tree` has access to a `parent`. 
 A given `descends_from` function is required to quickly check whether a node is an ancestor.
 """
-function lca(v::Tree, w::Tree, descends_from::Function)
+function lca(v::Tree, w::Tree, descends_from::Function)::Tree
     v == w && return v
     descends_from(w,v) && return v
     candidate::Union{Dag,Nothing} = w
@@ -49,7 +49,8 @@ function lca(v::Tree, w::Tree, descends_from::Function)
     end
     error("First argument is not contained in the root of second argument. There is no LCA.")
 end
-lca(v::Dag, w::Dag, u::Dag, r::Dag...)::Dag = lca(lca(v,w), u, r...)
+lca(v::Tree, ::Function=noop)::Tree = v
+lca(v::Tree, w::Tree, u::Tree, r::Tree...)::Tree = lca(lca(v,w), u, r...)
 
 #####################
 # traversal

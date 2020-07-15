@@ -3,9 +3,11 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Jive = "ba5e3d4b-8524-549f-bc71-e76ad9e9deed"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 DataFrames = "0.21"
 Jive = "0.2"
+Suppressor = "0.2"
 julia = "1.5"

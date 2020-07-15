@@ -135,6 +135,8 @@ import .Utils: varsubset #extend
 @inline varsubset_left(n::TrimNode, m::TrimNode)::Bool = varsubset_left(vtree(n), vtree(m))
 @inline varsubset_right(n::TrimNode, m::TrimNode)::Bool = varsubset_right(vtree(n), vtree(m))
 
+import .Utils.lca # extend
+
 function lca(xy::XYPartition)::TrimSddMgrInnerNode
     # @assert !isempty(xy)
     # @assert all(e -> (prime(e) !== trimfalse), xy)
@@ -219,7 +221,6 @@ end
 """
 Compile a given variable, literal, or constant
 """
-compile(mgr::TrimSddMgr, x::Union{Var,Lit})::TrimLiteral = compile(mgr[end], x)
 
 function compile(n::TrimSddMgr, v::Var)::TrimLiteral
     compile(n,var2lit(v))
