@@ -48,8 +48,8 @@ using DataFrames: DataFrame, DataFrameRow
     @test 1 in feature_values(shuffle_examples(m), 1) 
     @test 1 in feature_values(shuffle_examples(df), 1) 
     
-    mt, _ = threshold(m)
-    dft, _ = threshold(df)
+    mt, _, _ = threshold(m, nothing, nothing)
+    dft, _, _ = threshold(df, nothing, nothing)
 
     @test feature_values(mt,1) == [false, false, true]
     @test feature_values(dft,1) == [false, false, true]

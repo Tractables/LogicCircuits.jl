@@ -2,6 +2,8 @@ using Test
 using LogicCircuits
 using LogicCircuits.LoadSave: zoo_lc_file, zoo_vtree_file
 
+include("../helper/plain_logic_circuits.jl")
+
 @testset "Circuit saver tests" begin
 
   mktempdir() do tmp
@@ -12,6 +14,11 @@ using LogicCircuits.LoadSave: zoo_lc_file, zoo_vtree_file
 
   mktempdir() do tmp
     circuit = fully_factorized_circuit(10)
+    @test_nowarn save_as_dot(circuit, "$tmp/temp.dot")
+  end
+
+  mktempdir() do tmp
+    circuit = little_3var_constants()
     @test_nowarn save_as_dot(circuit, "$tmp/temp.dot")
   end
 

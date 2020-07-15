@@ -20,11 +20,6 @@ const twenty_dataset_names = [
 # Data loaders
 #####################
 
-function dataset(data; do_threshold=false, do_shuffle=false)
-    shuffled_data = do_shuffle ? shuffle_examples(data) : data
-    do_threshold ? threshold(shuffled_data) : shuffled_data
-end
-
 function mnist(labeled = false)
     # transposing makes slicing by variable much much faster
     # need to take a copy to physically move the data around

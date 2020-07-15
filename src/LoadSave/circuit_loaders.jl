@@ -318,9 +318,7 @@ function load_cnf(file::String; dual=false)::PlainLogicCircuit
             else
                 tokens = split(ln)
                 for token in tokens
-                    if !occursin(r"^\s*[-]?[0-9]+\s*$", token)
-                        error("Cannot parse CNF file format line '$ln'")
-                    end
+                    occursin(r"^\s*[-]?[0-9]+\s*$", token) || error("Cannot parse CNF file format line '$ln'")
                     literal = parse(Lit, token)
                     if literal == 0
                         push!(clauses, clause)
@@ -336,10 +334,7 @@ function load_cnf(file::String; dual=false)::PlainLogicCircuit
 
     end
 
-    # handle the last clause (why is this needed?)
-    if length(clause.children) > 0
-        push!(clauses, clause)
-    end
+    @assert isempty(clause.children)
     
     dual ? disjoin(clauses) : conjoin(clauses)
 end

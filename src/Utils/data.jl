@@ -51,20 +51,28 @@ shuffle_examples(m::AbstractMatrix) = m[shuffle(1:end), :]
 
 
 "Threshold a numeric dataset making it binary"
-threshold(d) = threshold(d, 0.05) # default threshold offset (used for MNIST)
+threshold(train, valid, test) = threshold(train, valid, test, 0.05) # default threshold offset (used for MNIST)
 
-function threshold(df::DataFrame, offset)
-    @assert isnumericdata(df) "DataFrame to be thresholded contains non-numeric columns: $(eltypes(x))"
-    m = convert(Matrix,df)
-    m_thresholded, threshold_value = threshold(m)
-    return DataFrame(m_thresholded), threshold_value
+function threshold(train::DataFrame, valid, test, offset)
+    @assert isnumericdata(train) "DataFrame to be thresholded contains non-numeric columns: $(eltypes(x))"
+    train = convert(Matrix, train)
+    valid = issomething(valid) ? convert(Matrix, valid) : nothing
+    test = issomething(test) ? convert(Matrix, test) : nothing
+    train, valid, test = threshold(train, valid, test, offset)
+    train = DataFrame(train)
+    valid = issomething(valid) ? DataFrame(valid) : nothing
+    test = issomething(test) ? DataFrame(test) : nothing
+    return train, valid, test
 end
 
-function threshold(x::AbstractMatrix{<:Number}, offset)
-    means = mean(x, dims=1)
-    stds = std(x, dims=1)
+function threshold(train::AbstractMatrix{<:Number}, valid, test, offset)
+    means = mean(train, dims=1)
+    stds = std(train, dims=1)
     threshold_value = means .+ offset .* stds
-    return BitArray(x .> threshold_value), threshold_value
+    train = BitArray(train .> threshold_value)
+    valid = issomething(valid) ? BitArray(valid .> threshold_value) : nothing
+    test = issomething(test) ? BitArray(test .> threshold_value) : nothing
+    return train, valid, test
 end
 
 
