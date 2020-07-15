@@ -96,4 +96,8 @@ using LogicCircuits
 
     @test f3 === f4
 
+    io = IOBuffer()
+    show(io,f3)
+    @test length(String(take!(io))) > 0 # see if it runs, regardless of result
+
 end
