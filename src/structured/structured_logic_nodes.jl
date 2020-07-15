@@ -87,7 +87,6 @@ const structfalse = StructFalseNode(nothing, false)
 # methods
 #####################
 
-@inline literal(n::StructLiteralNode)::Lit = n.literal
 @inline constant(n::StructTrueNode)::Bool = true
 @inline constant(n::StructFalseNode)::Bool = false
 @inline children(n::Struct⋁Node) = n.children
