@@ -38,7 +38,6 @@ include("../helper/validate_sdd.jl")
 
       validate(cnfΔ)
       
-      
       @test model_count(cnfΔ) == count
       @test sdd_size(cnfΔ) == size
       @test sdd_num_nodes(cnfΔ) == nodes

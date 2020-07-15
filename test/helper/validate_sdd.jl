@@ -1,17 +1,19 @@
 # helper test functions to check for SDD properties holding
 
 function validate(sdd::Sdd)
-    foreach(validate, sdd) 
+   for node in linearize(sdd) # linearize first so that callee can use bit field
+      validate_node(node)
+   end
     #TODO make one of these for structured decomposability
     @test isdecomposable(sdd)
     @test is_canonical(sdd, 5; verbose = true)
  end
    
-function validate(n::Sdd)
-   validate(GateType(n), n)
+function validate_node(n::Sdd)
+   validate_node(GateType(n), n)
 end
 
-function validate(::⋁Gate, n::Sdd)
+function validate_node(::⋁Gate, n::Sdd)
    size = num_children(n)
    primes = compile(false)
    for i = 1:size
@@ -42,7 +44,7 @@ function validate(::⋁Gate, n::Sdd)
    @test NodeType(vtree(n)) isa Inner
 end
 
-function validate(::⋀Gate, n::Sdd)
+function validate_node(::⋀Gate, n::Sdd)
    @test num_children(n) == 2
    @test !(GateType(prime(n)) isa ⋀Gate)
    @test !(GateType(sub(n)) isa ⋀Gate)
@@ -53,10 +55,10 @@ function validate(::⋀Gate, n::Sdd)
    @test GateType(sub(n)) isa ConstantGate || varsubset_right(sub(n), n)
 end
 
-function validate(::LiteralGate, l::Sdd)
+function validate_node(::LiteralGate, l::Sdd)
    @test variable(l) == first(variables(vtree(l)))
 end
 
-function validate(::ConstantGate, ::Sdd)
+function validate_node(::ConstantGate, ::Sdd)
    # nothing to check?
 end
