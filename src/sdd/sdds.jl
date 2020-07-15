@@ -145,10 +145,11 @@ function compile_clause(mgr::SddMgr, clause::LogicCircuit)::Sdd
 
  "Compile a CNF into an SDD naively, by conjoining clauses in order of the CNF"
  function compile_cnf_naive(mgr::SddMgr, cnf::LogicCircuit, progress=false)::Sdd
-    @assert all(is⋁gate, clauses)
+    @assert is⋀gate(cnf)
     cnfcircuit = compile(true)
     i = 0
     for clause in children(cnf)
+       @assert is⋁gate(clause)
        i = i+1
        cnfcircuit = cnfcircuit & compile_clause(mgr, clause)
        progress && println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(cnfcircuit))
