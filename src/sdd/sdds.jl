@@ -11,12 +11,13 @@ abstract type SddMgr <: Vtree end
 
 #############
 # Sdd
+# Sdd nodes are really identical to StructLogicCircuit nodes, except that:
+#  * they are parameterized by their vtree node type
+#  * Or nodes keep track of their negation for fast "apply".
 #############
 
 "Root of the SDD circuit node hierarchy"
 abstract type Sdd{V} <: StructLogicCircuit where V<:SddMgr end
-
-# TODO: replace this entire hierarchy because it's identical to `StructLogicCircuit` except for the type parameter, which we should add back to `StructLogicCircuit` and just alias it as `SDD`.
 
 "A SDD logical leaf node"
 abstract type SddLeafNode{V} <: Sdd{V} end
