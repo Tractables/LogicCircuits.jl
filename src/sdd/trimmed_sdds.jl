@@ -16,8 +16,12 @@ const trimtrue = SddTrueNode()
 const trimfalse = SddFalseNode()
 
 # alias SDD terminology
+struct Element
+    prime::Sdd
+    sub::Sdd
+end
 "Represents elements that are not yet compiled into conjunctions"
-const Element = Pair{Sdd,Sdd} # somehow Pair is faster than Tuple and much faster than Vector...
+# const Element = Pair{Sdd,Sdd} # somehow Pair is faster than Tuple and much faster than Vector...
 
 "Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Set{Element}
@@ -100,8 +104,8 @@ TrimSddMgr(left::TrimSddMgr, right::TrimSddMgr) = TrimSddMgrInnerNode(left, righ
 
 import ..Utils: parent, lca # make available for extension
 
-@inline prime(e::Element) = e[1]
-@inline sub(e::Element) = e[2]
+@inline prime(e::Element) = e.prime
+@inline sub(e::Element) = e.sub
 
 @inline parent(n::TrimSddMgr)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
 
