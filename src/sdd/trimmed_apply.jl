@@ -20,11 +20,6 @@ function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd
     end
 end
 
-# @inline conjoin(s::SddLiteralNode, ::SddTrueNode)::SddLiteralNode = s
-# @inline conjoin(::SddTrueNode, s::SddLiteralNode)::SddLiteralNode = s
-# @inline conjoin(::SddLiteralNode, ::SddFalseNode)::SddFalseNode = trimfalse
-# @inline conjoin(::SddFalseNode, ::SddLiteralNode)::SddFalseNode = trimfalse
-
 
 # Note: attempts to make a special cache for conjunctions with literals have not yielded speedups
 
@@ -44,7 +39,7 @@ end
 """
 Conjoin two SDDs when they respect the same vtree node
 """
-function conjoin_cartesian(n1::Sdd, n2::Sdd)::Sdd
+function conjoin_cartesian(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     if n1 === n2
         return n1
     elseif n1 == !n2
