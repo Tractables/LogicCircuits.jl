@@ -315,6 +315,9 @@ function load_cnf(file::String; dual=false)::PlainLogicCircuit
                 dual && startswith(ln, "p dnf")
                 # skip comment and header lines
                 continue
+            elseif ln[1] == '%'
+                # some CNF files appear to have trailing lines after '%' which should not be parsed
+                break
             else
                 tokens = split(ln)
                 for token in tokens
