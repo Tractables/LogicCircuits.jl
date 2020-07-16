@@ -17,8 +17,7 @@ const trimfalse = SddFalseNode()
 
 # alias SDD terminology
 "Represents elements that are not yet compiled into conjunctions"
-const Element = Tuple{Sdd,Sdd}
-Element(prime::Sdd, sub::Sdd)::Element = (prime, sub)
+const Element = Pair{Sdd,Sdd} # somehow Pair is faster than Tuple and much faster than Vector...
 
 "Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Set{Element}
@@ -150,7 +149,7 @@ function compress(xy::XYPartition)::XYPartition
     compressed_elements = XYPartition()
     for (subnode,elements) in sub2elems
         primenode = mapreduce(e -> prime(e), (p1, p2) -> disjoin(p1, p2), elements)
-        push!(compressed_elements, (primenode, subnode))
+        push!(compressed_elements, Element(primenode, subnode))
     end
     return compressed_elements
 end
