@@ -11,69 +11,67 @@ abstract type SddMgr <: Vtree end
 
 #############
 # Sdd
-# Sdd nodes are really identical to StructLogicCircuit nodes, except that:
-#  * they are parameterized by their vtree node type
-#  * Or nodes keep track of their negation for fast "apply".
+# Sdd nodes are really identical to StructLogicCircuit nodes, 
+# except that Or nodes keep track of their negation for fast "apply".
 #############
 
 "Root of the SDD circuit node hierarchy"
-abstract type Sdd{V} <: StructLogicCircuit where V<:SddMgr end
+abstract type Sdd <: StructLogicCircuit end
 
 "A SDD logical leaf node"
-abstract type SddLeafNode{V} <: Sdd{V} end
+abstract type SddLeafNode <: Sdd end
 
 "A SDD logical inner node"
-abstract type SddInnerNode{V} <: Sdd{V} end
+abstract type SddInnerNode <: Sdd end
 
 "A SDD logical literal leaf node, representing the positive or negative literal of its variable"
-mutable struct SddLiteralNode{V} <: SddLeafNode{V}
+mutable struct SddLiteralNode <: SddLeafNode
     literal::Lit
-    vtree::V
+    vtree::SddMgr
     data
     bit::Bool
-    SddLiteralNode(l,v::V) where V = SddLiteralNode{V}(l,v)
-    SddLiteralNode{V}(l,v::V) where V = new{V}(l,v,nothing,false)
+    SddLiteralNode(l,v) = new(l,v,nothing,false)
 end
 
 """
 A SDD logical constant leaf node, representing true or false.
 These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
 """
-abstract type SddConstantNode{V} <: SddInnerNode{V} end
+abstract type SddConstantNode <: SddInnerNode end
 
 "A SDD logical true constant."
-mutable struct SddTrueNode{V} <: SddConstantNode{V} 
+mutable struct SddTrueNode <: SddConstantNode 
     data
     bit::Bool
-    SddTrueNode{V}() where V = new{V}(nothing,false)
+    SddTrueNode() = new(nothing,false)
 end
 
 "A SDD logical false constant."
-mutable struct SddFalseNode{V} <: SddConstantNode{V} 
+mutable struct SddFalseNode <: SddConstantNode 
     data
     bit::Bool
-    SddFalseNode{V}() where V = new{V}(nothing,false)
+    SddFalseNode() = new(nothing,false)
 end
 
 "A SDD logical conjunction node"
-mutable struct Sdd⋀Node{V} <: SddInnerNode{V}
-    prime::Sdd{<:V}
-    sub::Sdd{<:V}
-    vtree::V
+mutable struct Sdd⋀Node <: SddInnerNode
+    prime::Sdd
+    sub::Sdd
+    vtree::SddMgr
     data
     bit::Bool
-    Sdd⋀Node{V}(p,s,v::V) where V = new{V}(p,s,v,nothing,false)
+    Sdd⋀Node(p,s,v) = new(p,s,v,nothing,false)
 end
 
 "A SDD logical disjunction node"
-mutable struct Sdd⋁Node{V} <: SddInnerNode{V}
-    children::Vector{<:Sdd⋀Node{<:V}}
-    vtree::V
+mutable struct Sdd⋁Node <: SddInnerNode
+    children::Vector{Sdd⋀Node}
+    vtree::SddMgr
     data
     bit::Bool
-    negation::Sdd⋁Node{V}
-    Sdd⋁Node{V}(ch,v::V) where V = new{V}(ch, v, nothing, false) # leave negation uninitialized
-    Sdd⋁Node{V}(ch,v::V,neg) where V = new{V}(ch, v, nothing, false, neg)
+    negation::Sdd⋁Node
+    Sdd⋁Node(ch,v) = new(ch, v, nothing, false) # leave negation uninitialized
+    Sdd⋁Node(ch,v,neg) = new(ch, v, nothing, false, neg)
 end
 
 #####################

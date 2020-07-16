@@ -1,16 +1,16 @@
 """
 Conjoin two SDDs
 """
-@inline conjoin(::TrimFalse, ::TrimTrue)::TrimFalse = trimfalse
-@inline conjoin(::TrimTrue, ::TrimFalse)::TrimFalse = trimfalse
-@inline conjoin(s::TrimNode, ::TrimTrue)::TrimNode = s
-@inline conjoin(::TrimNode, ::TrimFalse)::TrimFalse = trimfalse
-@inline conjoin(::TrimTrue, s::TrimNode)::TrimNode = s
-@inline conjoin(::TrimFalse, ::TrimNode)::TrimFalse = trimfalse
-@inline conjoin(::TrimTrue, s::TrimTrue)::TrimNode = trimtrue
-@inline conjoin(::TrimFalse, s::TrimFalse)::TrimNode = trimfalse
+@inline conjoin(::SddFalseNode, ::SddTrueNode)::SddFalseNode = trimfalse
+@inline conjoin(::SddTrueNode, ::SddFalseNode)::SddFalseNode = trimfalse
+@inline conjoin(s::Sdd, ::SddTrueNode)::Sdd = s
+@inline conjoin(::Sdd, ::SddFalseNode)::SddFalseNode = trimfalse
+@inline conjoin(::SddTrueNode, s::Sdd)::Sdd = s
+@inline conjoin(::SddFalseNode, ::Sdd)::SddFalseNode = trimfalse
+@inline conjoin(::SddTrueNode, s::SddTrueNode)::Sdd = trimtrue
+@inline conjoin(::SddFalseNode, s::SddFalseNode)::Sdd = trimfalse
 
-function conjoin(s::TrimLiteral, t::TrimLiteral)::TrimNode 
+function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd 
     if vtree(s) == vtree(t)
         (s === t) ? s : trimfalse
     else
@@ -18,7 +18,7 @@ function conjoin(s::TrimLiteral, t::TrimLiteral)::TrimNode
     end
 end
 
-function conjoin(s::TrimNode, t::TrimNode)::TrimNode 
+function conjoin(s::Sdd, t::Sdd)::Sdd 
     if vtree(s) == vtree(t)
         conjoin_cartesian(t,s)
     elseif varsubset(s,t)
@@ -33,7 +33,7 @@ end
 """
 Conjoin two SDDs when they respect the same vtree node
 """
-function conjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
+function conjoin_cartesian(n1::Sdd, n2::Sdd)::Sdd
     if n1 === n2
         return n1
     elseif n1 == !n2
@@ -92,7 +92,7 @@ end
 """
 Conjoin two SDDs when one descends from the other
 """
-function conjoin_descendent(d::TrimNode, n::TrimNode)::TrimNode
+function conjoin_descendent(d::Sdd, n::Sdd)::Sdd
     get!(vtree(n).conjoin_cache, (d,n)) do 
         if varsubset_left(d, n)
             elements = Element[Element(conjoin(prime(e),d), sub(e)) for e in children(n)]
@@ -110,7 +110,7 @@ end
 """
 Conjoin two SDDs in separate parts of the vtree
 """
-function conjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
+function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     mgr = parentlca(s,t)
     # @assert vtree(s) != mgr && vtree(t) != mgr
@@ -132,16 +132,16 @@ end
 """
 Disjoin two SDDs
 """
-@inline disjoin(::TrimFalse, ::TrimTrue)::TrimTrue = trimtrue
-@inline disjoin(::TrimTrue, ::TrimFalse)::TrimTrue = trimtrue
-@inline disjoin(::TrimNode, ::TrimTrue)::TrimTrue = trimtrue
-@inline disjoin(s::TrimNode, ::TrimFalse)::TrimNode = s
-@inline disjoin(::TrimTrue, ::TrimNode)::TrimTrue = trimtrue
-@inline disjoin(::TrimFalse, s::TrimNode)::TrimNode = s
-@inline disjoin(::TrimTrue, s::TrimTrue)::TrimNode = trimtrue
-@inline disjoin(::TrimFalse, s::TrimFalse)::TrimNode = trimfalse
+@inline disjoin(::SddFalseNode, ::SddTrueNode)::SddTrueNode = trimtrue
+@inline disjoin(::SddTrueNode, ::SddFalseNode)::SddTrueNode = trimtrue
+@inline disjoin(::Sdd, ::SddTrueNode)::SddTrueNode = trimtrue
+@inline disjoin(s::Sdd, ::SddFalseNode)::Sdd = s
+@inline disjoin(::SddTrueNode, ::Sdd)::SddTrueNode = trimtrue
+@inline disjoin(::SddFalseNode, s::Sdd)::Sdd = s
+@inline disjoin(::SddTrueNode, s::SddTrueNode)::Sdd = trimtrue
+@inline disjoin(::SddFalseNode, s::SddFalseNode)::Sdd = trimfalse
 
-function disjoin(s::TrimLiteral, t::TrimLiteral)::TrimNode 
+function disjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd 
     if vtree(s) == vtree(t)
         (s === t) ? s : trimtrue
     else
@@ -149,7 +149,7 @@ function disjoin(s::TrimLiteral, t::TrimLiteral)::TrimNode
     end
 end
 
-function disjoin(s::TrimNode, t::TrimNode)::TrimNode 
+function disjoin(s::Sdd, t::Sdd)::Sdd 
     if vtree(s) == vtree(t)
         disjoin_cartesian(t,s)
     elseif varsubset(s,t)
@@ -164,7 +164,7 @@ end
 """
 Disjoin two SDDs when they respect the same vtree node
 """
-function disjoin_cartesian(n1::TrimNode, n2::TrimNode)::TrimNode
+function disjoin_cartesian(n1::Sdd, n2::Sdd)::Sdd
     if n1 === n2
         return n1
     elseif n1 == !n2
@@ -222,7 +222,7 @@ end
 """
 Disjoin two SDDs when one descends from the other
 """
-function disjoin_descendent(d::TrimNode, n::TrimNode)::TrimNode
+function disjoin_descendent(d::Sdd, n::Sdd)::Sdd
     get!(vtree(n).disjoin_cache, (d,n)) do 
         if varsubset_left(d, n)
             not_d = !d
@@ -241,7 +241,7 @@ end
 """
 Disjoin two SDDs in separate parts of the vtree
 """
-function disjoin_indep(s::TrimNode, t::TrimNode)::Trim⋁
+function disjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     mgr = parentlca(s,t)
     # @assert vtree(s) != mgr && vtree(t) != mgr

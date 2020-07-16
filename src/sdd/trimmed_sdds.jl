@@ -1,5 +1,5 @@
-export TrimSddMgr, TrimNode, Trim⋁, Trim⋀,
-    TrimConstant, TrimTrue, TrimFalse, 
+export TrimSddMgr, Sdd, Sdd⋁Node, Sdd⋀Node,
+    SddConstantNode, SddTrueNode, SddFalseNode, 
     compress, unique⋁, canonicalize, negate
 
 #############
@@ -9,45 +9,25 @@ export TrimSddMgr, TrimNode, Trim⋁, Trim⋀,
 "Root of the trimmed SDD manager node hierarchy"
 abstract type TrimSddMgr <: SddMgr end
 
-# alias SDD nodes with a trimmed sdd manager vtree
-
-"Trimmed SDD Nodes"
-const TrimNode = Sdd{<:TrimSddMgr} # would this be better?: Union{TrimTrue,TrimFalse,TrimConstant,Trim⋁,Trim⋀}
-
-"Trimmed SDD disjunctions"
-const Trim⋁ = Sdd⋁Node{TrimSddMgr}
-
-"Trimmed SDD conjunctions"
-const Trim⋀ = Sdd⋀Node{TrimSddMgr}
-
-"Trimmed SDD constants"
-const TrimConstant = SddConstantNode{TrimSddMgr}
-
-"Trimmed SDD true nodes"
-const TrimTrue = SddTrueNode{TrimSddMgr}
-
 "Canonical trimmed SDD true node"
-const trimtrue = TrimTrue()
-
-"Trimmed SDD false nodes"
-const TrimFalse = SddFalseNode{TrimSddMgr}
+const trimtrue = SddTrueNode()
 
 "Canonical trimmed SDD false node"
-const trimfalse = TrimFalse()
+const trimfalse = SddFalseNode()
 
 # alias SDD terminology
 "Represents elements that are not yet compiled into conjunctions"
-const Element = Tuple{TrimNode,TrimNode}
-Element(prime::TrimNode, sub::TrimNode)::Element = (prime, sub)
+const Element = Tuple{Sdd,Sdd}
+Element(prime::Sdd, sub::Sdd)::Element = (prime, sub)
 
 "Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Set{Element}
 
 "Unique nodes cache for decision nodes"
-const Unique⋁Cache = Dict{XYPartition,Trim⋁}
+const Unique⋁Cache = Dict{XYPartition,Sdd⋁Node}
 
 "Apply cache for the result of conjunctions and disjunctions"
-const ApplyCache = Dict{Tuple{TrimNode,TrimNode},TrimNode}
+const ApplyCache = Dict{Tuple{Sdd,Sdd},Sdd}
 
 "SDD manager inner vtree node for trimmed SDD nodes"
 mutable struct TrimSddMgrInnerNode <: TrimSddMgr
@@ -82,8 +62,8 @@ mutable struct TrimSddMgrLeafNode <: TrimSddMgr
     var::Var
     parent::Union{TrimSddMgrInnerNode, Nothing}
 
-    positive_literal::SddLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral (defined later)
-    negative_literal::SddLiteralNode{TrimSddMgrLeafNode} # aka TrimLiteral (defined later)
+    positive_literal::SddLiteralNode # aka SddLiteralNode (defined later)
+    negative_literal::SddLiteralNode # aka SddLiteralNode (defined later)
 
     TrimSddMgrLeafNode(v::Var) = begin
         this = new(v, nothing)
@@ -93,9 +73,6 @@ mutable struct TrimSddMgrLeafNode <: TrimSddMgr
     end    
 
 end
-
-"Trimmed SDD literals"
-const TrimLiteral = SddLiteralNode{TrimSddMgrLeafNode}
 
 #####################
 # Constructor
@@ -131,9 +108,9 @@ import ..Utils: parent, lca # make available for extension
 
 import .Utils: varsubset #extend
 
-@inline varsubset(n::TrimNode, m::TrimNode) = varsubset(vtree(n), vtree(m))
-@inline varsubset_left(n::TrimNode, m::TrimNode)::Bool = varsubset_left(vtree(n), vtree(m))
-@inline varsubset_right(n::TrimNode, m::TrimNode)::Bool = varsubset_right(vtree(n), vtree(m))
+@inline varsubset(n::Sdd, m::Sdd) = varsubset(vtree(n), vtree(m))
+@inline varsubset_left(n::Sdd, m::Sdd)::Bool = varsubset_left(vtree(n), vtree(m))
+@inline varsubset_right(n::Sdd, m::Sdd)::Bool = varsubset_right(vtree(n), vtree(m))
 
 import .Utils.lca # extend
 
@@ -144,19 +121,19 @@ function lca(xy::XYPartition)::TrimSddMgrInnerNode
     return lca(element_vtrees...)
 end
 
-parentlca(p::TrimNode, s::TrimNode)::TrimSddMgrInnerNode = 
+parentlca(p::Sdd, s::Sdd)::TrimSddMgrInnerNode = 
     lca(parent(vtree(p)), parent(vtree(s)))
-parentlca(p::TrimNode, ::TrimConstant)::TrimSddMgrInnerNode = 
+parentlca(p::Sdd, ::SddConstantNode)::TrimSddMgrInnerNode = 
     parent(vtree(p))
-parentlca(::TrimConstant, s::TrimNode)::TrimSddMgrInnerNode = 
+parentlca(::SddConstantNode, s::Sdd)::TrimSddMgrInnerNode = 
     parent(vtree(s))
-parentlca(p::TrimConstant, s::TrimConstant)::TrimSddMgrInnerNode = 
+parentlca(p::SddConstantNode, s::SddConstantNode)::TrimSddMgrInnerNode = 
     error("This XY partition should have been trimmed to remove ($p,$s)!")
 
 """
 Get the canonical compilation of the given XY Partition
 """
-function canonicalize(xy::XYPartition)::TrimNode
+function canonicalize(xy::XYPartition)::Sdd
     # @assert !isempty(xy)
     return canonicalize_compressed(compress(xy))
 end
@@ -179,7 +156,7 @@ end
 """
 Get the canonical compilation of the given compressed XY Partition
 """
-function canonicalize_compressed(xy::XYPartition)::TrimNode
+function canonicalize_compressed(xy::XYPartition)::Sdd
     # @assert !isempty(xy)
     # trim
     if length(xy) == 1 && (prime(first(xy)) === trimtrue)
@@ -203,30 +180,30 @@ end
 """
 Construct a unique decision gate for the given vtree
 """
-function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Trim⋁
+function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Sdd⋁Node
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
     get!(mgr.unique⋁cache, xy) do 
-        node = Trim⋁(xy2ands(xy, mgr), mgr)
+        node = Sdd⋁Node(xy2ands(xy, mgr), mgr)
         not_xy = negate(xy)
-        not_node = Trim⋁(xy2ands(not_xy, mgr), mgr, node)
+        not_node = Sdd⋁Node(xy2ands(not_xy, mgr), mgr, node)
         node.negation = not_node
         mgr.unique⋁cache[not_xy] = not_node
         node
     end
 end
 
-@inline xy2ands(xy::XYPartition, mgr::TrimSddMgrInnerNode) = [Trim⋀(prime(e), sub(e), mgr) for e in xy]
+@inline xy2ands(xy::XYPartition, mgr::TrimSddMgrInnerNode) = [Sdd⋀Node(prime(e), sub(e), mgr) for e in xy]
 
 
 """
 Compile a given variable, literal, or constant
 """
 
-function compile(n::TrimSddMgr, v::Var)::TrimLiteral
+function compile(n::TrimSddMgr, v::Var)::SddLiteralNode
     compile(n,var2lit(v))
 end
 
-function compile(n::TrimSddMgrLeafNode, l::Lit)::TrimLiteral
+function compile(n::TrimSddMgrLeafNode, l::Lit)::SddLiteralNode
     # @assert n.var == lit2var(l)
     if l>0 # positive literal
         n.positive_literal
@@ -235,7 +212,7 @@ function compile(n::TrimSddMgrLeafNode, l::Lit)::TrimLiteral
     end
 end
 
-function compile(n::TrimSddMgrInnerNode, l::Lit)::TrimLiteral
+function compile(n::TrimSddMgrInnerNode, l::Lit)::SddLiteralNode
     if lit2var(l) in variables(n.left)
         compile(n.left, l)
     elseif lit2var(l) in variables(n.right)
@@ -246,7 +223,7 @@ function compile(n::TrimSddMgrInnerNode, l::Lit)::TrimLiteral
 end
 
 # TODO: add type argument to distinguish from other circuit compilers for constants
-function compile(constant::Bool)::TrimConstant
+function compile(constant::Bool)::SddConstantNode
     if constant == true
         trimtrue
     else
@@ -257,10 +234,10 @@ end
 """
 Negate an SDD
 """
-@inline negate(::TrimFalse)::TrimTrue = trimtrue
-@inline negate(::TrimTrue)::TrimFalse = trimfalse
+@inline negate(::SddFalseNode)::SddTrueNode = trimtrue
+@inline negate(::SddTrueNode)::SddFalseNode = trimfalse
 
-function negate(s::TrimLiteral)::TrimLiteral 
+function negate(s::SddLiteralNode)::SddLiteralNode 
     if ispositive(s) 
         vtree(s).negative_literal
     else
@@ -268,7 +245,7 @@ function negate(s::TrimLiteral)::TrimLiteral
     end
 end
 
-negate(node::Trim⋁)::Trim⋁ = node.negation
+negate(node::Sdd⋁Node)::Sdd⋁Node = node.negation
 
 @inline negate(xy::XYPartition) = XYPartition([Element(prime(e), !sub(e)) for e in xy])
 
