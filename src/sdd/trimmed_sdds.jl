@@ -43,12 +43,15 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgr
     conjoin_cache::ApplyCache
     disjoin_cache::ApplyCache
 
+    conjoin_pos_literal_cache::Vector{Sdd}
+    conjoin_neg_literal_cache::Vector{Sdd}
+
     TrimSddMgrInnerNode(left::TrimSddMgr, right::TrimSddMgr) = begin
         # @assert disjoint(variables(left), variables(right))
         this = new(left, right, 
             nothing, 
             union(variables(left), variables(right)), 
-            Unique⋁Cache(), ApplyCache(), ApplyCache())
+            Unique⋁Cache(), ApplyCache(), ApplyCache(), Sdd[], Sdd[])
         left.parent = this
         right.parent = this
         this
@@ -73,6 +76,9 @@ mutable struct TrimSddMgrLeafNode <: TrimSddMgr
     end    
 
 end
+
+tmgr(n::SddInnerNode) = n.vtree::TrimSddMgrInnerNode
+tmgr(n::SddLeafNode) = n.vtree::TrimSddMgrLeafNode
 
 #####################
 # Constructor
@@ -108,9 +114,9 @@ import ..Utils: parent, lca # make available for extension
 
 import .Utils: varsubset #extend
 
-@inline varsubset(n::Sdd, m::Sdd) = varsubset(vtree(n), vtree(m))
-@inline varsubset_left(n::Sdd, m::Sdd)::Bool = varsubset_left(vtree(n), vtree(m))
-@inline varsubset_right(n::Sdd, m::Sdd)::Bool = varsubset_right(vtree(n), vtree(m))
+@inline varsubset(n::Sdd, m::Sdd) = varsubset(tmgr(n), tmgr(m))
+@inline varsubset_left(n::Sdd, m::Sdd)::Bool = varsubset_left(tmgr(n), tmgr(m))
+@inline varsubset_right(n::Sdd, m::Sdd)::Bool = varsubset_right(tmgr(n), tmgr(m))
 
 import .Utils.lca # extend
 
@@ -122,11 +128,11 @@ function lca(xy::XYPartition)::TrimSddMgrInnerNode
 end
 
 parentlca(p::Sdd, s::Sdd)::TrimSddMgrInnerNode = 
-    lca(parent(vtree(p)), parent(vtree(s)))
+    lca(parent(tmgr(p)), parent(tmgr(s)))
 parentlca(p::Sdd, ::SddConstantNode)::TrimSddMgrInnerNode = 
-    parent(vtree(p))
+    parent(tmgr(p))
 parentlca(::SddConstantNode, s::Sdd)::TrimSddMgrInnerNode = 
-    parent(vtree(s))
+    parent(tmgr(s))
 parentlca(p::SddConstantNode, s::SddConstantNode)::TrimSddMgrInnerNode = 
     error("This XY partition should have been trimmed to remove ($p,$s)!")
 
@@ -239,9 +245,9 @@ Negate an SDD
 
 function negate(s::SddLiteralNode)::SddLiteralNode 
     if ispositive(s) 
-        vtree(s).negative_literal
+        tmgr(s).negative_literal
     else
-        vtree(s).positive_literal
+        tmgr(s).positive_literal
     end
 end
 

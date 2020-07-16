@@ -1,3 +1,5 @@
+# TODO: see if replacing vtree by mgr with a more specific type annotation would speed things up?
+
 """
 Conjoin two SDDs
 """
@@ -7,19 +9,26 @@ Conjoin two SDDs
 @inline conjoin(::Sdd, ::SddFalseNode)::SddFalseNode = trimfalse
 @inline conjoin(::SddTrueNode, s::Sdd)::Sdd = s
 @inline conjoin(::SddFalseNode, ::Sdd)::SddFalseNode = trimfalse
-@inline conjoin(::SddTrueNode, s::SddTrueNode)::Sdd = trimtrue
-@inline conjoin(::SddFalseNode, s::SddFalseNode)::Sdd = trimfalse
+@inline conjoin(::SddTrueNode, ::SddTrueNode)::Sdd = trimtrue
+@inline conjoin(::SddFalseNode, ::SddFalseNode)::Sdd = trimfalse
 
-function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd 
-    if vtree(s) == vtree(t)
-        (s === t) ? s : trimfalse
-    else
-        conjoin_indep(s,t)
-    end
-end
+# function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd 
+#     if tmgr(s) == tmgr(t)
+#         (s === t) ? s : trimfalse
+#     else
+#         conjoin_indep(s,t)
+#     end
+# end
+
+# # TODO cache all conjunctions with literals -- this is where most CPU time is spent!
+# conjoin(l::SddLiteralNode, s::Sdd)::Sdd = conjoin(s,l)
+# function conjoin(s::Sdd, l::SddLiteralNode)::Sdd 
+#     tmgr(s)
+# end
+
 
 function conjoin(s::Sdd, t::Sdd)::Sdd 
-    if vtree(s) == vtree(t)
+    if tmgr(s) == tmgr(t)
         conjoin_cartesian(t,s)
     elseif varsubset(s,t)
         conjoin_descendent(s,t)
@@ -41,7 +50,7 @@ function conjoin_cartesian(n1::Sdd, n2::Sdd)::Sdd
     end
     (n1,n2) = pointer_sort(n1,n2)
 
-    get!(vtree(n1).conjoin_cache, (n1,n2)) do 
+    get!(tmgr(n1).conjoin_cache, (n1,n2)) do 
         elems_prod = Vector{Element}()
         elems1 = copy(children(n1))
         elems2 = copy(children(n2))
@@ -93,7 +102,7 @@ end
 Conjoin two SDDs when one descends from the other
 """
 function conjoin_descendent(d::Sdd, n::Sdd)::Sdd
-    get!(vtree(n).conjoin_cache, (d,n)) do 
+    get!(tmgr(n).conjoin_cache, (d,n)) do 
         if varsubset_left(d, n)
             elements = Element[Element(conjoin(prime(e),d), sub(e)) for e in children(n)]
             elements = remove_false_primes(elements)
@@ -113,15 +122,15 @@ Conjoin two SDDs in separate parts of the vtree
 function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     mgr = parentlca(s,t)
-    # @assert vtree(s) != mgr && vtree(t) != mgr
+    # @assert tmgr(s) != mgr && tmgr(t) != mgr
     (s,t) = pointer_sort(s,t)
     get!(mgr.conjoin_cache, (s,t)) do 
-        if varsubset_left(vtree(s), mgr)
-            # @assert varsubset_right(vtree(t), mgr)
+        if varsubset_left(tmgr(s), mgr)
+            # @assert varsubset_right(tmgr(t), mgr)
             elements = Element[Element(s,t),Element(!s,trimfalse)]
         else 
-            # @assert varsubset_left(vtree(t), mgr)
-            # @assert varsubset_right(vtree(s), mgr)
+            # @assert varsubset_left(tmgr(t), mgr)
+            # @assert varsubset_right(tmgr(s), mgr)
             elements = Element[Element(t,s),Element(!t,trimfalse)]
         end
         # TODO: the XY partition must already be compressed and trimmed
@@ -142,7 +151,7 @@ Disjoin two SDDs
 @inline disjoin(::SddFalseNode, s::SddFalseNode)::Sdd = trimfalse
 
 function disjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd 
-    if vtree(s) == vtree(t)
+    if tmgr(s) == tmgr(t)
         (s === t) ? s : trimtrue
     else
         disjoin_indep(s,t)
@@ -150,7 +159,7 @@ function disjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd
 end
 
 function disjoin(s::Sdd, t::Sdd)::Sdd 
-    if vtree(s) == vtree(t)
+    if tmgr(s) == tmgr(t)
         disjoin_cartesian(t,s)
     elseif varsubset(s,t)
         disjoin_descendent(s,t)
@@ -172,7 +181,7 @@ function disjoin_cartesian(n1::Sdd, n2::Sdd)::Sdd
     end
     (n1,n2) = pointer_sort(n1,n2)
 
-    get!(vtree(n1).disjoin_cache, (n1,n2)) do 
+    get!(tmgr(n1).disjoin_cache, (n1,n2)) do 
         elems_prod = Vector{Element}()
         elems1 = copy(children(n1))
         elems2 = copy(children(n2))
@@ -223,7 +232,7 @@ end
 Disjoin two SDDs when one descends from the other
 """
 function disjoin_descendent(d::Sdd, n::Sdd)::Sdd
-    get!(vtree(n).disjoin_cache, (d,n)) do 
+    get!(tmgr(n).disjoin_cache, (d,n)) do 
         if varsubset_left(d, n)
             not_d = !d
             elements = Element[Element(conjoin(prime(e),not_d), sub(e)) for e in children(n)]
@@ -244,15 +253,15 @@ Disjoin two SDDs in separate parts of the vtree
 function disjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     mgr = parentlca(s,t)
-    # @assert vtree(s) != mgr && vtree(t) != mgr
+    # @assert tmgr(s) != mgr && tmgr(t) != mgr
     (s,t) = pointer_sort(s,t)
     get!(mgr.disjoin_cache, (s,t)) do 
-        if varsubset_left(vtree(s), mgr)
-            # @assert varsubset_right(vtree(t), mgr)
+        if varsubset_left(tmgr(s), mgr)
+            # @assert varsubset_right(tmgr(t), mgr)
             elements = Element[Element(s,trimtrue),Element(!s,t)]
         else 
-            # @assert varsubset_left(vtree(t), mgr)
-            # @assert varsubset_right(vtree(s), mgr)
+            # @assert varsubset_left(tmgr(t), mgr)
+            # @assert varsubset_right(tmgr(s), mgr)
             elements = Element[Element(t,trimtrue),Element(!t,s)]
         end
         # TODO: the XY partition must already be compressed and trimmed
