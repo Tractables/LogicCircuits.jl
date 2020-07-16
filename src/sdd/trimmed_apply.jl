@@ -47,7 +47,7 @@ function conjoin_cartesian(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     end
     (n1,n2) = pointer_sort(n1,n2)
 
-    get!(tmgr(n1).conjoin_cache, (n1,n2)) do 
+    get!(tmgr(n1).conjoin_cache, Element(n1,n2)) do 
         elems_prod = Vector{Element}()
         elems1 = copy(children(n1))
         elems2 = copy(children(n2))
@@ -99,7 +99,7 @@ end
 Conjoin two SDDs when one descends from the other
 """
 function conjoin_descendent(d::Sdd, n::Sdd)::Sdd
-    get!(tmgr(n).conjoin_cache, (d,n)) do 
+    get!(tmgr(n).conjoin_cache, Element(d,n)) do 
         if varsubset_left(d, n)
             elements = Element[Element(conjoin(prime(e),d), sub(e)) for e in children(n)]
             elements = remove_false_primes(elements)
@@ -121,7 +121,7 @@ function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
     mgr = parentlca(s,t)
     # @assert tmgr(s) != mgr && tmgr(t) != mgr
     (s,t) = pointer_sort(s,t)
-    get!(mgr.conjoin_cache, (s,t)) do 
+    get!(mgr.conjoin_cache, Element(s,t)) do 
         if varsubset_left(tmgr(s), mgr)
             # @assert varsubset_right(tmgr(t), mgr)
             elements = Element[Element(s,t),Element(!s,trimfalse)]

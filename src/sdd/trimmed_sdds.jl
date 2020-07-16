@@ -30,7 +30,7 @@ const XYPartition = Set{Element}
 const Unique⋁Cache = Dict{XYPartition,Sdd⋁Node}
 
 "Apply cache for the result of conjunctions and disjunctions"
-const ApplyCache = Dict{Tuple{Sdd,Sdd},Sdd}
+const ApplyCache = Dict{Element,Sdd}
 
 "SDD manager inner vtree node for trimmed SDD nodes"
 mutable struct TrimSddMgrInnerNode <: TrimSddMgr
