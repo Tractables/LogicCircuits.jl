@@ -63,6 +63,9 @@ mutable struct Sdd⋀Node <: SddInnerNode
     Sdd⋀Node(p,s,v) = new(p,s,v,nothing,false)
 end
 
+mycache() = Vector{Union{Nothing,Sdd}}(nothing, 172)
+
+
 "A SDD logical disjunction node"
 mutable struct Sdd⋁Node <: SddInnerNode
     children::Vector{Sdd⋀Node}

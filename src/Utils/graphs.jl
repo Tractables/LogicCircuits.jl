@@ -346,7 +346,7 @@ end
 # When you suspect there is a bug but execution halts, it may be because of 
 # pretty printing a huge recursive graph structure. 
 # To safeguard against that case, we set a default show:
-Base.show(io::IO, c::Node) = print(io, "$(typeof(c))($(hash(c))))")
+Base.show(io::IO, c::Node) = print(io, "$(typeof(c))($(hash(c)))")
 
 "Give count of types and fan-ins of all nodes in the graph"
 node_stats(c::Dag) = merge(leaf_stats(c), inode_stats(c))

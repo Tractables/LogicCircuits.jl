@@ -43,15 +43,12 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgr
     conjoin_cache::ApplyCache
     disjoin_cache::ApplyCache
 
-    conjoin_pos_literal_cache::Vector{Sdd}
-    conjoin_neg_literal_cache::Vector{Sdd}
-
     TrimSddMgrInnerNode(left::TrimSddMgr, right::TrimSddMgr) = begin
         # @assert disjoint(variables(left), variables(right))
-        this = new(left, right, 
-            nothing, 
+        this = new(left, right, nothing, 
             union(variables(left), variables(right)), 
-            Unique⋁Cache(), ApplyCache(), ApplyCache(), Sdd[], Sdd[])
+            Unique⋁Cache(), ApplyCache(), ApplyCache()
+        )
         left.parent = this
         right.parent = this
         this

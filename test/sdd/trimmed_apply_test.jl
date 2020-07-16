@@ -101,3 +101,17 @@ using LogicCircuits
     @test length(String(take!(io))) > 0 # see if it runs, regardless of result
 
 end
+
+@testset "Trimmed apply regression test" begin
+
+    v = zoo_vtree("iscas89/s386.scan.min.vtree")
+    mgr = Vtree(TrimSddMgr, v)
+    v70 = compile(mgr,Var(70))
+    v71 = compile(mgr,Var(71))
+    n = (v70 & v71) | (!v70 & !v71)
+    n & v70
+    !n & !v70
+    r = (!n & v70)
+    @test "$r" == "[(70,-71),(-70,⊥)]" || "$r" == "[(-70,⊥),(70,-71)]" 
+
+end
