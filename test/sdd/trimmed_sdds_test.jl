@@ -1,6 +1,6 @@
 using Test
 using LogicCircuits
-using LogicCircuits: Element, XYPartition # test some internals
+using LogicCircuits: Element # test some internals
 
 @testset "Trimmed SDD test" begin
 
@@ -98,20 +98,20 @@ using LogicCircuits: Element, XYPartition # test some internals
     v7 = compile(mgr, Var(7))
     @test_throws Exception compile(mgr, Var(8))
 
-    p1 = XYPartition([Element(true_c,v3)])
+    p1 = [Element(true_c,v3)]
     @test canonicalize(p1) === v3
-    p2 = XYPartition([Element(v1,true_c), Element(!v1,false_c)])
+    p2 = [Element(v1,true_c), Element(!v1,false_c)]
     @test canonicalize(p2) === v1
 
-    p3 = XYPartition([Element(v1,v3), Element(!v1,v7)])
+    p3 = [Element(v1,v3), Element(!v1,v7)]
     n1 = canonicalize(p3)
-    p4 = XYPartition([Element(!v1,v7), Element(v1,v3)])
+    p4 = [Element(!v1,v7), Element(v1,v3)]
     n2 = canonicalize(p4)
     @test n1 === n2
 
     @test lca(p1) == parent(vtree(v3))
     @test lca(p2) == parent(vtree(v1))
-    @test lca(XYPartition([Element(true_c,v3)])) == parent(vtree(v3))
-    @test_throws Exception lca(XYPartition([Element(true_c,false_c)])) 
+    @test lca([Element(true_c,v3)]) == parent(vtree(v3))
+    @test_throws Exception lca([Element(true_c,false_c)]) 
 
 end
