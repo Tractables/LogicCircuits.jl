@@ -24,7 +24,23 @@ struct Element # somehow this is faster than using Pair or Tuples...?
 end
 
 "Represent an XY-partition that has not yet been compiled into a disjunction"
-const XYPartition = Set{Element}
+const XYPartition = Vector{Element}
+
+@inline XYPartition(xy::XYPartition) = error("deprecated")
+
+Base.hash(xy::XYPartition, h::UInt) = begin
+    hv = Base.hashs_seed
+    for x in xy
+        hv ⊻= hash(x)
+    end
+    hash(hv,h)
+end
+
+Base.isequal(xy1::XYPartition, xy2::XYPartition) = begin
+    xy1 === xy2 && return true
+    length(xy1) != length(xy2) && return false
+    return issetequal(xy1,xy2)
+end
 
 "Unique nodes cache for decision nodes"
 const Unique⋁Cache = Dict{XYPartition,Sdd⋁Node}
@@ -147,6 +163,7 @@ end
 Compress a given XY Partition (merge elements with identical subs)
 """
 function compress(xy::XYPartition)::XYPartition
+    isquickcompressed(xy) && return xy
     # @assert !isempty(xy)
     sub2elems = groupby(e -> sub(e), xy)
     #TODO avoid making a new partition if existing one is unchanged
@@ -157,6 +174,15 @@ function compress(xy::XYPartition)::XYPartition
         push!(compressed_elements, Element(primenode, subnode))
     end
     return compressed_elements
+end
+
+function isquickcompressed(xy)
+    for i in eachindex(xy), j in i+1:length(xy)
+        if sub(xy[i]) === sub(xy[j])
+            return false
+        end
+    end
+    return true
 end
 
 """
@@ -177,10 +203,6 @@ function canonicalize_compressed(xy::XYPartition)::Sdd
     end
     # get unique node representation
     return unique⋁(xy)
-end
-
-@inline function remove_false_primes(xy)
-    return filter(e -> (prime(e) !== trimfalse), xy)
 end
 
 """
@@ -253,6 +275,6 @@ end
 
 negate(node::Sdd⋁Node)::Sdd⋁Node = node.negation
 
-@inline negate(xy::XYPartition) = XYPartition([Element(prime(e), !sub(e)) for e in xy])
+@inline negate(xy::XYPartition) = [Element(prime(e), !sub(e)) for e in xy]
 
 @inline Base.:!(s) = negate(s)
