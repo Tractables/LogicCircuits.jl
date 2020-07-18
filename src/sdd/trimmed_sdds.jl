@@ -16,12 +16,12 @@ const trimtrue = SddTrueNode()
 const trimfalse = SddFalseNode()
 
 # alias SDD terminology
-struct Element
+
+"Represents elements that are not yet compiled into conjunctions"
+struct Element # somehow this is faster than using Pair or Tuples...?
     prime::Sdd
     sub::Sdd
 end
-"Represents elements that are not yet compiled into conjunctions"
-# const Element = Pair{Sdd,Sdd} # somehow Pair is faster than Tuple and much faster than Vector...
 
 "Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Set{Element}
@@ -109,7 +109,7 @@ import ..Utils: parent, lca # make available for extension
 
 @inline parent(n::TrimSddMgr)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
 
-@inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (s,t) : (t,s)
+@inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (return s,t) : (return t,s)
 
 import .Utils: varsubset #extend
 
@@ -151,6 +151,7 @@ function compress(xy::XYPartition)::XYPartition
     sub2elems = groupby(e -> sub(e), xy)
     #TODO avoid making a new partition if existing one is unchanged
     compressed_elements = XYPartition()
+    sizehint!(compressed_elements,length(xy))
     for (subnode,elements) in sub2elems
         primenode = mapreduce(e -> prime(e), (p1, p2) -> disjoin(p1, p2), elements)
         push!(compressed_elements, Element(primenode, subnode))

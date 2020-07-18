@@ -13,7 +13,7 @@ Conjoin two SDDs
 @inline conjoin(::SddFalseNode, ::SddFalseNode)::Sdd = trimfalse
 
 function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd 
-    if tmgr(s) == tmgr(t)
+    if tmgr(s) === tmgr(t)
         (s === t) ? s : trimfalse
     else
         conjoin_indep(s,t)
@@ -24,7 +24,7 @@ end
 # Note: attempts to make a special cache for conjunctions with literals have not yielded speedups
 
 function conjoin(s::Sdd, t::Sdd)::Sdd 
-    if tmgr(s) == tmgr(t)
+    if tmgr(s) === tmgr(t)
         conjoin_cartesian(t,s)
     elseif varsubset(s,t)
         conjoin_descendent(s,t)
@@ -42,15 +42,18 @@ Conjoin two SDDs when they respect the same vtree node
 function conjoin_cartesian(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     if n1 === n2
         return n1
-    elseif n1 == !n2
+    elseif n1 === !n2
         return trimfalse
     end
-    (n1,n2) = pointer_sort(n1,n2)
+
+    n1, n2 = pointer_sort(n1,n2)
 
     get!(tmgr(n1).conjoin_cache, Element(n1,n2)) do 
         elems_prod = Vector{Element}()
+        sizehint!(elems_prod, num_children(n1) * num_children(n2))
         elems1 = copy(children(n1))
         elems2 = copy(children(n2))
+        # TODO use bitsets to mask elements instead of copy/filter
         for e1 in elems1
             for e2 in elems2
                 if prime(e1) === prime(e2)
@@ -76,12 +79,12 @@ function conjoin_cartesian(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
             end
         end
         product = vec([(e1,e2) for e1 in elems1, e2 in elems2])
-        #TODO sort product by probability of subsumes
         while !isempty(product)
             (e1, e2) = pop!(product)
             newprime = conjoin(prime(e1),prime(e2))
             if newprime != trimfalse
-                push!(elems_prod, Element(newprime, conjoin(sub(e1),sub(e2))))
+                newsub = conjoin(sub(e1),sub(e2))
+                push!(elems_prod, Element(newprime, newsub))
             end
             if newprime === prime(e1)
                 # p1 |= p2 and therefore p1 will be mutex with all other p2-primes
@@ -98,7 +101,7 @@ end
 """
 Conjoin two SDDs when one descends from the other
 """
-function conjoin_descendent(d::Sdd, n::Sdd)::Sdd
+function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
     get!(tmgr(n).conjoin_cache, Element(d,n)) do 
         if varsubset_left(d, n)
             elements = Element[Element(conjoin(prime(e),d), sub(e)) for e in children(n)]

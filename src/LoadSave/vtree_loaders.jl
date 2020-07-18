@@ -1,4 +1,4 @@
-export load_vtree, zoo_vtree
+export load_vtree, zoo_vtree, zoo_vtree_file
 
 function load_vtree(file::String)::PlainVtree
     return compile_vtree_format_lines(parse_vtree_file(file))
