@@ -1,4 +1,4 @@
-export smooth, forget, propagate_constants, condition, split, clone, replace_node, merge
+export smooth, forget, propagate_constants, deepcopy, condition, split, clone, replace_node, merge
 
 import Base.deepcopy
 function deepcopy(n::LogicCircuit, depth::Int64, old2new::Dict{LogicCircuit, LogicCircuit}== Dict{Node, Node}())
@@ -20,11 +20,6 @@ function deepcopy(n::LogicCircuit, depth::Int64, old2new::Dict{LogicCircuit, Log
 end
 
 "Create an equivalent smooth circuit from the given circuit."
-function smooth(root::Δ)::Δ
-    new_root = smooth(root[end])
-    linearize(new_root)
-end
-
 function smooth(root::LogicCircuit)::LogicCircuit
     lit_nodes = canonical_literals(root)
     f_con(n) = (n, BitSet())
