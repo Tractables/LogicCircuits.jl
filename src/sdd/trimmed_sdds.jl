@@ -16,18 +16,18 @@ const trimtrue = SddTrueNode()
 const trimfalse = SddFalseNode()
 
 # alias SDD terminology
-struct Element
+
+"Represents elements that are not yet compiled into conjunctions"
+struct Element # somehow this is faster than using Pair or Tuples...?
     prime::Sdd
     sub::Sdd
 end
-"Represents elements that are not yet compiled into conjunctions"
-# const Element = Pair{Sdd,Sdd} # somehow Pair is faster than Tuple and much faster than Vector...
 
 "Represent an XY-partition that has not yet been compiled into a disjunction"
-const XYPartition = Set{Element}
+const XYPartition = Vector{Element}
 
 "Unique nodes cache for decision nodes"
-const Unique⋁Cache = Dict{XYPartition,Sdd⋁Node}
+const Unique⋁Cache = Dict{Set{Element},Sdd⋁Node}
 
 "Apply cache for the result of conjunctions and disjunctions"
 const ApplyCache = Dict{Element,Sdd}
@@ -99,6 +99,7 @@ TrimSddMgr(left::TrimSddMgr, right::TrimSddMgr) = TrimSddMgrInnerNode(left, righ
 
 @inline children(n::TrimSddMgrInnerNode) = [n.left, n.right]
 
+@inline variable(n::TrimSddMgrLeafNode)::Var = n.var
 @inline variables(n::TrimSddMgrLeafNode)::BitSet = BitSet(n.var)
 @inline variables(n::TrimSddMgrInnerNode)::BitSet = n.variables
 
@@ -109,7 +110,7 @@ import ..Utils: parent, lca # make available for extension
 
 @inline parent(n::TrimSddMgr)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
 
-@inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (s,t) : (t,s)
+@inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (return s,t) : (return t,s)
 
 import .Utils: varsubset #extend
 
@@ -147,15 +148,33 @@ end
 Compress a given XY Partition (merge elements with identical subs)
 """
 function compress(xy::XYPartition)::XYPartition
-    # @assert !isempty(xy)
-    sub2elems = groupby(e -> sub(e), xy)
-    #TODO avoid making a new partition if existing one is unchanged
-    compressed_elements = XYPartition()
-    for (subnode,elements) in sub2elems
-        primenode = mapreduce(e -> prime(e), (p1, p2) -> disjoin(p1, p2), elements)
-        push!(compressed_elements, Element(primenode, subnode))
+    compressed = true
+    for i in eachindex(xy), j in i+1:length(xy)
+        if (sub(xy[i]) === sub(xy[j]))
+            compressed = false
+            break
+        end
     end
-    return compressed_elements
+    compressed && return xy
+    # make it compressed
+    out = Vector{Element}()
+    sizehint!(out, length(xy))
+    mask = falses(length(xy))
+    for i in eachindex(xy) 
+        if !mask[i]
+            prime_all = prime(xy[i])
+            sub_i = sub(xy[i])
+            for j in i+1:length(xy)
+                sub_j = sub(xy[j])
+                if !mask[j] && (sub_i === sub_j)
+                    prime_all = prime_all | prime(xy[j]) 
+                    mask[j] = true
+                end
+            end
+            push!(out,Element(prime_all,sub_i))
+        end
+    end
+    return out
 end
 
 """
@@ -167,19 +186,14 @@ function canonicalize_compressed(xy::XYPartition)::Sdd
     if length(xy) == 1 && (prime(first(xy)) === trimtrue)
         return sub(first(xy))
     elseif length(xy) == 2 
-        l = [xy...]
-        if (sub(l[1]) === trimtrue) && (sub(l[2]) === trimfalse)
-            return prime(l[1])
-        elseif (sub(l[2]) === trimtrue) && (sub(l[1]) === trimfalse)
-            return prime(l[2])
+        if (sub(xy[1]) === trimtrue) && (sub(xy[2]) === trimfalse)
+            return prime(xy[1])
+        elseif (sub(xy[2]) === trimtrue) && (sub(xy[1]) === trimfalse)
+            return prime(xy[2])
         end
     end
     # get unique node representation
     return unique⋁(xy)
-end
-
-@inline function remove_false_primes(xy)
-    return filter(e -> (prime(e) !== trimfalse), xy)
 end
 
 """
@@ -187,12 +201,12 @@ Construct a unique decision gate for the given vtree
 """
 function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Sdd⋁Node
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
-    get!(mgr.unique⋁cache, xy) do 
+    get!(mgr.unique⋁cache, Set(xy)) do 
         node = Sdd⋁Node(xy2ands(xy, mgr), mgr)
         not_xy = negate(xy)
         not_node = Sdd⋁Node(xy2ands(not_xy, mgr), mgr, node)
         node.negation = not_node
-        mgr.unique⋁cache[not_xy] = not_node
+        mgr.unique⋁cache[Set(not_xy)] = not_node
         node
     end
 end
@@ -252,6 +266,6 @@ end
 
 negate(node::Sdd⋁Node)::Sdd⋁Node = node.negation
 
-@inline negate(xy::XYPartition) = XYPartition([Element(prime(e), !sub(e)) for e in xy])
+@inline negate(xy::XYPartition) = [Element(prime(e), !sub(e)) for e in xy]
 
 @inline Base.:!(s) = negate(s)

@@ -246,6 +246,28 @@ function clone(circuit::Union{Δ, Node}, or1::LogicCircuit, or2::LogicCircuit, a
     replace_node(circuit, or2, new_or2)
 end
 
+"""
+Clone the `or` node and redirect one of its parents to the new copy
+This is in accordance with the what the learnPSDD paper defines
+"""
+function learnPSDD_clone(circuit::Union{Δ, ΔNode}, and1::ΔNode, and2::ΔNode, or::ΔNode; depth=1)
+    # sanity check
+    @assert depth >= 1
+    @assert GateType(and1) isa ⋀Gate && GateType(and2) isa ⋀Gate && GateType(or) isa ⋁Gate
+    @assert or in children(and1) && or in children(and2)
+    if circuit isa Δ
+        @assert and1 in circuit && and2 in circuit && or in circuit
+    else
+        # TODO
+    end
+
+    # clone
+    new_or = copy(or, depth)
+    new_and2 = conjoin_like(and2, [[new_or]; filter(c -> c != or, children(and2))])
+
+    replace_node(circuit, and2, new_and2)
+end
+
 import Base.merge
 
 function merge(circuit::Union{Δ, Node}, or1::LogicCircuit, or2::LogicCircuit)

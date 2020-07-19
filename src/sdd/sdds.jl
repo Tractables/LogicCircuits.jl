@@ -41,16 +41,16 @@ abstract type SddConstantNode <: SddInnerNode end
 
 "A SDD logical true constant."
 mutable struct SddTrueNode <: SddConstantNode 
-    data
     bit::Bool
-    SddTrueNode() = new(nothing,false)
+    data
+    SddTrueNode() = new(false)
 end
 
 "A SDD logical false constant."
 mutable struct SddFalseNode <: SddConstantNode 
-    data
     bit::Bool
-    SddFalseNode() = new(nothing,false)
+    data
+    SddFalseNode() = new(false)
 end
 
 "A SDD logical conjunction node"
@@ -58,23 +58,20 @@ mutable struct Sdd⋀Node <: SddInnerNode
     prime::Sdd
     sub::Sdd
     vtree::SddMgr
-    data
     bit::Bool
-    Sdd⋀Node(p,s,v) = new(p,s,v,nothing,false)
+    data
+    Sdd⋀Node(p,s,v) = new(p,s,v,false)
 end
-
-mycache() = Vector{Union{Nothing,Sdd}}(nothing, 172)
-
 
 "A SDD logical disjunction node"
 mutable struct Sdd⋁Node <: SddInnerNode
     children::Vector{Sdd⋀Node}
     vtree::SddMgr
-    data
     bit::Bool
     negation::Sdd⋁Node
-    Sdd⋁Node(ch,v) = new(ch, v, nothing, false) # leave negation uninitialized
-    Sdd⋁Node(ch,v,neg) = new(ch, v, nothing, false, neg)
+    data
+    Sdd⋁Node(ch,v) = new(ch, v, false) # leave negation uninitialized
+    Sdd⋁Node(ch,v,neg) = new(ch, v, false, neg)
 end
 
 #####################
