@@ -149,17 +149,16 @@ Compress a given XY Partition (merge elements with identical subs)
 function compress(xy::XYPartition)::XYPartition
     out = Vector{Element}()
     sizehint!(out, length(xy))
-    mask = BitSet()
-    sizehint!(mask, length(xy))
+    mask = falses(length(xy))
     for i in eachindex(xy) 
-        if i ∉ mask
+        if !mask[i]
             prime_all = prime(xy[i])
             sub_i = sub(xy[i])
             for j in i+1:length(xy)
                 sub_j = sub(xy[j])
-                if j ∉ mask && (sub_i === sub_j)
+                if !mask[j] && (sub_i === sub_j)
                     prime_all = prime_all | prime(xy[j]) 
-                    push!(mask,j)
+                    mask[j] = true
                 end
             end
             push!(out,Element(prime_all,sub_i))

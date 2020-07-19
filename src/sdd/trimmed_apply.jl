@@ -49,7 +49,7 @@ function conjoin_cartesian(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
         if num_children(n1) == 2 && num_children(n2) == 2
             return conjoin_cartesian_2x2(n1,n2)
         else
-         return conjoin_cartesian_general(n1,n2)
+         return conjoin_cartesian_general_bit(n1,n2)
         end
     end
 end
@@ -112,59 +112,80 @@ function conjoin_cartesian_2x2(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
 end
 
 
-function conjoin_cartesian_general(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
+
+
+function conjoin_cartesian_general_bit(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     # minsize = min(num_children(n1), num_children(n2))
     # maxsize = max(num_children(n1), num_children(n2))
     # i = get!(stats,(minsize, maxsize), 0) 
     # stats[(minsize, maxsize)] = i+1
 
-    elems_prod = XYPartition()
-    sizehint!(elems_prod, num_children(n1) * num_children(n2))
-    elems1 = copy(children(n1))
-    elems2 = copy(children(n2))
-    # TODO use bitsets to mask elements instead of copy/filter
-    for e1 in elems1
-        for e2 in elems2
-            if prime(e1) === prime(e2)
-                push!(elems_prod, Element(prime(e1), conjoin(sub(e1),sub(e2))))
-                filter!(e -> prime(e) !== prime(e1), elems1)
-                filter!(e -> prime(e) !== prime(e1), elems2)
-                break # go to next e1
-            elseif prime(e1) === !prime(e2)
-                for e3 in elems2
-                    if e3 !== e2
-                        push!(elems_prod, Element(prime(e3), conjoin(sub(e3),sub(e1))))
+    out = XYPartition()
+    sizehint!(out, num_children(n1) * num_children(n2))
+    elems1 = children(n1)
+    # elems1_mask = falses(length(elems1))
+    elems2 = children(n2)
+    # elems2_mask = falses(length(elems2))
+    # for i in eachindex(elems1)
+    #     if !elems1_mask[i] 
+    #         e1 = elems1[i]
+    #         for j in eachindex(elems2)
+    #             if !elems2_mask[j] 
+    #                 e2 = elems2[j]
+    #                 if prime(e1) === prime(e2)
+    #                     new_sub = conjoin(sub(e1),sub(e2))
+    #                     push!(out, Element(prime(e1), new_sub))
+    #                     elems1_mask[i] = true # no other combo will have a SAT prime
+    #                     elems2_mask[j] = true # no other combo will have a SAT prime
+    #                     break # go to next i
+    #                 elseif prime(e1) === !prime(e2)
+    #                     elems1_mask[i] = true # we will add all combos next
+    #                     elems2_mask[j] = true # we will add all combos next
+    #                     for k in eachindex(elems2)
+    #                         if !elems2_mask[k]
+    #                             e3 = elems2[k]
+    #                             push!(out, Element(prime(e3), conjoin(sub(e1),sub(e3))))
+    #                         end
+    #                     end
+    #                     for k in eachindex(elems1)
+    #                         if !elems1_mask[k]
+    #                             e3 = elems1[k]
+    #                             push!(out, Element(prime(e3), conjoin(sub(e2),sub(e3))))
+    #                         end
+    #                     end
+    #                     break # go to next e1
+    #                 end
+    #             end
+    #         end
+    #     end
+    # end
+    mask = falses(length(elems1), length(elems2)) # elems1_mask * elems2_mask' # outer product of masks
+    for i in eachindex(elems1)
+        # if !elems1_mask[i] 
+            e1 = elems1[i]
+            for j in eachindex(elems2)
+                if !mask[i,j] 
+                    e2 = elems2[j]
+                    newprime = conjoin(prime(e1),prime(e2))
+                    if newprime !== trimfalse
+                        newsub = conjoin(sub(e1),sub(e2))
+                        push!(out, Element(newprime, newsub))
                     end
+                    if newprime === prime(e1)
+                        # p1 |= p2 and therefore p1 will be mutex with all other p2-primes
+                        mask[i,:] .= true
+                        break # no other j will be useful
+                    elseif newprime === prime(e2)
+                        # p2 |= p1 and therefore p2 will be mutex with all other p1-primes
+                        mask[:,j] .= true
+                    end                            
                 end
-                for e4 in elems1
-                    if e4 !== e1
-                        push!(elems_prod, Element(prime(e4), conjoin(sub(e4),sub(e2))))
-                    end
-                end
-                filter!(e -> prime(e) !== prime(e1), elems1)
-                filter!(e -> prime(e) !== prime(e2), elems2)
-                break # go to next e1
             end
-        end
+        # end
     end
-    product = vec([(e1,e2) for e1 in elems1, e2 in elems2])
-    while !isempty(product)
-        (e1, e2) = pop!(product)
-        newprime = conjoin(prime(e1),prime(e2))
-        if newprime != trimfalse
-            newsub = conjoin(sub(e1),sub(e2))
-            push!(elems_prod, Element(newprime, newsub))
-        end
-        if newprime === prime(e1)
-            # p1 |= p2 and therefore p1 will be mutex with all other p2-primes
-            filter!(p -> prime(p[1]) !== prime(e1), product)
-        elseif newprime === prime(e2)
-            # p2 |= p1 and therefore p2 will be mutex with all other p1-primes
-            filter!(p -> prime(p[2]) !== prime(e2), product)
-        end
-    end
-    canonicalize(elems_prod)
+    canonicalize(out)
 end
+
 
 """
 Conjoin two SDDs when one descends from the other
