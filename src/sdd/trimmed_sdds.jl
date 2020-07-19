@@ -26,24 +26,22 @@ end
 "Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Vector{Element}
 
-@inline XYPartition(xy::XYPartition) = error("deprecated")
+# Base.hash(xy::XYPartition, h::UInt) = begin
+#     hv = Base.hashs_seed
+#     for x in xy
+#         hv ⊻= hash(x)
+#     end
+#     hash(hv,h)
+# end
 
-Base.hash(xy::XYPartition, h::UInt) = begin
-    hv = Base.hashs_seed
-    for x in xy
-        hv ⊻= hash(x)
-    end
-    hash(hv,h)
-end
-
-Base.isequal(xy1::XYPartition, xy2::XYPartition) = begin
-    xy1 === xy2 && return true
-    length(xy1) != length(xy2) && return false
-    return issetequal(xy1,xy2)
-end
+# Base.isequal(xy1::XYPartition, xy2::XYPartition) = begin
+#     xy1 === xy2 && return true
+#     length(xy1) != length(xy2) && return false
+#     return issetequal(xy1,xy2)
+# end
 
 "Unique nodes cache for decision nodes"
-const Unique⋁Cache = Dict{XYPartition,Sdd⋁Node}
+const Unique⋁Cache = Dict{Set{Element},Sdd⋁Node}
 
 "Apply cache for the result of conjunctions and disjunctions"
 const ApplyCache = Dict{Element,Sdd}
@@ -163,26 +161,25 @@ end
 Compress a given XY Partition (merge elements with identical subs)
 """
 function compress(xy::XYPartition)::XYPartition
-    isquickcompressed(xy) && return xy
-    # @assert !isempty(xy)
-    sub2elems = groupby(e -> sub(e), xy)
-    #TODO avoid making a new partition if existing one is unchanged
-    compressed_elements = XYPartition()
-    sizehint!(compressed_elements,length(xy))
-    for (subnode,elements) in sub2elems
-        primenode = mapreduce(e -> prime(e), (p1, p2) -> disjoin(p1, p2), elements)
-        push!(compressed_elements, Element(primenode, subnode))
-    end
-    return compressed_elements
-end
-
-function isquickcompressed(xy)
-    for i in eachindex(xy), j in i+1:length(xy)
-        if sub(xy[i]) === sub(xy[j])
-            return false
+    out = Vector{Element}()
+    sizehint!(out, length(xy))
+    mask = BitSet()
+    sizehint!(mask, length(xy))
+    for i in eachindex(xy) 
+        if i ∉ mask
+            prime_all = prime(xy[i])
+            sub_i = sub(xy[i])
+            for j in i+1:length(xy)
+                sub_j = sub(xy[j])
+                if j ∉ mask && (sub_i === sub_j)
+                    prime_all = prime_all | prime(xy[j]) 
+                    push!(mask,j)
+                end
+            end
+            push!(out,Element(prime_all,sub_i))
         end
     end
-    return true
+    return out
 end
 
 """
@@ -210,12 +207,12 @@ Construct a unique decision gate for the given vtree
 """
 function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Sdd⋁Node
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
-    get!(mgr.unique⋁cache, xy) do 
+    get!(mgr.unique⋁cache, Set(xy)) do 
         node = Sdd⋁Node(xy2ands(xy, mgr), mgr)
         not_xy = negate(xy)
         not_node = Sdd⋁Node(xy2ands(not_xy, mgr), mgr, node)
         node.negation = not_node
-        mgr.unique⋁cache[not_xy] = not_node
+        mgr.unique⋁cache[Set(not_xy)] = not_node
         node
     end
 end

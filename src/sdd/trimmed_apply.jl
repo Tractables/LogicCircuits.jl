@@ -100,6 +100,7 @@ function conjoin_cartesian_2x2(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
 
         #maybe start with a set instead?
         elems_prod = XYPartition()
+        sizehint!(elems_prod, 4)
         
         (p11n !== trimfalse) && push!(elems_prod, Element(p11n, s11n))
         (p12n !== trimfalse) && push!(elems_prod, Element(p12n, s12n))
@@ -172,6 +173,7 @@ function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
     get!(tmgr(n).conjoin_cache, Element(d,n)) do 
         if varsubset_left(d, n)
             elements = XYPartition()
+            sizehint!(elements, num_children(n)+1)
             for e in children(n)
                 newprime = conjoin(prime(e),d)
                 if (newprime !== trimfalse) 
