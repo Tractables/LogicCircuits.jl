@@ -48,6 +48,14 @@ end
 "Are the variables in `n` contained in the right branch of `m`?"
 @inline varsubset_right(n, m)::Bool = varsubset(n, m.right)
 
+# override default Utils implementation of varsubset for vtree leafs; performance critical
+import .Utils: varsubset
+@inline varsubset(n::Vtree, m::Vtree) = (n===m || varsubset(n, m, NodeType(n), NodeType(m)))
+@inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Leaf) = variable(n) == variable(m)
+@inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Leaf) = false
+@inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Inner) = variable(n) ∈ variables(m)
+@inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Inner) = variables(n) ⊆ variables(m) # very slow
+
 """
 Compute the path length from vtree node `n` to leaf node which contains `var`
 """

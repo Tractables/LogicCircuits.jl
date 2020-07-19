@@ -99,6 +99,7 @@ TrimSddMgr(left::TrimSddMgr, right::TrimSddMgr) = TrimSddMgrInnerNode(left, righ
 
 @inline children(n::TrimSddMgrInnerNode) = [n.left, n.right]
 
+@inline variable(n::TrimSddMgrLeafNode)::Var = n.var
 @inline variables(n::TrimSddMgrLeafNode)::BitSet = BitSet(n.var)
 @inline variables(n::TrimSddMgrInnerNode)::BitSet = n.variables
 
