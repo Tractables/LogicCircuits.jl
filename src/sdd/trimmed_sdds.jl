@@ -26,20 +26,6 @@ end
 "Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Vector{Element}
 
-# Base.hash(xy::XYPartition, h::UInt) = begin
-#     hv = Base.hashs_seed
-#     for x in xy
-#         hv ⊻= hash(x)
-#     end
-#     hash(hv,h)
-# end
-
-# Base.isequal(xy1::XYPartition, xy2::XYPartition) = begin
-#     xy1 === xy2 && return true
-#     length(xy1) != length(xy2) && return false
-#     return issetequal(xy1,xy2)
-# end
-
 "Unique nodes cache for decision nodes"
 const Unique⋁Cache = Dict{Set{Element},Sdd⋁Node}
 
@@ -191,11 +177,10 @@ function canonicalize_compressed(xy::XYPartition)::Sdd
     if length(xy) == 1 && (prime(first(xy)) === trimtrue)
         return sub(first(xy))
     elseif length(xy) == 2 
-        l = [xy...]
-        if (sub(l[1]) === trimtrue) && (sub(l[2]) === trimfalse)
-            return prime(l[1])
-        elseif (sub(l[2]) === trimtrue) && (sub(l[1]) === trimfalse)
-            return prime(l[2])
+        if (sub(xy[1]) === trimtrue) && (sub(xy[2]) === trimfalse)
+            return prime(xy[1])
+        elseif (sub(xy[2]) === trimtrue) && (sub(xy[1]) === trimfalse)
+            return prime(xy[2])
         end
     end
     # get unique node representation
