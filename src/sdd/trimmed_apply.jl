@@ -144,25 +144,47 @@ Conjoin two SDDs when one descends from the other
 """
 function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
     get!(tmgr(n).conjoin_cache, Element(d,n)) do 
+        elems = children(n)
         if varsubset_left(d, n)
-            elements = XYPartition()
-            sizehint!(elements, num_children(n)+1)
-            for e in children(n)
-                newprime = conjoin(prime(e),d)
-                if (newprime !== trimfalse) 
-                    push!(elements, Element(newprime, sub(e)))
-                elseif newprime === d
-                    # all future conjunctions will yield false
-                    break
+            out = XYPartition()
+            sizehint!(out, length(elems)+1)
+            i = findfirst(c -> prime(c) === d, elems)
+            if issomething(i)
+                # there is a prime equal to d, all other primes will conjoin to false
+                if sub(elems[i]) === trimfalse
+                    return trimfalse
+                elseif sub(elems[i]) === trimtrue
+                    return d
+                else
+                    push!(out, Element(d, sub(elems[i])))
+                    push!(out, Element(!d, trimfalse))
+                    # since d is not a constant, must be trimmed and compressed
+                    return unique⋁(out, tmgr(n))
                 end
             end
-            push!(elements, Element(!d, trimfalse))
+            i = findfirst(c -> prime(c) === !d, elems)
+            if issomething(i)
+                # there is a prime equal to !d, all other primes will conjoin to themselves
+                for j in eachindex(elems)
+                    j!=i && push!(out,Element(prime(elems[j]), sub(elems[j])))
+                end
+            else
+                for e in elems
+                    newprime = conjoin(prime(e),d)
+                    if (newprime !== trimfalse) 
+                        push!(out, Element(newprime, sub(e)))
+                    elseif newprime === d
+                        # all future conjunctions will yield false
+                        break
+                    end
+                end
+            end
+            push!(out, Element(!d, trimfalse))
         else 
             # @assert varsubset_right(d, n)
-            elements = [Element(prime(e),conjoin(sub(e),d)) for e in children(n)]
+            out = [Element(prime(e),conjoin(sub(e),d)) for e in elems]
         end
-        #TODO are there cases where we don't need all of compress-trim-unique?
-        canonicalize(elements)
+        canonicalize(out)
     end
 end
 

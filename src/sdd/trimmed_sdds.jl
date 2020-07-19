@@ -148,6 +148,15 @@ end
 Compress a given XY Partition (merge elements with identical subs)
 """
 function compress(xy::XYPartition)::XYPartition
+    compressed = true
+    for i in eachindex(xy), j in i+1:length(xy)
+        if (sub(xy[i]) === sub(xy[j]))
+            compressed = false
+            break
+        end
+    end
+    compressed && return xy
+    # make it compressed
     out = Vector{Element}()
     sizehint!(out, length(xy))
     mask = falses(length(xy))
