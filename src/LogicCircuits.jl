@@ -9,8 +9,7 @@ include("Utils/Utils.jl")
 
 include("abstract_logic_nodes.jl")
 include("queries.jl")
-# TODO: include transformations during structure primitive hackathon
-# include("transformations.jl")
+include("transformations.jl")
 include("plain_logic_nodes.jl")
 
 include("structured/abstract_vtrees.jl")
