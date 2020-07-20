@@ -1,6 +1,6 @@
 export SddMgr, Sdd, SddLeafNode, SddInnerNode, SddLiteralNode, SddConstantNode, 
        Sdd⋀Node, Sdd⋁Node, prime, sub, sdd_size, sdd_num_nodes,
-       compile_cnf, compile_clause
+       compile
 
 #############
 # SddMgr
@@ -122,70 +122,34 @@ end
 # compilation
 #############
 
-"Compile a clause into an SDD"
-function compile_clause(mgr::SddMgr, clause::LogicCircuit)::Sdd
-    @assert is⋁gate(clause)
-    @assert varsubset(clause, mgr)  
-    literals = children(clause)
-    @assert all(isliteralgate,children(clause))
-    mapreduce(l -> compile(mgr, literal(l)), |, children(clause))
- end
- 
-"Compile a CNF into an SDD"
- function compile_cnf(mgr::SddMgr, cnf::LogicCircuit, strategy="tree", progress=false)::Sdd
-    if strategy == "naive"
-        compile_cnf_naive(mgr, cnf, progress)
-    elseif strategy == "tree"
-        compile_cnf_tree(mgr, cnf, progress)
-    else
-        error("Invalid compilation strategy")
-    end
- end
+"Compile a circuit (e.g., CNF or DNF) into an SDD, bottom up by distributing circuit nodes over vtree nodes"
 
- "Compile a CNF into an SDD naively, by conjoining clauses in order of the CNF"
- function compile_cnf_naive(mgr::SddMgr, cnf::LogicCircuit, progress=false)::Sdd
-    @assert is⋀gate(cnf)
-    cnfcircuit = compile(true)
-    i = 0
-    for clause in children(cnf)
-       @assert is⋁gate(clause)
-       i = i+1
-       cnfcircuit = cnfcircuit & compile_clause(mgr, clause)
-       progress && println((100*i/num_children(cnf[end])),"%: Number of edges: ", num_edges(cnfcircuit))
-    end
-    cnfcircuit
- end
+compile(mgr::SddMgr, c::LogicCircuit, scopes=variables_by_node(c)) = 
+compile(mgr, c, GateType(c), scopes)
+compile(mgr::SddMgr, c::LogicCircuit, ::ConstantGate, _) = 
+    compile(constant(c))
+compile(mgr::SddMgr, c::LogicCircuit, ::LiteralGate, _) = 
+    compile(mgr, literal(c))
+compile(mgr::SddMgr, c::LogicCircuit, gt::InnerGate, scopes) =
+    compile(mgr, NodeType(mgr), c, gt, scopes)
 
- "Compile a CNF into an SDD, bottom up by distributing clauses over vtree nodes"
- function compile_cnf_tree(mgr::SddMgr, cnf::LogicCircuit, progress=false)::Sdd
-    compile_cnf_tree(NodeType(mgr), mgr, children(cnf), variables_by_node(cnf), progress)
- end
+function compile(mgr::SddMgr, ::Leaf, c::LogicCircuit, gt::InnerGate, scopes)
+    op = (gt isa ⋁Gate) ? disjoin : conjoin
+    mapreduce(x -> compile(mgr,x,scopes), op, children(c))
+end
 
- function compile_cnf_tree(::Inner, mgr::SddMgr, 
-            clauses::Vector{<:Node}, scopes, progress=false)::Sdd
-    @assert all(is⋁gate, clauses)
-    left_clauses = filter(c -> scopes[c] ⊆ variables(mgr.left), clauses)
-    leftΔ = compile_cnf_tree(NodeType(mgr.left), mgr.left, left_clauses, scopes, progress)
-    right_clauses = filter(c -> scopes[c] ⊆ variables(mgr.right), clauses)
-    rightΔ = compile_cnf_tree(NodeType(mgr.right), mgr.right, right_clauses, scopes, progress)
-    progress && print("Compiled left ($(sdd_size(leftΔ))) and right ($(sdd_size(rightΔ)))")
-    joinΔ = leftΔ & rightΔ
-    mixed_clauses = setdiff(clauses, left_clauses, right_clauses)
-    progress && print(" with $(length(mixed_clauses)) clauses")
-    # Consider some optimizations to the order? e.g.,:
-    # left_degree(c) = begin
-    #     # length(scopes[c] ∩ variables(mgr.left)) #- length(scopes[c] ∩ variables(mgr.right))
-    #     -num_children(c)
-    # end
-    # sort!(mixed_clauses, by = left_degree)
-    joinΔ = mapreduce(c -> compile_clause(mgr,c), &, mixed_clauses; init=joinΔ)
-    progress && println(" into sdd of size $(sdd_size(linearize(joinΔ)))")
-    joinΔ
- end
+function compile(mgr::SddMgr, ::Inner, c::LogicCircuit, gt::InnerGate, scopes)
+    op = (gt isa ⋁Gate) ? disjoin : conjoin
+    
+    # partition children according to vtree
+    left_children = filter(x -> scopes[x] ⊆ variables(mgr.left), children(c))
+    right_children = filter(x -> scopes[x] ⊆ variables(mgr.right), children(c))
+    middle_children = setdiff(children(c), left_children, right_children)
 
- function compile_cnf_tree(::Leaf, mgr::SddMgr, 
-            clauses::Vector{<:LogicCircuit}, scopes, ::Bool=false)::Sdd
-    @assert all(is⋁gate, clauses)
-    mapreduce(c -> compile_clause(mgr,c), &, clauses; init=compile(true))
- end
+    # separately compile left and right vtree children
+    left = compile(mgr.left, op(left_children), scopes)
+    right = compile(mgr.right, op(right_children), scopes)
 
+    sort!(middle_children; by=x->length(intersect(scopes[x],variables(mgr.right))))
+    mapreduce(x -> compile(mgr,x,scopes), op, middle_children; init=op(left,right))
+end

@@ -9,11 +9,9 @@ include("../helper/validate_sdd.jl")
    vtree = zoo_vtree("easy/C17_mince.min.vtree");
    mgr = Vtree(TrimSddMgr, vtree)
       
-   @test_throws Exception compile_cnf(mgr.left, cnf)
-   @test_throws Exception compile_cnf(right_most_descendent(mgr), cnf)
-   @test_throws Exception compile_cnf(mgr, cnf, "foobar")
+   @test_throws Exception compile(mgr.left, cnf)
+   @test_throws Exception compile(right_most_descendent(mgr), cnf)
 
-   @test compile_cnf(mgr, cnf, "tree") === compile_cnf(mgr, cnf, "naive")
 
    cnfs = [ 
             ("easy","C17_mince",32,92,45)
@@ -31,11 +29,7 @@ include("../helper/validate_sdd.jl")
 
       mgr = Vtree(TrimSddMgr, vtree)
       # cnfΔ = @time compile_cnf(mgr, cnf)
-      cnfΔ = compile_cnf(mgr, cnf)
-
-      # println("node count ($suite/$name): ", num_nodes(cnfΔ))
-      # println("edge count ($suite/$name): ", num_edges(cnfΔ))
-      # println("Final SDD model count: ", model_count(cnfΔ))
+      cnfΔ = compile(mgr, cnf)
 
       validate(cnfΔ)
       

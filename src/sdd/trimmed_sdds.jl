@@ -223,7 +223,7 @@ function compile(n::TrimSddMgr, v::Var)::SddLiteralNode
 end
 
 function compile(n::TrimSddMgrLeafNode, l::Lit)::SddLiteralNode
-    # @assert n.var == lit2var(l)
+    @assert n.var == lit2var(l) "Cannot compile literal $l respecting vtree leaf for variable $(n.var)"
     if l>0 # positive literal
         n.positive_literal
     else
@@ -237,7 +237,7 @@ function compile(n::TrimSddMgrInnerNode, l::Lit)::SddLiteralNode
     elseif lit2var(l) in variables(n.right)
         compile(n.right, l)
     else 
-        error("$v is not contained in this vtree")
+        error("$l is not contained in this vtree $n with scope $(variables(n))")
     end
 end
 
