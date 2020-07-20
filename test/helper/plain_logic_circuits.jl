@@ -44,3 +44,25 @@ function little_3var_constants()
     and2 = neg & or2
     and1 | and2
 end
+
+function little_4var()
+    ors = map(1:4) do v
+        v = Var(v)
+        pos = compile(PlainLogicCircuit, var2lit(v))
+        neg = compile(PlainLogicCircuit, - var2lit(v))
+        or = pos | neg
+    end
+    and1 = ors[1] & ors[2]
+    and2 = ors[3] & ors[4]
+    or = and1 | and2
+end
+
+function little_5var()
+    c_4var = little_4var()
+    v = Var(5)
+    pos = compile(PlainLogicCircuit, var2lit(v))
+    neg = compile(PlainLogicCircuit, - var2lit(v))
+    or = pos | neg
+    and = c_4var & or
+    Plain⋁Node([and])
+end
