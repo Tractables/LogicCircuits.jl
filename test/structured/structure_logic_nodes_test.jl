@@ -51,5 +51,40 @@ using LogicCircuits
                        1 1 1 1 1 1 1 1 1 1;
                        0 0 0 0 0 0 0 0 0 0;
                        0 1 1 0 1 0 0 1 0 1])) == [1,1,1,1]
+
+    plainf = PlainLogicCircuit(f)
+    @test plainf isa PlainLogicCircuit 
+    @test plainf !== f
+    @test num_edges(plainf) == num_edges(f)
+    @test num_nodes(plainf) == num_nodes(f) 
+    @test length(and_nodes(plainf)) == 9
+    @test length(or_nodes(plainf)) == 10+1
+    @test model_count(plainf) == BigInt(2)^10
+    @test isempty(intersect(linearize(f),linearize(plainf)))
+
+    ref = StructLogicCircuit(vtree,plainf)
+    @test ref isa PlainStructLogicCircuit 
+    @test plainf !== ref
+    @test f !== ref
+    @test f.vtree === ref.vtree
+    @test num_edges(ref) == num_edges(f)
+    @test num_nodes(ref) == num_nodes(f) 
+    @test length(and_nodes(ref)) == 9
+    @test length(or_nodes(ref)) == 10+1
+    @test model_count(ref) == BigInt(2)^10
+    @test isempty(intersect(linearize(f),linearize(ref)))
+
+    ref = StructLogicCircuit(vtree,f)
+    @test ref isa PlainStructLogicCircuit 
+    @test plainf !== ref
+    @test f !== ref
+    @test f.vtree === ref.vtree
+    @test num_edges(ref) == num_edges(f)
+    @test num_nodes(ref) == num_nodes(f) 
+    @test length(and_nodes(ref)) == 9
+    @test length(or_nodes(ref)) == 10+1
+    @test model_count(ref) == BigInt(2)^10
+    @test isempty(intersect(linearize(f),linearize(ref)))
+
 end
 

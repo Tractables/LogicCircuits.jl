@@ -1,5 +1,5 @@
 export Vtree, vtree, variable, goes_left, goes_right, find_leaf,
-    varsubset_left, varsubset_right, depth,
+    varsubset_left, varsubset_right, lca_vtree, depth,
     balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree
 
 #############
@@ -56,6 +56,10 @@ import .Utils: varsubset
 @inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Inner) = variable(n) ∈ variables(m)
 @inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Inner) = variables(n) ⊆ variables(m) # very slow
 
+"Find the LCA vtree of all given nodes, excluding constant nodes"
+lca_vtree(nodes...) =
+    mapreduce(vtree, lca, filter(!isconstantgate,nodes))
+
 """
 Compute the path length from vtree node `n` to leaf node which contains `var`
 """
@@ -79,7 +83,7 @@ import .Utils: lca # extend
 
 """
 Compute the lowest common ancestor of two vtree nodes
-Warning: this method uses an imcomplete `varsubset` check for `descends_from` and is only correct when `v` and `w` are part of the same larger vtree.
+Warning: this method uses an incomplete `varsubset` check for `descends_from` and is only correct when `v` and `w` are part of the same larger vtree.
 """
 lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
 
