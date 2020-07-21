@@ -285,12 +285,11 @@ function struct_learn(circuit::Node;
     for iter in 1 : maxiter
         primiteve_step = rand(primitives)
         kwarg = kwargs[primiteve_step]
-        @time c2, _ = primiteve_step(circuit; kwarg...)
+        c2, _ = primiteve_step(circuit; kwarg...)
         if stop(c2)
             return c2
         end
         circuit = c2
-        println(num_edges(c2))
     end
     circuit
 end
