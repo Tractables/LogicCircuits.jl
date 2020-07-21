@@ -1,5 +1,5 @@
 export smooth, forget, propagate_constants, deepcopy, condition, replace_node, 
-    split, clone, merge, split_candidates, random_split, split_step
+    split, clone, merge, split_candidates, random_split, split_step, struct_learn
 
 """
 Create an equivalent smooth circuit from the given circuit.
@@ -255,15 +255,6 @@ end
 
 
 """
-Split step
-"""
-function split_step(circuit::Node; loss, depth, sanity_check)
-    edge, var = loss(circuit)
-    split(circuit, edge, var; depth=depth, sanity_check=sanity_check)
-end
-
-
-"""
 Randomly picking egde and variable from candidates
 """
 function random_split(circuit::Node)
@@ -273,6 +264,35 @@ function random_split(circuit::Node)
     vars =  Var.(intersect(filter(l -> l > 0, lits), - filter(l -> l < 0, lits)))
     var = rand(vars)
     (or, and), var
+end
+
+"""
+Split step
+"""
+function split_step(circuit::Node; loss=random_split, depth=0, sanity_check=true)
+    edge, var = loss(circuit)
+    split(circuit, edge, var; depth=depth, sanity_check=sanity_check)
+end
+
+"""
+Structure learning manager
+"""
+function struct_learn(circuit::Node; 
+    primitives=[split_step], 
+    kwargs=Dict(split_step=>(loss=random_split, depth=0)),
+    maxiter=typemax(Int), stop::Function=x->false)
+
+    for iter in 1 : maxiter
+        primiteve_step = rand(primitives)
+        kwarg = kwargs[primiteve_step]
+        @time c2, _ = primiteve_step(circuit; kwarg...)
+        if stop(c2)
+            return c2
+        end
+        circuit = c2
+        println(num_edges(c2))
+    end
+    circuit
 end
 
 

@@ -180,4 +180,10 @@ end
             # @test isdeterministic(c1)
         end
     end
+    c1 = struct_learn(c0; maxiter=10, stop=(x-> num_edges(x) > num_edges(c0)))
+    @test issmooth(c1)
+    @test isdecomposable(c1)
+    # TODO
+    # @test isstructdecomposable(c1)
+    # @test isdeterministic(c1)
 end
