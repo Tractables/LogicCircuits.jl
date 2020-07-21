@@ -94,28 +94,41 @@ end
 "Get the children of a given inner node"
 @inline children(n::PlainLogicInnerNode) = n.children
 
-@inline function conjoin(arguments::Vector{<:PlainLogicCircuit}, 
-                         example::Union{Nothing,PlainLogicCircuit} = nothing)
-    isempty(arguments) && return  PlainTrueNode()
-    example isa Plain⋀Node && children(example) == arguments && return example
+@inline conjoin(xs::PlainLogicCircuit...) = conjoin(collect(xs))
+
+function conjoin(arguments::Vector{<:PlainLogicCircuit};
+                 reuse=nothing)
+    @assert length(arguments) > 0
+    reuse isa Plain⋀Node && children(reuse) == arguments && return reuse
     return Plain⋀Node(arguments)
 end
 
-@inline function disjoin(arguments::Vector{<:PlainLogicCircuit}, 
-                         example::Union{Nothing,PlainLogicCircuit} = nothing)
-    isempty(arguments) && return PlainFalseNode()
-    example isa Plain⋁Node && children(example) == arguments && return example
+@inline disjoin(xs::PlainLogicCircuit...) = disjoin(collect(xs))
+
+function disjoin(arguments::Vector{<:PlainLogicCircuit};
+                    reuse=nothing)
+    @assert length(arguments) > 0
+    reuse isa Plain⋁Node && children(reuse) == arguments && return reuse
     return Plain⋁Node(arguments)
 end
 
-@inline compile(::Type{<:PlainLogicCircuit}, b::Bool) =
+# claim `PlainLogicCircuit` as the default `LogicCircuit` implementation
+
+compile(::Type{<:LogicCircuit}, b::Bool) =
     b ? PlainTrueNode() : PlainFalseNode()
 
-@inline compile(::Type{<:PlainLogicCircuit}, l::Lit) =
+compile(::Type{<:LogicCircuit}, l::Lit) =
     PlainLiteralNode(l)
 
-function fully_factorized_circuit(n::Int, 
-                ::Type{<:PlainLogicCircuit}=PlainLogicCircuit)
+function compile(::Type{<:LogicCircuit}, circuit::LogicCircuit)
+    f_con(n) = compile(PlainLogicCircuit, constant(n)) 
+    f_lit(n) = compile(PlainLogicCircuit, literal(n))
+    f_a(_, cns) = conjoin(cns)
+    f_o(_, cns) = disjoin(cns)
+    foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, PlainLogicCircuit)
+end
+
+function fully_factorized_circuit(::Type{<:LogicCircuit}, n::Int)
     ors = map(1:n) do v
         v = Var(v)
         pos = compile(PlainLogicCircuit, var2lit(v))

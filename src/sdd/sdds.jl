@@ -1,6 +1,5 @@
 export SddMgr, Sdd, SddLeafNode, SddInnerNode, SddLiteralNode, SddConstantNode, 
-       Sdd⋀Node, Sdd⋁Node, prime, sub, sdd_size, sdd_num_nodes,
-       compile
+       Sdd⋀Node, Sdd⋁Node, prime, sub, sdd_size, sdd_num_nodes, mgr
 
 #############
 # SddMgr
@@ -87,6 +86,9 @@ end
 # methods
 #####################
 
+"Get the manager of a `Sdd` node, which is its `SddMgr` vtree"
+mgr(s::Sdd)::SddMgr = vtree(s)
+
 @inline constant(::SddTrueNode)::Bool = true
 @inline constant(::SddFalseNode)::Bool = false
 @inline children(n::Sdd⋀Node) = [n.prime,n.sub]
@@ -122,34 +124,39 @@ end
 # compilation
 #############
 
+compile(::Type{<:Sdd}, mgr::SddMgr, arg::Bool) = compile(mgr, arg)
+compile(::Type{<:Sdd}, mgr::SddMgr, arg::Lit) = compile(mgr, arg)
+compile(::Type{<:Sdd}, mgr::SddMgr, arg::LogicCircuit) = compile(mgr, arg)
+
 "Compile a circuit (e.g., CNF or DNF) into an SDD, bottom up by distributing circuit nodes over vtree nodes"
 
 compile(mgr::SddMgr, c::LogicCircuit, scopes=variables_by_node(c)) = 
-compile(mgr, c, GateType(c), scopes)
+    compile(mgr, c, GateType(c), scopes)
 compile(mgr::SddMgr, c::LogicCircuit, ::ConstantGate, _) = 
-    compile(constant(c))
+    compile(mgr, constant(c))
 compile(mgr::SddMgr, c::LogicCircuit, ::LiteralGate, _) = 
     compile(mgr, literal(c))
 compile(mgr::SddMgr, c::LogicCircuit, gt::InnerGate, scopes) =
-    compile(mgr, NodeType(mgr), c, gt, scopes)
+    compile(mgr, NodeType(mgr), children(c), gt, scopes)
+compile(mgr::SddMgr, children::Vector{<:LogicCircuit}, gt::InnerGate, scopes) =
+    compile(mgr, NodeType(mgr), children, gt, scopes)
 
-function compile(mgr::SddMgr, ::Leaf, c::LogicCircuit, gt::InnerGate, scopes)
-    op = (gt isa ⋁Gate) ? disjoin : conjoin
-    mapreduce(x -> compile(mgr,x,scopes), op, children(c))
+function compile(mgr::SddMgr, ::Leaf, children::Vector{<:LogicCircuit}, gt::InnerGate, scopes)
+    isempty(children) && return compile(mgr, neutral(gt))
+    mapreduce(x -> compile(mgr,x,scopes), op(gt), children)
 end
 
-function compile(mgr::SddMgr, ::Inner, c::LogicCircuit, gt::InnerGate, scopes)
-    op = (gt isa ⋁Gate) ? disjoin : conjoin
-    
+function compile(mgr::SddMgr, ::Inner, children::Vector{<:LogicCircuit}, gt::InnerGate, scopes)
+    isempty(children) && return compile(mgr, neutral(gt))
+
     # partition children according to vtree
-    left_children = filter(x -> scopes[x] ⊆ variables(mgr.left), children(c))
-    right_children = filter(x -> scopes[x] ⊆ variables(mgr.right), children(c))
-    middle_children = setdiff(children(c), left_children, right_children)
+    left_children = filter(x -> scopes[x] ⊆ variables(mgr.left), children)
+    right_children = filter(x -> scopes[x] ⊆ variables(mgr.right), children)
+    middle_children = setdiff(children, left_children, right_children)
 
     # separately compile left and right vtree children
-    left = compile(mgr.left, op(left_children), scopes)
-    right = compile(mgr.right, op(right_children), scopes)
+    left = compile(mgr.left, left_children, gt, scopes)
+    right = compile(mgr.right, right_children, gt, scopes)
 
-    sort!(middle_children; by=x->length(intersect(scopes[x],variables(mgr.right))))
-    mapreduce(x -> compile(mgr,x,scopes), op, middle_children; init=op(left,right))
+    mapreduce(x -> compile(mgr,x,scopes), op(gt), middle_children; init=op(gt)(left,right))
 end

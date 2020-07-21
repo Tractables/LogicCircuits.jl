@@ -15,7 +15,7 @@ end
 
 function validate_node(::⋁Gate, n::Sdd)
    size = num_children(n)
-   primes = compile(false)
+   primes = compile(mgr(n),false)
    for i = 1:size
       element = children(n)[i]
       # has alternating layers
@@ -30,7 +30,7 @@ function validate_node(::⋁Gate, n::Sdd)
       primes = primes | prime(element)
    end
    # is exhaustive
-   @test primes === compile(true)
+   @test istrue(primes)
    # cannot be trimmed to the sub
    @test size >= 1
    # cannot be trimmed to the prime

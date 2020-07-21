@@ -6,7 +6,7 @@ include("helper/plain_logic_circuits.jl")
 
 @testset "Queries test" begin
     
-    r1 = fully_factorized_circuit(10,PlainLogicCircuit)
+    r1 = fully_factorized_circuit(PlainLogicCircuit,10)
     
     @test isdecomposable(r1)
     @test isdecomposable(compile(PlainLogicCircuit, Lit(1)))

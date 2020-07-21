@@ -9,13 +9,19 @@ using LogicCircuits
     x = Var(1)
     y = Var(2)
     
-    x_c = compile(mgr, x)
-    y_c = compile(mgr, y)
+    x_c = compile(mgr, var2lit(x))
+    y_c = compile(mgr, var2lit(y))
 
     notx = -var2lit(x)
     notx_c = compile(mgr,notx)
-    true_c = compile(true)
-    false_c = compile(false)
+    true_c = compile(mgr,true)
+    @test true_c isa Sdd
+    @test true_c === mgr(true)
+    @test true_c === compile(Sdd,mgr,true)
+    @test true_c === (Sdd,mgr)(true)
+    @test true_c === (mgr,Sdd)(true)
+    false_c = compile(mgr,false)
+    @test false_c === mgr(false)
     
     @test false_c & true_c == false_c
     @test false_c & notx_c == false_c
@@ -37,13 +43,13 @@ using LogicCircuits
     @test x_c | x_c == x_c
     @test !x_c | !x_c == !x_c
 
-    v1 = compile(mgr, Var(1))
-    v2 = compile(mgr, Var(2))
-    v3 = compile(mgr, Var(3))
-    v4 = compile(mgr, Var(4))
-    v5 = compile(mgr, Var(5))
-    v6 = compile(mgr, Var(6))
-    v7 = compile(mgr, Var(7))
+    v1 = compile(mgr, Lit(1))
+    v2 = compile(mgr, Lit(2))
+    v3 = compile(mgr, Lit(3))
+    v4 = compile(mgr, Lit(4))
+    v5 = compile(mgr, Lit(5))
+    v6 = compile(mgr, Lit(6))
+    v7 = compile(mgr, Lit(7))
 
     t1 = v1 & v3
     t2 = v3 & v1
@@ -106,8 +112,8 @@ end
 
     v = zoo_vtree("iscas89/s386.scan.min.vtree")
     mgr = Vtree(TrimSddMgr, v)
-    v70 = compile(mgr,Var(70))
-    v71 = compile(mgr,Var(71))
+    v70 = compile(mgr,Lit(70))
+    v71 = compile(mgr,Lit(71))
     n = (v70 & v71) | (!v70 & !v71)
     n & v70
     !n & !v70

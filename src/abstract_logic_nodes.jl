@@ -1,7 +1,7 @@
 export LogicCircuit, GateType, InnerGate, LeafGate, 
     LiteralGate, ConstantGate, isinnergate, ⋁Gate, ⋀Gate,
     isliteralgate, isconstantgate, is⋁gate, is⋀gate,
-    literal, constant, conjoin, disjoin,
+    literal, constant, conjoin, disjoin, op, neutral,
     variable, ispositive, isnegative, istrue, isfalse,
     conjoin, disjoin, copy, compile,
     fully_factorized_circuit, 
@@ -67,7 +67,7 @@ function conjoin end
 "Disjoin nodes into a single circuit"
 function disjoin end
 
-"Create a leaf node in the given hierarchy, compiling a Bool constant or a literal"
+"Create new circuit nodes in the given context."
 function compile end
 
 #####################
@@ -110,8 +110,17 @@ function compile end
 
 @inline Base.:&(x::LogicCircuit, y::LogicCircuit) = conjoin(x,y)
 @inline Base.:|(x::LogicCircuit, y::LogicCircuit) = disjoin(x,y)
-@inline conjoin(xs::LogicCircuit...) = conjoin(collect(xs))
-@inline disjoin(xs::LogicCircuit...) = disjoin(collect(xs))
+
+# Get the function corresponding to the gate type
+@inline op(::⋀Gate)::Function = conjoin
+@inline op(::⋁Gate)::Function = disjoin
+
+# Get the neural element corresponding to the gate type
+@inline neutral(::⋀Gate)::Bool = true
+@inline neutral(::⋁Gate)::Bool = false
+
+# Syntactic sugar for compile
+(T::Type{<:LogicCircuit})(args...) = compile(T, args...)
 
 "Generate a fully factorized circuit over the given range of variables"
 function fully_factorized_circuit end

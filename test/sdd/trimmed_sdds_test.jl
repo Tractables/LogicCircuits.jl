@@ -39,8 +39,8 @@ using LogicCircuits: Element # test some internals
     x = Var(1)
     y = Var(2)
     
-    x_c = compile(mgr, x)
-    y_c = compile(mgr, y)
+    x_c = compile(mgr, var2lit(x))
+    y_c = compile(mgr, var2lit(y))
 
     @test x_c != y_c 
 
@@ -48,13 +48,13 @@ using LogicCircuits: Element # test some internals
     @test literal(x_c) == var2lit(x)
     @test vtree(x_c) ∈ mgr
     @test ispositive(x_c)
-    @test x_c == compile(mgr, x)
+    @test x_c == compile(mgr, var2lit(x))
 
     @test variable(y_c) == y
     @test literal(y_c) == var2lit(y)
     @test vtree(y_c) ∈ mgr
     @test ispositive(y_c)
-    @test y_c == compile(mgr, y)
+    @test y_c == compile(mgr, var2lit(y))
 
     notx = -var2lit(x)
 
@@ -71,12 +71,12 @@ using LogicCircuits: Element # test some internals
     @test isnegative(notx_c)
     @test notx_c == compile(mgr, notx)
 
-    true_c = compile(true)
+    true_c = compile(mgr,true)
 
     @test istrue(true_c)
     @test constant(true_c) == true
     
-    false_c = compile(false)
+    false_c = compile(mgr,false)
     
     @test isfalse(false_c)
     @test constant(false_c) == false
@@ -89,14 +89,14 @@ using LogicCircuits: Element # test some internals
     @test model_count(true_c,num_vars) == BigInt(2)^(num_vars)
     @test model_count(false_c,num_vars) == BigInt(0)
 
-    v1 = compile(mgr, Var(1))
-    v2 = compile(mgr, Var(2))
-    v3 = compile(mgr, Var(3))
-    v4 = compile(mgr, Var(4))
-    v5 = compile(mgr, Var(5))
-    v6 = compile(mgr, Var(6))
-    v7 = compile(mgr, Var(7))
-    @test_throws Exception compile(mgr, Var(8))
+    v1 = compile(mgr, Lit(1))
+    v2 = compile(mgr, Lit(2))
+    v3 = compile(mgr, Lit(3))
+    v4 = compile(mgr, Lit(4))
+    v5 = compile(mgr, Lit(5))
+    v6 = compile(mgr, Lit(6))
+    v7 = compile(mgr, Lit(7))
+    @test_throws Exception compile(mgr, Lit(8))
 
     p1 = [Element(true_c,v3)]
     @test canonicalize(p1) === v3

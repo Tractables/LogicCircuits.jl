@@ -15,7 +15,7 @@ function smooth(root::Node)::Node
             union!(parent_scope, scope)
             smooth_child
         end
-        return (conjoin([smooth_children...], n), parent_scope)
+        return (conjoin([smooth_children...]; reuse=n), parent_scope)
     end
     f_o(n, call) = begin
         parent_scope = mapreduce(c -> call(c)[2], union, children(n))
@@ -24,7 +24,7 @@ function smooth(root::Node)::Node
             (smooth_child, scope) = call(child)
             smooth_node(smooth_child, setdiff(parent_scope, scope), lit_nodes)
         end
-        return (disjoin([smooth_children...], n), parent_scope)
+        return (disjoin([smooth_children...]; reuse=n), parent_scope)
     end
     foldup(root, f_con, f_lit, f_a, f_o, Tuple{Node, BitSet})[1]
 end
@@ -42,9 +42,9 @@ function smooth_node(node::Node, missing_scope, lit_nodes)
             lit = var2lit(Var(v))
             lit_node = get_lit(lit)
             not_lit_node = get_lit(-lit)
-            disjoin([lit_node, not_lit_node], node)
+            disjoin([lit_node, not_lit_node]; reuse=node)
         end
-        return conjoin([node, ors...], node)
+        return conjoin([node, ors...]; reuse=node)
     end
 end
 
@@ -60,8 +60,8 @@ function forget(root::Node, is_forgotten::Function, )::Node
     end
     f_con(n) = n
     f_lit(n) = is_forgotten(variable(n)) ? true_node : n
-    f_a(n, cn) = conjoin([cn...], n) # convert type of cn
-    f_o(n, cn) = disjoin([cn...], n)
+    f_a(n, cn) = conjoin([cn...]; reuse=n) # convert type of cn
+    f_o(n, cn) = disjoin([cn...]; reuse=n)
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
 end
 
@@ -85,7 +85,7 @@ function propagate_constants(root::Node)
         else
             T = promote_type(typeof(n), typeof.(cn)...)
             proped_children = convert(Vector{T}, filter(c -> !istrue(c), cn))
-            conjoin(proped_children, n)
+            isempty(proped_children) ? true_node : conjoin(proped_children; reuse=n)
         end
     end
     f_o(n, cn) = begin
@@ -94,7 +94,7 @@ function propagate_constants(root::Node)
         else
             T = promote_type(typeof(n), typeof.(cn)...)
             proped_children = convert(Vector{T}, filter(c -> !isfalse(c), cn))
-            disjoin(proped_children, n)
+            isempty(proped_children) ? false_node : disjoin(proped_children; reuse=n)
         end
     end
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
@@ -157,7 +157,7 @@ function condition(root::Node, lit::Lit; callback::Function=((x, y, z) -> nothin
             kept = last.(cv)
             new_children = first.(cv)[kept]
             if all(kept)
-                (conjoin([new_children...], n), true)
+                (conjoin([new_children...]; reuse=n), true)
             else
                 (nothing, false)
             end
@@ -168,7 +168,7 @@ function condition(root::Node, lit::Lit; callback::Function=((x, y, z) -> nothin
             if any(kept) && (length(new_children) == 1) && isliteralgate(new_children[1])
                 (new_children[1], true)
             elseif any(kept)
-                new_n = disjoin([new_children...], n)
+                new_n = disjoin([new_children...]; reuse=n)
                 callback(new_n, n, kept)
                 (new_n, true)
             else
@@ -260,9 +260,9 @@ function replace_node(root::Node, old::Node, new::Node; callback::Function=(x, y
     @assert GateType(old) == GateType(new)
     f_con(n) = old == n ? new : n
     f_lit = f_con
-    f_a(n, cns) = old == n ? new : conjoin([cns...], n)
+    f_a(n, cns) = old == n ? new : conjoin([cns...]; reuse=n)
     f_o(n, cns) = old == n ? new : begin 
-            new_n = disjoin([cns...], n)
+            new_n = disjoin([cns...]; reuse=n)
             callback(new_n, n, trues(length(cns)))
             new_n
         end
