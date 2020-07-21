@@ -3,24 +3,6 @@ using LogicCircuits
 
 include("helper/plain_logic_circuits.jl")
 
-# TODO: reinstate when transformations are fixed
-
-#     c1 = load_logic_circuit(zoo_psdd_file("plants.psdd"))[end]
-#     c2 = load_logic_circuit(zoo_sdd_file("random.sdd"))[end]
-#     c3 = smooth(c1)
-#     c4 = smooth(c2)
-
-#     @test !issmooth(c1)
-#     @test !issmooth(c2)
-#     @test issmooth(c3)
-#     @test issmooth(c4)
-
-#     @test c1 !== c3
-#     @test c2 !== c4
-
-#     @test smooth(c3) === c3
-#     @test smooth(c4) === c4
-
 @testset "Smooth test" begin
     for file in [zoo_psdd_file("plants.psdd"), zoo_sdd_file("random.sdd")]
         c1 = load_logic_circuit(file)
