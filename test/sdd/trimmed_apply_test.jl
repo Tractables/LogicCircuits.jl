@@ -106,6 +106,35 @@ using LogicCircuits
     show(io,f3)
     @test length(String(take!(io))) > 0 # see if it runs, regardless of result
 
+    f4c = LogicCircuit(f4)
+    @test f4c isa PlainLogicCircuit
+    @test num_edges(f4c) == num_edges(f4)
+    @test num_nodes(f4c) == num_nodes(f4)
+    @test model_count(f4c) == model_count(f4)
+
+    f4c = StructLogicCircuit(mgr, f4)
+    @test f4c isa PlainStructLogicCircuit
+    @test num_edges(f4c) == num_edges(f4)
+    @test num_nodes(f4c) == num_nodes(f4)
+    @test model_count(f4c) == model_count(f4)
+    @test f4c.vtree === f4.vtree
+
+    f4c = StructLogicCircuit(mgr, LogicCircuit(f4))
+    @test f4c isa PlainStructLogicCircuit
+    @test num_edges(f4c) == num_edges(f4)
+    @test num_nodes(f4c) == num_nodes(f4)
+    @test model_count(f4c) == model_count(f4)
+    @test f4c.vtree === f4.vtree
+
+    f4c = mgr(StructLogicCircuit(mgr,f4))
+    @test Sdd(mgr,f4c) === f4c
+    @test f4 === f4c
+    @test f4c isa Sdd
+    @test num_edges(f4c) == num_edges(f4)
+    @test num_nodes(f4c) == num_nodes(f4)
+    @test model_count(f4c) == model_count(f4)
+    @test f4c.vtree === f4.vtree
+
 end
 
 @testset "Trimmed apply regression test" begin

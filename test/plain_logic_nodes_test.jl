@@ -68,5 +68,19 @@ include("helper/plain_logic_circuits.jl")
     show(io,n0c)
     @test length(String(take!(io))) > 0
 
+    n0c2 = LogicCircuit(n0c)
+    @test n0c2 isa PlainLogicCircuit 
+    @test n0c2 !== n0c
+    @test num_edges(n0c2) == num_edges(n0c)
+    @test num_nodes(n0c2) == num_nodes(n0c) 
+    @test isempty(intersect(linearize(n0c2),linearize(n0c)))
+
+    n0c2 = PlainLogicCircuit(n0c)
+    @test n0c2 isa PlainLogicCircuit 
+    @test n0c2 !== n0c
+    @test num_edges(n0c2) == num_edges(n0c)
+    @test num_nodes(n0c2) == num_nodes(n0c) 
+    @test isempty(intersect(linearize(n0c2),linearize(n0c)))
+
 end
 

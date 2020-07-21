@@ -1,5 +1,5 @@
 export Vtree, vtree, variable, goes_left, goes_right, find_leaf,
-    varsubset_left, varsubset_right, depth,
+    varsubset_left, varsubset_right, lca_vtree, depth,
     balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree
 
 #############
@@ -55,6 +55,12 @@ import .Utils: varsubset
 @inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Leaf) = false
 @inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Inner) = variable(n) ∈ variables(m)
 @inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Inner) = variables(n) ⊆ variables(m) # very slow
+
+"Find the LCA vtree of all given nodes, excluding constant nodes"
+lca_vtree(nodes...) =
+    mapreduce(vtree, lca, filter(!isconstantgate,nodes))
+
+# TODO: clean up and simplify the many utility functions to determine if a node respects a vtree (varsubset, lca, etc.)
 
 """
 Compute the path length from vtree node `n` to leaf node which contains `var`

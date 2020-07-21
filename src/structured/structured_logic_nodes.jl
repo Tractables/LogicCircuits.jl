@@ -58,8 +58,9 @@ mutable struct PlainStruct⋀Node <: PlainStructLogicInnerNode
     data
     bit::Bool
     PlainStruct⋀Node(p,s,v) = begin
-        @assert varsubset_left(vtree(p),v)
-        @assert varsubset_right(vtree(s), v)
+        @assert isinner(v) "Structured conjunctions must respect inner vtree node"
+        @assert isconstantgate(p) || varsubset_left(vtree(p),v) "$p does not go left in $v"
+        @assert isconstantgate(s) || varsubset_right(vtree(s),v) "$s does not go right in $v"
         new(p,s, v, nothing, false)
     end
 end
@@ -110,8 +111,19 @@ function conjoin(a1::PlainStructLogicCircuit,
         # constant nodes don't have a vtree: resolve to a constant
         return PlainStructLogicCircuit(istrue(a1) && istrue(a2))
     end
-    !(use_vtree isa Vtree) && (use_vtree = lca(vtree(a1), vtree(a2)))
+    !(use_vtree isa Vtree) && (use_vtree = matching_vtree(a1, a2))
     return PlainStruct⋀Node(a1, a2, use_vtree)
+end
+
+"Find a vtree node that can be respected by the given prime and sub"
+function matching_vtree(p,s)
+    vtree = lca_vtree(p,s)
+    while issomething(vtree) && (isleaf(vtree) || 
+            !(variables(p) ⊆ variables(vtree.left) 
+                && variables(s) ⊆ variables(vtree.right))) 
+        vtree = parent(vtree)
+    end
+    return vtree
 end
 
 @inline disjoin(xs::PlainStructLogicCircuit...) = disjoin(collect(xs))
@@ -125,7 +137,7 @@ function disjoin(arguments::Vector{<:PlainStructLogicCircuit};
         # constant nodes don't have a vtree: resolve to a constant
         return PlainStructLogicCircuit(any(constant, arguments))
     end
-    !(use_vtree isa Vtree) && (use_vtree = mapreduce(vtree, lca, arguments))
+    !(use_vtree isa Vtree) && (use_vtree = lca_vtree(arguments...))
     return PlainStruct⋁Node(arguments, use_vtree)
 end
 
