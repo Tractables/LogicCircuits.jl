@@ -218,10 +218,6 @@ end
 Compile a given variable, literal, or constant
 """
 
-function compile(n::TrimSddMgr, v::Var)::SddLiteralNode
-    compile(n,var2lit(v))
-end
-
 function compile(n::TrimSddMgrLeafNode, l::Lit)::SddLiteralNode
     @assert n.var == lit2var(l) "Cannot compile literal $l respecting vtree leaf for variable $(n.var)"
     if l>0 # positive literal
@@ -242,7 +238,7 @@ function compile(n::TrimSddMgrInnerNode, l::Lit)::SddLiteralNode
 end
 
 # TODO: add type argument to distinguish from other circuit compilers for constants
-function compile(constant::Bool)::SddConstantNode
+function compile(::TrimSddMgr, constant::Bool)::SddConstantNode
     if constant == true
         trimtrue
     else

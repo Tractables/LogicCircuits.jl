@@ -1,6 +1,7 @@
-export StructLogicCircuit, StructLogicLeafNode, StructLogicInnerNode,
-    StructLiteralNode, StructConstantNode, StructTrueNode, StructFalseNode,
-    Struct⋀Node, Struct⋁Node
+export StructLogicCircuit, PlainStructLogicCircuit, 
+    PlainStructLogicLeafNode, PlainStructLogicInnerNode,
+    PlainStructLiteralNode, PlainStructConstantNode, PlainStructTrueNode, PlainStructFalseNode,
+    PlainStruct⋀Node, PlainStruct⋁Node
 
 #####################
 # Logic circuits that are structured,
@@ -10,121 +11,159 @@ export StructLogicCircuit, StructLogicLeafNode, StructLogicInnerNode,
 "Root of the structure logical circuit node hierarchy"
 abstract type StructLogicCircuit <: LogicCircuit end
 
-"A structured logical leaf node"
-abstract type StructLogicLeafNode <: StructLogicCircuit end
+"Root of the plain structure logical circuit node hierarchy"
+abstract type PlainStructLogicCircuit <: StructLogicCircuit end
 
-"A structured logical inner node"
-abstract type StructLogicInnerNode <: StructLogicCircuit end
+"A plain structured logical leaf node"
+abstract type PlainStructLogicLeafNode <: PlainStructLogicCircuit end
 
-"A structured logical literal leaf node, representing the positive or negative literal of its variable"
-mutable struct StructLiteralNode <: StructLogicLeafNode
+"A plain structured logical inner node"
+abstract type PlainStructLogicInnerNode <: PlainStructLogicCircuit end
+
+"A plain structured logical literal leaf node, representing the positive or negative literal of its variable"
+mutable struct PlainStructLiteralNode <: PlainStructLogicLeafNode
     literal::Lit
     vtree::Vtree
     data
     bit::Bool
-    StructLiteralNode(l,v) = begin
+    PlainStructLiteralNode(l,v) = begin
         @assert lit2var(l) ∈ variables(v) 
         new(l, v, nothing, false)
     end
 end
 
 """
-A structured logical constant leaf node, representing true or false.
+A plain structured logical constant leaf node, representing true or false.
 These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
 """
-abstract type StructConstantNode <: StructLogicInnerNode end
+abstract type PlainStructConstantNode <: PlainStructLogicInnerNode end
 
-"A structured logical true constant. Never construct one, use `structtrue` to access its unique instance"
-mutable struct StructTrueNode <: StructConstantNode
+"A plain structured logical true constant. Never construct one, use `structtrue` to access its unique instance"
+mutable struct PlainStructTrueNode <: PlainStructConstantNode
     data
     bit::Bool
 end
 
-"A structured logical false constant.  Never construct one, use `structfalse` to access its unique instance"
-mutable struct StructFalseNode <: StructConstantNode
+"A plain structured logical false constant.  Never construct one, use `structfalse` to access its unique instance"
+mutable struct PlainStructFalseNode <: PlainStructConstantNode
     data
     bit::Bool
 end
 
-"A structured logical conjunction node"
-mutable struct Struct⋀Node <: StructLogicInnerNode
-    prime::StructLogicCircuit
-    sub::StructLogicCircuit
+"A plain structured logical conjunction node"
+mutable struct PlainStruct⋀Node <: PlainStructLogicInnerNode
+    prime::PlainStructLogicCircuit
+    sub::PlainStructLogicCircuit
     vtree::Vtree
     data
     bit::Bool
-    Struct⋀Node(p,s,v) = begin
+    PlainStruct⋀Node(p,s,v) = begin
         @assert varsubset_left(vtree(p),v)
         @assert varsubset_right(vtree(s), v)
         new(p,s, v, nothing, false)
     end
 end
 
-"A structured logical disjunction node"
-mutable struct Struct⋁Node <: StructLogicInnerNode
-    children::Vector{StructLogicCircuit}
+"A plain structured logical disjunction node"
+mutable struct PlainStruct⋁Node <: PlainStructLogicInnerNode
+    children::Vector{PlainStructLogicCircuit}
     vtree::Vtree # could be leaf or inner
     data
     bit::Bool
-    Struct⋁Node(c,v) = new(c, v, nothing, false)
+    PlainStruct⋁Node(c,v) = new(c, v, nothing, false)
 end
 
-"The unique structured logical true constant"
-const structtrue = StructTrueNode(nothing, false)
-"The unique structured logical false constant"
-const structfalse = StructFalseNode(nothing, false)
+"The unique plain structured logical true constant"
+const structtrue = PlainStructTrueNode(nothing, false)
+
+"The unique splain tructured logical false constant"
+const structfalse = PlainStructFalseNode(nothing, false)
 
 #####################
 # traits
 #####################
 
-@inline GateType(::Type{<:StructLiteralNode}) = LiteralGate()
-@inline GateType(::Type{<:StructConstantNode}) = ConstantGate()
-@inline GateType(::Type{<:Struct⋀Node}) = ⋀Gate()
-@inline GateType(::Type{<:Struct⋁Node}) = ⋁Gate()
+@inline GateType(::Type{<:PlainStructLiteralNode}) = LiteralGate()
+@inline GateType(::Type{<:PlainStructConstantNode}) = ConstantGate()
+@inline GateType(::Type{<:PlainStruct⋀Node}) = ⋀Gate()
+@inline GateType(::Type{<:PlainStruct⋁Node}) = ⋁Gate()
 
 #####################
 # methods
 #####################
 
-@inline constant(n::StructTrueNode)::Bool = true
-@inline constant(n::StructFalseNode)::Bool = false
-@inline children(n::Struct⋁Node) = n.children
-@inline children(n::Struct⋀Node) = [n.prime,n.sub]
+@inline constant(n::PlainStructTrueNode)::Bool = true
+@inline constant(n::PlainStructFalseNode)::Bool = false
+@inline children(n::PlainStruct⋁Node) = n.children
+@inline children(n::PlainStruct⋀Node) = [n.prime,n.sub]
 
-@inline function conjoin(arguments::Vector{<:StructLogicCircuit},
-            example::Union{StructLogicCircuit,Nothing}= nothing) 
-    @assert length(arguments)==0 || length(arguments)==2 "Can only conjoin two arguments in structured circuits"
-    all(istrue, arguments) && return structtrue
-    all(isconstantgate, arguments) && return structfalse
-    example isa Struct⋀Node && children(example) == arguments && return example
-    return Struct⋀Node(arguments[1], arguments[2], 
-                    mapreduce(vtree, lca, arguments))
+conjoin(arguments::Vector{<:PlainStructLogicCircuit};
+        reuse=nothing, use_vtree=nothing) =
+        conjoin(arguments...; reuse, use_vtree)
+
+function conjoin(a1::PlainStructLogicCircuit,  
+                 a2::PlainStructLogicCircuit;
+                 reuse=nothing, use_vtree=nothing) 
+    reuse isa PlainStruct⋀Node && reuse.prime == a1 && reuse.sub == a2 && return reuse
+    !(use_vtree isa Vtree) && (reuse isa PlainStructLogicCircuit) &&  (use_vtree = reuse.vtree)
+    if isconstantgate(a1) && isconstantgate(a2) && !(use_vtree isa Vtree)
+        # constant nodes don't have a vtree: resolve to a constant
+        return PlainStructLogicCircuit(istrue(a1) && istrue(a2))
+    end
+    !(use_vtree isa Vtree) && (use_vtree = lca(vtree(a1), vtree(a2)))
+    return PlainStruct⋀Node(a1, a2, use_vtree)
 end
 
-@inline function disjoin(arguments::Vector{<:StructLogicCircuit}, 
-            example::Union{StructLogicCircuit,Nothing}=nothing)
-    all(isfalse, arguments) && return structfalse
-    all(isconstantgate, arguments) && return structtrue
-    example isa Struct⋁Node && children(example) == arguments && return example
-    return Struct⋁Node(arguments, mapreduce(vtree, lca, arguments))
+@inline disjoin(xs::PlainStructLogicCircuit...) = disjoin(collect(xs))
+
+function disjoin(arguments::Vector{<:PlainStructLogicCircuit};
+                 reuse=nothing, use_vtree=nothing)
+    @assert length(arguments) > 0
+    reuse isa PlainStruct⋁Node && reuse.prime == a1 && reuse.sub == a2 && return reuse
+    !(use_vtree isa Vtree) && (reuse isa PlainStructLogicCircuit) &&  (use_vtree = reuse.vtree)
+    if all(isconstantgate, arguments) && !(use_vtree isa Vtree)
+        # constant nodes don't have a vtree: resolve to a constant
+        return PlainStructLogicCircuit(any(constant, arguments))
+    end
+    !(use_vtree isa Vtree) && (use_vtree = mapreduce(vtree, lca, arguments))
+    return PlainStruct⋁Node(arguments, use_vtree)
 end
 
-@inline compile(::Type{<:StructLogicCircuit}, b::Bool) =
+# Syntactic sugar for compile with a vtree
+(t::Tuple{<:Type,<:Vtree})(arg) = compile(t[1], t[2], arg)
+(t::Tuple{<:Vtree,<:Type})(arg) = compile(t[2], t[1], arg)
+
+# claim `PlainStructLogicCircuit` as the default `LogicCircuit` implementation that has a vtree
+
+compile(vtree::Vtree, arg) = 
+    compile(StructLogicCircuit,vtree,arg)
+
+compile(::Type{<:StructLogicCircuit}, ::Vtree, b::Bool) =
+    compile(PlainStructLogicCircuit, b)
+
+compile(::Type{<:StructLogicCircuit}, b::Bool) =
     b ? structtrue : structfalse
 
-@inline compile(::Type{<:StructLogicCircuit}, l::Lit, vtree::Vtree) =
-    StructLiteralNode(l,find_leaf(lit2var(l),vtree))
+compile(::Type{<:StructLogicCircuit}, vtree::Vtree, l::Lit) =
+    PlainStructLiteralNode(l,find_leaf(lit2var(l),vtree))
 
 
-function fully_factorized_circuit(vtree::Vtree, ::Type{<:StructLogicCircuit})
+function compile(::Type{<:StructLogicCircuit}, vtree::Vtree, circuit::LogicCircuit)
+    f_con(n) = compile(PlainStructLogicCircuit, constant(n)) 
+    f_lit(n) = compile(PlainStructLogicCircuit, vtree, literal(n))
+    f_a(n, cns) = conjoin(cns...) # note: this will use the LCA as vtree node
+    f_o(n, cns) = disjoin(cns) # note: this will use the LCA as vtree node
+    foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, PlainStructLogicCircuit)
+end
+
+function fully_factorized_circuit(::Type{<:StructLogicCircuit}, vtree::Vtree)
     f_leaf(l) = begin
         v = variable(l)
-        pos = compile(StructLogicCircuit, var2lit(v), vtree)
-        neg = compile(StructLogicCircuit, -var2lit(v), vtree)
+        pos = compile(PlainStructLogicCircuit, vtree, var2lit(v))
+        neg = compile(PlainStructLogicCircuit, vtree, -var2lit(v))
         pos | neg
     end
     f_inner(i,cs) = conjoin(cs)
-    c = foldup_aggregate(vtree, f_leaf, f_inner, StructLogicCircuit)
+    c = foldup_aggregate(vtree, f_leaf, f_inner, PlainStructLogicCircuit)
     disjoin([c]) # "bias term"
 end

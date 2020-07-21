@@ -168,9 +168,9 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
     root = nothing
 
     # literal cache is responsible for making leaf literal nodes unique and adding them to `circuit`
-    lit_cache = Dict{Lit,StructLogicLeafNode}()
+    lit_cache = Dict{Lit,PlainStructLogicLeafNode}()
     literal_node(l::Lit, v::PlainVtree) = get!(lit_cache, l) do
-        StructLiteralNode(l,v)
+        PlainStructLiteralNode(l,v)
     end
 
     smoothing_warning = "Cannot compile a smooth logical circuit from lines that are not normalized: functionality to determine variable scope and perform smoothing not implemented in the line compiler.  Instead compile a non-smooth logical circuit and smooth it afterwards."
@@ -186,7 +186,7 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         # Here making that explicit in the Circuit
         @assert is_normalized(ln) smoothing_warning
         lit_node = literal_node(ln.literal, id2vtree[ln.vtree_id])
-        or_node = Struct⋁Node([lit_node], id2vtree[ln.vtree_id])
+        or_node = PlainStruct⋁Node([lit_node], id2vtree[ln.vtree_id])
         root = id2node[ln.node_id] = or_node 
     end
     function compile(ln::LiteralLine)
@@ -205,7 +205,7 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         end
         if constant(ln) == true
             # because we promise to compile a smooth circuit, here we need to add an or gate
-            n = Struct⋁Node([literal_node(var2lit(variable), vtree), literal_node(-var2lit(variable), vtree)], vtree)
+            n = PlainStruct⋁Node([literal_node(var2lit(variable), vtree), literal_node(-var2lit(variable), vtree)], vtree)
         else
             error("False leaf logical circuit nodes not yet implemented")
         end
@@ -215,15 +215,15 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         error(smoothing_warning)
     end
     function compile_elements(e::NormalizedElement, v::PlainVtree)
-        Struct⋀Node(id2node[e.prime_id], id2node[e.sub_id], v)
+        PlainStruct⋀Node(id2node[e.prime_id], id2node[e.sub_id], v)
     end
     function compile(ln::DecisionLine)
         vtree = id2vtree[ln.vtree_id]
-        n = Struct⋁Node(map(e -> compile_elements(e, vtree), ln.elements), vtree)
+        n = PlainStruct⋁Node(map(e -> compile_elements(e, vtree), ln.elements), vtree)
         root = id2node[ln.node_id] = n
     end
     function compile(ln::BiasLine)
-        n = Struct⋁Node([root], root.vtree)
+        n = PlainStruct⋁Node([root], root.vtree)
         root = id2node[ln.node_id] = n
     end
 

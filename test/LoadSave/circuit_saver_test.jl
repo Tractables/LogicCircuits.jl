@@ -13,7 +13,7 @@ include("../helper/plain_logic_circuits.jl")
   end
 
   mktempdir() do tmp
-    circuit = fully_factorized_circuit(10)
+    circuit = fully_factorized_circuit(LogicCircuit,10)
     @test_nowarn save_as_dot(circuit, "$tmp/temp.dot")
   end
 

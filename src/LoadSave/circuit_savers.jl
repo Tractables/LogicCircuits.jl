@@ -17,16 +17,16 @@ end
 #####################
 
 "Decompile for sdd circuit, used during saving of circuits to file" 
-decompile(n::StructLiteralNode, node2id, vtree2id)::UnweightedLiteralLine = 
+decompile(n::PlainStructLiteralNode, node2id, vtree2id)::UnweightedLiteralLine = 
     UnweightedLiteralLine(node2id[n], vtree2id[n.vtree], literal(n), false)
 
-decompile(n::StructConstantNode, node2id, _)::AnonymousConstantLine = 
+decompile(n::PlainStructConstantNode, node2id, _)::AnonymousConstantLine = 
     AnonymousConstantLine(node2id[n], constant(n), false)
 
-decompile(n::Struct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} = 
+decompile(n::PlainStruct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} = 
     DecisionLine(node2id[n], vtree2id[n.vtree], UInt32(num_children(n)), map(c -> make_element(c, node2id), children(n)))
 
-make_element(n::Struct⋀Node, node2id) = 
+make_element(n::PlainStruct⋀Node, node2id) = 
     SDDElement(node2id[n.children[1]],  node2id[n.children[2]])
 
 make_element(_::StructLogicCircuit, _) = 

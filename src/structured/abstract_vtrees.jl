@@ -83,6 +83,9 @@ Warning: this method uses an imcomplete `varsubset` check for `descends_from` an
 """
 lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
 
+# Syntactic sugar to compile circuits using a vtree
+(vtree::Vtree)(arg) = compile(vtree, arg)
+
 #############
 # Constructors
 #############

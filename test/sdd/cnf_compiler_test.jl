@@ -12,6 +12,7 @@ include("../helper/validate_sdd.jl")
    @test_throws Exception compile(mgr.left, cnf)
    @test_throws Exception compile(right_most_descendent(mgr), cnf)
 
+   @test compile(mgr, cnf) === mgr(cnf)
 
    cnfs = [ 
             ("easy","C17_mince",32,92,45)
