@@ -21,22 +21,6 @@ include("helper/plain_logic_circuits.jl")
 #     @test smooth(c3) === c3
 #     @test smooth(c4) === c4
 
-
-# @testset "Clone test" begin
-#     n0 = little_3var()[end]
-#     and = n0.children[1].children[2].children[1]
-#     or1 = n0.children[1].children[2]
-#     or2 = n0.children[2].children[2]
-#     n1 = clone(n0, or1, or2, and; depth=1)
-#     @test num_nodes(n1) == num_nodes(n0) + 1
-#     @test num_edges(n1) == num_edges(n0) + num_children(and)
-#     @test length(Set([linearize(n1); linearize(n0)])) == num_nodes(n0) + 4
-#     n2 = clone(n0, or1, or2, and; depth=2)
-#     @test num_nodes(n2) == num_nodes(n0) + 2
-#     @test num_edges(n2) == num_edges(n0) + 4
-#     @test length(Set([linearize(n2); linearize(n0)])) == num_nodes(n0) + 5
-# end
-
 @testset "Smooth test" begin
     for file in [zoo_psdd_file("plants.psdd"), zoo_sdd_file("random.sdd")]
         c1 = load_logic_circuit(file)
@@ -58,7 +42,12 @@ end
         c3 = forget(c1, x -> x > 10)
         @test c3 !== c2
         @test variables(c3) == BitSet(1:10)
+        c4 = propagate_constants(c1)
+        c5 = forget(c4, x -> x == 10)
+        @test !(10 in variables(c5))
     end
+
+
 end
 
 @testset "Propagate constants test" begin
@@ -124,6 +113,13 @@ end
     c4 = condition(c2, lit2)
     @test num_nodes(c4) == 4
     @test num_edges(c4) == 3
+
+    lit1 = compile(PlainLogicCircuit, Lit(1))
+    litn1 = compile(PlainLogicCircuit, - Lit(1))
+    lit2 = compile(PlainLogicCircuit, Lit(2))
+    or = Plain⋁Node([lit1])
+    c5 = or & lit2 & litn1
+    @test isfalse(condition(c5, - Lit(1)))
 end
 
 @testset "Split test" begin
@@ -165,4 +161,24 @@ end
     @test n0.children[1].children[2] != n0.children[2].children[2]
     @test n1.children[1].children[2] == n1.children[2].children[2]
     @test num_nodes(n1) == (num_nodes(n0) - 1)
+end
+
+@testset "Clone test" begin
+    lit1 = compile(PlainLogicCircuit, Lit(1))
+    litn1 = compile(PlainLogicCircuit, - Lit(1))
+    lit2 = compile(PlainLogicCircuit, Lit(2))
+    litn2 = compile(PlainLogicCircuit, - Lit(2))
+    or = lit1 | litn1
+    and1 = lit2 & or
+    and2 = or & litn2
+    c1 = root = and1 | and2
+    c2 = clone(c1, and1, and2, or)
+    @test num_nodes(c2) == num_nodes(c1) + 1
+    @test num_edges(c2) == num_edges(c1) + 2
+    @test c2.children[1] === and1
+    @test c2.children[2] !== and2
+    @test c2.children[2].children[2] === and2.children[2]
+    @test c2.children[2].children[1] !== or
+    @test c2.children[1].children[2] === or
+    @test all(c2.children[2].children[1].children .=== or.children)
 end

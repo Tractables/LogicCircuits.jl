@@ -159,7 +159,7 @@ function condition(root::Node, lit::Lit; callback::Function=((x, y, z) -> nothin
             if all(kept)
                 (conjoin([new_children...]; reuse=n), true)
             else
-                (nothing, false)
+                (false_node, false)
             end
         end
         f_o(n, cv) = begin
@@ -172,10 +172,10 @@ function condition(root::Node, lit::Lit; callback::Function=((x, y, z) -> nothin
                 callback(new_n, n, kept)
                 (new_n, true)
             else
-                (nothing, false)
+                (false_node, false)
             end
         end
-        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{Union{Nothing,Node}, Bool})[1]
+        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{Node, Bool})[1]
     end
 end
 
