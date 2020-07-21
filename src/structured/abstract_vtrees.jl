@@ -60,8 +60,6 @@ import .Utils: varsubset
 lca_vtree(nodes...) =
     mapreduce(vtree, lca, filter(!isconstantgate,nodes))
 
-# TODO: clean up and simplify the many utility functions to determine if a node respects a vtree (varsubset, lca, etc.)
-
 """
 Compute the path length from vtree node `n` to leaf node which contains `var`
 """
@@ -85,7 +83,7 @@ import .Utils: lca # extend
 
 """
 Compute the lowest common ancestor of two vtree nodes
-Warning: this method uses an imcomplete `varsubset` check for `descends_from` and is only correct when `v` and `w` are part of the same larger vtree.
+Warning: this method uses an incomplete `varsubset` check for `descends_from` and is only correct when `v` and `w` are part of the same larger vtree.
 """
 lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
 

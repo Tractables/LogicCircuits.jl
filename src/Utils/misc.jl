@@ -69,7 +69,7 @@ function variables end
 "Number of variables in the data structure"
 @inline num_variables(x)::Int = length(variables(x))
 
-"Do the variables in `n` containing the variables in `m`?"
+"Are the variables in `n` contained in the variables in `m`?"
 @inline varsubset(n, m) = (n===m || variables(n) ⊆ variables(m))
 
 #####################
