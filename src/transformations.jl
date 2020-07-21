@@ -204,10 +204,9 @@ function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sani
         condition(c, - var2lit(var))
     end
 
-    new_and1 = conjoin(new_children1)
-    new_and2 = conjoin(new_children2)
+    new_and1 = deepcopy(conjoin(new_children1), depth; cache=false)
+    new_and2 = deepcopy(conjoin(new_children2), depth; cache=false)
     new_or = disjoin([[new_and1, new_and2]; filter(c -> c != and, children(or))])
-    new_or = deepcopy(new_or, depth+1; cache=false)
 
     replace_node(root, or, new_or), new_or
 end
