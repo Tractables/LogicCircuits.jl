@@ -1,4 +1,5 @@
-export smooth, forget, propagate_constants, deepcopy, condition, split, clone, replace_node, merge
+export smooth, forget, propagate_constants, deepcopy, condition, replace_node, 
+    split, clone, merge, split_candidates, random_split, split_step
 
 """
 Create an equivalent smooth circuit from the given circuit.
@@ -213,6 +214,69 @@ end
 
 
 """
+Return the edges and variables which can be splited on
+"""
+function split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{Node, BitSet}}
+    candidates = Vector{Tuple{Node, Node}}()
+    scope = Dict{Node, BitSet}() # cache the literal scopes
+    f_con(n) = begin
+        scope[n] = BitSet()
+        (false, scope[n])
+    end
+    f_lit(n) = begin
+        scope[n] = BitSet(literal(n))
+        (false, scope[n])
+    end
+    f_a(n, cv) = begin
+        literals = last.(cv)
+        scope[n] = union(literals...)
+        variable = union(lit2var.(Int32.(scope[n]))...)
+        for v in variable
+            if var2lit(v) in scope[n] && - var2lit(v) in scope[n]
+                return (true, scope[n])
+            end
+        end
+        (false, scope[n])
+    end
+    f_o(n, cv) = begin
+        literals = last.(cv)
+        scope[n] = union(literals...)
+        map(zip(first.(cv), children(n))) do (splitable, c)
+            if splitable
+                push!(candidates, (n, c))
+            end
+        end
+        (any(first.(cv)), scope[n])
+    end
+    foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, Tuple{Bool, BitSet})
+
+    candidates, scope
+end
+
+
+"""
+Split step
+"""
+function split_step(circuit::Node; loss, depth, sanity_check)
+    edge, var = loss(circuit)
+    split(circuit, edge, var; depth=depth, sanity_check=sanity_check)
+end
+
+
+"""
+Randomly picking egde and variable from candidates
+"""
+function random_split(circuit::Node)
+    candidates, scope = split_candidates(circuit)
+    or, and = rand(candidates)
+    lits = collect(Set{Lit}(scope[and]))
+    vars =  Var.(intersect(filter(l -> l > 0, lits), - filter(l -> l < 0, lits)))
+    var = rand(vars)
+    (or, and), var
+end
+
+
+"""
 Clone the `or` node and redirect one of its parents to the new copy
 """
 function clone(root::Node, and1::Node, and2::Node, or::Node; depth=1)
@@ -267,3 +331,5 @@ function replace_node(root::Node, old::Node, new::Node; callback::Function=(x, y
         end
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
 end
+
+

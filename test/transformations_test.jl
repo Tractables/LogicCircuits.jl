@@ -164,3 +164,20 @@ end
     @test c2.children[1].children[2] === or
     @test all(c2.children[2].children[1].children .=== or.children)
 end
+
+@testset "Random splits" begin
+    c0 = smooth(load_logic_circuit(zoo_sdd_file("random.sdd")))
+    @test issmooth(c0)
+    @test isdecomposable(c0)
+    for _ in 1 : 4
+        for depth in 0 : 3
+            c1, _ = split_step(c0; loss=random_split, depth=depth, sanity_check=true)
+            @test issmooth(c1)
+            @test isdecomposable(c1)
+            c0 = c1
+            # TODO
+            # @test isstructdecomposable(c1)
+            # @test isdeterministic(c1)
+        end
+    end
+end
