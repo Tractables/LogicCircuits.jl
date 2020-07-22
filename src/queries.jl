@@ -261,35 +261,52 @@ function pass_up_down2(circuit::LogicCircuit, data)
     pass_down2(circuit, data)
 end
 
-struct UpDownFlowData
+mutable struct UpDownFlowData
     upflow::Vector{BitVector}
     downflow::BitVector
-    UpDownFlowData(upf) = new(upf, never(Bool, length(upf[1])))
+    num_parents::Int
+    UpDownFlowData(upf) = new(upf, never(Bool, length(upf[1])), 1)
 end
 
 function pass_up_down3(circuit::LogicCircuit, data)
-    nodes = Vector{LogicCircuit}()
-    loadf(n) = (n.data::UpDownFlowData).upflow
-    savef(n,v) = begin
-        push!(nodes,n)
+
+    function loadf(n)
+        d = n.data::UpDownFlowData
+        d.num_parents += 1
+        d.upflow
+    end
+
+    function savef(n,v)
         n.data = UpDownFlowData(v)
         v
     end
-    evaluate(circuit,data; nload=loadf, nsave=savef)
-    circuit.data.downflow .= true
-    for n in Iterators.reverse(nodes)
+
+    evaluate(circuit, data; nload=loadf, nsave=savef)
+    
+    function step_down(n)
         if isinner(n)
             downflow_n = (n.data::UpDownFlowData).downflow
             for c in children(n)
-                upflow_c = (c.data::UpDownFlowData).upflow
-                downflow_c = (c.data::UpDownFlowData).downflow
+                cd = c.data::UpDownFlowData
+                upflow_c = cd.upflow
+                downflow_c = cd.downflow
                 if length(upflow_c) == 2
+                    # TODO: skip this assignment altogether and propagate further down
                     @inbounds @. downflow_c |= downflow_n & upflow_c[1] & upflow_c[2]
                 else
                     @assert length(upflow_c) == 1
                     @inbounds @. downflow_c |= downflow_n & upflow_c[1]
                 end
+                if (cd.num_parents -= 1) == 0
+                    step_down(c)
+                end
             end
         end
+        # when we can call evaluate without flipping bits, we can here do n.bit = false
+        #nothing
     end
+
+    (circuit.data::UpDownFlowData).downflow .= true
+    step_down(circuit)
+    nothing
 end
