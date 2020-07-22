@@ -232,10 +232,10 @@ mutable struct Downpass
     Downpass(T, passup) = new(passup, Vector{T}())
 end
 # TODO: see if we can instead make this a `foldupdown` function so that the type of data is fixed
-function folddown_aggregate(node::Dag, f_root::Function, f_leaf::Function, f_inner::Function, 
+function folddown_aggregate(root::Dag, f_root::Function, f_leaf::Function, f_inner::Function, 
                            ::Type{T})::Nothing where {T}
-    # folddown_aggregate(node[end], f_root, f_leaf, f_inner, T)
-    @inline isroot(n) = n === node[end]
+    
+    @inline isroot(n) = n === root
     @inline function folddown_init(n::Dag)
         n.data = Downpass(T, n.data)
         nothing
@@ -244,24 +244,24 @@ function folddown_aggregate(node::Dag, f_root::Function, f_leaf::Function, f_inn
         push!(c.data.passdown, data)
     end
     
-    foreach(folddown_init, node)
-    n = node[end]
+    foreach(folddown_init, root)
+    n = root
     n.data = x = f_root(n, n.data.passup)
     map(c -> data_to_childern(c, x), children(n))
 
-    inners = filter(isinner, @view node[1:end-1])
+    inners = filter(x -> isinner(x) && !(x === root), root)
     map(Iterators.reverse(inners)) do n 
         n.data = @inbounds f_inner(n, n.data.passup, n.data.passdown)::T
         map(c -> data_to_childern(c, n.data), children(n))
         nothing
     end
     
-    leafs = filter(isleaf, node)
+    leafs = filter(isleaf, root)
     map(leafs) do n 
         n.data = f_leaf(n, n.data.passup, n.data.passdown)::T
         nothing
     end
-    flip_bit(node[end], Val(false))
+    flip_bit(root, Val(false))
 end
 
 #####################

@@ -26,10 +26,11 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
 function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                f_a::Function, f_o::Function, ::Type{T})::T where {T}
+                f_a::Function, f_o::Function, ::Type{T};
+                data = data, data! = data!)::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)::T
-    foldup(node, f_leaf, f_inner, T)
+    foldup(node, f_leaf, f_inner, T; data, data!)
 end
 
 import ..Utils: foldup_aggregate # extend
@@ -41,14 +42,15 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an aggregate vector from the children.
 """
 function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                          f_a::Function, f_o::Function, ::Type{T})::T where T
+                          f_a::Function, f_o::Function, ::Type{T};
+                          data = data, data! = data!)::T where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     end
     function f_inner(n, cs) 
         is⋀gate(n) ? f_a(n, cs)::T : f_o(n, cs)::T
     end
-    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T)
+    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; data, data!)
 end
 
 #####################
@@ -250,10 +252,10 @@ function pass_down2(circuit::LogicCircuit, data)
 
     f_leaf = f_inner
 
-    folddown_aggregate(circuit, f_root, f_leaf, f_inner, Vector{BitVector})
+    Utils.folddown_aggregate(circuit, f_root, f_leaf, f_inner, Vector{BitVector})
 end
 
 function pass_up_down2(circuit::LogicCircuit, data)
-    circuit[end](data)
+    circuit(data)
     pass_down2(circuit, data)
 end
