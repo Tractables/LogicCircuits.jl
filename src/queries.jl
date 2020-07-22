@@ -10,7 +10,7 @@ export variables_by_node, issmooth, isdecomposable,
 import Base: foreach # extend
 
 function foreach(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                                  f_a::Function, f_o::Function)
+                f_a::Function, f_o::Function)
     f_leaf(n) = isliteralgate(n) ? f_lit(n) : f_con(n)
     f_inner(n) = is⋀gate(n) ? f_a(n) : f_o(n)
     foreach(node, f_leaf, f_inner)
@@ -27,10 +27,10 @@ Values of type `T` are passed up the circuit and given to `f_a` and `f_o` throug
 """
 function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
                 f_a::Function, f_o::Function, ::Type{T};
-                data = data, data! = data!)::T where {T}
+                nload = nload, nsave = nsave)::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)::T
-    foldup(node, f_leaf, f_inner, T; data, data!)
+    foldup(node, f_leaf, f_inner, T; nload, nsave)
 end
 
 import ..Utils: foldup_aggregate # extend
@@ -43,14 +43,14 @@ Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an 
 """
 function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
                           f_a::Function, f_o::Function, ::Type{T};
-                          data = data, data! = data!)::T where T
+                          nload = nload, nsave = nsave)::T where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     end
     function f_inner(n, cs) 
         is⋀gate(n) ? f_a(n, cs)::T : f_o(n, cs)::T
     end
-    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; data, data!)
+    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; nload, nsave)
 end
 
 #####################
@@ -175,7 +175,8 @@ end
 
 # TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
 # TODO; create a version that doesn't allocate, using fold! and pre-allocated fields
-function evaluate(root::LogicCircuit, data)::BitVector
+function evaluate(root::LogicCircuit, data;
+    nload = nload, nsave = nsave)::BitVector
     num_examples::Int = Utils.num_examples(data)
     @inline f_lit(n) = if ispositive(n) 
         [feature_values(data,variable(n))]::Vector{BitVector}
@@ -209,7 +210,7 @@ function evaluate(root::LogicCircuit, data)::BitVector
         end
         return [x]
     end
-    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}))
+    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}; nload, nsave))
 end
 
 @inline function conjoin_elements(elems::Vector{BitVector})::BitVector 
@@ -258,4 +259,37 @@ end
 function pass_up_down2(circuit::LogicCircuit, data)
     circuit(data)
     pass_down2(circuit, data)
+end
+
+struct UpDownFlowData
+    upflow::Vector{BitVector}
+    downflow::BitVector
+    UpDownFlowData(upf) = new(upf, never(Bool, length(upf[1])))
+end
+
+function pass_up_down3(circuit::LogicCircuit, data)
+    nodes = Vector{LogicCircuit}()
+    loadf(n) = (n.data::UpDownFlowData).upflow
+    savef(n,v) = begin
+        push!(nodes,n)
+        n.data = UpDownFlowData(v)
+        v
+    end
+    evaluate(circuit,data; nload=loadf, nsave=savef)
+    circuit.data.downflow .= true
+    for n in Iterators.reverse(nodes)
+        if isinner(n)
+            downflow_n = (n.data::UpDownFlowData).downflow
+            for c in children(n)
+                upflow_c = (c.data::UpDownFlowData).upflow
+                downflow_c = (c.data::UpDownFlowData).downflow
+                if length(upflow_c) == 2
+                    @inbounds @. downflow_c |= downflow_n & upflow_c[1] & upflow_c[2]
+                else
+                    @assert length(upflow_c) == 1
+                    @inbounds @. downflow_c |= downflow_n & upflow_c[1]
+                end
+            end
+        end
+    end
 end

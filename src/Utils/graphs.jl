@@ -1,7 +1,7 @@
 export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
        flip_bit, foreach, foreach_rec, filter, 
-       data, data!,
+       nload, nsave,
        foldup, foldup_rec, foldup_aggregate, foldup_aggregate_rec,
        num_nodes, num_edges, tree_num_nodes, tree_num_edges, in,
        inodes, innernodes, leafnodes, linearize,
@@ -139,10 +139,10 @@ function filter(p::Function, root::Dag, ::Type{T} = Union{})::Vector where T
 end
 
 "Default getter to obtain data associated with a node"
-data(n) = n.data
+nload(n) = n.data
 
 "Default setter to assign data associated with a node"
-data!(n,v) = n.data = v
+nsave(n,v) = n.data = v
 
 """
 Compute a function bottom-up on the graph. 
@@ -150,9 +150,9 @@ Compute a function bottom-up on the graph.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
 function foldup(node::Dag, f_leaf::Function, f_inner::Function, 
-               ::Type{T}; data = data, data! = data!)::T where {T}
+               ::Type{T}; nload = nload, nsave = nsave)::T where {T}
     @assert node.bit == false "Another algorithm is already traversing this circuit and using the `bit` field"
-    v = foldup_rec(node, f_leaf, f_inner, T; data, data!)
+    v = foldup_rec(node, f_leaf, f_inner, T; nload, nsave)
     flip_bit(node)
     v
 end
@@ -164,18 +164,18 @@ Compute a function bottom-up on the graph, flipping the node bits.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
 function foldup_rec(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, 
-                    ::Val{Bit} = Val(!node.bit); data = data, data! = data!)::T where {T,Bit}
+                    ::Val{Bit} = Val(!node.bit); nload = nload, nsave = nsave)::T where {T,Bit}
     if node.bit == Bit
-        return data(node)::T
+        return nload(node)::T
     else
         node.bit = Bit
         v = if isinner(node)
-                callback(c) = (foldup_rec(c, f_leaf, f_inner, T, Val(Bit); data, data!)::T)
+                callback(c) = (foldup_rec(c, f_leaf, f_inner, T, Val(Bit); nload, nsave)::T)
                 f_inner(node, callback)::T
             else
                 f_leaf(node)::T
             end
-        return data!(node, v)::T
+        return nsave(node, v)::T
     end
 end
 
@@ -187,9 +187,9 @@ as a vector from the children.
 """
 # TODO: see whether we could standardize on `foldup` and remove this version?
 function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, 
-                          ::Type{T}; data = data, data! = data!)::T where {T}
+                          ::Type{T}; nload = nload, nsave = nsave)::T where {T}
     @assert node.bit == false "Another algorithm is already traversing this circuit and using the `bit` field"
-    v = foldup_aggregate_rec(node, f_leaf, f_inner, T; data, data!)
+    v = foldup_aggregate_rec(node, f_leaf, f_inner, T; nload, nsave)
     flip_bit(node)
     return v
 end
@@ -202,20 +202,20 @@ as a vector from the children.
 """
 # TODO: see whether we could standardize on `foldup` and remove this version?
 function foldup_aggregate_rec(node::Dag, f_leaf::Function, f_inner::Function, 
-                    ::Type{T}, ::Val{Bit} = Val(!node.bit); data = data, data! = data!)::T where {T,Bit}
+                    ::Type{T}, ::Val{Bit} = Val(!node.bit); nload = nload, nsave = nsave)::T where {T,Bit}
     if node.bit == Bit
-        return data(node)::T
+        return nload(node)::T
     else
         node.bit = Bit
         v = if isinner(node)
             child_values = Vector{T}(undef, num_children(node))
-            map!(c -> foldup_aggregate_rec(c, f_leaf, f_inner, T, Val(Bit); data, data!)::T, 
+            map!(c -> foldup_aggregate_rec(c, f_leaf, f_inner, T, Val(Bit); nload, nsave)::T, 
                                            child_values, children(node))
             f_inner(node, child_values)::T
         else
             f_leaf(node)::T
         end
-        return data!(node, v)::T
+        return nsave(node, v)::T
     end
 end
 
