@@ -121,41 +121,43 @@ function compute_flows(circuit::LogicCircuit, data)
         (d isa DownFlow1) ? d.upflow : d
     end
 
+    downflow(n) = (n.data::DownFlow1).downflow
+
     evaluate(circuit, data; nload=loadf, nsave=savef, reset=false)
     
-    function step_down(n)
+    function step_down(n, downflow_n)
         if ((n.counter -= 1) == 0) && isinner(n)
-            if n.data isa DownFlow2
+            if n.data::DownFlow isa DownFlow2
                 # only recurse, don't push flow down
                 for c in children(n)
-                    step_down(c)
+                    step_down(c, downflow(c))
                 end     
             else
-                d = n.data::DownFlow1
-                downflow_n = d.downflow
                 for c in children(n)
-                    cd = c.data
+                    cd = c.data::DownFlow
                     if cd isa DownFlow2
-                        @assert num_children(c) == 2
+                        # @assert num_children(c) == 2
                         upflow_c = cd
                         # propagate one level further down
                         for i = 1:2
-                            downflow_c = (c.children[i].data::DownFlow1).downflow
+                            downflow_c = downflow(c.children[i])
                             @. downflow_c |= downflow_n & upflow_c.prime_flow & upflow_c.sub_flow
                         end
+                        step_down(c, nothing)
                     else
-                        upflow_c = (c.data::DownFlow1).upflow
-                        downflow_c = (c.data::DownFlow1).downflow
+                        upflow_c = (cd::DownFlow1).upflow
+                        downflow_c = downflow(c)
                         @. downflow_c |= downflow_n & upflow_c
+                        step_down(c, downflow_c)
                     end
-                    step_down(c)
                 end 
             end
         end
+        nothing
     end
 
-    (circuit.data::DownFlow1).downflow .= true
-    step_down(circuit)
+    downflow(circuit) .= true
+    step_down(circuit, downflow(circuit))
     
     nothing
 end
