@@ -27,10 +27,10 @@ Values of type `T` are passed up the circuit and given to `f_a` and `f_o` throug
 """
 function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
                 f_a::Function, f_o::Function, ::Type{T};
-                nload = nload, nsave = nsave)::T where {T}
+                nload = nload, nsave = nsave, reset=true)::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)::T
-    foldup(node, f_leaf, f_inner, T; nload, nsave)
+    foldup(node, f_leaf, f_inner, T; nload, nsave, reset)
 end
 
 import ..Utils: foldup_aggregate # extend
@@ -43,14 +43,14 @@ Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an 
 """
 function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
                           f_a::Function, f_o::Function, ::Type{T};
-                          nload = nload, nsave = nsave)::T where T
+                          nload = nload, nsave = nsave, reset=true)::T where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     end
     function f_inner(n, cs) 
         is⋀gate(n) ? f_a(n, cs)::T : f_o(n, cs)::T
     end
-    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; nload, nsave)
+    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; nload, nsave, reset)
 end
 
 #####################
@@ -176,7 +176,7 @@ end
 # TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
 # TODO; create a version that doesn't allocate, using fold! and pre-allocated fields
 function evaluate(root::LogicCircuit, data;
-    nload = nload, nsave = nsave)::BitVector
+    nload = nload, nsave = nsave, reset=true)::BitVector
     num_examples::Int = Utils.num_examples(data)
     @inline f_lit(n) = if ispositive(n) 
         [feature_values(data,variable(n))]::Vector{BitVector}
@@ -210,7 +210,7 @@ function evaluate(root::LogicCircuit, data;
         end
         return [x]
     end
-    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}; nload, nsave))
+    conjoin_elements(foldup(root, f_con, f_lit, fa, fo, Vector{BitVector}; nload, nsave, reset))
 end
 
 @inline function conjoin_elements(elems::Vector{BitVector})::BitVector 
@@ -261,18 +261,16 @@ function pass_up_down2(circuit::LogicCircuit, data)
     pass_down2(circuit, data)
 end
 
-mutable struct UpDownFlowData
+struct UpDownFlowData
     upflow::Vector{BitVector}
     downflow::BitVector
-    num_parents::Int
-    UpDownFlowData(upf) = new(upf, never(Bool, length(upf[1])), 1)
+    UpDownFlowData(upf) = new(upf, never(Bool, length(upf[1])))
 end
 
 function pass_up_down3(circuit::LogicCircuit, data)
 
     function loadf(n)
         d = n.data::UpDownFlowData
-        d.num_parents += 1
         d.upflow
     end
 
@@ -281,15 +279,13 @@ function pass_up_down3(circuit::LogicCircuit, data)
         v
     end
 
-    evaluate(circuit, data; nload=loadf, nsave=savef)
+    evaluate(circuit, data; nload=loadf, nsave=savef, reset=false)
     
-    function step_down(n)
-        if isinner(n)
-            downflow_n = (n.data::UpDownFlowData).downflow
+    function step_down(n, downflow_n)
+        if ((n.counter -= 1) == 0) && isinner(n)
             for c in children(n)
-                cd = c.data::UpDownFlowData
-                upflow_c = cd.upflow
-                downflow_c = cd.downflow
+                upflow_c = (c.data::UpDownFlowData).upflow
+                downflow_c = (c.data::UpDownFlowData).downflow
                 if length(upflow_c) == 2
                     # TODO: skip this assignment altogether and propagate further down
                     @inbounds @. downflow_c |= downflow_n & upflow_c[1] & upflow_c[2]
@@ -297,16 +293,13 @@ function pass_up_down3(circuit::LogicCircuit, data)
                     @assert length(upflow_c) == 1
                     @inbounds @. downflow_c |= downflow_n & upflow_c[1]
                 end
-                if (cd.num_parents -= 1) == 0
-                    step_down(c)
-                end
+                step_down(c, downflow_c)
             end
         end
-        # when we can call evaluate without flipping bits, we can here do n.bit = false
-        #nothing
     end
 
     (circuit.data::UpDownFlowData).downflow .= true
-    step_down(circuit)
+    step_down(circuit, (circuit.data::UpDownFlowData).downflow)
+    
     nothing
 end

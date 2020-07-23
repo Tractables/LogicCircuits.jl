@@ -27,8 +27,8 @@ A plain logical literal leaf node, representing the positive or negative literal
 mutable struct PlainLiteralNode <: PlainLogicLeafNode
     literal::Lit
     data
-    bit::Bool
-    PlainLiteralNode(l) = new(l, nothing, false)
+    counter::UInt32
+    PlainLiteralNode(l) = new(l, nothing, 0)
 end
 
 """
@@ -41,8 +41,8 @@ Plain constant true node
 """
 mutable struct PlainTrueNode <: PlainConstantNode 
     data
-    bit::Bool
-    PlainTrueNode() = new(nothing, false)
+    counter::UInt32
+    PlainTrueNode() = new(nothing, 0)
 end
 
 """
@@ -50,8 +50,8 @@ Plain constant false node
 """
 mutable struct PlainFalseNode <: PlainConstantNode 
     data
-    bit::Bool
-    PlainFalseNode() = new(nothing, false)
+    counter::UInt32
+    PlainFalseNode() = new(nothing, 0)
 end
 
 """
@@ -60,8 +60,8 @@ A plain logical conjunction node (And node)
 mutable struct Plain⋀Node <: PlainLogicInnerNode
     children::Vector{PlainLogicCircuit}
     data
-    bit::Bool
-    Plain⋀Node(c) = new(c, nothing, false)
+    counter::UInt32
+    Plain⋀Node(c) = new(c, nothing, 0)
 end
 
 """
@@ -70,8 +70,8 @@ A plain logical disjunction node (Or node)
 mutable struct Plain⋁Node <: PlainLogicInnerNode
     children::Vector{PlainLogicCircuit}
     data
-    bit::Bool
-    Plain⋁Node(c) = new(c, nothing, false)
+    counter::UInt32
+    Plain⋁Node(c) = new(c, nothing, 0)
 end
 
 #####################

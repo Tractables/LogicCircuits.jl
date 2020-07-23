@@ -1,6 +1,6 @@
 export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
-       flip_bit, foreach, foreach_rec, filter, 
+       reset_counter, foreach, foreach_rec, filter, 
        nload, nsave,
        foldup, foldup_rec, foldup_aggregate, foldup_aggregate_rec,
        num_nodes, num_edges, tree_num_nodes, tree_num_edges, in,
@@ -40,7 +40,7 @@ struct Inner <: NodeType end
 #####################
 
 # Each `Node` is required to have fields
-#  - `bit::Bool`
+#  - `counter::UInt32`
 #  - `data:Any`
 # and a specialized method for the following functions.
 
@@ -75,13 +75,25 @@ function children end
 # traversal
 #####################
 
-"Flip the bit field throughout this graph (or ensure it is set to given value)"
-function flip_bit(node::Dag, ::Val{Bit} = Val(!node.bit)) where Bit
-    if node.bit != Bit
-        node.bit = Bit
+"Set the counter field throughout this graph (assumes no node in the graph already has the value)"
+function reset_counter(node::Dag, v::Int=0)
+    if node.counter != v
+        node.counter = v
         if isinner(node)
             for c in children(node)
-                flip_bit(c, Val(Bit))
+                reset_counter(c, v)
+            end
+        end
+    end
+    nothing # returning nothing helps save some allocations and time
+end
+
+function reset_counter_dumb(node::Dag)
+    node.counter -= 1
+    if node.counter == 0
+        if isinner(node)
+            for c in children(node)
+                reset_counter_dumb(c)
             end
         end
     end
@@ -91,10 +103,10 @@ end
 import Base.foreach #extend
 
 "Apply a function to each node in a graph, bottom up"
-function foreach(f::Function, node::Dag)
-    @assert node.bit == false "Another algorithm is already traversing this circuit and using the `bit` field"
+function foreach(f::Function, node::Dag; reset=true)
+    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field"
     foreach_rec(f, node)
-    flip_bit(node)
+    reset && reset_counter(node)
     nothing # returning nothing helps save some allocations and time
 end
 
@@ -105,13 +117,12 @@ function foreach(node::Dag, f_leaf::Function, f_inner::Function)
     nothing # returning nothing helps save some allocations and time
 end
 
-"Apply a function to each node in a graph, bottom up, flipping the node bits"
-function foreach_rec(f::Function, node::Dag, ::Val{Bit} = Val(!node.bit)) where Bit
-    if node.bit != Bit
-        node.bit = Bit
+"Apply a function to each node in a graph, bottom up, without resetting the counter"
+function foreach_rec(f::Function, node::Dag)
+    if (node.counter += 1) == 1
         if isinner(node)
             for c in children(node)
-                foreach_rec(f, c, Val(Bit))
+                foreach_rec(f, c)
             end
         end
         f(node)
@@ -150,27 +161,26 @@ Compute a function bottom-up on the graph.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
 function foldup(node::Dag, f_leaf::Function, f_inner::Function, 
-               ::Type{T}; nload = nload, nsave = nsave)::T where {T}
-    @assert node.bit == false "Another algorithm is already traversing this circuit and using the `bit` field"
+               ::Type{T}; nload = nload, nsave = nsave, reset=true)::T where {T}
+    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field"
     v = foldup_rec(node, f_leaf, f_inner, T; nload, nsave)
-    flip_bit(node)
+    reset && reset_counter(node)
     v
 end
 
 
 """
-Compute a function bottom-up on the graph, flipping the node bits. 
+Compute a function bottom-up on the graph, without resetting the counter. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
-function foldup_rec(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, 
-                    ::Val{Bit} = Val(!node.bit); nload = nload, nsave = nsave)::T where {T,Bit}
-    if node.bit == Bit
+function foldup_rec(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
+                    nload = nload, nsave = nsave)::T where {T}
+    if (node.counter += 1) != 1
         return nload(node)::T
     else
-        node.bit = Bit
         v = if isinner(node)
-                callback(c) = (foldup_rec(c, f_leaf, f_inner, T, Val(Bit); nload, nsave)::T)
+                callback(c) = (foldup_rec(c, f_leaf, f_inner, T; nload, nsave)::T)
                 f_inner(node, callback)::T
             else
                 f_leaf(node)::T
@@ -186,30 +196,29 @@ Values of type `T` are passed up the circuit and given to `f_inner` in aggregate
 as a vector from the children.
 """
 # TODO: see whether we could standardize on `foldup` and remove this version?
-function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, 
-                          ::Type{T}; nload = nload, nsave = nsave)::T where {T}
-    @assert node.bit == false "Another algorithm is already traversing this circuit and using the `bit` field"
+function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
+                          nload = nload, nsave = nsave, reset=true)::T where {T}
+    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field"
     v = foldup_aggregate_rec(node, f_leaf, f_inner, T; nload, nsave)
-    flip_bit(node)
+    reset && reset_counter(node)
     return v
 end
 
 """
-Compute a function bottom-up on the circuit, flipping the node bits. . 
+Compute a function bottom-up on the circuit, without resetting the counter. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` in aggregate 
 as a vector from the children.
 """
 # TODO: see whether we could standardize on `foldup` and remove this version?
-function foldup_aggregate_rec(node::Dag, f_leaf::Function, f_inner::Function, 
-                    ::Type{T}, ::Val{Bit} = Val(!node.bit); nload = nload, nsave = nsave)::T where {T,Bit}
-    if node.bit == Bit
+function foldup_aggregate_rec(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
+                              nload = nload, nsave = nsave)::T where {T}
+    if (node.counter += 1) != 1
         return nload(node)::T
     else
-        node.bit = Bit
         v = if isinner(node)
             child_values = Vector{T}(undef, num_children(node))
-            map!(c -> foldup_aggregate_rec(c, f_leaf, f_inner, T, Val(Bit); nload, nsave)::T, 
+            map!(c -> foldup_aggregate_rec(c, f_leaf, f_inner, T; nload, nsave)::T, 
                                            child_values, children(node))
             f_inner(node, child_values)::T
         else
@@ -261,7 +270,7 @@ function folddown_aggregate(root::Dag, f_root::Function, f_leaf::Function, f_inn
         n.data = f_leaf(n, n.data.passup, n.data.passdown)::T
         nothing
     end
-    flip_bit(root, Val(false))
+    reset_counter(root, Val(false))
 end
 
 #####################

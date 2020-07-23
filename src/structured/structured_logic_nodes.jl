@@ -25,10 +25,10 @@ mutable struct PlainStructLiteralNode <: PlainStructLogicLeafNode
     literal::Lit
     vtree::Vtree
     data
-    bit::Bool
+    counter::UInt32
     PlainStructLiteralNode(l,v) = begin
         @assert lit2var(l) ∈ variables(v) 
-        new(l, v, nothing, false)
+        new(l, v, nothing, 0)
     end
 end
 
@@ -41,13 +41,13 @@ abstract type PlainStructConstantNode <: PlainStructLogicInnerNode end
 "A plain structured logical true constant. Never construct one, use `structtrue` to access its unique instance"
 mutable struct PlainStructTrueNode <: PlainStructConstantNode
     data
-    bit::Bool
+    counter::UInt32
 end
 
 "A plain structured logical false constant.  Never construct one, use `structfalse` to access its unique instance"
 mutable struct PlainStructFalseNode <: PlainStructConstantNode
     data
-    bit::Bool
+    counter::UInt32
 end
 
 "A plain structured logical conjunction node"
@@ -56,12 +56,12 @@ mutable struct PlainStruct⋀Node <: PlainStructLogicInnerNode
     sub::PlainStructLogicCircuit
     vtree::Vtree
     data
-    bit::Bool
+    counter::UInt32
     PlainStruct⋀Node(p,s,v) = begin
         @assert isinner(v) "Structured conjunctions must respect inner vtree node"
         @assert isconstantgate(p) || varsubset_left(vtree(p),v) "$p does not go left in $v"
         @assert isconstantgate(s) || varsubset_right(vtree(s),v) "$s does not go right in $v"
-        new(p,s, v, nothing, false)
+        new(p,s, v, nothing, 0)
     end
 end
 
@@ -70,15 +70,15 @@ mutable struct PlainStruct⋁Node <: PlainStructLogicInnerNode
     children::Vector{PlainStructLogicCircuit}
     vtree::Vtree # could be leaf or inner
     data
-    bit::Bool
-    PlainStruct⋁Node(c,v) = new(c, v, nothing, false)
+    counter::UInt32
+    PlainStruct⋁Node(c,v) = new(c, v, nothing, 0)
 end
 
 "The unique plain structured logical true constant"
-const structtrue = PlainStructTrueNode(nothing, false)
+const structtrue = PlainStructTrueNode(nothing, 0)
 
 "The unique splain tructured logical false constant"
-const structfalse = PlainStructFalseNode(nothing, false)
+const structfalse = PlainStructFalseNode(nothing, 0)
 
 #####################
 # traits

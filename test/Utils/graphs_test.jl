@@ -10,14 +10,14 @@ module TestNodes
         id::Int
         children::Vector{Dag}
         data
-        bit::Bool
+        counter::UInt32
         TestINode(i,c) = new(i,c,nothing,false)
     end
 
     mutable struct TestLNode <: Dag
         id::Int
         data
-        bit::Bool
+        counter::UInt32
         TestLNode(i) = new(i,nothing,false)
     end
 
@@ -54,15 +54,15 @@ module TestNodes
         @test has_children(r)
         @test num_children(r) == 3
         
-        flip_bit(r)
-        @test r.bit == true
-        @test l1.bit == true
-        @test i12.bit == true
+        reset_counter(r,5)
+        @test r.counter == 5
+        @test l1.counter == 5
+        @test i12.counter == 5
 
-        flip_bit(r)
-        @test r.bit == false
-        @test l1.bit == false
-        @test i12.bit == false
+        reset_counter(r)
+        @test r.counter == 0
+        @test l1.counter == 0
+        @test i12.counter == 0
 
         foreach(r) do n
             n.id += 1
@@ -72,14 +72,9 @@ module TestNodes
         @test i12.id == 4
         @test j2.id == 3
         @test r.id == 6
-        @test r.bit == false
-        @test l1.bit == false
-        @test i12.bit == false
-
-        flip_bit(r, Val(false))
-        @test r.bit == false
-        @test l1.bit == false
-        @test i12.bit == false
+        @test r.counter == 0
+        @test l1.counter == 0
+        @test i12.counter == 0
 
         foreach(r, l -> l.id += 1, i -> i.id -= 1)
         @test l1.id == 2+1
@@ -87,9 +82,9 @@ module TestNodes
         @test i12.id == 4-1
         @test j2.id == 3-1
         @test r.id == 6-1
-        @test r.bit == false
-        @test l1.bit == false
-        @test i12.bit == false
+        @test r.counter == 0
+        @test l1.counter == 0
+        @test i12.counter == 0
 
         @test filter(n -> iseven(n.id), r) == [l2,i2,j2]
 

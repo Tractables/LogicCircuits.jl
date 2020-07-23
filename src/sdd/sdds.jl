@@ -28,7 +28,7 @@ mutable struct SddLiteralNode <: SddLeafNode
     literal::Lit
     vtree::SddMgr
     data
-    bit::Bool
+    counter::UInt32
     SddLiteralNode(l,v) = new(l,v,nothing,false)
 end
 
@@ -40,14 +40,14 @@ abstract type SddConstantNode <: SddInnerNode end
 
 "A SDD logical true constant."
 mutable struct SddTrueNode <: SddConstantNode 
-    bit::Bool
+    counter::UInt32
     data
     SddTrueNode() = new(false)
 end
 
 "A SDD logical false constant."
 mutable struct SddFalseNode <: SddConstantNode 
-    bit::Bool
+    counter::UInt32
     data
     SddFalseNode() = new(false)
 end
@@ -57,7 +57,7 @@ mutable struct Sdd⋀Node <: SddInnerNode
     prime::Sdd
     sub::Sdd
     vtree::SddMgr
-    bit::Bool
+    counter::UInt32
     data
     Sdd⋀Node(p,s,v) = new(p,s,v,false)
 end
@@ -66,7 +66,7 @@ end
 mutable struct Sdd⋁Node <: SddInnerNode
     children::Vector{Sdd⋀Node}
     vtree::SddMgr
-    bit::Bool
+    counter::UInt32
     negation::Sdd⋁Node
     data
     Sdd⋁Node(ch,v) = new(ch, v, false) # leave negation uninitialized
