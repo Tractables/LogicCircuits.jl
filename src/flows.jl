@@ -98,53 +98,51 @@ end
 # downward pass
 #####################
 
-struct DownFlow1
+struct UpDownFlow1
     upflow::UpFlow1
     downflow::BitVector
-    DownFlow1(upf::UpFlow1) = 
+    UpDownFlow1(upf::UpFlow1) = 
         new(upf, never(Bool, length(upf)))
 end
 
-const DownFlow2 = UpFlow2
+const UpDownFlow2 = UpFlow2
 
-const DownFlow = Union{DownFlow1,DownFlow2}
+const UpDownFlow = Union{UpDownFlow1,UpDownFlow2}
 
 function compute_flows(circuit::LogicCircuit, data)
 
-    save_upflow(n, v::UpFlow1) = begin
-        n.data = DownFlow1(v)
+    @inline upflow!(n, v) = begin
+        n.data = (v isa UpFlow1) ? UpDownFlow1(v) : v
         v
     end
-    save_upflow(n, v::UpFlow2) =
-        n.data = v
 
-    upflow(n) = begin
-        d = n.data::DownFlow
-        (d isa DownFlow1) ? d.upflow : d
+    @inline upflow(n) = begin
+        d = n.data::UpDownFlow
+        (d isa UpDownFlow1) ? d.upflow : d
     end
 
-    downflow(n) = (n.data::DownFlow1).downflow
+    @inline downflow(n) = (n.data::UpDownFlow1).downflow
+    @inline isfactorized(n) = n.data::UpDownFlow isa UpDownFlow2
 
-    evaluate(circuit, data; nload=upflow, nsave=save_upflow, reset=false)
+    evaluate(circuit, data; nload=upflow, nsave=upflow!, reset=false)
     
     function push_flow_down(n)
         if ((n.counter -= 1) == 0) && isinner(n)
-            if n.data::DownFlow isa DownFlow1
+            if !isfactorized(n)
                 downflow_n = downflow(n)
                 for c in children(n)
-                    cdata = c.data::DownFlow
-                    if cdata isa DownFlow2
+                    if  isfactorized(c)
                         # @assert num_children(c) == 2
-                        upflow_c = cdata
+                        upflow2_c = c.data::UpDownFlow2
                         # propagate one level further down
                         for i = 1:2
                             downflow_c = downflow(@inbounds children(c)[i])
-                            @. downflow_c |= downflow_n & upflow_c.prime_flow & upflow_c.sub_flow
+                            downflow_c .|= downflow_n .& upflow2_c.prime_flow .& upflow2_c.sub_flow
                         end
                     else
-                        upflow_c = (cdata::DownFlow1).upflow
+                        upflow1_c = (c.data::UpDownFlow1).upflow
                         downflow_c = downflow(c)
-                        @. downflow_c |= downflow_n & upflow_c
+                        downflow_c .|= downflow_n .& upflow1_c
                     end
                 end 
             end
