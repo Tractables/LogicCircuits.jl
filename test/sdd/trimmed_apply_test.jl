@@ -44,6 +44,9 @@ using LogicCircuits
     @test !x_c | !x_c == !x_c
 
     v1 = compile(mgr, Lit(1))
+    v1_2 = compile(Sdd, mgr, Lit(1))
+    @test v1 === v1_2
+
     v2 = compile(mgr, Lit(2))
     v3 = compile(mgr, Lit(3))
     v4 = compile(mgr, Lit(4))
@@ -104,8 +107,13 @@ using LogicCircuits
 
     io = IOBuffer()
     show(io,f3)
+    show(io,t1)
+    show(io,c1)
+    show(io,true_c)
+    show(io,false_c)
+    show(io,v1)
     @test length(String(take!(io))) > 0 # see if it runs, regardless of result
-
+    
     f4c = LogicCircuit(f4)
     @test f4c isa PlainLogicCircuit
     @test num_edges(f4c) == num_edges(f4)
