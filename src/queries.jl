@@ -264,7 +264,13 @@ end
 struct UpDownFlowData
     upflow::Vector{BitVector}
     downflow::BitVector
-    UpDownFlowData(upf) = new(upf, never(Bool, length(upf[1])))
+    UpDownFlowData(upf) = begin
+        if length(upf) == 1
+            new(upf, never(Bool, length(upf[1])))
+        else
+            new(upf, BitVector())
+        end
+    end
 end
 
 function pass_up_down3(circuit::LogicCircuit, data)
@@ -281,25 +287,32 @@ function pass_up_down3(circuit::LogicCircuit, data)
 
     evaluate(circuit, data; nload=loadf, nsave=savef, reset=false)
     
-    function step_down(n, downflow_n)
+    function step_down(n)
         if ((n.counter -= 1) == 0) && isinner(n)
+            downflow_n = (n.data::UpDownFlowData).downflow
+            process = length((n.data::UpDownFlowData).upflow) == 1         
             for c in children(n)
-                upflow_c = (c.data::UpDownFlowData).upflow
-                downflow_c = (c.data::UpDownFlowData).downflow
-                if length(upflow_c) == 2
-                    # TODO: skip this assignment altogether and propagate further down
-                    @inbounds @. downflow_c |= downflow_n & upflow_c[1] & upflow_c[2]
-                else
-                    @assert length(upflow_c) == 1
-                    @inbounds @. downflow_c |= downflow_n & upflow_c[1]
+                if process
+                    upflow_c = (c.data::UpDownFlowData).upflow
+                    if length(upflow_c) == 2
+                        # propagate further down
+                        for i = 1:2
+                            downflow_c = (c.children[i].data::UpDownFlowData).downflow    
+                            @inbounds @. downflow_c |= downflow_n & upflow_c[1] & upflow_c[2]
+                        end
+                    else
+                        @assert length(upflow_c) == 1
+                        downflow_c = (c.data::UpDownFlowData).downflow
+                        @inbounds @. downflow_c |= downflow_n & upflow_c[1]
+                    end
                 end
-                step_down(c, downflow_c)
+                step_down(c)
             end
         end
     end
 
     (circuit.data::UpDownFlowData).downflow .= true
-    step_down(circuit, (circuit.data::UpDownFlowData).downflow)
+    step_down(circuit)
     
     nothing
 end
