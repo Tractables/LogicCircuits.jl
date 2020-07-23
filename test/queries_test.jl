@@ -21,13 +21,6 @@ include("helper/plain_logic_circuits.jl")
     @test isone(sat_prob(r1))
     @test model_count(r1) == BigInt(2)^10
 
-    r1a = conjoin([r1]) # add a unary And gate
-
-    @test r1a(BitArray([1 0 1 0 1 0 1 0 1 0;
-                       1 1 1 1 1 1 1 1 1 1;
-                       0 0 0 0 0 0 0 0 0 0;
-                       0 1 1 0 1 0 0 1 0 1])) == [1,1,1,1]
-
     #####################
     ors = map(1:10) do v
         pos = compile(PlainLogicCircuit, var2lit(Var(v)))

@@ -9,6 +9,7 @@ include("Utils/Utils.jl")
 
 include("abstract_logic_nodes.jl")
 include("queries.jl")
+include("flows.jl")
 include("transformations.jl")
 include("plain_logic_nodes.jl")
 
