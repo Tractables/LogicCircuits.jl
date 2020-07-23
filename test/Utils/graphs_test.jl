@@ -88,6 +88,14 @@ module TestNodes
 
         @test filter(n -> iseven(n.id), r) == [l2,i2,j2]
 
+        lastvisited = nothing
+        foreach(n -> lastvisited=n,r)
+        @test lastvisited === r
+
+        lastvisited = nothing
+        foreach_down(n -> lastvisited=n,r)
+        @test isleaf(lastvisited)
+
         @test num_nodes(r) == 9
         @test num_edges(r) == 12
 
@@ -111,8 +119,6 @@ module TestNodes
 
         @test left_most_descendent(r) == l1
         @test right_most_descendent(r) == l2
-
-        # TODO: find a way to test `lca` which requires a parent pointer and list of descendents
 
     end    
 

@@ -1,5 +1,5 @@
 export Vtree, vtree, variable, goes_left, goes_right, find_leaf,
-    varsubset_left, varsubset_right, lca_vtree, depth,
+    varsubset, varsubset_left, varsubset_right, lca_vtree, depth,
     balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree
 
 #############
@@ -48,8 +48,8 @@ end
 "Are the variables in `n` contained in the right branch of `m`?"
 @inline varsubset_right(n, m)::Bool = varsubset(n, m.right)
 
-# override default Utils implementation of varsubset for vtree leafs; performance critical
-import .Utils: varsubset
+# performance critical in SDD compilation:
+"Are the variables in `n` contained in the variables in `m`?"
 @inline varsubset(n::Vtree, m::Vtree) = (n===m || varsubset(n, m, NodeType(n), NodeType(m)))
 @inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Leaf) = variable(n) == variable(m)
 @inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Leaf) = false

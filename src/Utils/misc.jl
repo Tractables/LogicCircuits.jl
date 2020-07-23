@@ -1,7 +1,7 @@
 # Miscellaneous utilities.
 
 export issomething, order_asc, isdisjoint, pushrand!, init_array,
-       Var, Lit, var2lit, lit2var, variables, num_variables, varsubset,
+       Var, Lit, var2lit, lit2var, variables, num_variables,
        always, never, uniform, logsumexp,
        noop, map_values, groupby
 
@@ -68,9 +68,6 @@ function variables end
 
 "Number of variables in the data structure"
 @inline num_variables(x)::Int = length(variables(x))
-
-"Are the variables in `n` contained in the variables in `m`?"
-@inline varsubset(n, m) = (n===m || variables(n) ⊆ variables(m))
 
 #####################
 # probability semantics

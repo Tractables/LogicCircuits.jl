@@ -112,8 +112,6 @@ import ..Utils: parent, lca # make available for extension
 
 @inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (return s,t) : (return t,s)
 
-import .Utils: varsubset #extend
-
 @inline varsubset(n::Sdd, m::Sdd) = varsubset(tmgr(n), tmgr(m))
 @inline varsubset_left(n::Sdd, m::Sdd)::Bool = varsubset_left(tmgr(n), tmgr(m))
 @inline varsubset_right(n::Sdd, m::Sdd)::Bool = varsubset_right(tmgr(n), tmgr(m))

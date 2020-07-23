@@ -224,7 +224,7 @@ end
 
 "Set the `counter` field of each node to its number of parents"
 function count_parents(node::Dag)
-    foreach(noop,node)
+    foreach(noop,node;reset=false)
 end
 
 "Apply a function to each node in a graph, top down"
