@@ -1,6 +1,6 @@
 export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
-       reset_counter, foreach, foreach_rec, filter, 
+       reset_counter, foreach, foreach_rec, clear_data, filter, 
        nload, nsave,
        foldup, foldup_rec, foldup_aggregate, foldup_aggregate_rec,
        num_nodes, num_edges, tree_num_nodes, tree_num_edges, in,
@@ -87,19 +87,6 @@ function reset_counter(node::Dag, v::Int=0)
     end
     nothing # returning nothing helps save some allocations and time
 end
-
-function reset_counter_dumb(node::Dag)
-    node.counter -= 1
-    if node.counter == 0
-        if isinner(node)
-            for c in children(node)
-                reset_counter_dumb(c)
-            end
-        end
-    end
-    nothing # returning nothing helps save some allocations and time
-end
-
 import Base.foreach #extend
 
 "Apply a function to each node in a graph, bottom up"
@@ -129,6 +116,12 @@ function foreach_rec(f::Function, node::Dag)
     end
     nothing # returning nothing helps save some allocations and time
 end
+
+"Set all the data fields in a circuit to `nothing`"
+function clear_data(node::Dag)
+    foreach(x -> x.data = nothing, node)
+end
+
 
 # TODO: consider adding a top-down version of foreach, by either linearizing into a List, 
 # or by keeping a visit counter to identify processing of the last parent.

@@ -49,7 +49,7 @@ function evaluate(root::LogicCircuit, data;
             if num_children(n) == 2 && c1 isa UpFlow1 && c2 isa UpFlow1 
                 return UpFlow2(c1, c2) # no need to allocate a new BitVector
             end
-            x = flow(c1, c2, &)
+            x = flowop(c1, c2, &)
             for c in children(n)[3:end]
                 accumulate(x, call(c), &)
             end
@@ -63,7 +63,7 @@ function evaluate(root::LogicCircuit, data;
         else
             c1 = call(@inbounds children(n)[1])::UpFlow
             c2 = call(@inbounds children(n)[2])::UpFlow
-            x = flow(c1, c2, |)
+            x = flowop(c1, c2, |)
             for c in children(n)[3:end]
                 accumulate(x, call(c), |)
             end
@@ -71,19 +71,21 @@ function evaluate(root::LogicCircuit, data;
         end
     end
     
-    UpFlow1(foldup(root, f_con, f_lit, fa, fo, UpFlow; nload, nsave, reset))
+    # ensure flow us Flow1 at the root, even when it's a conjunction
+    root_flow = UpFlow1(foldup(root, f_con, f_lit, fa, fo, UpFlow; nload, nsave, reset))
+    return nsave(root, root_flow)
 end
 
-@inline flow(x::UpFlow1, y::UpFlow1, op)::UpFlow1 =
+@inline flowop(x::UpFlow1, y::UpFlow1, op)::UpFlow1 =
     op.(x, y)
 
-@inline flow(x::UpFlow1, y::UpFlow2, op)::UpFlow1 =
+@inline flowop(x::UpFlow1, y::UpFlow2, op)::UpFlow1 =
     op.(x, y.prime_flow .& y.sub_flow)
 
-@inline flow(y::UpFlow2, x::UpFlow1, op)::UpFlow1 =
-    flow(x, y, op)
+@inline flowop(y::UpFlow2, x::UpFlow1, op)::UpFlow1 =
+    flowop(x, y, op)
 
-@inline flow(x::UpFlow2, y::UpFlow2, op)::UpFlow1 =
+@inline flowop(x::UpFlow2, y::UpFlow2, op)::UpFlow1 =
     op.(x.prime_flow .& x.sub_flow, y.prime_flow .& y.sub_flow)
     
 @inline accumulate(x::UpFlow1, v::UpFlow1, op) = 
@@ -109,55 +111,52 @@ const DownFlow = Union{DownFlow1,DownFlow2}
 
 function compute_flows(circuit::LogicCircuit, data)
 
-    savef(n,v::UpFlow1) = begin
+    save_upflow(n, v::UpFlow1) = begin
         n.data = DownFlow1(v)
         v
     end
-    savef(n,v::UpFlow2) =
+    save_upflow(n, v::UpFlow2) =
         n.data = v
 
-    function loadf(n)
+    upflow(n) = begin
         d = n.data::DownFlow
         (d isa DownFlow1) ? d.upflow : d
     end
 
     downflow(n) = (n.data::DownFlow1).downflow
 
-    evaluate(circuit, data; nload=loadf, nsave=savef, reset=false)
+    evaluate(circuit, data; nload=upflow, nsave=save_upflow, reset=false)
     
-    function step_down(n, downflow_n)
+    function push_flow_down(n)
         if ((n.counter -= 1) == 0) && isinner(n)
-            if n.data::DownFlow isa DownFlow2
-                # only recurse, don't push flow down
+            if n.data::DownFlow isa DownFlow1
+                downflow_n = downflow(n)
                 for c in children(n)
-                    step_down(c, downflow(c))
-                end     
-            else
-                for c in children(n)
-                    cd = c.data::DownFlow
-                    if cd isa DownFlow2
+                    cdata = c.data::DownFlow
+                    if cdata isa DownFlow2
                         # @assert num_children(c) == 2
-                        upflow_c = cd
+                        upflow_c = cdata
                         # propagate one level further down
                         for i = 1:2
-                            downflow_c = downflow(c.children[i])
+                            downflow_c = downflow(@inbounds children(c)[i])
                             @. downflow_c |= downflow_n & upflow_c.prime_flow & upflow_c.sub_flow
                         end
-                        step_down(c, nothing)
                     else
-                        upflow_c = (cd::DownFlow1).upflow
+                        upflow_c = (cdata::DownFlow1).upflow
                         downflow_c = downflow(c)
                         @. downflow_c |= downflow_n & upflow_c
-                        step_down(c, downflow_c)
                     end
                 end 
+            end
+            for c in children(n)
+                push_flow_down(c)
             end
         end
         nothing
     end
 
-    downflow(circuit) .= true
-    step_down(circuit, downflow(circuit))
+    downflow(circuit) .= upflow(circuit)
+    push_flow_down(circuit)
     
     nothing
 end
