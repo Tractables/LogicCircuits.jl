@@ -27,7 +27,7 @@ decompile(n::PlainStruct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} =
     DecisionLine(node2id[n], vtree2id[n.vtree], UInt32(num_children(n)), map(c -> make_element(c, node2id), children(n)))
 
 make_element(n::PlainStruct⋀Node, node2id) = 
-    SDDElement(node2id[n.children[1]],  node2id[n.children[2]])
+    SDDElement(node2id[children(n)[1]],  node2id[children(n)[2]])
 
 make_element(_::StructLogicCircuit, _) = 
     error("Given circuit is not an SDD, its decision node elements are not conjunctions.")
@@ -52,7 +52,7 @@ end
 
 function get_vtree2id(vtree::PlainVtree):: Dict{PlainVtree, ID}
     vtree2id = Dict{PlainVtree, ID}()
-    sizehint!(vtree2id, length(ln))
+    sizehint!(vtree2id, num_nodes(vtree))
     index = ID(0) # vtree id start from 0
     foreach(vtree) do n
         vtree2id[n] = index
@@ -102,7 +102,7 @@ save_circuit(name::String, circuit::StructLogicCircuit, vtree::PlainVtree) =
     save_as_sdd(name, circuit, vtree)
 
 "Rank nodes in the same layer left to right"
-function get_nodes_level(circuit::LogicCircuit)
+function get_nodes_level(circuit::Node)
     levels = Vector{Vector{Node}}()
     current = Vector{Node}()
     next = Vector{Node}()
