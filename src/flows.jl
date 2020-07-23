@@ -111,6 +111,7 @@ const UpDownFlow = Union{UpDownFlow1,UpDownFlow2}
 
 function compute_flows(circuit::LogicCircuit, data)
 
+    # upward pass
     @inline upflow!(n, v) = begin
         n.data = (v isa UpFlow1) ? UpDownFlow1(v) : v
         v
@@ -121,40 +122,36 @@ function compute_flows(circuit::LogicCircuit, data)
         (d isa UpDownFlow1) ? d.upflow : d
     end
 
+    evaluate(circuit, data; nload=upflow, nsave=upflow!, reset=false)
+    
+    # downward pass
+
     @inline downflow(n) = (n.data::UpDownFlow1).downflow
     @inline isfactorized(n) = n.data::UpDownFlow isa UpDownFlow2
 
-    evaluate(circuit, data; nload=upflow, nsave=upflow!, reset=false)
-    
-    function push_flow_down(n)
-        if ((n.counter -= 1) == 0) && isinner(n)
-            if !isfactorized(n)
-                downflow_n = downflow(n)
-                for c in children(n)
-                    if  isfactorized(c)
-                        # @assert num_children(c) == 2
-                        upflow2_c = c.data::UpDownFlow2
-                        # propagate one level further down
-                        for i = 1:2
-                            downflow_c = downflow(@inbounds children(c)[i])
-                            downflow_c .|= downflow_n .& upflow2_c.prime_flow .& upflow2_c.sub_flow
-                        end
-                    else
-                        upflow1_c = (c.data::UpDownFlow1).upflow
-                        downflow_c = downflow(c)
-                        downflow_c .|= downflow_n .& upflow1_c
-                    end
-                end 
-            end
+    downflow(circuit) .= upflow(circuit)
+
+    foreach_down(circuit; setcounter=false) do n
+        if isinner(n) && !isfactorized(n)
+            downflow_n = downflow(n)
             for c in children(n)
-                push_flow_down(c)
-            end
+                if  isfactorized(c)
+                    # @assert num_children(c) == 2
+                    upflow2_c = c.data::UpDownFlow2
+                    # propagate one level further down
+                    for i = 1:2
+                        downflow_c = downflow(@inbounds children(c)[i])
+                        downflow_c .|= downflow_n .& upflow2_c.prime_flow .& upflow2_c.sub_flow
+                    end
+                else
+                    upflow1_c = (c.data::UpDownFlow1).upflow
+                    downflow_c = downflow(c)
+                    downflow_c .|= downflow_n .& upflow1_c
+                end
+            end 
         end
         nothing
     end
-
-    downflow(circuit) .= upflow(circuit)
-    push_flow_down(circuit)
     
     nothing
 end
