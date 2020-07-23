@@ -3,6 +3,14 @@ using LogicCircuits
 
 include("../helper/validate_sdd.jl")
 
+@testset "SDD tests" begin
+
+   # just to make code coverage happy
+   @test istrue(SddTrueNode())
+   @test isfalse(SddFalseNode())
+
+end
+
 @testset "CNF compiler tests" begin
 
    cnf = zoo_cnf("easy/C17_mince.cnf")

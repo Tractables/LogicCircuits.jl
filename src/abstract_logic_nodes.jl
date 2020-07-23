@@ -1,6 +1,6 @@
 export LogicCircuit, GateType, InnerGate, LeafGate, 
     LiteralGate, ConstantGate, isinnergate, ⋁Gate, ⋀Gate,
-    isliteralgate, isconstantgate, is⋁gate, is⋀gate,
+    isliteralgate, isconstantgate, is⋁gate, is⋀gate, literal_nodes,
     literal, constant, conjoin, disjoin, op, neutral,
     variable, ispositive, isnegative, istrue, isfalse,
     conjoin, disjoin, copy, compile,
@@ -140,6 +140,9 @@ function fully_factorized_circuit end
 
 "Get the list of or nodes in a given circuit"
 @inline or_nodes(c::LogicCircuit) = ⋁_nodes(c)
+
+"Get the list of literal nodes in a given circuit"
+literal_nodes(c::LogicCircuit) = filter(isliteralgate, c)
 
 "Construct a mapping from literals to their canonical node representation"
 function canonical_literals(circuit::LogicCircuit)::Dict{Lit,LogicCircuit}
