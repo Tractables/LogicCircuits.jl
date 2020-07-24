@@ -146,21 +146,23 @@ end
 (t::Tuple{<:Vtree,<:Type})(arg) = compile(t[2], t[1], arg)
 
 # claim `PlainStructLogicCircuit` as the default `LogicCircuit` implementation that has a vtree
+compile(::Type{StructLogicCircuit}, args...) =
+    compile(PlainStructLogicCircuit, args...)
 
 compile(vtree::Vtree, arg) = 
     compile(StructLogicCircuit,vtree,arg)
 
-compile(::Type{<:StructLogicCircuit}, ::Vtree, b::Bool) =
+compile(::Type{<:PlainStructLogicCircuit}, ::Vtree, b::Bool) =
     compile(PlainStructLogicCircuit, b)
 
-compile(::Type{<:StructLogicCircuit}, b::Bool) =
+compile(::Type{<:PlainStructLogicCircuit}, b::Bool) =
     b ? structtrue : structfalse
 
-compile(::Type{<:StructLogicCircuit}, vtree::Vtree, l::Lit) =
+compile(::Type{<:PlainStructLogicCircuit}, vtree::Vtree, l::Lit) =
     PlainStructLiteralNode(l,find_leaf(lit2var(l),vtree))
 
 
-function compile(::Type{<:StructLogicCircuit}, vtree::Vtree, circuit::LogicCircuit)
+function compile(::Type{<:PlainStructLogicCircuit}, vtree::Vtree, circuit::LogicCircuit)
     f_con(n) = compile(PlainStructLogicCircuit, constant(n)) 
     f_lit(n) = compile(PlainStructLogicCircuit, vtree, literal(n))
     f_a(n, cns) = conjoin(cns...) # note: this will use the LCA as vtree node
@@ -168,7 +170,10 @@ function compile(::Type{<:StructLogicCircuit}, vtree::Vtree, circuit::LogicCircu
     foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, PlainStructLogicCircuit)
 end
 
-function fully_factorized_circuit(::Type{<:StructLogicCircuit}, vtree::Vtree)
+fully_factorized_circuit(::Type{StructLogicCircuit}, vtree::Vtree) =
+    fully_factorized_circuit(PlainStructLogicCircuit, vtree)
+
+function fully_factorized_circuit(::Type{<:PlainStructLogicCircuit}, vtree::Vtree)
     f_leaf(l) = begin
         v = variable(l)
         pos = compile(PlainStructLogicCircuit, vtree, var2lit(v))

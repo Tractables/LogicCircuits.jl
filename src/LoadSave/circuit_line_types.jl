@@ -93,8 +93,8 @@ end
 is_normalized(l::AnonymousConstantLine) = l.normalized
 is_normalized(::WeightedNamedConstantLine) = true
 variable(l::WeightedNamedConstantLine) = l.variable
-constant(::WeightedNamedConstantLine) = true
-constant(l::AnonymousConstantLine) = l.constant
+lnconstant(::WeightedNamedConstantLine) = true
+lnconstant(l::AnonymousConstantLine) = l.constant
 
 """
 Paired boxes, or elements, are conjunctions 

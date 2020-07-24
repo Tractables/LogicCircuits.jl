@@ -17,16 +17,17 @@ end
 #####################
 
 "Decompile for sdd circuit, used during saving of circuits to file" 
-decompile(n::PlainStructLiteralNode, node2id, vtree2id)::UnweightedLiteralLine = 
+decompile(n::Union{SddLiteralNode,PlainStructLiteralNode}, node2id, vtree2id) = 
     UnweightedLiteralLine(node2id[n], vtree2id[n.vtree], literal(n), false)
 
-decompile(n::PlainStructConstantNode, node2id, _)::AnonymousConstantLine = 
+decompile(n::Union{SddConstantNode,PlainStructConstantNode}, node2id, _) = 
     AnonymousConstantLine(node2id[n], constant(n), false)
 
-decompile(n::PlainStruct⋁Node, node2id, vtree2id)::DecisionLine{SDDElement} = 
-    DecisionLine(node2id[n], vtree2id[n.vtree], UInt32(num_children(n)), map(c -> make_element(c, node2id), children(n)))
+decompile(n::Union{Sdd⋁Node,PlainStruct⋁Node}, node2id, vtree2id) = 
+    DecisionLine(node2id[n], vtree2id[n.vtree], UInt32(num_children(n)), 
+                 map(c -> make_element(c, node2id), children(n)))
 
-make_element(n::PlainStruct⋀Node, node2id) = 
+make_element(n::Union{Sdd⋀Node,PlainStruct⋀Node}, node2id) = 
     SDDElement(node2id[children(n)[1]],  node2id[children(n)[2]])
 
 make_element(_::StructLogicCircuit, _) = 
@@ -38,8 +39,8 @@ make_element(_::StructLogicCircuit, _) =
 # build maping
 #####################
 
-function get_node2id(circuit::LogicCircuit, T::Type) 
-    node2id = Dict{T, ID}()
+function get_node2id(circuit::LogicCircuit) 
+    node2id = Dict{LogicCircuit, ID}()
     outnodes = filter(n -> !is⋀gate(n), circuit)
     sizehint!(node2id, length(outnodes))
     index = ID(0) # node id start from 0
@@ -50,8 +51,8 @@ function get_node2id(circuit::LogicCircuit, T::Type)
     node2id
 end
 
-function get_vtree2id(vtree::PlainVtree):: Dict{PlainVtree, ID}
-    vtree2id = Dict{PlainVtree, ID}()
+function get_vtree2id(vtree::Vtree):: Dict{Vtree, ID}
+    vtree2id = Dict{Vtree, ID}()
     sizehint!(vtree2id, num_nodes(vtree))
     index = ID(0) # vtree id start from 0
     foreach(vtree) do n
@@ -83,10 +84,9 @@ function sdd_header()
 end
 
 "Save a SDD circuit to file"
-function save_as_sdd(name::String, circuit::StructLogicCircuit, vtree::PlainVtree)
-    #TODO no need to pass the vtree, we can infer it from origin?
+function save_as_sdd(name::String, circuit, vtree)
     @assert endswith(name, ".sdd")
-    node2id = get_node2id(circuit, StructLogicCircuit)
+    node2id = get_node2id(circuit)
     vtree2id = get_vtree2id(vtree)
     formatlines = Vector{CircuitFormatLine}()
     append!(formatlines, parse_sdd_file(IOBuffer(sdd_header())))
@@ -98,7 +98,7 @@ function save_as_sdd(name::String, circuit::StructLogicCircuit, vtree::PlainVtre
 end
 
 "Save a circuit to file"
-save_circuit(name::String, circuit::StructLogicCircuit, vtree::PlainVtree) =
+save_circuit(name::String, circuit, vtree) =
     save_as_sdd(name, circuit, vtree)
 
 "Rank nodes in the same layer left to right"

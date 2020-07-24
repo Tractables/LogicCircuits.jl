@@ -52,8 +52,10 @@ using LogicCircuits
                        0 0 0 0 0 0 0 0 0 0;
                        0 1 1 0 1 0 0 1 0 1])) == [1,1,1,1]
 
-    plainf = PlainLogicCircuit(f)
-    @test plainf isa PlainLogicCircuit 
+    plainf = PlainLogicCircuit(f) 
+    foreach(plainf) do n
+        @test n isa PlainLogicCircuit
+    end
     @test plainf !== f
     @test num_edges(plainf) == num_edges(f)
     @test num_nodes(plainf) == num_nodes(f) 
@@ -63,7 +65,9 @@ using LogicCircuits
     @test isempty(intersect(linearize(f),linearize(plainf)))
 
     ref = StructLogicCircuit(vtree,plainf)
-    @test ref isa PlainStructLogicCircuit 
+    foreach(ref) do n
+        @test n isa PlainStructLogicCircuit
+    end
     @test plainf !== ref
     @test f !== ref
     @test f.vtree === ref.vtree
@@ -75,7 +79,9 @@ using LogicCircuits
     @test isempty(intersect(linearize(f),linearize(ref)))
 
     ref = StructLogicCircuit(vtree,f)
-    @test ref isa PlainStructLogicCircuit 
+    foreach(ref) do n
+        @test n isa PlainStructLogicCircuit
+    end
     @test plainf !== ref
     @test f !== ref
     @test f.vtree === ref.vtree
@@ -85,6 +91,22 @@ using LogicCircuits
     @test length(or_nodes(ref)) == 10+1
     @test model_count(ref) == BigInt(2)^10
     @test isempty(intersect(linearize(f),linearize(ref)))
+
+    mgr = balanced_vtree(TrimSddMgr, 7)
+    v = Dict([(i => compile(mgr, Lit(i))) for i=1:7])
+    c = (v[1] | !v[2] | v[3]) &
+        (v[2] | !v[7] | v[6]) &
+        (v[3] | !v[4] | v[5]) &
+        (v[1] | !v[4] | v[6])
+    
+    @test_throws Exception StructLogicCircuit(c)
+    c2 = StructLogicCircuit(mgr, c)
+
+    foreach(c2) do n
+      @test n isa PlainStructLogicCircuit
+    end
+    @test num_edges(c2) == 147
+    @test num_variables(c2) == 7
 
 end
 

@@ -113,14 +113,16 @@ function disjoin(arguments::Vector{<:PlainLogicCircuit};
 end
 
 # claim `PlainLogicCircuit` as the default `LogicCircuit` implementation
+compile(::Type{LogicCircuit}, args...) =
+    compile(PlainLogicCircuit, args...)
 
-compile(::Type{<:LogicCircuit}, b::Bool) =
+compile(::Type{<:PlainLogicCircuit}, b::Bool) =
     b ? PlainTrueNode() : PlainFalseNode()
 
-compile(::Type{<:LogicCircuit}, l::Lit) =
+compile(::Type{<:PlainLogicCircuit}, l::Lit) =
     PlainLiteralNode(l)
 
-function compile(::Type{<:LogicCircuit}, circuit::LogicCircuit)
+function compile(::Type{<:PlainLogicCircuit}, circuit::LogicCircuit)
     f_con(n) = compile(PlainLogicCircuit, constant(n)) 
     f_lit(n) = compile(PlainLogicCircuit, literal(n))
     f_a(_, cns) = conjoin(cns)
@@ -128,7 +130,9 @@ function compile(::Type{<:LogicCircuit}, circuit::LogicCircuit)
     foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, PlainLogicCircuit)
 end
 
-function fully_factorized_circuit(::Type{<:LogicCircuit}, n::Int)
+fully_factorized_circuit(::Type{LogicCircuit}, n::Int) =
+    fully_factorized_circuit(PlainLogicCircuit, n)
+function fully_factorized_circuit(::Type{<:PlainLogicCircuit}, n::Int)
     ors = map(1:n) do v
         v = Var(v)
         pos = compile(PlainLogicCircuit, var2lit(v))

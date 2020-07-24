@@ -44,7 +44,7 @@ function compile_logical_m(lines::CircuitFormatLines)
         root = id2node[ln.node_id] = literal_node(literal(ln))
     end
     function compile(ln::ConstantLine)
-        if constant(ln) == true
+        if lnconstant(ln) == true
             n = true_node
         else
             n = false_node
@@ -111,7 +111,7 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
     end
 
     function compile(ln::WeightedNamedConstantLine)
-        @assert constant(ln) == true
+        @assert lnconstant(ln) == true
         # because we promise to compile a smooth circuit, here we need to add a "smoothing or gate"
         n = Plain⋁Node([literal_node(var2lit(variable(ln))), 
                     literal_node(-var2lit(variable(ln)))])
@@ -203,7 +203,7 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         else
             error(smoothing_warning)
         end
-        if constant(ln) == true
+        if lnconstant(ln) == true
             # because we promise to compile a smooth circuit, here we need to add an or gate
             n = PlainStruct⋁Node([literal_node(var2lit(variable), vtree), literal_node(-var2lit(variable), vtree)], vtree)
         else
