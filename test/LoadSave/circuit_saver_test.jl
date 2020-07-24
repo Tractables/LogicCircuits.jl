@@ -59,7 +59,8 @@ include("../helper/plain_logic_circuits.jl")
     and3 = a′ & f
     and4 = na′ & nb′
     or = disjoin(and1, and2, and3, and4)
-    @test_nowarn save_as_tex(or, "/tmp/temp.tex")
+    @test_nowarn save_as_tex(or, "$tmp/temp.tex")
+    @test_nowarn save_as_dot2tex(or, "$tmp/temp.tex")
   end
 
   # TODO add a test to load and save and load an .sdd file
