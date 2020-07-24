@@ -24,7 +24,7 @@ Compute a function bottom-up on the circuit.
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
-function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
+function foldup(node::Node, f_con::Function, f_lit::Function, 
                 f_a::Function, f_o::Function, ::Type{T};
                 nload = nload, nsave = nsave, reset=true)::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
