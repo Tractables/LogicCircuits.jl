@@ -45,6 +45,24 @@ include("../helper/plain_logic_circuits.jl")
     @test_nowarn save_as_dot(circuit, "$tmp/temp.dot")
   end
 
+  mktempdir() do tmp
+    a = compile(PlainLogicCircuit, Lit(1))
+    t = compile(PlainLogicCircuit, true)
+    na = compile(PlainLogicCircuit, Lit(-1))
+    nb = compile(PlainLogicCircuit, Lit(-2))
+    a′ = compile(PlainLogicCircuit, Lit(1))
+    f = compile(PlainLogicCircuit, false)
+    na′ = compile(PlainLogicCircuit, Lit(-1))
+    nb′ = compile(PlainLogicCircuit, Lit(-2))
+    and1 = a & nb
+    and2 = na & t
+    and3 = a′ & f
+    and4 = na′ & nb′
+    or = disjoin(and1, and2, and3, and4)
+    @test_nowarn save_as_tex(or, "$tmp/temp.tex")
+    @test_nowarn save_as_dot2tex(or, "$tmp/temp.tex")
+  end
+
   # TODO add a test to load and save and load an .sdd file
   # currently we have no sdd+vtree in the model zoo to do this
 
