@@ -1,6 +1,6 @@
 export smooth, forget, propagate_constants, deepcopy, condition, replace_node, 
     split, clone, merge, split_candidates, random_split, split_step, struct_learn,
-    clone_candidates, merge_candidates
+    clone_candidates 
 
 """
 Create an equivalent smooth circuit from the given circuit.
@@ -289,31 +289,6 @@ function clone_candidates(circuit::Node)::Dict{Node, Vector{Node}}
 
     # Find candidates
     candidates = filter(p->(length(last(p)) == 2), parents) # Set of AND gates shared by exactly 2 OR gates
-    candidates
-end
-
-function merge_candidates(circuit::Node)::Vector{Vector{Node}}
-    signatures = prob_equiv_signature(circuit, k)
-    decision_nodes_by_signature = groupby(n -> signatures[n], ⋁_nodes(circuit))
-
-    candidates = []
-    for (prob_base, nodes) in decision_nodes_by_signature
-        if prob_base == ones(Rational{BigInt}, k) # Tautology case
-            continue
-        else
-            scope_map = groupby(n -> sort(variables(n.vtree)), nodes)
-            filtered = filter((k, v) -> length(k) > var_thresh && length(v) > 1, scope_map)
-            top_candidates = Dict(k => sort(v, by=x->length(node2dag(x)), rev=true) for (k,v) in filtered)
-
-            if length(values(top_candidates)) == 0
-                continue
-            end
-
-            # For now pick top two and put them as candidates
-            push!(candidates, [ns[1:2] for ns in values(top_candidates)]...)
-        end
-    end
-
     candidates
 end
 
