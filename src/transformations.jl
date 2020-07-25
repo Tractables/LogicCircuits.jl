@@ -344,8 +344,13 @@ function clone(root::Node, and1::Node, and2::Node, or::Node; depth=1)
     @assert and1 in and_nodes(root) && and2 in and_nodes(root) && or in or_nodes(root)
 
     # clone
+    new_and2 = nothing
     new_or = deepcopy(or, depth; cache=false)
-    new_and2 = conjoin([[new_or]; filter(c -> c != or, children(and2))])
+    if or == children(and1)[1]
+        new_and2 = conjoin([[new_or]; filter(c -> c != or, children(and2))])
+    else
+        new_and2 = conjoin([filter(c -> c != or, children(and2))..., new_or])
+    end
 
     replace_node(root, and2, new_and2)
 end
