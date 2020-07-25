@@ -99,87 +99,58 @@ lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
 #############
 
 # construct vtrees from other vtrees
-function (::Type{V})(vtree::Vtree) where V<:Vtree
+function (::Type{V})(vtree::Vtree)::V where V<:Vtree
     f_leaf(l) = V(variable(l))
     f_inner(i,call) = V(call(i.left), call(i.right))
-    foldup(vtree,f_leaf, f_inner, V)::V
+    foldup(vtree,f_leaf, f_inner, V)
 end
 
 # construct a vtree for a given number of variables
 function (::Type{V})(num_vars::Int; 
                     structure = :balanced, 
-                    ordered_leafs = true) where V<:Vtree
+                    f = noop,
+                    ordered_leafs = true)::V where V<:Vtree
     vars = Var.(ordered_leafs ? (1:num_vars) : randperm(num_vars))
     leaves = V.(vars)
-    V(leaves; structure)
+    V(leaves; structure, f)::V
 end
 
 using Random: rand, randperm
 
 # construct a vtree for a given set of leaves
 function (::Type{V})(leafs::AbstractVector{<:V}; 
-                    structure = :balanced) where V<:Vtree
-    length(leafs) == 1 && return leafs[1] 
-    if structure == :rightlinear
-        left = leafs[1]
-        right = V(leafs[2:end]; structure)
-    elseif structure == :leftlinear
-        left = V(leafs[1:end-1]; structure)
-        right = leafs[end]
-    else
-        if structure == :balanced
-            split = length(leafs)÷2
-        elseif structure == :random 
-            split = rand(1:length(leafs)-1)
+                    structure = :balanced,
+                    f = noop)::V where V<:Vtree
+    length(leafs) == 1 && return leafs[1]
+    if structure ∉ [:topdown, :bottomup] 
+        # check some predefined top-down structures
+        if structure == :rightlinear
+            g = x -> (x[1:1],x[2:end])
+        elseif structure == :leftlinear
+            g = x -> (x[1:length(x)-1],x[length(x):end])
+        elseif structure == :balanced
+            g = x -> (x[1:length(x)÷2],x[length(x)÷2+1:end])
+        elseif structure == :random
+            g = x -> begin
+                split = rand(1:length(x)-1)
+                (x[1:split],x[split+1:end])
+            end
         else
             error("Vtree structure $(structure) not supported.")
         end
-        left = V(leafs[1:split]; structure)
-        right = V(leafs[split+1: end]; structure)
+        return V(leafs; structure = :topdown, f=g)
     end
-    V(left,right)
-end
-
-"""
-Construct Vtree top town, using method specified by split_method.
-"""
-function top_down_root(::Type{VN}, vars::Vector{Var}, split_method::Function)::VN  where {VN <: Vtree}
-    @assert !isempty(vars) "Cannot construct a vtree with zero variables"
-    if length(vars) == 1
-        VN(vars[1])
+    if structure == :topdown
+        l, r = f(leafs)
+        left = V(l; structure, f)
+        right = V(r; structure, f)
+        return V(left, right)
     else
-        (X, Y) = split_method(vars)
-        prime = top_down_root(VN, X, split_method)
-        sub = top_down_root(VN, Y, split_method)
-        VN(prime, sub)
-    end
-end
-
-"""
-Construct Vtree bottom up, using method specified by combine_method!.
-"""
-function bottom_up_vtree(::Type{VN}, vars::Vector{Var}, combine_method!::Function)::VN where {VN <: Vtree}
-    vars = copy(vars)
-    ln = Vector{VN}()
-    node_cache = Dict{Var, VN}() # map from variable to *highest* level node
-
-    "1. construct leaf node"
-    for var in vars
-        n = VN(var)
-        node_cache[var] = n
-        push!(ln, n)
-    end
-
-    "2. construct inner node"
-    while length(vars) > 1
-        matches = combine_method!(vars) # vars are mutable
-        for (left, right) in matches
-            n = VN(node_cache[left], node_cache[right])
-            node_cache[left] = node_cache[right] = n
-            push!(ln, n)
+        @assert structure == :bottomup
+        pairs = f(leafs)
+        leafs = map(pairs) do x
+            (x isa Tuple) ? V(x...) : x
         end
+        return V(leafs; structure, f)
     end
-
-    "3. clean up"
-    ln[end]
 end

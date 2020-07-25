@@ -69,5 +69,14 @@ using LogicCircuits
         @test !ordered_leafs || variable(right_most_descendent(r)) == Var(5)
     end
 
+    bottom_rl = x -> [(x[1], x[2]), x[3:end]...]
+    r = PlainVtree(5; structure=:bottomup, f=bottom_rl)
+    @test num_variables(r) == 5
+    @test num_edges(r) == 8
+    @test num_nodes(r) == 9
+    @test variable(left_most_descendent(r)) == Var(1)
+    @test variable(right_most_descendent(r)) == Var(5)
+    @test r == PlainVtree(5; structure = :leftlinear)
+    
 end
 
