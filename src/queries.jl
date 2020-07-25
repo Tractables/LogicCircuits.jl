@@ -76,7 +76,11 @@ function variables_by_node(root::LogicCircuit)::Dict{LogicCircuit,BitSet}
     scope
 end
 
-"Is the circuit smooth?"
+"""
+    issmooth(root::LogicCircuit)::Bool
+
+Is the circuit smooth?
+"""
 function issmooth(root::LogicCircuit)::Bool
     result::Bool = true
     f_con(_) = BitSet()
@@ -92,7 +96,11 @@ function issmooth(root::LogicCircuit)::Bool
 end
 
 
-"Is the circuit decomposable?"
+"""
+    isdecomposable(root::LogicCircuit)::Bool
+    
+Is the circuit decomposable?
+"""
 function isdecomposable(root::LogicCircuit)::Bool
     result::Bool = true
     f_con(_) = BitSet()

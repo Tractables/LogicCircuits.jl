@@ -3,6 +3,8 @@ export smooth, forget, propagate_constants, deepcopy, condition, replace_node,
     clone_candidates 
 
 """
+    smooth(root::Node)::Node
+    
 Create an equivalent smooth circuit from the given circuit.
 """
 function smooth(root::Node)::Node
