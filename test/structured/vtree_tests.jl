@@ -52,27 +52,22 @@ using LogicCircuits
     @test v1 == v1r
     @test r != rr
 
-    b1 = balanced_vtree(PlainVtree, Var(1), Var(5))
-    b2 = balanced_vtree(PlainVtree, Var(1), Var(5))
+    b1 = PlainVtree(5)
+    b2 = PlainVtree(5)
     @test b1 == b2
     @test num_variables(b1) == 5
     @test num_edges(b1) == 8
     @test num_nodes(b1) == 9
 
-    r = random_vtree(PlainVtree, 5)
-    @test num_variables(r) == 5
-    @test num_edges(r) == 8
-    @test num_nodes(r) == 9
-
-    r = random_vtree(PlainVtree, 5; vtree_mode="linear")
-    @test num_variables(r) == 5
-    @test num_edges(r) == 8
-    @test num_nodes(r) == 9
-
-    r = random_vtree(PlainVtree, 5; vtree_mode="rand")
-    @test num_variables(r) == 5
-    @test num_edges(r) == 8
-    @test num_nodes(r) == 9
+    for structure in [:balanced, :rightlinear, :leftlinear, :random],
+        ordered_leafs in [true, false]
+        r = PlainVtree(5; structure, ordered_leafs)
+        @test num_variables(r) == 5
+        @test num_edges(r) == 8
+        @test num_nodes(r) == 9
+        @test !ordered_leafs || variable(left_most_descendent(r)) == Var(1)
+        @test !ordered_leafs || variable(right_most_descendent(r)) == Var(5)
+    end
 
 end
 

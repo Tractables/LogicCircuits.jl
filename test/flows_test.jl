@@ -29,7 +29,7 @@ using Random: bitrand
     end
 
     num_vars = 7
-    mgr = balanced_vtree(TrimSddMgr, num_vars)
+    mgr = TrimSddMgr(num_vars)
     v = Dict([(i => compile(mgr, Lit(i))) for i=1:num_vars])
     c = (v[1] | !v[2] | v[3]) &
         (v[2] | !v[7] | v[6]) &

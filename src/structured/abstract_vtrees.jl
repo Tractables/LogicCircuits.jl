@@ -1,6 +1,6 @@
 export Vtree, vtree, variable, goes_left, goes_right, find_leaf,
     varsubset, varsubset_left, varsubset_right, lca_vtree, depth,
-    balanced_vtree, random_vtree, top_down_vtree, bottom_up_vtree
+    top_down_vtree, bottom_up_vtree
 
 #############
 # Vtree
@@ -105,42 +105,39 @@ function (::Type{V})(vtree::Vtree) where V<:Vtree
     foldup(vtree,f_leaf, f_inner, V)::V
 end
 
-"Construct a balanced vtree with the given number of variables"
-function balanced_vtree(::Type{VN}, num_vars::Int)::VN where {VN <: Vtree}
-    balanced_vtree(VN, Var(1), Var(num_vars))
+# construct a vtree for a given number of variables
+function (::Type{V})(num_vars::Int; 
+                    structure = :balanced, 
+                    ordered_leafs = true) where V<:Vtree
+    vars = Var.(ordered_leafs ? (1:num_vars) : randperm(num_vars))
+    leaves = V.(vars)
+    V(leaves; structure)
 end
 
-"Construct a balanced vtree with variables ranging from `first` to `last` (inclusive)"
-function balanced_vtree(::Type{VN}, first::Var, last::Var)::VN where {VN <: Vtree}
-    @assert last >= first "Must have $last >= $first"
-    if last == first
-        return VN(first)
+using Random: rand, randperm
+
+# construct a vtree for a given set of leaves
+function (::Type{V})(leafs::AbstractVector{<:V}; 
+                    structure = :balanced) where V<:Vtree
+    length(leafs) == 1 && return leafs[1] 
+    if structure == :rightlinear
+        left = leafs[1]
+        right = V(leafs[2:end]; structure)
+    elseif structure == :leftlinear
+        left = V(leafs[1:end-1]; structure)
+        right = leafs[end]
     else
-        return VN(balanced_vtree(VN, first, Var(first+(last-first+1)÷2-1)), 
-        balanced_vtree(VN, Var(first+(last-first+1)÷2), last))
-    end
-end
-
-using Random: randperm
-
-function random_vtree(::Type{VN}, num_variables; vtree_mode::String="balanced")::VN where {VN <: Vtree}
-    @assert vtree_mode in ["linear", "balanced", "rand"]
-    leaves = VN.(Var.(randperm(num_variables)))
-    vtree = [Vector{VN}(); leaves]
-    right = popfirst!(vtree)
-    while !isempty(vtree)
-        left = popfirst!(vtree)
-        v = VN(left, right)
-        if vtree_mode == "linear"
-            pushfirst!(vtree, v)
-        elseif vtree_mode == "balanced"
-            push!(vtree, v)
-        elseif vtree_mode == "rand"
-            pushrand!(vtree, v)
+        if structure == :balanced
+            split = length(leafs)÷2
+        elseif structure == :random 
+            split = rand(1:length(leafs)-1)
+        else
+            error("Vtree structure $(structure) not supported.")
         end
-        right = popfirst!(vtree)
+        left = V(leafs[1:split]; structure)
+        right = V(leafs[split+1: end]; structure)
     end
-    right
+    V(left,right)
 end
 
 """

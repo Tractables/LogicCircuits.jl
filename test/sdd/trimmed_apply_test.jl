@@ -4,7 +4,7 @@ using LogicCircuits
 @testset "Trimmed apply test" begin
 
     num_vars = 7
-    mgr = balanced_vtree(TrimSddMgr, num_vars)
+    mgr = TrimSddMgr(num_vars)
     
     x = Var(1)
     y = Var(2)
