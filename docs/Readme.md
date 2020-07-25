@@ -1,9 +1,9 @@
 ## Building Docs
 
-To locally build the docs, run the following commands from root of the repository to Instantiate the docs environment and build the docs.
+To locally build the docs, first run the following command from root of the repository to instantiate the docs environment and run the build script:
 
 ```
-julia -e 'using Pkg; Pkg.activate("./docs"); Pkg.instantiate(); include("./docs/make.jl");'
+julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); include("./docs/make.jl");'
 ```
 
 The build results will be stored under `docs/build`.
