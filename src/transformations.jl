@@ -1,5 +1,6 @@
 export smooth, forget, propagate_constants, deepcopy, condition, replace_node, 
-    split, clone, merge, split_candidates, random_split, split_step, struct_learn
+    split, clone, merge, split_candidates, random_split, split_step, struct_learn,
+    clone_candidates 
 
 """
 Create an equivalent smooth circuit from the given circuit.
@@ -253,6 +254,43 @@ function split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{
     candidates, scope
 end
 
+function clone_candidates(circuit::Node)::Dict{Node, Vector{Node}}
+    candidates = Dict{Node, Vector{Node}}()
+    parents = Dict{Node, Vector{Node}}()
+
+    f_con(n) = begin
+        false
+    end
+    f_lit(n) = begin
+        false
+    end
+    f_a(n, cv) = begin
+        for c in children(n)
+            if !(GateType(c) isa ⋁Gate)
+                continue
+            end
+
+            if c in keys(parents)
+                push!(parents[c], n)
+            else
+                parents[c] = [n]
+            end
+        end
+        false
+    end
+    f_o(n, cv) = begin
+        if !(n in keys(parents))
+            parents[n] = []
+        end
+        true
+    end
+
+    foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, Bool)
+
+    # Find candidates
+    candidates = filter(p->(length(last(p)) == 2), parents) # Set of AND gates shared by exactly 2 OR gates
+    candidates
+end
 
 """
 Randomly picking egde and variable from candidates

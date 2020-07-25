@@ -187,3 +187,19 @@ end
     # @test isstructdecomposable(c1)
     # @test isdeterministic(c1)
 end
+
+@testset "Clone Candidates" begin
+    lit1 = compile(PlainLogicCircuit, Lit(1))
+    litn1 = compile(PlainLogicCircuit, - Lit(1))
+    lit2 = compile(PlainLogicCircuit, Lit(2))
+    litn2 = compile(PlainLogicCircuit, - Lit(2))
+    or = lit1 | litn1
+    and1 = lit2 & or
+    and2 = or & litn2
+    c1 = root = and1 | and2
+
+    cands = clone_candidates(c1)
+    candidates = [(k, v[1], v[2]) for (k,v) in cands]
+
+    @assert (or, and1, and2) in candidates
+end
