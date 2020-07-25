@@ -148,7 +148,7 @@ end
 @testset "Trimmed apply regression test" begin
 
     v = zoo_vtree("iscas89/s386.scan.min.vtree")
-    mgr = Vtree(TrimSddMgr, v)
+    mgr = TrimSddMgr(v)
     v70 = compile(mgr,Lit(70))
     v71 = compile(mgr,Lit(71))
     n = (v70 & v71) | (!v70 & !v71)

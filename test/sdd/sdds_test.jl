@@ -15,7 +15,7 @@ end
 
    cnf = zoo_cnf("easy/C17_mince.cnf")
    vtree = zoo_vtree("easy/C17_mince.min.vtree");
-   mgr = Vtree(TrimSddMgr, vtree)
+   mgr = TrimSddMgr(vtree)
       
    @test_throws Exception compile(mgr.left, cnf)
    @test_throws Exception compile(right_most_descendent(mgr), cnf)
@@ -36,7 +36,7 @@ end
       cnf = zoo_cnf("$suite/$name.cnf")
       vtree = zoo_vtree("$suite/$name.min.vtree");
 
-      mgr = Vtree(TrimSddMgr, vtree)
+      mgr = TrimSddMgr(vtree)
       # cnfΔ = @time compile_cnf(mgr, cnf)
       cnfΔ = compile(mgr, cnf)
 

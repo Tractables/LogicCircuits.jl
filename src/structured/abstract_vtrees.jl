@@ -32,15 +32,30 @@ import Base.parent # extend
 
 "Find the leaf in the vtree that represents the given variable"
 find_leaf(v, n) = find_leaf(v, n, NodeType(n))
+
 @inline function find_leaf(v, n, ::Leaf)
     @assert variable(n) == v "Variable is not contained in vtree"
     return n   
 end
+
 @inline function find_leaf(v, n, ::Inner)
     goes_left(v, n) && return find_leaf(v, n.left)
     goes_right(v, n) && return find_leaf(v, n.right)
     @assert false "Variable is not contained in vtree"
 end
+
+# performance critical in SDD compilation:
+"Are the variables in `n` contained in the variables in `m`?"
+@inline varsubset(n::Vtree, m::Vtree) = 
+    (n===m || varsubset(n, m, NodeType(n), NodeType(m)))
+@inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Leaf) = 
+    variable(n) == variable(m)
+@inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Leaf) = 
+    false
+@inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Inner) = 
+    variable(n) ∈ variables(m)
+@inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Inner) = 
+    variables(n) ⊆ variables(m) # very slow
 
 "Are the variables in `n` contained in the left branch of `m`?"
 @inline varsubset_left(n, m)::Bool = varsubset(n, m.left)
@@ -48,35 +63,24 @@ end
 "Are the variables in `n` contained in the right branch of `m`?"
 @inline varsubset_right(n, m)::Bool = varsubset(n, m.right)
 
-# performance critical in SDD compilation:
-"Are the variables in `n` contained in the variables in `m`?"
-@inline varsubset(n::Vtree, m::Vtree) = (n===m || varsubset(n, m, NodeType(n), NodeType(m)))
-@inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Leaf) = variable(n) == variable(m)
-@inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Leaf) = false
-@inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Inner) = variable(n) ∈ variables(m)
-@inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Inner) = variables(n) ⊆ variables(m) # very slow
-
 "Find the LCA vtree of all given nodes, excluding constant nodes"
 lca_vtree(nodes...) =
     mapreduce(vtree, lca, filter(!isconstantgate,nodes))
 
 """
-Compute the path length from vtree node `n` to leaf node which contains `var`
+Compute the path length from vtree node `n` to leaf node for variable `var`
 """
 depth(n::Vtree, var::Var)::Int = depth(NodeType(n), n, var)
 
 function depth(::Inner, n::Vtree, var::Var)::Int
     @assert var in variables(n)
-    if var in variables(n.left)
-        return 1 + depth(n.left, var)
-    else
-        return 1 + depth(n.right, var)
-    end
+    1 + (goes_left(var, n) ? 
+         depth(n.left, var) : depth(n.right, var))
 end
 
 function depth(::Leaf, n::Vtree, var::Var)::Int
-    @assert var ∈ variables(n)
-    return 0
+    @assert var == variable(n)
+    0
 end
 
 import .Utils: lca # extend
@@ -94,10 +98,11 @@ lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
 # Constructors
 #############
 
-function Vtree(::Type{T}, vtree::Vtree)::T where {T<:Vtree}
-    f_leaf(l) = T(variable(l))
-    f_inner(i,call) = T(call(i.left), call(i.right))
-    foldup(vtree,f_leaf, f_inner,T)
+# construct vtrees from other vtrees
+function (::Type{V})(vtree::Vtree) where V<:Vtree
+    f_leaf(l) = V(variable(l))
+    f_inner(i,call) = V(call(i.left), call(i.right))
+    foldup(vtree,f_leaf, f_inner, V)::V
 end
 
 "Construct a balanced vtree with the given number of variables"
