@@ -81,5 +81,10 @@ using LogicCircuits
 
     @test_throws Exception PlainVtree(5, :foobar)
 
+    io = IOBuffer()
+    print_tree(io,r)
+    @test length(String(take!(io))) > 0
+
+
 end
 

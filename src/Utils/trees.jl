@@ -52,21 +52,23 @@ end
 lca(v::Tree, ::Function=noop)::Tree = v
 lca(v::Tree, w::Tree, u::Tree, r::Tree...)::Tree = lca(lca(v,w), u, r...)
 
-"Print the given tree in the console"
-function print_tree(root::Tree, prefix="", onceprefix="", laterprefix="")
-    print_tree(root, NodeType(root), prefix, onceprefix, laterprefix)
+"Print the given tree"
+print_tree(root::Tree) =
+    print_tree(stdout, root)
+
+print_tree(io::IO, root::Tree, prefix="", onceprefix="", laterprefix="") =
+    print_tree(io, root, NodeType(root), prefix, onceprefix, laterprefix)
+
+function print_tree(io::IO, root::Tree, ::Leaf, prefix, onceprefix, laterprefix)
+    println(io, "$prefix$(onceprefix)━$root")
 end
 
-function print_tree(root::Tree, ::Leaf, prefix, onceprefix, laterprefix)
-    println("$prefix$(onceprefix)━$root")
-end
-
-function print_tree(root::Tree, ::Inner, prefix, onceprefix, laterprefix)
-    println("$prefix$(onceprefix)━$root")
+function print_tree(io::IO, root::Tree, ::Inner, prefix, onceprefix, laterprefix)
+    println(io, "$prefix$(onceprefix)━$root")
     for c in children(root)[1:end-1]
-        print_tree(c, "$prefix$laterprefix", " ┣"," ┃")
+        print_tree(io, c, "$prefix$laterprefix", " ┣"," ┃")
     end
-    print_tree(children(root)[end], "$prefix$laterprefix", " ┗", "  ")
+    print_tree(io, children(root)[end], "$prefix$laterprefix", " ┗", "  ")
 end
 
 #####################
