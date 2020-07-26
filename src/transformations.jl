@@ -111,6 +111,7 @@ import Base.deepcopy
 Create a copy circuit `n` to a certain depth `depth`
 """
 function deepcopy(n::Node, depth::Int64, old2new::Dict{Node, Node} = Dict{Node, Node}(); cache=true)
+    # TODO: can we remove the Dict and use the data field instead?
     if depth == 0 || isliteralgate(n) || isconstantgate(n)
         return n
     elseif cache && haskey(old2new, n)

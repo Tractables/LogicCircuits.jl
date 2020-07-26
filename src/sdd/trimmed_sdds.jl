@@ -1,5 +1,6 @@
 export TrimSddMgr, Sdd, Sdd⋁Node, Sdd⋀Node,
     SddConstantNode, SddTrueNode, SddFalseNode, 
+    tmgr, sdd_mgr_for,
     compress, unique⋁, canonicalize, negate
 
 #############
@@ -46,12 +47,14 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgr
     conjoin_cache::ApplyCache
 
     TrimSddMgrInnerNode(left::TrimSddMgr, right::TrimSddMgr) = begin
-        # @assert disjoint(variables(left), variables(right))
+        @assert isdisjoint(variables(left), variables(right))
         this = new(left, right, nothing, 
             union(variables(left), variables(right)), 
             Unique⋁Cache(), ApplyCache()
         )
+        @assert left.parent === nothing
         left.parent = this
+        @assert right.parent === nothing
         right.parent = this
         this
     end
@@ -85,6 +88,13 @@ tmgr(n::SddLeafNode) = n.vtree::TrimSddMgrLeafNode
 
 TrimSddMgr(v::Var) = TrimSddMgrLeafNode(v)
 TrimSddMgr(left::TrimSddMgr, right::TrimSddMgr) = TrimSddMgrInnerNode(left, right)
+
+"Obtain a trimmed SDD manager that can support compiling the given circuit"
+sdd_mgr_for(c::Sdd) = tmgr(c)
+sdd_mgr_for(c::StructLogicCircuit) =
+    (vtree(c) isa TrimSddMgr) ? tmgr(c) : TrimSddMgr(vtree(c))
+sdd_mgr_for(c::LogicCircuit) = 
+    TrimSddMgr(TrimSddMgr.(Var.(variables(c))), :balanced) # this could be "smarter" finding a good vtree
 
 #####################
 # Traits
@@ -125,8 +135,9 @@ function lca(xy::XYPartition)::TrimSddMgrInnerNode
     return lca(element_vtrees...)
 end
 
-parentlca(p::Sdd, s::Sdd)::TrimSddMgrInnerNode = 
+parentlca(p::Sdd, s::Sdd)::TrimSddMgrInnerNode = begin
     lca(parent(tmgr(p)), parent(tmgr(s)))
+end
 parentlca(p::Sdd, ::SddConstantNode)::TrimSddMgrInnerNode = 
     parent(tmgr(p))
 parentlca(::SddConstantNode, s::Sdd)::TrimSddMgrInnerNode = 

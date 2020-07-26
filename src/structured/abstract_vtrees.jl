@@ -25,10 +25,10 @@ import Base.parent # extend
 @inline vtree(n)::Vtree = n.vtree # override when needed
 
 "Is the variable `v` contained in the left branch of `m`?"
-@inline goes_left(v, m)::Bool =  v ∈ variables(m.left)
+@inline goes_left(v::Var, m::Vtree)::Bool =  v ∈ variables(m.left)
 
 "Is the variable `v` contained in the right branch of `m`?"
-@inline goes_right(v, m)::Bool = v ∈ variables(m.right)
+@inline goes_right(v::Var, m::Vtree)::Bool = v ∈ variables(m.right)
 
 "Find the leaf in the vtree that represents the given variable"
 find_leaf(v, n) = find_leaf(v, n, NodeType(n))
@@ -58,10 +58,10 @@ end
     variables(n) ⊆ variables(m) # very slow
 
 "Are the variables in `n` contained in the left branch of `m`?"
-@inline varsubset_left(n, m)::Bool = varsubset(n, m.left)
+@inline varsubset_left(n::Vtree, m::Vtree)::Bool = varsubset(n, m.left)
 
 "Are the variables in `n` contained in the right branch of `m`?"
-@inline varsubset_right(n, m)::Bool = varsubset(n, m.right)
+@inline varsubset_right(n::Vtree, m::Vtree)::Bool = varsubset(n, m.right)
 
 "Find the LCA vtree of all given nodes, excluding constant nodes"
 lca_vtree(nodes...) =
@@ -94,6 +94,8 @@ lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
 # Syntactic sugar to compile circuits using a vtree
 (vtree::Vtree)(arg) = compile(vtree, arg)
 
+Base.show(io::IO, c::Vtree) = print(io, "$(typeof(c))($(join(variables(c), ',')))")
+
 #############
 # Constructors
 #############
@@ -106,20 +108,18 @@ function (::Type{V})(vtree::Vtree)::V where V<:Vtree
 end
 
 # construct a vtree for a given number of variables
-function (::Type{V})(num_vars::Int; 
-                    structure = :balanced, 
+function (::Type{V})(num_vars::Int, structure; 
                     f = noop,
                     ordered_leafs = true)::V where V<:Vtree
     vars = Var.(ordered_leafs ? (1:num_vars) : randperm(num_vars))
     leaves = V.(vars)
-    V(leaves; structure, f)
+    V(leaves, structure; f)
 end
 
 using Random: rand, randperm
 
 # construct a vtree for a given set of leaves
-function (::Type{V})(leafs::AbstractVector{<:V}; 
-                    structure = :balanced,
+function (::Type{V})(leafs::AbstractVector{<:V}, structure;
                     f = noop)::V where V<:Vtree
     length(leafs) == 1 && return leafs[1]
     if structure ∉ [:topdown, :bottomup] 
@@ -138,17 +138,17 @@ function (::Type{V})(leafs::AbstractVector{<:V};
         else
             error("Vtree structure $(structure) not supported.")
         end
-        return V(leafs; structure = :topdown, f=g)
+        return V(leafs, :topdown; f=g)
     end
     if structure == :topdown
         l, r = f(leafs)
-        left = V(l; structure, f)
-        right = V(r; structure, f)
+        left = V(l, structure; f)
+        right = V(r,structure; f)
         return V(left, right)
     else
         @assert structure == :bottomup
         pairs = f(leafs)
         leafs = map(x -> (x isa Tuple) ? V(x...) : x, pairs) 
-        return V(leafs; structure, f)
+        return V(leafs, structure; f)
     end
 end

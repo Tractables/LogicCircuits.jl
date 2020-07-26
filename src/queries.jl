@@ -1,5 +1,5 @@
 export variables_by_node, issmooth, isdecomposable,
-    iscanonical,
+    isdeterministic, iscanonical,
     sat_prob, model_count, prob_equiv_signature
 
 #####################
@@ -111,6 +111,30 @@ function isdecomposable(root::LogicCircuit)::Bool
     end 
     f_o(_, cs) = reduce(union, cs)
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
+    result
+end
+
+"""
+    isdeterministic(root::LogicCircuit)::Bool
+    
+Is the circuit determinstic?
+Note: this function is generally intractable for large circuits.
+"""
+function isdeterministic(root::LogicCircuit)::Bool
+    mgr = sdd_mgr_for(root)
+    result::Bool = true
+    f_con(c) = mgr(constant(c))
+    f_lit(n) = mgr(literal(n))
+    f_a(_, cs) = reduce(&, cs)
+    f_o(_, cs) = begin
+        for i = 1:length(cs)
+            for j = i+1:length(cs)
+               result &= isfalse(cs[i] & cs[j])
+            end
+        end
+        reduce(|, cs)
+    end
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Sdd)
     result
 end
 

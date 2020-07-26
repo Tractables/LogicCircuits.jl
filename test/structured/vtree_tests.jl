@@ -6,6 +6,7 @@ using LogicCircuits
     v1 = PlainVtree(Var(1))
     v2 = PlainVtree(Var(2))
     v3 = PlainVtree(Var(3))
+    @test_throws Exception PlainVtree(3)
     i1 = PlainVtree(v1,v2)
     r = PlainVtree(i1,v3)
 
@@ -52,8 +53,8 @@ using LogicCircuits
     @test v1 == v1r
     @test r != rr
 
-    b1 = PlainVtree(5)
-    b2 = PlainVtree(5)
+    b1 = PlainVtree(5, :balanced)
+    b2 = PlainVtree(5, :balanced)
     @test b1 == b2
     @test num_variables(b1) == 5
     @test num_edges(b1) == 8
@@ -61,7 +62,7 @@ using LogicCircuits
 
     for structure in [:balanced, :rightlinear, :leftlinear, :random],
         ordered_leafs in [true, false]
-        r = PlainVtree(5; structure, ordered_leafs)
+        r = PlainVtree(5, structure; ordered_leafs)
         @test num_variables(r) == 5
         @test num_edges(r) == 8
         @test num_nodes(r) == 9
@@ -70,15 +71,15 @@ using LogicCircuits
     end
 
     bottom_rl = x -> [(x[1], x[2]), x[3:end]...]
-    r = PlainVtree(5; structure=:bottomup, f=bottom_rl)
+    r = PlainVtree(5, :bottomup; f=bottom_rl)
     @test num_variables(r) == 5
     @test num_edges(r) == 8
     @test num_nodes(r) == 9
     @test variable(left_most_descendent(r)) == Var(1)
     @test variable(right_most_descendent(r)) == Var(5)
-    @test r == PlainVtree(5; structure = :leftlinear)
+    @test r == PlainVtree(5, :leftlinear)
 
-    @test_throws Exception PlainVtree(5; structure=:foobar)
+    @test_throws Exception PlainVtree(5, :foobar)
 
 end
 

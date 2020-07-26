@@ -194,7 +194,6 @@ Conjoin two SDDs in separate parts of the vtree
 function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     mgr = parentlca(s,t)
-    # @assert tmgr(s) != mgr && tmgr(t) != mgr
     (s,t) = pointer_sort(s,t)
     get!(mgr.conjoin_cache, Element(s,t)) do 
         if varsubset_left(tmgr(s), mgr)

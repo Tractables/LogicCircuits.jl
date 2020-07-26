@@ -3,7 +3,7 @@ using LogicCircuits
 
 @testset "Structured logic nodes" begin
     
-    vtree = PlainVtree(10)
+    vtree = PlainVtree(10, :balanced)
     f = fully_factorized_circuit(StructLogicCircuit, vtree)
     @test num_nodes(f) == 20+10+9+1
     @test num_edges(f) == 20+18+1
@@ -100,7 +100,7 @@ using LogicCircuits
     @test model_count(ref) == BigInt(2)^10
     @test isempty(intersect(linearize(f),linearize(ref)))
 
-    mgr = TrimSddMgr(7)
+    mgr = TrimSddMgr(7, :balanced)
     v = Dict([(i => compile(mgr, Lit(i))) for i=1:7])
     c = (v[1] | !v[2] | v[3]) &
         (v[2] | !v[7] | v[6]) &

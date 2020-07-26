@@ -4,7 +4,7 @@ using LogicCircuits
 @testset "Trimmed apply test" begin
 
     num_vars = 7
-    mgr = TrimSddMgr(num_vars)
+    mgr = TrimSddMgr(num_vars, :balanced)
     
     x = Var(1)
     y = Var(2)
@@ -105,6 +105,8 @@ using LogicCircuits
 
     @test f3 === f4
 
+    @test isdeterministic(f4)
+
     io = IOBuffer()
     show(io,f3)
     show(io,t1)
@@ -119,6 +121,7 @@ using LogicCircuits
     @test num_edges(f4c) == num_edges(f4)
     @test num_nodes(f4c) == num_nodes(f4)
     @test model_count(f4c) == model_count(f4)
+    @test isdeterministic(f4c)
 
     f4c = StructLogicCircuit(mgr, f4)
     @test f4c isa PlainStructLogicCircuit
@@ -126,6 +129,7 @@ using LogicCircuits
     @test num_nodes(f4c) == num_nodes(f4)
     @test model_count(f4c) == model_count(f4)
     @test f4c.vtree === f4.vtree
+    @test isdeterministic(f4c)
 
     f4c = StructLogicCircuit(mgr, LogicCircuit(f4))
     @test f4c isa PlainStructLogicCircuit
@@ -145,7 +149,7 @@ using LogicCircuits
 
 end
 
-@testset "Trimmed apply regression test" begin
+@testset "Trimmed apply regression test 1" begin
 
     v = zoo_vtree("iscas89/s386.scan.min.vtree")
     mgr = TrimSddMgr(v)

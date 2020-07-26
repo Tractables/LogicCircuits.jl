@@ -1,6 +1,6 @@
 using DataStructures
 
-export parent, has_parent, isroot, lca, Tree, isequal_local
+export parent, has_parent, isroot, lca, Tree, isequal_local, print_tree
 
 #####################
 # types and traits
@@ -40,7 +40,7 @@ Find the least common ancestor. Assumes the `Tree` has access to a `parent`.
 A given `descends_from` function is required to quickly check whether a node is an ancestor.
 """
 function lca(v::Tree, w::Tree, descends_from::Function)::Tree
-    v == w && return v
+    v === w && return v
     descends_from(w,v) && return v
     candidate::Union{Dag,Nothing} = w
     while issomething(candidate)
@@ -51,6 +51,23 @@ function lca(v::Tree, w::Tree, descends_from::Function)::Tree
 end
 lca(v::Tree, ::Function=noop)::Tree = v
 lca(v::Tree, w::Tree, u::Tree, r::Tree...)::Tree = lca(lca(v,w), u, r...)
+
+"Print the given tree in the console"
+function print_tree(root::Tree, prefix="", onceprefix="", laterprefix="")
+    print_tree(root, NodeType(root), prefix, onceprefix, laterprefix)
+end
+
+function print_tree(root::Tree, ::Leaf, prefix, onceprefix, laterprefix)
+    println("$prefix$(onceprefix)━$root")
+end
+
+function print_tree(root::Tree, ::Inner, prefix, onceprefix, laterprefix)
+    println("$prefix$(onceprefix)━$root")
+    for c in children(root)[1:end-1]
+        print_tree(c, "$prefix$laterprefix", " ┣"," ┃")
+    end
+    print_tree(children(root)[end], "$prefix$laterprefix", " ┗", "  ")
+end
 
 #####################
 # traversal

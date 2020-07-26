@@ -59,7 +59,11 @@ mutable struct Sdd⋀Node <: SddInnerNode
     vtree::SddMgr
     counter::UInt32
     data
-    Sdd⋀Node(p,s,v) = new(p,s,v,false)
+    Sdd⋀Node(p,s,v) = begin
+        # @assert !isliteralgate(p) || goes_left(variable(p),v)
+        # @assert !isliteralgate(s) || goes_right(variable(s),v)
+        new(p,s,v,false)
+    end
 end
 
 "A SDD logical disjunction node"

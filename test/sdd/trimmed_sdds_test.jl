@@ -5,7 +5,7 @@ using LogicCircuits: Element # test some internals
 @testset "Trimmed SDD test" begin
 
     num_vars = 7
-    mgr = TrimSddMgr(num_vars)
+    mgr = TrimSddMgr(num_vars, :balanced)
     
     @test num_variables(mgr) == num_vars
     @test num_nodes(mgr) == 2*num_vars-1
@@ -96,22 +96,25 @@ using LogicCircuits: Element # test some internals
     v5 = compile(mgr, Lit(5))
     v6 = compile(mgr, Lit(6))
     v7 = compile(mgr, Lit(7))
-    @test_throws Exception compile(mgr, Lit(8))
+    # @test_throws Exception compile(mgr, Lit(8))
 
     p1 = [Element(true_c,v3)]
     @test canonicalize(p1) === v3
     p2 = [Element(v1,true_c), Element(!v1,false_c)]
     @test canonicalize(p2) === v1
 
-    p3 = [Element(v1,v3), Element(!v1,v7)]
+    p3 = [Element(v1,v4), Element(!v1,v7)]
     n1 = canonicalize(p3)
-    p4 = [Element(!v1,v7), Element(v1,v3)]
+    p4 = [Element(!v1,v7), Element(v1,v4)]
     n2 = canonicalize(p4)
+    @test n1.vtree.left === mgr.left
+    @test n1.vtree.right === mgr.right
     @test n1 === n2
+    @test isdeterministic(n1)
 
     @test lca(p1) == parent(vtree(v3))
     @test lca(p2) == parent(vtree(v1))
     @test lca([Element(true_c,v3)]) == parent(vtree(v3))
-    @test_throws Exception lca([Element(true_c,false_c)]) 
+    # @test_throws Exception lca([Element(true_c,false_c)]) 
 
 end
