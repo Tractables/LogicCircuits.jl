@@ -3,7 +3,7 @@
 
 ### Prerequisites
 
-Julia 1.3 or greater. For installation, please refer to [the official Julia Website](https://julialang.org/downloads/).
+Julia 1.5 or greater. For installation, please refer to [the official Julia Website](https://julialang.org/downloads/).
 
 ### Installing LogicCircuits
 
