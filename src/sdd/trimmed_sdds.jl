@@ -135,15 +135,12 @@ function lca(xy::XYPartition)::TrimSddMgrInnerNode
     return lca(element_vtrees...)
 end
 
-parentlca(p::Sdd, s::Sdd)::TrimSddMgrInnerNode = begin
+parentlca(p::Sdd, s::Sdd)::TrimSddMgrInnerNode =
     lca(parent(tmgr(p)), parent(tmgr(s)))
-end
 parentlca(p::Sdd, ::SddConstantNode)::TrimSddMgrInnerNode = 
     parent(tmgr(p))
 parentlca(::SddConstantNode, s::Sdd)::TrimSddMgrInnerNode = 
     parent(tmgr(s))
-parentlca(p::SddConstantNode, s::SddConstantNode)::TrimSddMgrInnerNode = 
-    error("This XY partition should have been trimmed to remove ($p,$s)!")
 
 """
 Get the canonical compilation of the given XY Partition
