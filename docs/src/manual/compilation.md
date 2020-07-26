@@ -1,4 +1,4 @@
-# [Examples](@id man-examples)
+# [Compilation](@id man-compilation)
 
 !!! note
 

@@ -42,7 +42,9 @@ zoo_sdd_file(name) =
 # Instead here we hardcode some simpler parsers to speed things up
 
 """
-Load a logic circuit from file.
+    load_logic_circuit(file::String)::PlainLogicCircuit
+
+Load a logical circuit from file.
 Support file formats:
  * ".sdd" for SDD files
  * ".psdd" for PSDD files
@@ -53,6 +55,8 @@ function load_logic_circuit(file::String)::PlainLogicCircuit
 end
 
 """
+    load_smooth_logic_circuit(file::String)::PlainLogicCircuit
+    
 Load a smooth logic circuit from file.
 Support file formats:
  * ".psdd" for PSDD files
@@ -63,8 +67,10 @@ function load_smooth_logic_circuit(file::String)::PlainLogicCircuit
 end
 
 """
-Load a smooth structured logic circuit from file.
-Support circuit file formats:
+    load_struct_smooth_logic_circuit(circuit_file::String, vtree_file::String)::Tuple{StructLogicCircuit,PlainVtree}
+
+Load a smooth structured logic circuit and its vtree from file.
+Supported circuit file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
 Supported vtree file formats:
@@ -291,10 +297,12 @@ end
 #####################
 
 """
+    load_cnf(file::String; dual=false)::PlainLogicCircuit
+
 Load a CNF/DNF as a logic circuit from file.
 Suppported file formats:
-* ".cnf" for CNF files
-* ".dnf" for DNF files
+* ".cnf" for CNF files  (`dual=False`)
+* ".dnf" for DNF files  (`dual=True`)
 """
 function load_cnf(file::String; dual=false)::PlainLogicCircuit
     @assert !dual && endswith(file, ".cnf") || dual && endswith(file, ".dnf")
@@ -344,5 +352,10 @@ function load_cnf(file::String; dual=false)::PlainLogicCircuit
     dual ? disjoin(clauses) : conjoin(clauses)
 end
 
+"""
+    load_dnf(file::String)::PlainLogicCircuit
+
+Load a DNF as a logical circuit from file.
+"""
 load_dnf(file::String)::PlainLogicCircuit =
     load_cnf(file; dual=true)

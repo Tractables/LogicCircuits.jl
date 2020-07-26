@@ -1,5 +1,10 @@
 export load_vtree, zoo_vtree, zoo_vtree_file
 
+"""
+    load_vtree(file::String, ::Type{V}=PlainVtree)::V where V<:Vtree
+
+Load a vtree file from file. Currently only supports ".vtree" format.
+"""
 function load_vtree(file::String, ::Type{V}=PlainVtree)::V where V<:Vtree
     return compile_vtree_format_lines(parse_vtree_file(file), V)
 end

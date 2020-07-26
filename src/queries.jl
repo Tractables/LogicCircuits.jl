@@ -19,6 +19,13 @@ end
 import ..Utils: foldup # extend
 
 """
+    foldup(node::LogicCircuit, 
+        f_con::Function, 
+        f_lit::Function, 
+        f_a::Function, 
+        f_o::Function, 
+        ::Type{T}; nload = nload, nsave = nsave, reset=true)::T where {T}
+
 Compute a function bottom-up on the circuit. 
 `f_con` is called on constant gates, `f_lit` is called on literal gates, 
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
@@ -35,6 +42,13 @@ end
 import ..Utils: foldup_aggregate # extend
 
 """
+    foldup_aggregate(node::LogicCircuit, 
+        f_con::Function, 
+        f_lit::Function, 
+        f_a::Function, 
+        f_o::Function, 
+        ::Type{T};  nload = nload, nsave = nsave, reset=true)::T where T
+
 Compute a function bottom-up on the circuit. 
 `f_con` is called on constant gates, `f_lit` is called on literal gates, 
 `f_a` is called on conjunctions, and `f_o` is called on disjunctions.
@@ -118,7 +132,11 @@ end
 # structural properties
 #####################
 
-"Does the given circuit have canonical Or gates, as determined by a probabilistic equivalence check?"
+"""
+    iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
+
+Does the given circuit have canonical Or gates, as determined by a probabilistic equivalence check?
+"""
 function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
    signatures = prob_equiv_signature(circuit, k)
    decision_nodes_by_signature = groupby(n -> signatures[n], ⋁_nodes(circuit))
@@ -140,8 +158,13 @@ end
 # algebraic model counting queries
 #####################
 
-"Get the probability that a random world satisties the circuit"
-function sat_prob(root::LogicCircuit, 
+"""
+    sat_prob(root::LogicCircuit; varprob::Function)::Rational{BigInt}
+
+Get the probability that a random world satisties the circuit. 
+Probability of each variable is given by `varprob` Function which defauls to 1/2 for every variable.
+"""
+function sat_prob(root::LogicCircuit; 
                   varprob::Function = v -> BigInt(1) // BigInt(2))::Rational{BigInt}
     f_con(n) = istrue(n) ? one(Rational{BigInt}) : zero(Rational{BigInt})
     f_lit(n) = ispositive(n) ? varprob(variable(n)) : one(Rational{BigInt}) - varprob(variable(n))
@@ -150,8 +173,14 @@ function sat_prob(root::LogicCircuit,
     foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt})
 end
 
-"Get the model count of the circuit"
-function model_count(root::LogicCircuit, num_vars_in_scope::Int = num_variables(root))::BigInt
+"""
+    model_count(root::LogicCircuit; num_vars_in_scope::Int = num_variables(root))::BigInt    
+
+Get the model count of the circuit. 
+The `num_vars_in_scope` is set to number of variables in the circuit, but sometimes need to set different values, 
+for example, if not every variable is mentioned in the circuit.
+"""
+function model_count(root::LogicCircuit; num_vars_in_scope::Int = num_variables(root))::BigInt
     # note that num_vars_in_scope for computing the model count can be more than num_variables(circuit); in particular when variables in the application are missing from the circuit
     BigInt(sat_prob(root) * BigInt(2)^num_vars_in_scope)
 end

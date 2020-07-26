@@ -17,7 +17,12 @@ export num_examples, num_features,
        ll_per_example, bits_per_pixel
 
 
-"Number of examples in data"
+"""
+    num_examples(df::DataFrame)
+    num_examples(m::AbstractMatrix)
+
+Number of examples in data
+"""
 num_examples(df::DataFrame) = nrow(df)
 num_examples(m::AbstractMatrix) = size(m,1)
 
