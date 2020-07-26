@@ -72,6 +72,11 @@ end
 
 import .Utils.variables # extend
 
+"""
+    variables(root::LogicCircuit)::BitSet
+
+Get a bitset of variables mentioned in the circuit `root`.
+"""
 function variables(root::LogicCircuit)::BitSet
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -174,7 +179,7 @@ function sat_prob(root::LogicCircuit;
 end
 
 """
-    model_count(root::LogicCircuit; num_vars_in_scope::Int = num_variables(root))::BigInt    
+    model_count(root::LogicCircuit, num_vars_in_scope::Int = num_variables(root))::BigInt    
 
 Get the model count of the circuit. 
 The `num_vars_in_scope` is set to number of variables in the circuit, but sometimes need to set different values, 
@@ -188,6 +193,8 @@ end
 const Signature = Vector{Rational{BigInt}}
 
 """
+    prob_equiv_signature(circuit::LogicCircuit, k::Int)::Dict{Union{Var,Node},Signature}
+
 Get a signature for each node using probabilistic equivalence checking.
 Note that this implentation may not have any formal guarantees as such.
 """

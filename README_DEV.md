@@ -39,3 +39,12 @@ Only do this for when the repo is in stable position, and we have decent amount 
 3. Github Release. TagBot is enabled for this repo, so after the registrator merges the pull request, TagBot automatically does a github release in sync with the registrar's new version. 
    - Note: TagBot would automatically include all the closed PRs and issues since the previous version in the release note, if you want to exclude some of them, refer to [Julia TagBot docs](https://github.com/JuliaRegistries/TagBot).
 4. As much as possible, make sure to also release a new version for `ProbabilisticCircuits.jl`.
+
+
+## Troubleshooting
+
+When running tests locally sometimes DataDeps prompts the user for downloading new data and could cause the tests to fail, add the environment variable to avoid the user prompt
+
+```
+    export DATADEPS_ALWAYS_ACCEPT=1
+```

@@ -257,7 +257,11 @@ end
 # methods using circuit traversal
 #####################
 
-"Number of nodes in the `Dag`"
+"""
+    num_nodes(node::Dag)
+
+Count the number of nodes in the `Dag`
+"""
 function num_nodes(node::Dag)
     count::Int = 0
     foreach(node) do n
@@ -267,6 +271,8 @@ function num_nodes(node::Dag)
 end
 
 """
+    tree_num_nodes(node::Dag)::BigInt
+
 Compute the number of nodes in of a tree-unfolding of the `Dag`. 
 """
 function tree_num_nodes(node::Dag)::BigInt
@@ -276,7 +282,9 @@ function tree_num_nodes(node::Dag)::BigInt
 end
 
 """
-Compute the number of edges in of a tree-unfolding of the `Dag`. 
+    tree_num_edges(node::Dag)::BigInt
+    
+Compute the number of edges in the tree-unfolding of the `Dag`. 
 """
 function tree_num_edges(node::Dag)::BigInt
     @inline f_leaf(n) = zero(BigInt)
