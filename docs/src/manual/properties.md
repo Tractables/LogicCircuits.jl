@@ -7,7 +7,7 @@
 
 ## Smoothness
 
-A logical circuit is smooth if each of its OR nodes are smooth.  An OR node is smooth if all of its children mention the same set of variables. 
+A logic circuit is smooth if each of its OR nodes are smooth.  An OR node is smooth if all of its children mention the same set of variables. 
 
 ```@docs
 issmooth
@@ -37,12 +37,12 @@ issmooth(smoothed_lc)
 
 ## Determinism
 
-A logical circuit is deterministic if each of its OR nodes are deterministic.
+A logic circuit is deterministic if each of its OR nodes are deterministic.
 An OR node is deterministic if for every possible assignment to the variables, at most one of the its children can be active (`true`).
 
 ## Decomposability
 
-A logical circuit is decomposable if each of its AND nodes are decomposable. 
+A logic circuit is decomposable if each of its AND nodes are decomposable. 
 An AND node is decomposable if for each pair of children the set of variables they depend on is disjoint.
 
 

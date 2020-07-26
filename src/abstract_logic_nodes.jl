@@ -9,7 +9,7 @@ export LogicCircuit, GateType, InnerGate, LeafGate,
     canonical_literals, canonical_constants, tree_formula_string
 
 #####################
-# Abstract infrastructure for logical circuit nodes
+# Abstract infrastructure for logic circuit nodes
 #####################
 
 "Root of the logic circuit node hierarchy"

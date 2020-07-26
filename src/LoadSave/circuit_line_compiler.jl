@@ -3,13 +3,13 @@
 #####################
 
 """
-Compile lines into a unstructured logical circuit
+Compile lines into a unstructured logic circuit
 """
 compile_logical(lines::CircuitFormatLines)::PlainLogicCircuit = 
     compile_logical_m(lines)[1]
 
 """
-Compile lines into a unstructured logical circuit, 
+Compile lines into a unstructured logic circuit, 
 while keeping track of id-to-node mappings
 """
 function compile_logical_m(lines::CircuitFormatLines)
@@ -68,13 +68,13 @@ end
 #TODO add compile_struct_logical
 
 """
-Compile lines into a smooth unstructured logical circuit
+Compile lines into a smooth unstructured logic circuit
 """
 compile_smooth_logical(lines::CircuitFormatLines)::PlainLogicCircuit = 
     compile_smooth_logical_m(lines)[1]
 
 """
-Compile lines into a smooth unstructured logical circuit, 
+Compile lines into a smooth unstructured logic circuit, 
 while keeping track of id-to-node mappings
 """
 function compile_smooth_logical_m(lines::CircuitFormatLines)
@@ -89,7 +89,7 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
         PlainLiteralNode(l)
     end
 
-    smoothing_warning = "Cannot compile a smooth logical circuit from lines that are not normalized: there is no way to smooth without knowing the variable scope. Instead compile a non-smooth logical circuit and smooth it afterwards."
+    smoothing_warning = "Cannot compile a smooth logic circuit from lines that are not normalized: there is no way to smooth without knowing the variable scope. Instead compile a non-smooth logic circuit and smooth it afterwards."
 
     function compile(ln::CircuitFormatLine)
         error("Compilation of line $ln is not supported")
@@ -138,7 +138,7 @@ function compile_smooth_logical_m(lines::CircuitFormatLines)
 end
 
 """
-Compile circuit and vtree lines into a structured logical circuit with its vtree
+Compile circuit and vtree lines into a structured logic circuit with its vtree
 """
 function compile_smooth_struct_logical(circuit_lines::CircuitFormatLines, 
                                 vtree_lines::VtreeFormatLines)
@@ -146,7 +146,7 @@ function compile_smooth_struct_logical(circuit_lines::CircuitFormatLines,
 end
 
 """
-Compile circuit and vtree lines into a structured logical circuit with its vtree, 
+Compile circuit and vtree lines into a structured logic circuit with its vtree, 
 while keeping track of id-to-node mappings
 """
 function compile_smooth_struct_logical_m(circuit_lines::CircuitFormatLines, 
@@ -157,7 +157,7 @@ function compile_smooth_struct_logical_m(circuit_lines::CircuitFormatLines,
 end
 
 """
-Compile circuit lines and vtree node mapping into a structured logical circuit, 
+Compile circuit lines and vtree node mapping into a structured logic circuit, 
 while keeping track of id-to-node mappings
 """
 function compile_smooth_struct_logical_m(lines::CircuitFormatLines, 
@@ -173,7 +173,7 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
         PlainStructLiteralNode(l,v)
     end
 
-    smoothing_warning = "Cannot compile a smooth logical circuit from lines that are not normalized: functionality to determine variable scope and perform smoothing not implemented in the line compiler.  Instead compile a non-smooth logical circuit and smooth it afterwards."
+    smoothing_warning = "Cannot compile a smooth logic circuit from lines that are not normalized: functionality to determine variable scope and perform smoothing not implemented in the line compiler.  Instead compile a non-smooth logic circuit and smooth it afterwards."
 
     function compile(ln::CircuitFormatLine)
         error("Compilation of line $ln is not supported")
@@ -207,7 +207,7 @@ function compile_smooth_struct_logical_m(lines::CircuitFormatLines,
             # because we promise to compile a smooth circuit, here we need to add an or gate
             n = PlainStruct⋁Node([literal_node(var2lit(variable), vtree), literal_node(-var2lit(variable), vtree)], vtree)
         else
-            error("False leaf logical circuit nodes not yet implemented")
+            error("False leaf logic circuit nodes not yet implemented")
         end
         root = id2node[ln.node_id] = n
     end

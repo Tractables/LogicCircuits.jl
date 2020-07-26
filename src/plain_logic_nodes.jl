@@ -7,7 +7,7 @@ export PlainLogicCircuit, PlainLogicLeafNode, PlainLogicInnerNode,
 #####################
 
 """
-Root of the plain logical circuit node hierarchy
+Root of the plain logic circuit node hierarchy
 """
 abstract type PlainLogicCircuit <: LogicCircuit end
 

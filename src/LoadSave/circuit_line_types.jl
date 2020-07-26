@@ -12,8 +12,8 @@ abstract type CircuitFormatLine <: FormatLine end
 const CircuitFormatLines = AbstractVector{<:CircuitFormatLine}
 
 """A string comment line for circuit files"""
-struct CircuitCommentLine{T<:AbstractString} <: CircuitFormatLine
-    comment::T
+struct CircuitCommentLine <: CircuitFormatLine
+    comment::AbstractString
 end
 
 """A header line for circuit files"""
@@ -28,7 +28,6 @@ abstract type InnerCircuitLine <: CircuitFormatLine end
 """A line that represents a logical literal"""
 abstract type LiteralLine <: LeafCircuitLine end
 
-
 struct SddHeaderLine <: CircuitHeaderLine
     num_nodes::Int 
 end
@@ -38,7 +37,6 @@ struct PsddHeaderLine <: CircuitHeaderLine
 end
 
 struct LcHeaderLine <: CircuitHeaderLine end
-  
 
 """
 A line representing a weighted single literal (for example a logistic circuit literal).
@@ -63,7 +61,7 @@ end
 
 is_normalized(l::LiteralLine) = l.normalized
 
-import ...LogicCircuits: literal, variable # import to extend
+import ...LogicCircuits: literal, variable # extend
 literal(l::LiteralLine) = l.literal
 variable(l::LiteralLine) = lit2var(literal(l))
 

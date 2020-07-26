@@ -8,10 +8,10 @@ export StructLogicCircuit, PlainStructLogicCircuit,
 # meaning that each conjunction is associated with a vtree node.
 #####################
 
-"Root of the structure logical circuit node hierarchy"
+"Root of the structure logic circuit node hierarchy"
 abstract type StructLogicCircuit <: LogicCircuit end
 
-"Root of the plain structure logical circuit node hierarchy"
+"Root of the plain structure logic circuit node hierarchy"
 abstract type PlainStructLogicCircuit <: StructLogicCircuit end
 
 "A plain structured logical leaf node"

@@ -33,7 +33,7 @@ make_element(n::Union{Sdd⋀Node,PlainStruct⋀Node}, node2id) =
 make_element(_::StructLogicCircuit, _) = 
     error("Given circuit is not an SDD, its decision node elements are not conjunctions.")
 
-# TODO: decompile for logical circuit to some file format
+# TODO: decompile for logic circuit to some file format
 
 #####################
 # build maping

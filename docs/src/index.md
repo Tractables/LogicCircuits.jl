@@ -5,7 +5,7 @@
 
 ### What are Logic Circuits?
 
-Each logical circuit represents a boolean formula. 
+Each logic circuit represents a boolean formula. 
 Internally, they are structured as a DAG with leave nodes being constants (true, false) or literals (``X``, ``\lnot X``). 
 Internal nodes can be AND or OR nodes. 
 Note that negation can only be done at the leaves. 
@@ -15,17 +15,17 @@ In general, we also want to enforce few other structural properties such as smoo
 
 ### What can we do with them?
 
-Given a logical circuit there are many questions that we can ask. 
+Given a logic circuit there are many questions that we can ask. 
 For example, we might want to see whether it is satisfiable (SAT), 
 how many different ways are there to satisfy it (model counting), 
-or check whether it is equivalent with another logical circuit. 
+or check whether it is equivalent with another logic circuit. 
 We refer to these as queries.
 
-On another front, we might want to operate on the logical circuits themselves. 
+On another front, we might want to operate on the logic circuits themselves. 
 For example, we might want to condition on a literal, forget a variable, conjoin or disjoin two circuits, or negate the circuit. 
 We refer to these tasks as transformations.
 
-In general, many of these tasks are intractable, however given different combinations of  properties on structure of logical circuits we can unlock different queries to become tractable.
+In general, many of these tasks are intractable, however given different combinations of  properties on structure of logic circuits we can unlock different queries to become tractable.
 
 
 ### Where to learn more about them?

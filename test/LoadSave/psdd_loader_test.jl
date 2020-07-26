@@ -13,6 +13,13 @@ using LogicCircuits
    @test circuit isa LogicCircuit
    @test isdecomposable(circuit)
 
-   # TODO: expand, check smoothness, find corresponding vtree
+   circuit, vtree = load_struct_smooth_logic_circuit(
+                     zoo_psdd_file("nltcs.10split.psdd"), 
+                     zoo_vtree_file("nltcs.vtree")) # not sure if this is the right vtree...
+
+   @test circuit isa StructLogicCircuit
+   @test vtree isa PlainVtree
+   @test isdecomposable(circuit)
+   @test issmooth(circuit)
 
 end

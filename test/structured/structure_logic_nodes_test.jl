@@ -32,6 +32,7 @@ using LogicCircuits
 
     @test literal(vtree(Lit(-5))) == Lit(-5)
     @test literal((PlainStructLogicCircuit,vtree)(Lit(-5))) == Lit(-5)
+    @test constant((PlainStructLogicCircuit,vtree)(false)) == false
     
     @test_throws Exception conjoin(StructLogicCircuit[])
     @test_throws Exception disjoin(StructLogicCircuit[])

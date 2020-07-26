@@ -9,6 +9,8 @@ export zoo_cnf, zoo_dnf,
 # loaders from model zoo
 #####################
 
+const zoo_version = "/Circuit-Model-Zoo-0.1.2"
+
 zoo_cnf(name) = 
     load_cnf(zoo_cnf_file(name))
 
@@ -40,7 +42,7 @@ zoo_sdd_file(name) =
 # Instead here we hardcode some simpler parsers to speed things up
 
 """
-Load a logical circuit from file.
+Load a logic circuit from file.
 Support file formats:
  * ".sdd" for SDD files
  * ".psdd" for PSDD files
@@ -51,7 +53,7 @@ function load_logic_circuit(file::String)::PlainLogicCircuit
 end
 
 """
-Load a smooth logical circuit from file.
+Load a smooth logic circuit from file.
 Support file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
@@ -61,7 +63,7 @@ function load_smooth_logic_circuit(file::String)::PlainLogicCircuit
 end
 
 """
-Load a smooth structured logical circuit from file.
+Load a smooth structured logic circuit from file.
 Support circuit file formats:
  * ".psdd" for PSDD files
  * ".circuit" for Logistic Circuit files
@@ -289,7 +291,7 @@ end
 #####################
 
 """
-Load a CNF/DNF as a logical circuit from file.
+Load a CNF/DNF as a logic circuit from file.
 Suppported file formats:
 * ".cnf" for CNF files
 * ".dnf" for DNF files

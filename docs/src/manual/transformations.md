@@ -25,13 +25,13 @@ Forgeting is also equivalent to disjunction of different ways to condition on ``
 
 ## Smoothing
 
-Smoothing is the act of converting a non-smooth circuit to a circuit representing the same formula that is smooth. A logical circuit is smooth if each of its OR nodes are smooth. 
+Smoothing is the act of converting a non-smooth circuit to a circuit representing the same formula that is smooth. A logic circuit is smooth if each of its OR nodes are smooth. 
 An OR node is smooth if all of its children mention the same variables.
 
 
 ## Apply
 
-Given two logical circuits ``\Delta_1``, ``\Delta_2``, and a binary operation ``o`` the apply operation outputs a logical circuit representing:
+Given two logic circuits ``\Delta_1``, ``\Delta_2``, and a binary operation ``o`` the apply operation outputs a logic circuit representing:
 
 ```math
     \Delta_1\ o\ \Delta_2
