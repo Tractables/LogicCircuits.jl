@@ -180,7 +180,7 @@ Get the model count of the circuit.
 The `num_vars_in_scope` is set to number of variables in the circuit, but sometimes need to set different values, 
 for example, if not every variable is mentioned in the circuit.
 """
-function model_count(root::LogicCircuit; num_vars_in_scope::Int = num_variables(root))::BigInt
+function model_count(root::LogicCircuit, num_vars_in_scope::Int = num_variables(root))::BigInt
     # note that num_vars_in_scope for computing the model count can be more than num_variables(circuit); in particular when variables in the application are missing from the circuit
     BigInt(sat_prob(root) * BigInt(2)^num_vars_in_scope)
 end
