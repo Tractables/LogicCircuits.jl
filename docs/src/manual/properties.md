@@ -9,30 +9,20 @@
 
 A logic circuit is smooth if each of its OR nodes are smooth.  An OR node is smooth if all of its children mention the same set of variables. 
 
-```@docs
-issmooth
-smooth
-```
+To checks whether a circuit is smooth ([`issmooth`](@ref)):
 
-#### Smoothness Examples 
-
-Code snippet to checks whether a circuit is smooth:
-
-```@example
+```@example smooth
 using LogicCircuits # hide
 lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
 issmooth(lc)
 ```
 
-Code snippet to smooth a circuit:
+As we see the circuit is not smooth. We can smooth the circuit using [`smooth`](@ref):
 
-```@example
-using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd")); # hide
+```@example smooth
 smoothed_lc = smooth(lc)
 issmooth(smoothed_lc)
 ```
-
 
 
 ## Determinism
@@ -46,13 +36,10 @@ A logic circuit is decomposable if each of its AND nodes are decomposable.
 An AND node is decomposable if for each pair of children the set of variables they depend on is disjoint.
 
 
-```@docs
-isdecomposable
-```
+To checks whether a circuit is decomposable ([`isdecomposable`](@ref)):
 
 ```@example
 using LogicCircuits # hide
-
 lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
 isdecomposable(lc)
 ```

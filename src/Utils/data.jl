@@ -17,11 +17,21 @@ export num_examples, num_features,
        ll_per_example, bits_per_pixel
 
 
-"Number of examples in data"
+"""
+    num_examples(df::DataFrame)
+    num_examples(m::AbstractMatrix)
+
+Number of examples in data
+"""
 num_examples(df::DataFrame) = nrow(df)
 num_examples(m::AbstractMatrix) = size(m,1)
 
-"Number of features in the data"
+"""
+    num_features(df::DataFrame)
+    num_features(m::AbstractMatrix)
+
+Number of features in the data
+"""
 num_features(df::DataFrame) = ncol(df)
 num_features(m::AbstractMatrix) = size(m,2)
 
@@ -45,7 +55,12 @@ isbinarydata(df::DataFrame) = all(t -> t <: Bool, eltypes(df))
 
 # DATA TRANSFORMATIONS
 
-"Shuffle the examples in the data"
+"""
+    shuffle_examples(df::DataFrame) 
+    shuffle_examples(m::AbstractMatrix)
+
+Shuffle the examples in the data
+"""
 shuffle_examples(df::DataFrame) = df[shuffle(axes(df, 1)), :]
 shuffle_examples(m::AbstractMatrix) = m[shuffle(1:end), :]
 

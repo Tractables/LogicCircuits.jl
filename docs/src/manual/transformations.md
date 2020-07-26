@@ -8,6 +8,16 @@ Given the logical formula of the circuit ``\Delta``, conditioning on the literal
 (\Delta \mid x)
 ```
 
+For example, to condition on ``\lnot x_2``, you can use [`condition`](@ref) as follows:
+
+```@example condition
+using LogicCircuits # hide
+lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
+c2not = condition(lc, Int32(-2));
+
+num_nodes(lc), num_nodes(c2not)
+```
+
 ## Forgetting
 
 Given the logical formula of the circuit ``\Delta``, forgetting the variable ``X`` can be thought of as erasing (forgetting) what the formula says about variable ``X``:
@@ -23,11 +33,31 @@ Forgeting is also equivalent to disjunction of different ways to condition on ``
 ```
 
 
+For example, to forget ``X_2`` you can use [`forget`](@ref) as follows:
+
+```@example forget
+using LogicCircuits # hide
+lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
+f1 = forget(lc, (i) -> (i == 2));
+
+num_variables(lc), num_variables(f1)
+```
+
 ## Smoothing
 
 Smoothing is the act of converting a non-smooth circuit to a circuit representing the same formula that is smooth. A logic circuit is smooth if each of its OR nodes are smooth. 
 An OR node is smooth if all of its children mention the same variables.
 
+
+Given a non-smooth circuit we can [`smooth`](@ref) it, for example:
+
+```@example smooth2
+using LogicCircuits # hide
+lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
+smooth_lc = smooth(lc)
+
+issmooth(lc), issmooth(smooth_lc)
+```
 
 ## Apply
 

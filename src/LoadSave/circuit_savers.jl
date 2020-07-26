@@ -83,7 +83,11 @@ function sdd_header()
     c"""
 end
 
-"Save a SDD circuit to file"
+"""
+    save_as_sdd(name::String, circuit, vtree)
+
+Save a SDD circuit to file. File name should end with '.sdd'.
+"""
 function save_as_sdd(name::String, circuit, vtree)
     @assert endswith(name, ".sdd")
     node2id = get_node2id(circuit)
@@ -97,7 +101,11 @@ function save_as_sdd(name::String, circuit, vtree)
     save_lines(name, formatlines)
 end
 
-"Save a circuit to file"
+"""
+    save_circuit(name::String, circuit, vtree)
+
+Save a circuit to file. Currently defaults to and only supports saving '.sdd' format.
+"""
 save_circuit(name::String, circuit, vtree) =
     save_as_sdd(name, circuit, vtree)
 
@@ -153,7 +161,11 @@ function get_level_nodes(circuit::LogicCircuit)::Tuple{Dict{LogicCircuit, Int}, 
     return levels, i
 end
 
-"Save logic circuit to .dot file"
+"""
+    save_as_dot(circuit::LogicCircuit, file::String)
+
+Save logic circuit in 'dot' file format.
+"""
 function save_as_dot(circuit::LogicCircuit, file::String)
     circuit_nodes = linearize(circuit)
     node_cache = Dict{LogicCircuit, Int64}()
@@ -208,7 +220,10 @@ function save_as_dot(circuit::LogicCircuit, file::String)
     close(f)
 end
 
-"""Save logic circuit as a LaTeX TikZ .tex file using the dot2tex engine.
+"""
+    save_as_dot2tex(circuit::LogicCircuit, file::String; **other_args)
+
+Save logic circuit as a LaTeX TikZ .tex file using the dot2tex engine.
 
 Argument `V` is a label map for each vertex; `E` is a label map for each edge; `⋀_style`,
 `⋁_style`, `lit_style`, `⊤_style`, and `⊥_style` are styles for each node type; `edge_turn` is how
@@ -334,7 +349,10 @@ function save_as_dot2tex(circuit::LogicCircuit, file::String,
     close(f)
 end
 
-"""Save logic circuit as a LaTeX TikZ .tex file.
+"""
+    save_as_tex(circuit::LogicCircuit, file::String; **other_args)
+
+Save logic circuit as a LaTeX TikZ .tex file.
 Argument `V` is a label map for each vertex, `E` is a label map for each edge, `⋀_style` is the
 TikZ conjunction node style to use, `⋁_style` is the TikZ disjunction node style to use,
 `node_ysep` is the y-axis separation distance for nodes, `node_xsep` for the x-axis, `edge_turn` is
@@ -344,7 +362,7 @@ better readability.
 Note: `save_as_tex` does not work well on large circuits, and the resulting LaTeX file should serve
 as a first sketch in (serious) need for adjustments.
 """
-function save_as_tex(circuit::LogicCircuit, file::String,
+function save_as_tex(circuit::LogicCircuit, file::String;
                      V::Dict{LogicCircuit, Any} = Dict{LogicCircuit, Any}(),
                      E::Dict{Tuple{LogicCircuit, Int}, Any} = Dict{Tuple{LogicCircuit, Int}, Any}(),
                      ⋀_style::String = "and gate,fill=blue!50!red!30",

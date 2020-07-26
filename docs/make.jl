@@ -19,7 +19,7 @@ const pages = [
         "manual/properties.md",
         "manual/transformations.md",
         "manual/queries.md",            
-        "manual/examples.md"
+        "manual/compilation.md"
     ],
     "API" => [
         "api/public.md",

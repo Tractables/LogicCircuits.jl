@@ -34,6 +34,8 @@ function smooth(root::Node)::Node
 end
 
 """
+    smooth_node(node::Node, missing_scope, lit_nodes)
+
 Return a smooth version of the node where 
 the `missing_scope` variables are added to the scope, using literals from `lit_nodes`
 """
@@ -54,6 +56,8 @@ end
 
 
 """
+    forget(root::Node, is_forgotten::Function)::Node
+
 Forget variables from the circuit.
 Warning: this may or may not destroy the determinism property.
 """
@@ -71,6 +75,8 @@ end
 
 
 """
+    propagate_constants(root::Node)
+
 Remove all constant leafs from the circuit
 """
 function propagate_constants(root::Node)
@@ -108,7 +114,9 @@ end
 import Base.deepcopy
 
 """
-Create a copy circuit `n` to a certain depth `depth`
+    deepcopy(n::Node, depth::Int64)
+
+Recursively create a copy circuit rooted at `n` to a certain depth `depth`
 """
 function deepcopy(n::Node, depth::Int64, old2new::Dict{Node, Node} = Dict{Node, Node}(); cache=true)
     # TODO: can we remove the Dict and use the data field instead?
@@ -135,6 +143,8 @@ end
 
 
 """
+    condition(root::Node, lit::Lit; callback::Function)::Node
+
 Return the circuit conditioned on given literal constrains
 `callback` is called after modifying conjunction node
 """
@@ -188,6 +198,8 @@ end
 import Base.split
 
 """
+    split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true)
+
 Return the circuit after spliting on edge `edge` and variable `var`
 """
 function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true)
@@ -218,6 +230,8 @@ end
 
 
 """
+    split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{Node, BitSet}}
+
 Return the edges and variables which can be splited on
 """
 function split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{Node, BitSet}}
@@ -356,7 +370,9 @@ end
 
 import Base.merge
 """
-Merge two circuits
+    merge(root::Node, or1::Node, or2::Node)
+
+Merge two circuits.
 """
 function merge(root::Node, or1::Node, or2::Node)
     # sanity check
