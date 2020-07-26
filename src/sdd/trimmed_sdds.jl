@@ -92,7 +92,7 @@ TrimSddMgr(left::TrimSddMgr, right::TrimSddMgr) = TrimSddMgrInnerNode(left, righ
 "Obtain a trimmed SDD manager that can support compiling the given circuit"
 sdd_mgr_for(c::Sdd) = tmgr(c)
 sdd_mgr_for(c::StructLogicCircuit) =
-    (vtree(c) isa TrimSddMgr) ? tmgr(c) : TrimSddMgr(vtree(c))
+    (vtree(c) isa TrimSddMgr) ? vtree(c) : TrimSddMgr(vtree(c))
 sdd_mgr_for(c::LogicCircuit) = 
     TrimSddMgr(TrimSddMgr.(Var.(variables(c))), :balanced) # this could be "smarter" finding a good vtree
 
