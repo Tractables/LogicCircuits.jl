@@ -42,4 +42,15 @@ using Random: bitrand
         @test n.data.downflow == n.data.upflow .& d.data.upflow
     end
 
+    l1 = LogicCircuit(Lit(1))
+    l2 = LogicCircuit(Lit(2))
+    l3 = LogicCircuit(Lit(-1))
+    l4 = LogicCircuit(Lit(-2))
+    r = (l1 & l2) | (l3 & l4)
+    input = bitrand(4,2)
+    compute_flows(r, input)
+    foreach(literal_nodes(r)) do n
+        @test n.data.downflow == n.data.upflow .& r.data.upflow
+    end
+
 end
