@@ -26,14 +26,17 @@ struct VtreeLeafLine <: VtreeFormatLine
 end
 
 # TODO: parameterize by Vtree type, and PlainVtree as default
-compile_vtree_format_lines(lines::VtreeFormatLines)::PlainVtree = 
-    compile_vtree_format_lines_m(lines)[1]
+function compile_vtree_format_lines(lines::VtreeFormatLines, 
+                                    ::Type{V}=PlainVtree)::V where V<:Vtree 
+    compile_vtree_format_lines_m(lines, V)[1]
+end
 
 # TODO: parameterize by Vtree type, and PlainVtree as default
-function compile_vtree_format_lines_m(lines::VtreeFormatLines)
+function compile_vtree_format_lines_m(lines::VtreeFormatLines, 
+                                      ::Type{V}=PlainVtree) where  V<:Vtree 
 
     # map from index to PlainVtree for input
-    id2node = Dict{UInt32, PlainVtree}()
+    id2node = Dict{UInt32, V}()
     root = nothing
 
     function compile(::Union{VtreeHeaderLine,VtreeCommentLine})
@@ -41,7 +44,7 @@ function compile_vtree_format_lines_m(lines::VtreeFormatLines)
     end
 
     function compile(ln::VtreeLeafLine)
-        n = PlainVtreeLeafNode(ln.variable)
+        n = V(ln.variable)
         id2node[ln.node_id] = n
         root = n
     end
@@ -49,7 +52,7 @@ function compile_vtree_format_lines_m(lines::VtreeFormatLines)
     function compile(ln::VtreeInnerLine)
         left_node = id2node[ln.left_id]
         right_node = id2node[ln.right_id]
-        n = PlainVtreeInnerNode(left_node,right_node)
+        n = V(left_node,right_node)
         id2node[ln.node_id] = n
         root = n
     end

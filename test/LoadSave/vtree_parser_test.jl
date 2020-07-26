@@ -44,11 +44,17 @@
 
         # Save unsupported format 
         dot_path = "$tmp/little_4var_temp.bad_extension"
-        @test_throws String save_vtree(vtree, dot_path);
+        @test_throws String save_vtree(vtree, dot_path)
     end
 
-    vtree = zoo_vtree("easy/C17_mince.min.vtree");
+    vtree = zoo_vtree("easy/C17_mince.min.vtree")
     @test num_nodes(vtree) == 33
     @test num_variables(vtree) == 17
+    @test vtree isa PlainVtree
+
+    vtree = zoo_vtree("easy/C17_mince.min.vtree", TrimSddMgr)
+    @test num_nodes(vtree) == 33
+    @test num_variables(vtree) == 17
+    @test vtree isa TrimSddMgr
 
 end
