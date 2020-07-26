@@ -112,7 +112,7 @@ function (::Type{V})(num_vars::Int;
                     ordered_leafs = true)::V where V<:Vtree
     vars = Var.(ordered_leafs ? (1:num_vars) : randperm(num_vars))
     leaves = V.(vars)
-    V(leaves; structure, f)::V
+    V(leaves; structure, f)
 end
 
 using Random: rand, randperm
@@ -148,9 +148,7 @@ function (::Type{V})(leafs::AbstractVector{<:V};
     else
         @assert structure == :bottomup
         pairs = f(leafs)
-        leafs = map(pairs) do x
-            (x isa Tuple) ? V(x...) : x
-        end
+        leafs = map(x -> (x isa Tuple) ? V(x...) : x, pairs) 
         return V(leafs; structure, f)
     end
 end

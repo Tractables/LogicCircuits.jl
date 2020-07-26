@@ -77,6 +77,8 @@ using LogicCircuits
     @test variable(left_most_descendent(r)) == Var(1)
     @test variable(right_most_descendent(r)) == Var(5)
     @test r == PlainVtree(5; structure = :leftlinear)
-    
+
+    @test_throws Exception PlainVtree(5; structure=:foobar)
+
 end
 

@@ -17,14 +17,21 @@ using LogicCircuits
 
     @test istrue(compile(StructLogicCircuit,true))
     @test istrue(StructLogicCircuit(true))
+    @test istrue(StructLogicCircuit(true) & StructLogicCircuit(true))
+    @test isfalse(StructLogicCircuit(true) & StructLogicCircuit(false))
     @test isfalse(compile(StructLogicCircuit,false))
     @test isfalse(StructLogicCircuit(false))
+    @test istrue(StructLogicCircuit(false) | StructLogicCircuit(true))
+    @test isfalse(StructLogicCircuit(false) | StructLogicCircuit(false))
     @test !istrue(compile(StructLogicCircuit,false))
     @test !isfalse(compile(StructLogicCircuit,true))
     @test !istrue(compile(StructLogicCircuit,PlainVtree(Var(2)),Lit(2)))
     @test !isfalse(compile(StructLogicCircuit,PlainVtree(Var(2)),Lit(2)))
     @test !istrue(f)
     @test !isfalse(f)
+
+    @test literal(vtree(Lit(-5))) == Lit(-5)
+    @test literal((PlainStructLogicCircuit,vtree)(Lit(-5))) == Lit(-5)
     
     @test_throws Exception conjoin(StructLogicCircuit[])
     @test_throws Exception disjoin(StructLogicCircuit[])
