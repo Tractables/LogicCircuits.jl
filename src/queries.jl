@@ -187,6 +187,18 @@ end
 # algebraic model counting queries
 #####################
 
+"Evaluate the circuit bottom-up for a given input"
+evaluate(root::LogicCircuit, data::Bool...) =
+    evaluate(root, collect(data))
+
+function evaluate(root::LogicCircuit, data::AbstractVector{Bool})::Bool
+    f_con(n) = istrue(n)
+    f_lit(n) = ispositive(n) ? data[variable(n)] : !data[variable(n)]
+    f_a(n, call) = mapreduce(call, &, children(n))
+    f_o(n, call) = mapreduce(call, |, children(n))
+    foldup(root, f_con, f_lit, f_a, f_o, Bool)
+end
+
 """
     sat_prob(root::LogicCircuit; varprob::Function)::Rational{BigInt}
 

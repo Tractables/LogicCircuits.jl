@@ -1,17 +1,20 @@
 export evaluate, compute_flows
 
+using DataFrames: DataFrame
+
 #####################
 # performance-critical queries related to circuit flows
 #####################
 
 # evaluate a circuit as a function
-function (root::LogicCircuit)(data)
-    evaluate(root, data)
+function (root::LogicCircuit)(data...)
+    evaluate(root, data...)
 end
+
+const Batch = Union{BitArray{2}, DataFrame}
 
 "Container for circuit flows represented as a bit vector"
 const UpFlow1 = BitVector
-
 
 "Container for circuit flows represented as an implicit conjunction of a prime and sub bit vector (saves memory allocations in circuits with many binary conjunctions)"
 struct UpFlow2
@@ -28,7 +31,7 @@ const UpFlow = Union{UpFlow1,UpFlow2}
 
 # TODO: see if https://github.com/chriselrod/LoopVectorization.jl provides any speedups for our workload (espcially on Float flows)
 # TODO; create a version that doesn't allocate, using fold! and pre-allocated fields
-function evaluate(root::LogicCircuit, data;
+function evaluate(root::LogicCircuit, data::Batch;
                    nload = nload, nsave = nsave, reset=true)::BitVector
     num_examples::Int = Utils.num_examples(data)
 
@@ -109,7 +112,7 @@ const UpDownFlow2 = UpFlow2
 
 const UpDownFlow = Union{UpDownFlow1,UpDownFlow2}
 
-function compute_flows(circuit::LogicCircuit, data)
+function compute_flows(circuit::LogicCircuit, data::Batch)
 
     # upward pass
     @inline upflow!(n, v) = begin

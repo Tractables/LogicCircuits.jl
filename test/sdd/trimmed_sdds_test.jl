@@ -64,6 +64,8 @@ using LogicCircuits: Element # test some internals
     @test sat_prob(notx_c) == 1//2
     @test model_count(x_c,num_vars) == BigInt(2)^(num_vars-1)
     @test model_count(notx_c,num_vars) == BigInt(2)^(num_vars-1)
+    @test !notx_c(true)
+    @test notx_c(false)
 
     @test variable(notx_c) == x
     @test literal(notx_c) == notx
@@ -96,7 +98,7 @@ using LogicCircuits: Element # test some internals
     v5 = compile(mgr, Lit(5))
     v6 = compile(mgr, Lit(6))
     v7 = compile(mgr, Lit(7))
-    # @test_throws Exception compile(mgr, Lit(8))
+    @test_throws Exception compile(mgr, Lit(8))
 
     p1 = [Element(true_c,v3)]
     @test canonicalize(p1) === v3
@@ -111,10 +113,12 @@ using LogicCircuits: Element # test some internals
     @test n1.vtree.right === mgr.right
     @test n1 === n2
     @test isdeterministic(n1)
+    @test n1(true, false, false, true, false, false, false)
+    @test !n1(false, true, false, true, false, false, false)
 
     @test lca(p1) == parent(vtree(v3))
     @test lca(p2) == parent(vtree(v1))
     @test lca([Element(true_c,v3)]) == parent(vtree(v3))
-    # @test_throws Exception lca([Element(true_c,false_c)]) 
+    @test_throws Exception lca([Element(true_c,false_c)]) 
 
 end

@@ -24,6 +24,9 @@ include("helper/plain_logic_circuits.jl")
     @test isone(sat_prob(r1))
     @test model_count(r1) == BigInt(2)^10
 
+    @test r1(true, false, true, false, true, false, true, false, true, false)
+    @test r1([true, false, true, false, true, false, true, false, true, false])
+
     #####################
     ors = map(1:10) do v
         pos = compile(PlainLogicCircuit, var2lit(Var(v)))

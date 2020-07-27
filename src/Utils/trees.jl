@@ -53,8 +53,8 @@ lca(v::Tree, ::Function=noop)::Tree = v
 lca(v::Tree, w::Tree, u::Tree, r::Tree...)::Tree = lca(lca(v,w), u, r...)
 
 "Print the given tree"
-print_tree(root::Tree) =
-    print_tree(stdout, root)
+print_tree(root::Tree, io::IO=stdout) =
+    print_tree(io, root)
 
 print_tree(io::IO, root::Tree, prefix="", onceprefix="", laterprefix="") =
     print_tree(io, root, NodeType(root), prefix, onceprefix, laterprefix)
