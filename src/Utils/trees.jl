@@ -51,7 +51,6 @@ function lca(v::Tree, w::Tree, descends_from::Function)::Tree
     end
     error("First argument is not contained in the root of second argument. There is no LCA.")
 end
-lca(v::Tree)::Tree = v
 lca(::Nothing, v::Tree, ::Function)::Tree = v
 lca(v::Tree, ::Nothing, ::Function)::Tree = v
 lca(::Nothing, ::Nothing, ::Function)::Nothing = nothing

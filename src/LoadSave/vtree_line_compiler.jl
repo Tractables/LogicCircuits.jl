@@ -39,17 +39,15 @@ function compile_vtree_format_lines_m(lines::VtreeFormatLines,
     id2node = Dict{UInt32, V}()
     root = nothing
 
-    function compile(::Union{VtreeHeaderLine,VtreeCommentLine})
-        # do nothing
-    end
+    compile(::Union{VtreeHeaderLine,VtreeCommentLine}) = () # do nothing
 
-    function compile(ln::VtreeLeafLine)
+    compile(ln::VtreeLeafLine) = begin
         n = V(ln.variable)
         id2node[ln.node_id] = n
         root = n
     end
 
-    function compile(ln::VtreeInnerLine)
+    compile(ln::VtreeInnerLine) = begin
         left_node = id2node[ln.left_id]
         right_node = id2node[ln.right_id]
         n = V(left_node,right_node)

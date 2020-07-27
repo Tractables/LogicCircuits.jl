@@ -15,7 +15,7 @@ end
 
    cnf = zoo_cnf("easy/C17_mince.cnf")
    vtree = zoo_vtree("easy/C17_mince.min.vtree");
-   mgr = TrimSddMgr(vtree)
+   mgr = SddMgr(vtree)
       
    @test_throws Exception compile(mgr.left, cnf)
    @test_throws Exception compile(right_most_descendent(mgr), cnf)
