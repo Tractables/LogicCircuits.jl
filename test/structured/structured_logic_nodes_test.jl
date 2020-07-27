@@ -9,6 +9,11 @@ using LogicCircuits
     @test num_edges(f) == 20+18+1
     @test length(and_nodes(f)) == 9
     @test length(or_nodes(f)) == 10+1
+    
+    @test respects_vtree(f)
+    @test respects_vtree(f, PlainVtree(10, :balanced))
+    @test !respects_vtree(f, PlainVtree(10, :rightlinear))
+    @test !respects_vtree(f, PlainVtree(10, :leftlinear))
 
     @test variable(left_most_descendent(f)) == Var(1)
     @test variable(right_most_descendent(f)) == Var(10)

@@ -20,8 +20,13 @@ end
    @test_throws Exception compile(mgr.left, cnf)
    @test_throws Exception compile(right_most_descendent(mgr), cnf)
 
-   @test compile(mgr, cnf) === mgr(cnf)
+   r = mgr(cnf)
+   @test compile(mgr, cnf) === r
 
+   @test respects_vtree(r)
+   @test respects_vtree(r, vtree)
+   @test !respects_vtree(r, Vtree(num_variables(vtree), :balanced))
+    
    cnfs = [ 
             ("easy","C17_mince",32,92,45)
             ("easy","majority_mince",32,132,61)

@@ -89,6 +89,10 @@ tmgr(n::SddLeafNode) = n.vtree::TrimSddMgrLeafNode
 TrimSddMgr(v::Var) = TrimSddMgrLeafNode(v)
 TrimSddMgr(left::TrimSddMgr, right::TrimSddMgr) = TrimSddMgrInnerNode(left, right)
 
+# claim `TrimSddMgr` as the default `SddMgr` implementation
+SddMgr(v::Var) = TrimSddMgr(v)
+SddMgr(left::Vtree,right::Vtree) = TrimSddMgr(left, right)
+
 "Obtain a trimmed SDD manager that can support compiling the given circuit"
 sdd_mgr_for(c::Sdd) = tmgr(c)
 sdd_mgr_for(c::StructLogicCircuit) =
@@ -135,6 +139,7 @@ function lca(xy::XYPartition)::TrimSddMgrInnerNode
     return lca(element_vtrees...)
 end
 
+# TODO: we can do without this function?
 parentlca(p::Sdd, s::Sdd)::TrimSddMgrInnerNode =
     lca(parent(tmgr(p)), parent(tmgr(s)))
 parentlca(p::Sdd, ::SddConstantNode)::TrimSddMgrInnerNode = 

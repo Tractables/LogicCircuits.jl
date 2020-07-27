@@ -106,6 +106,7 @@ using LogicCircuits
     @test f3 === f4
 
     @test isdeterministic(f4)
+    @test respects_vtree(f4)
 
     io = IOBuffer()
     show(io,f3)

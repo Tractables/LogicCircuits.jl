@@ -1,6 +1,8 @@
 using DataStructures
 
-export parent, has_parent, isroot, lca, Tree, isequal_local, print_tree
+export parent, has_parent, isroot, 
+       lca, find_leaf, depth, find_inode, 
+       Tree, isequal_local, print_tree
 
 #####################
 # types and traits
@@ -44,13 +46,58 @@ function lca(v::Tree, w::Tree, descends_from::Function)::Tree
     descends_from(w,v) && return v
     candidate::Union{Dag,Nothing} = w
     while issomething(candidate)
-        descends_from(v,candidate) && return candidate
+        descends_from(v, candidate) && return candidate
         candidate = parent(candidate)
     end
     error("First argument is not contained in the root of second argument. There is no LCA.")
 end
-lca(v::Tree, ::Function=noop)::Tree = v
-lca(v::Tree, w::Tree, u::Tree, r::Tree...)::Tree = lca(lca(v,w), u, r...)
+lca(v::Tree)::Tree = v
+lca(v::Tree, ::Function)::Tree = v
+lca(::Nothing, v::Tree, ::Function)::Tree = v
+lca(v::Tree, ::Nothing, ::Function)::Tree = v
+lca(::Nothing, ::Nothing, ::Function)::Nothing = nothing
+lca(v::Tree, w::Tree, u::Tree, r::Tree...) = lca(lca(v,w), u, r...)
+
+"Find the leaf in the tree by follwing the branching function"
+find_leaf(n::Tree, branch::Function) = find_leaf(n, NodeType(n), branch)
+find_leaf(n, ::Leaf, _) = n
+@inline function find_leaf(n, ::Inner, branch)::Tree
+    for c in children(n)
+        branch(c) && return find_leaf(c, branch)
+    end
+    error("Could not find a branch that contains the desired leaf")
+end
+
+"Compute the length of the path from a tree node to the leaf following the branching function"
+depth(n::Tree, branch::Function)::Int = depth(n, NodeType(n), branch)
+depth(_, ::Leaf, _) = 0
+
+function depth(n::Tree, ::Inner, branch)::Int
+    for c in children(n)
+        branch(c) && return 1 + depth(c, branch)
+    end
+    error("Could not find a branch that contains the desired leaf")
+end
+
+"""
+Find a binary inner node that has `left` in its left subtree and `right` in its right subtree.
+Supports `nothing` as a catch-all for either left or right. Returns nothing if no such node exists.
+"""
+function find_inode(left, right, descends_from::Function)
+    isnothing(left) && isnothing(right) && return nothing
+    candidate = lca(left, right, descends_from)
+    while issomething(candidate)
+        if isinner(candidate) && num_children(candidate) == 2 && 
+            (isnothing(left) || 
+                descends_from(left, children(candidate)[1])) && 
+            (isnothing(right) || 
+                descends_from(right, children(candidate)[2]))
+            return candidate
+        end
+        candidate = parent(candidate)
+    end
+    nothing # there is no solution
+end
 
 "Print the given tree"
 print_tree(root::Tree, io::IO=stdout) =

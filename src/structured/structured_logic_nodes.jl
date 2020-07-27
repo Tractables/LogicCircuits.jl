@@ -27,7 +27,7 @@ mutable struct PlainStructLiteralNode <: PlainStructLogicLeafNode
     data
     counter::UInt32
     PlainStructLiteralNode(l,v) = begin
-        @assert lit2var(l) ∈ variables(v) 
+        @assert lit2var(l) ∈ v 
         new(l, v, nothing, 0)
     end
 end
@@ -98,6 +98,14 @@ const structfalse = PlainStructFalseNode(nothing, 0)
 @inline children(n::PlainStruct⋁Node) = n.children
 @inline children(n::PlainStruct⋀Node) = [n.prime,n.sub]
 
+"Get the vtree corresponding to the argument"
+@inline vtree(n::StructLogicCircuit) = n.vtree
+
+"Get the vtree corresponding to the argument, or nothing if the node has no vtree"
+@inline vtree_safe(n::PlainStructLogicInnerNode) = vtree(n)
+@inline vtree_safe(n::PlainStructLiteralNode) = vtree(n)
+@inline vtree_safe(::PlainStructConstantNode) = nothing
+
 conjoin(arguments::Vector{<:PlainStructLogicCircuit};
         reuse=nothing, use_vtree=nothing) =
         conjoin(arguments...; reuse, use_vtree)
@@ -111,20 +119,13 @@ function conjoin(a1::PlainStructLogicCircuit,
         # constant nodes don't have a vtree: resolve to a constant
         return PlainStructLogicCircuit(istrue(a1) && istrue(a2))
     end
-    !(use_vtree isa Vtree) && (use_vtree = matching_vtree(a1, a2))
+    !(use_vtree isa Vtree) && (use_vtree = find_inode(vtree_safe(a1), vtree_safe(a2)))
     return PlainStruct⋀Node(a1, a2, use_vtree)
 end
 
-"Find a vtree node that can be respected by the given prime and sub"
-function matching_vtree(p,s)
-    vtree = lca_vtree(p,s)
-    while issomething(vtree) && (isleaf(vtree) || 
-            !(variables(p) ⊆ variables(vtree.left) 
-                && variables(s) ⊆ variables(vtree.right))) 
-        vtree = parent(vtree)
-    end
-    return vtree
-end
+# StructLogicCircuit has a default argument for respects: its root's vtree
+respects_vtree(circuit::StructLogicCircuit) = 
+    respects_vtree(circuit, vtree(circuit))
 
 @inline disjoin(xs::PlainStructLogicCircuit...) = disjoin(collect(xs))
 
@@ -137,7 +138,7 @@ function disjoin(arguments::Vector{<:PlainStructLogicCircuit};
         # constant nodes don't have a vtree: resolve to a constant
         return PlainStructLogicCircuit(any(constant, arguments))
     end
-    !(use_vtree isa Vtree) && (use_vtree = lca_vtree(arguments...))
+    !(use_vtree isa Vtree) && (use_vtree = mapreduce(vtree_safe, lca, arguments))
     return PlainStruct⋁Node(arguments, use_vtree)
 end
 

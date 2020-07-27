@@ -35,6 +35,10 @@ end
 PlainVtree(v::Var) = PlainVtreeLeafNode(v)
 PlainVtree(left::PlainVtree, right::PlainVtree) = PlainVtreeInnerNode(left, right)
 
+# claim `PlainVtree` as the default `Vtree` implementation
+Vtree(v::Var) = PlainVtree(v)
+Vtree(left::Vtree,right::Vtree) = PlainVtree(left, right)
+
 #####################
 # Traits
 #####################
@@ -59,3 +63,5 @@ isequal_local(leaf1::PlainVtreeLeafNode, leaf2::PlainVtreeLeafNode)::Bool =
     (leaf1.var == leaf2.var)
 isequal_local(inner1::PlainVtreeInnerNode, inner2::PlainVtreeInnerNode)::Bool =
     variables(inner1) == variables(inner2)
+
+# claim as default vtree

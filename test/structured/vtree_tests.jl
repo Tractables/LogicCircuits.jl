@@ -22,12 +22,12 @@ using LogicCircuits
     @test lca(v1,i1,v1) == i1
     @test lca(v1,v2,v3) == r
 
-    @test_throws ErrorException lca(i1,PlainVtree(Var(4)))
+    @test_throws Exception lca(i1,PlainVtree(Var(4)))
     @test varsubset_left(v1,r)
     @test !varsubset_left(v3,r)
     @test !varsubset_right(v1,r)
     @test varsubset_right(v3,r)
-    @test_throws AssertionError find_leaf(Var(4),r)
+    @test_throws Exception find_leaf(Var(4),r)
 
     @test parent(i1) == r
     @test num_nodes(r) == 5
@@ -83,8 +83,10 @@ using LogicCircuits
 
     io = IOBuffer()
     print_tree(io,r)
+    print_tree(r,io)
     @test length(String(take!(io))) > 0
 
+    @test !respects_vtree(fully_factorized_circuit(PlainLogicCircuit, 10), Vtree(10, :balanced))
 
 end
 

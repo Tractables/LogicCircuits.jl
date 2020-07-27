@@ -1,6 +1,10 @@
-export Vtree, vtree, variable, goes_left, goes_right, find_leaf,
+export Vtree, vtree, variable, find_leaf,
     varsubset, varsubset_left, varsubset_right, lca_vtree, depth,
+    respects_vtree,
     top_down_vtree, bottom_up_vtree
+
+import Base: parent, in # extend
+import .Utils: find_leaf, find_inode, lca, depth # extend
 
 #############
 # Vtree
@@ -16,33 +20,26 @@ abstract type Vtree <: Tree end
 "Get the variable in a vtree leaf"
 function variable end
 
-import Base.parent # extend
-
 # all vtrees are assumed to have parent fields
 @inline parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
 
-"Get the vtree corresponding to the argument"
-@inline vtree(n)::Vtree = n.vtree # override when needed
-
-"Is the variable `v` contained in the left branch of `m`?"
-@inline goes_left(v::Var, m::Vtree)::Bool =  v ∈ variables(m.left)
-
-"Is the variable `v` contained in the right branch of `m`?"
-@inline goes_right(v::Var, m::Vtree)::Bool = v ∈ variables(m.right)
+in(v::Var, vtree::Vtree) = v ∈ variables(vtree)
 
 "Find the leaf in the vtree that represents the given variable"
-find_leaf(v, n) = find_leaf(v, n, NodeType(n))
-
-@inline function find_leaf(v, n, ::Leaf)
-    @assert variable(n) == v "Variable is not contained in vtree"
-    return n   
+function find_leaf(v::Var, n::Vtree) 
+    leaf = find_leaf(n, x -> v ∈ x)
+    @assert variable(leaf) == v
+    return leaf
 end
 
-@inline function find_leaf(v, n, ::Inner)
-    goes_left(v, n) && return find_leaf(v, n.left)
-    goes_right(v, n) && return find_leaf(v, n.right)
-    @assert false "Variable is not contained in vtree"
-end
+"Compute the path length from vtree node `n` to leaf node for variable `var`"
+depth(n::Vtree, v::Var)::Int = depth(n, x -> v ∈ x)
+
+"""
+Find an inner vtree node that has `left` in its left subtree and `right` in its right subtree.
+Supports `nothing` as a catch-all for any node
+"""
+find_inode(left, right) = find_inode(left, right, varsubset)
 
 # performance critical in SDD compilation:
 "Are the variables in `n` contained in the variables in `m`?"
@@ -53,7 +50,7 @@ end
 @inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Leaf) = 
     false
 @inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Inner) = 
-    variable(n) ∈ variables(m)
+    variable(n) ∈ m
 @inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Inner) = 
     variables(n) ⊆ variables(m) # very slow
 
@@ -63,42 +60,54 @@ end
 "Are the variables in `n` contained in the right branch of `m`?"
 @inline varsubset_right(n::Vtree, m::Vtree)::Bool = varsubset(n, m.right)
 
-"Find the LCA vtree of all given nodes, excluding constant nodes"
-lca_vtree(nodes...) =
-    mapreduce(vtree, lca, filter(!isconstantgate,nodes))
-
-"""
-Compute the path length from vtree node `n` to leaf node for variable `var`
-"""
-depth(n::Vtree, var::Var)::Int = depth(NodeType(n), n, var)
-
-function depth(::Inner, n::Vtree, var::Var)::Int
-    @assert var in variables(n)
-    1 + (goes_left(var, n) ? 
-         depth(n.left, var) : depth(n.right, var))
-end
-
-function depth(::Leaf, n::Vtree, var::Var)::Int
-    @assert var == variable(n)
-    0
-end
-
-import .Utils: lca # extend
-
 """
 Compute the lowest common ancestor of two vtree nodes
 Warning: this method uses an incomplete `varsubset` check for `descends_from` and is only correct when `v` and `w` are part of the same larger vtree.
 """
-lca(v::Vtree, w::Vtree) = lca(v, w, varsubset)
+lca(v::Union{Nothing,Vtree}, w::Union{Nothing,Vtree}) = lca(v, w, varsubset)
 
-# Syntactic sugar to compile circuits using a vtree
-(vtree::Vtree)(arg) = compile(vtree, arg)
+# "Compute the LCA of two vtree nodes, allowing either one to be `nothing`"
+# lca_safe(x,y)::Union{Nothing,Vtree} = 
+#     (isnothing(x) ? y : (isnothing(y) ? x : lca(x,y)) )
+    
+"""
+Does the circuit respect the given vtree?
+This function allows for constants in conjunctions, but only when a vtree node can be found where the left and right conjunct can be assigned to the left and right vtree.
+"""
+function respects_vtree(circuit::LogicCircuit, vtree::Vtree)
+    result::Bool = true
+    f_con(n) = nothing
+    f_lit(n) = if false && variable(n) ∉ vtree
+        result = false
+        return nothing
+    else
+        find_leaf(variable(n), vtree)
+    end
+    f_a(n, call) = if num_children(n) != 2
+            result = false
+            return nothing
+        else 
+            vtree_left = call(children(n)[1])
+            vtree_right = call(children(n)[2])
+            isnothing(vtree_left) && isnothing(vtree_right) && return nothing
+            vtree_and = find_inode(vtree_left, vtree_right)
+            result &= issomething(vtree_and)
+            vtree_and
+        end
+    f_o(n, call) = mapreduce(call, lca, children(n))
+    foldup(circuit, f_con, f_lit, f_a, f_o, Union{Vtree,Nothing})
+    return result
+end
 
+# print vtree nodes by showing their type and variable scope
 Base.show(io::IO, c::Vtree) = print(io, "$(typeof(c))($(join(variables(c), ',')))")
 
 #############
 # Constructors
 #############
+
+# Syntactic sugar to compile circuits using a vtree
+(vtree::Vtree)(arg) = compile(vtree, arg)
 
 # construct vtrees from other vtrees
 function (::Type{V})(vtree::Vtree)::V where V<:Vtree

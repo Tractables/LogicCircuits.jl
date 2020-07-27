@@ -36,7 +36,7 @@ end
 A SDD logical constant leaf node, representing true or false.
 These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
 """
-abstract type SddConstantNode <: SddInnerNode end
+abstract type SddConstantNode <: SddLeafNode end
 
 "A SDD logical true constant."
 mutable struct SddTrueNode <: SddConstantNode 
@@ -60,8 +60,8 @@ mutable struct Sdd⋀Node <: SddInnerNode
     counter::UInt32
     data
     Sdd⋀Node(p,s,v) = begin
-        # @assert !isliteralgate(p) || goes_left(variable(p),v)
-        # @assert !isliteralgate(s) || goes_right(variable(s),v)
+        # @assert !isliteralgate(p) || variable(p) ∈ v.left
+        # @assert !isliteralgate(s) || variable(s) ∈ v.right
         new(p,s,v,false)
     end
 end
