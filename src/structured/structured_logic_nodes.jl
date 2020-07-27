@@ -1,7 +1,8 @@
 export StructLogicCircuit, PlainStructLogicCircuit, 
     PlainStructLogicLeafNode, PlainStructLogicInnerNode,
     PlainStructLiteralNode, PlainStructConstantNode, PlainStructTrueNode, PlainStructFalseNode,
-    PlainStruct⋀Node, PlainStruct⋁Node
+    PlainStruct⋀Node, PlainStruct⋁Node,
+    vtree, vtree_safe
 
 #####################
 # Logic circuits that are structured,

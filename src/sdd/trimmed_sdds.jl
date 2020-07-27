@@ -132,27 +132,12 @@ import ..Utils: parent, lca # make available for extension
 
 import .Utils.lca # extend
 
-function lca(xy::XYPartition)::TrimSddMgrInnerNode
-    # @assert !isempty(xy)
-    # @assert all(e -> (prime(e) !== trimfalse), xy)
-    element_vtrees = [parentlca(prime(e),sub(e)) for e in xy]
-    return lca(element_vtrees...)
-end
-
-# TODO: we can do without this function?
-parentlca(p::Sdd, s::Sdd)::TrimSddMgrInnerNode =
-    lca(parent(tmgr(p)), parent(tmgr(s)))
-parentlca(p::Sdd, ::SddConstantNode)::TrimSddMgrInnerNode = 
-    parent(tmgr(p))
-parentlca(::SddConstantNode, s::Sdd)::TrimSddMgrInnerNode = 
-    parent(tmgr(s))
-
 """
 Get the canonical compilation of the given XY Partition
 """
-function canonicalize(xy::XYPartition)::Sdd
+function canonicalize(xy::XYPartition, mgr::TrimSddMgrInnerNode)::Sdd
     # @assert !isempty(xy)
-    return canonicalize_compressed(compress(xy))
+    return canonicalize_compressed(compress(xy), mgr)
 end
 
 """
@@ -191,7 +176,7 @@ end
 """
 Get the canonical compilation of the given compressed XY Partition
 """
-function canonicalize_compressed(xy::XYPartition)::Sdd
+function canonicalize_compressed(xy::XYPartition, mgr::TrimSddMgrInnerNode)::Sdd
     # @assert !isempty(xy)
     # trim
     if length(xy) == 1 && (prime(first(xy)) === trimtrue)
@@ -204,13 +189,13 @@ function canonicalize_compressed(xy::XYPartition)::Sdd
         end
     end
     # get unique node representation
-    return unique⋁(xy)
+    return unique⋁(xy, mgr)
 end
 
 """
 Construct a unique decision gate for the given vtree
 """
-function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode = lca(xy))::Sdd⋁Node
+function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode)::Sdd⋁Node
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
     get!(mgr.unique⋁cache, Set(xy)) do 
         node = Sdd⋁Node(xy2ands(xy, mgr), mgr)

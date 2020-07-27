@@ -101,24 +101,19 @@ using LogicCircuits: Element # test some internals
     @test_throws Exception compile(mgr, Lit(8))
 
     p1 = [Element(true_c,v3)]
-    @test canonicalize(p1) === v3
+    @test canonicalize(p1, mgr.left.right) === v3
     p2 = [Element(v1,true_c), Element(!v1,false_c)]
-    @test canonicalize(p2) === v1
+    @test canonicalize(p2, mgr.left) === v1
 
     p3 = [Element(v1,v4), Element(!v1,v7)]
-    n1 = canonicalize(p3)
+    n1 = canonicalize(p3, mgr)
     p4 = [Element(!v1,v7), Element(v1,v4)]
-    n2 = canonicalize(p4)
+    n2 = canonicalize(p4,mgr)
     @test n1.vtree.left === mgr.left
     @test n1.vtree.right === mgr.right
     @test n1 === n2
     @test isdeterministic(n1)
     @test n1(true, false, false, true, false, false, false)
     @test !n1(false, true, false, true, false, false, false)
-
-    @test lca(p1) == parent(vtree(v3))
-    @test lca(p2) == parent(vtree(v1))
-    @test lca([Element(true_c,v3)]) == parent(vtree(v3))
-    @test_throws Exception lca([Element(true_c,false_c)]) 
 
 end

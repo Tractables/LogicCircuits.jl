@@ -70,7 +70,7 @@ function conjoin_cartesian_general(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     conjoin_cartesian_cheap(out, elems1, elems2, maski, maskj)
     conjoin_cartesian_expensive(out, elems1, elems2, maski, maskj)
     
-    canonicalize(out)
+    canonicalize(out, tmgr(n1))
 end
 
 function conjoin_cartesian_cheap(out, elems1, elems2, maski, maskj)
@@ -184,7 +184,7 @@ function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
             # @assert varsubset_right(d, n)
             out = [Element(prime(e),conjoin(sub(e),d)) for e in elems]
         end
-        canonicalize(out)
+        canonicalize(out, tmgr(n))
     end
 end
 
@@ -193,15 +193,15 @@ Conjoin two SDDs in separate parts of the vtree
 """
 function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
-    mgr = parentlca(s,t) #TODO replace by find_inner to be correct?
+    mgr = lca(tmgr(s),tmgr(t))
     (s,t) = pointer_sort(s,t)
     get!(mgr.conjoin_cache, Element(s,t)) do 
         if varsubset_left(tmgr(s), mgr)
-            # @assert varsubset_right(tmgr(t), mgr)
+            @assert varsubset_right(tmgr(t), mgr)
             elements = Element[Element(s,t),Element(!s,trimfalse)]
         else 
-            # @assert varsubset_left(tmgr(t), mgr)
-            # @assert varsubset_right(tmgr(s), mgr)
+            @assert varsubset_left(tmgr(t), mgr)
+            @assert varsubset_right(tmgr(s), mgr)
             elements = Element[Element(t,s),Element(!t,trimfalse)]
         end
         # TODO: the XY partition must already be compressed and trimmed
