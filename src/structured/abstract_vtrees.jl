@@ -77,7 +77,7 @@ This function allows for constants in conjunctions, but only when a vtree node c
 function respects_vtree(circuit::LogicCircuit, vtree::Vtree)
     result::Bool = true
     f_con(n) = nothing
-    f_lit(n) = if false && variable(n) ∉ vtree
+    f_lit(n) = if variable(n) ∉ vtree
         result = false
         return nothing
     else

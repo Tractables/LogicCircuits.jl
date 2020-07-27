@@ -12,6 +12,7 @@ using LogicCircuits
     
     @test respects_vtree(f)
     @test respects_vtree(f, PlainVtree(10, :balanced))
+    @test !respects_vtree(f, PlainVtree(5, :balanced))
     @test !respects_vtree(f, PlainVtree(10, :rightlinear))
     @test !respects_vtree(f, PlainVtree(10, :leftlinear))
 

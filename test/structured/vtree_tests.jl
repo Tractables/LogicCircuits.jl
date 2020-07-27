@@ -42,6 +42,7 @@ using LogicCircuits
     @test right_most_descendent(r) == v3
     @test depth(r,Var(1)) == 2
     @test depth(r,Var(3)) == 1
+    @test_throws Exception depth(r,Var(53))
 
     v1r = PlainVtree(Var(1))
     v2r = PlainVtree(Var(2))
