@@ -27,24 +27,7 @@ end
 "Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Vector{Element}
 
-"Broader definition of an XYPartition, also including vectors of nodes"
-const XYPartitionPlus = Union{XYPartition,Vector{Sdd⋀Node}}
 
-Base.hash(x::XYPartitionPlus) = mapreduce(e -> hash(e.prime, hash(e.sub)), ⊻, x)
-
-function Base.isequal(x::XYPartitionPlus, y::XYPartitionPlus)
-    length(x) != length(y) && return false
-    (x == y) && return true
-    # note: the rest of this function could be removed if the XYPartitions were sorted, but that is not advantageous: the sorting is too slow
-    return all(x) do e1
-        any(y) do e2
-            e1.prime === e2.prime && e1.sub === e2.sub
-        end
-    end
-end
-
-"Unique nodes cache for decision nodes"
-const Unique⋁Cache = Dict{XYPartitionPlus,Sdd⋁Node}
 
 "Representation of the arguments of an Apply call"
 struct ApplyArgs 
@@ -68,7 +51,7 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgr
     parent::Union{TrimSddMgrInnerNode, Nothing}
 
     variables::BitSet
-    unique⋁cache::Unique⋁Cache
+    unique⋁cache::Dict{Union{XYPartition,Vector{Sdd⋀Node{TrimSddMgrInnerNode}}},Sdd⋁Node{TrimSddMgrInnerNode}}
 
     conjoin_cache::ApplyCache
 
@@ -76,7 +59,7 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgr
         @assert isdisjoint(variables(left), variables(right))
         this = new(left, right, nothing, 
             union(variables(left), variables(right)), 
-            Unique⋁Cache(), ApplyCache()
+            Dict{Union{XYPartition,Vector{Sdd⋀Node{TrimSddMgrInnerNode}}},Sdd⋁Node{TrimSddMgrInnerNode}}(), ApplyCache()
         )
         @assert left.parent === nothing
         left.parent = this
@@ -87,14 +70,33 @@ mutable struct TrimSddMgrInnerNode <: TrimSddMgr
 
 end
 
+"Unique nodes cache for decision nodes"
+const Unique⋁Cache = Dict{Union{XYPartition,Vector{Sdd⋀Node{TrimSddMgrInnerNode}}},Sdd⋁Node{TrimSddMgrInnerNode}}
+
+"Broader definition of an XYPartition, also including vectors of nodes"
+const XYPartitionPlus = Union{XYPartition,Vector{Sdd⋀Node{TrimSddMgrInnerNode}}}
+
+Base.hash(x::XYPartitionPlus) = mapreduce(e -> hash(e.prime, hash(e.sub)), ⊻, x)
+
+function Base.isequal(x::XYPartitionPlus, y::XYPartitionPlus)
+    length(x) != length(y) && return false
+    (x == y) && return true
+    # note: the rest of this function could be removed if the XYPartitions were sorted, but that is not advantageous: the sorting is too slow
+    return all(x) do e1
+        any(y) do e2
+            e1.prime === e2.prime && e1.sub === e2.sub
+        end
+    end
+end
+
 "SDD manager leaf vtree node for trimmed SDD nodes"
 mutable struct TrimSddMgrLeafNode <: TrimSddMgr
 
     var::Var
     parent::Union{TrimSddMgrInnerNode, Nothing}
 
-    positive_literal::SddLiteralNode # aka SddLiteralNode (defined later)
-    negative_literal::SddLiteralNode # aka SddLiteralNode (defined later)
+    positive_literal::SddLiteralNode{TrimSddMgrLeafNode}
+    negative_literal::SddLiteralNode{TrimSddMgrLeafNode}
 
     TrimSddMgrLeafNode(v::Var) = begin
         this = new(v, nothing)
@@ -105,7 +107,7 @@ mutable struct TrimSddMgrLeafNode <: TrimSddMgr
 
 end
 
-tmgr(n::SddInnerNode) = n.vtree::TrimSddMgrInnerNode
+tmgr(n::SddInnerNode{V}) where V = n.vtree::V
 tmgr(n::SddLeafNode) = n.vtree::TrimSddMgrLeafNode
 
 #####################

@@ -21,15 +21,15 @@ abstract type Sdd <: StructLogicCircuit end
 abstract type SddLeafNode <: Sdd end
 
 "A SDD logical inner node"
-abstract type SddInnerNode <: Sdd end
+abstract type SddInnerNode{V} <: Sdd end
 
 "A SDD logical literal leaf node, representing the positive or negative literal of its variable"
-mutable struct SddLiteralNode <: SddLeafNode
+mutable struct SddLiteralNode{V} <: SddLeafNode
     literal::Lit
-    vtree::SddMgr
+    vtree::V
     data
     counter::UInt32
-    SddLiteralNode(l,v) = new(l,v,nothing,false)
+    SddLiteralNode(l,v::V) where V = new{V}(l,v,nothing,false)
 end
 
 """
@@ -53,28 +53,28 @@ mutable struct SddFalseNode <: SddConstantNode
 end
 
 "A SDD logical conjunction node"
-mutable struct Sdd⋀Node <: SddInnerNode
+mutable struct Sdd⋀Node{V} <: SddInnerNode{V}
     prime::Sdd
     sub::Sdd
-    vtree::SddMgr
+    vtree::V #TODO remove vtree field, we don't need it?
     counter::UInt32
     data
-    Sdd⋀Node(p,s,v) = begin
+    Sdd⋀Node(p,s,v::V) where V = begin
         # @assert !isliteralgate(p) || variable(p) ∈ v.left
         # @assert !isliteralgate(s) || variable(s) ∈ v.right
-        new(p,s,v,false)
+        new{V}(p,s,v,false)
     end
 end
 
 "A SDD logical disjunction node"
-mutable struct Sdd⋁Node <: SddInnerNode
-    children::Vector{Sdd⋀Node}
-    vtree::SddMgr
+mutable struct Sdd⋁Node{V} <: SddInnerNode{V}
+    children::Vector{Sdd⋀Node{V}}
+    vtree::V
     counter::UInt32
     negation::Sdd⋁Node
     data
-    Sdd⋁Node(ch,v) = new(ch, v, false) # leave negation uninitialized
-    Sdd⋁Node(ch,v,neg) = new(ch, v, false, neg)
+    Sdd⋁Node(ch,v::V) where V = new{V}(ch, v, false) # leave negation uninitialized
+    Sdd⋁Node(ch,v::V,neg) where V = new{V}(ch, v, false, neg)
 end
 
 #####################
@@ -91,7 +91,7 @@ end
 #####################
 
 "Get the manager of a `Sdd` node, which is its `SddMgr` vtree"
-mgr(s::Sdd)::SddMgr = vtree(s)
+mgr(s::Sdd) = s.vtree::SddMgr
 
 @inline constant(::SddTrueNode)::Bool = true
 @inline constant(::SddFalseNode)::Bool = false
@@ -150,17 +150,19 @@ function compile(mgr::SddMgr, ::Leaf, children::Vector{<:LogicCircuit}, gt::Inne
     mapreduce(x -> compile(mgr,x,scopes), op(gt), children)
 end
 
+using Statistics: mean
+
 function compile(mgr::SddMgr, ::Inner, children::Vector{<:LogicCircuit}, gt::InnerGate, scopes)
     isempty(children) && return compile(mgr, neutral(gt))
 
     # partition children according to vtree
-    left_children = filter(x -> scopes[x] ⊆ variables(mgr.left), children)
-    right_children = filter(x -> scopes[x] ⊆ variables(mgr.right), children)
+    left_children = filter(x -> subseteq_fast(scopes[x], variables(mgr.left)), children)
+    right_children = filter(x -> subseteq_fast(scopes[x], variables(mgr.right)), children)
     middle_children = setdiff(children, left_children, right_children)
 
     # separately compile left and right vtree children
     left = compile(mgr.left, left_children, gt, scopes)
     right = compile(mgr.right, right_children, gt, scopes)
 
-    mapreduce(x -> compile(mgr,x,scopes), op(gt), middle_children; init=op(gt)(left,right))
+    mapreduce(x -> compile(mgr,x,scopes), op(gt), middle_children; init=op(gt)(left, right))
 end

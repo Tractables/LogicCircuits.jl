@@ -181,6 +181,7 @@ function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
             push!(out, Element(!d, trimfalse))
         else 
             # @assert varsubset_right(d, n)
+            # TODO: build vector and compress all at once...
             out = [Element(prime(e),conjoin(sub(e),d)) for e in elems]
         end
         canonicalize(out, tmgr(n))
