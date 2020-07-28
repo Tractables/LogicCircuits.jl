@@ -51,8 +51,8 @@ find_inode(left, right) = find_inode(left, right, varsubset)
     false
 @inline varsubset(n::Vtree, m::Vtree, ::Leaf, ::Inner) = 
     variable(n) ∈ m
-@inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Inner) = 
-    variables(n) ⊆ variables(m) # very slow
+@inline varsubset(n::Vtree, m::Vtree, ::Inner, ::Inner) =
+    subseteq_fast(variables(n), variables(m)) # very slow if done with Base.BitSet
 
 "Are the variables in `n` contained in the left branch of `m`?"
 @inline varsubset_left(n::Vtree, m::Vtree)::Bool = varsubset(n, m.left)

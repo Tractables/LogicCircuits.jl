@@ -1,6 +1,6 @@
 # Miscellaneous utilities.
 
-export issomething, order_asc, isdisjoint, pushrand!, init_array,
+export issomething, order_asc, isdisjoint, pushrand!, init_array, subseteq_fast,
        Var, Lit, var2lit, lit2var, variables, num_variables,
        always, never, uniform, logsumexp,
        noop, map_values, groupby
@@ -41,6 +41,15 @@ end
 "An array of undetermined values (fast) for the given element type"
 @inline init_array(::Type{T}, dims::Int...) where T<:Number = Array{T}(undef, dims...)
 @inline init_array(::Type{T}, dims::Int...) where T<:Bool= BitArray(undef, dims...)
+
+"Replacement for BitSet.⊆ that does not allocate a new BitSet"
+function subseteq_fast(s::BitSet,t::BitSet) # see https://discourse.julialang.org/t/issubset-bitset-bitset-is-slow-and-allocates-unnecessarily/43828
+    s === t && return true
+    s.offset < t.offset && return false
+    length(s.bits) > length(t.bits) && return false
+    length(s) > length(t) && return false
+    return all(e -> e ∈ t, s)
+end
 
 #####################
 # General logic
