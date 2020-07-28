@@ -133,7 +133,7 @@ respects_vtree(circuit::StructLogicCircuit) =
 function disjoin(arguments::Vector{<:PlainStructLogicCircuit};
                  reuse=nothing, use_vtree=nothing)
     @assert length(arguments) > 0
-    reuse isa PlainStruct⋁Node && reuse.prime == a1 && reuse.sub == a2 && return reuse
+    reuse isa PlainStruct⋁Node && reuse.children == arguments && return reuse
     !(use_vtree isa Vtree) && (reuse isa PlainStructLogicCircuit) &&  (use_vtree = reuse.vtree)
     if all(isconstantgate, arguments) && !(use_vtree isa Vtree)
         # constant nodes don't have a vtree: resolve to a constant

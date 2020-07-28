@@ -203,3 +203,12 @@ end
 
     @assert (or, and1, and2) in candidates
 end
+
+
+@testset "Split regression test 1" begin
+    vtree = Vtree(784, :balanced)
+    c0 = fully_factorized_circuit(StructLogicCircuit,vtree)
+    c1, _ = split_step(c0; loss=random_split, depth=2, sanity_check=true)
+                @test issmooth(c1)
+                @test isdecomposable(c1)
+end
