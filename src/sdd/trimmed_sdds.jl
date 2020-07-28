@@ -30,8 +30,20 @@ const XYPartition = Vector{Element}
 "Unique nodes cache for decision nodes"
 const Unique⋁Cache = Dict{Set{Element},Sdd⋁Node}
 
+"Representation of the arguments of an Apply call"
+struct ApplyArgs 
+    a1::Sdd
+    a2::Sdd
+end
+
+Base.hash(aa::ApplyArgs) = hash(aa.a1) ⊻ hash(aa.a2)
+Base.isequal(x::ApplyArgs,y::ApplyArgs) = 
+    (x.a1 === y.a1 && x.a2 === y.a2 ) || (x.a1 === y.a2 && x.a2 === y.a1) 
+# Base.:(==)(x::ApplyArgs,y::ApplyArgs) = 
+#     (x.a1 === y.a1 && x.a2 === y.a2 ) || (x.a1 === y.a2 && x.a2 === y.a1) 
+
 "Apply cache for the result of conjunctions and disjunctions"
-const ApplyCache = Dict{Element,Sdd}
+const ApplyCache = Dict{ApplyArgs,Sdd}
 
 "SDD manager inner vtree node for trimmed SDD nodes"
 mutable struct TrimSddMgrInnerNode <: TrimSddMgr
@@ -123,8 +135,6 @@ import ..Utils: parent, lca # make available for extension
 @inline sub(e::Element) = e.sub
 
 @inline parent(n::TrimSddMgr)::Union{TrimSddMgrInnerNode, Nothing} = n.parent
-
-@inline pointer_sort(s,t) = (hash(s) <= hash(t)) ? (return s,t) : (return t,s)
 
 @inline varsubset(n::Sdd, m::Sdd) = varsubset(tmgr(n), tmgr(m))
 @inline varsubset_left(n::Sdd, m::Sdd)::Bool = varsubset_left(tmgr(n), tmgr(m))

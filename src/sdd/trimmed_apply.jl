@@ -44,8 +44,7 @@ function conjoin_cartesian(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     elseif n1 === !n2
         return trimfalse
     end
-    n1, n2 = pointer_sort(n1,n2)
-    get!(tmgr(n1).conjoin_cache, Element(n1,n2)) do 
+    get!(tmgr(n1).conjoin_cache, ApplyArgs(n1,n2)) do 
         conjoin_cartesian_general(n1,n2)
     end
 end
@@ -143,7 +142,7 @@ end
 Conjoin two SDDs when one descends from the other
 """
 function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
-    get!(tmgr(n).conjoin_cache, Element(d,n)) do 
+    get!(tmgr(n).conjoin_cache, ApplyArgs(d,n)) do 
         elems = children(n)
         if varsubset_left(d, n)
             out = XYPartition()
@@ -194,8 +193,7 @@ Conjoin two SDDs in separate parts of the vtree
 function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     mgr = lca(tmgr(s),tmgr(t))
-    (s,t) = pointer_sort(s,t)
-    get!(mgr.conjoin_cache, Element(s,t)) do 
+    get!(mgr.conjoin_cache, ApplyArgs(s,t)) do 
         if varsubset_left(tmgr(s), mgr)
             @assert varsubset_right(tmgr(t), mgr)
             elements = Element[Element(s,t),Element(!s,trimfalse)]

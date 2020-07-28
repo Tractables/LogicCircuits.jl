@@ -1,4 +1,3 @@
-
 abstract type FormatLine end
 
 """
@@ -25,17 +24,14 @@ struct VtreeLeafLine <: VtreeFormatLine
     variable::Var
 end
 
-# TODO: parameterize by Vtree type, and PlainVtree as default
 function compile_vtree_format_lines(lines::VtreeFormatLines, 
                                     ::Type{V}=PlainVtree)::V where V<:Vtree 
     compile_vtree_format_lines_m(lines, V)[1]
 end
 
-# TODO: parameterize by Vtree type, and PlainVtree as default
 function compile_vtree_format_lines_m(lines::VtreeFormatLines, 
                                       ::Type{V}=PlainVtree) where  V<:Vtree 
 
-    # map from index to PlainVtree for input
     id2node = Dict{UInt32, V}()
     root = nothing
 
