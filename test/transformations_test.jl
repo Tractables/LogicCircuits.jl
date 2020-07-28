@@ -4,7 +4,7 @@ using LogicCircuits
 include("helper/plain_logic_circuits.jl")
 
 @testset "Smooth test" begin
-    for file in [zoo_psdd_file("plants.psdd"), zoo_sdd_file("random.sdd")]
+    for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"), 
         c1 = load_logic_circuit(file)
         c2 = smooth(c1)
         @test model_count(c1) == model_count(c2)
@@ -16,7 +16,7 @@ include("helper/plain_logic_circuits.jl")
 end
 
 @testset "Forget test" begin
-    for file in [zoo_psdd_file("plants.psdd"), zoo_sdd_file("random.sdd")]
+    for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"),
         c1 = load_logic_circuit(file)
         vars = variables(c1)
         c2 = forget(c1, x -> x > maximum(vars))
@@ -33,7 +33,7 @@ end
 end
 
 @testset "Propagate constants test" begin
-    for file in [zoo_psdd_file("plants.psdd"), zoo_sdd_file("random.sdd")]
+    for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"),
         c1 = load_logic_circuit(file)
         c2 = propagate_constants(c1)
         @test model_count(c1) == model_count(c2)
