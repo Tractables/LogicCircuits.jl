@@ -24,49 +24,26 @@ struct Element # somehow this is faster than using Pair or Tuples...?
     sub::Sdd
 end
 
-"Represent an XY-partition that has not yet been compiled into a disjunction, represented as a vector"
+"Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Vector{Element}
 
-"Represent an XY-partition that has not yet been compiled into a disjunction, specifically a large on that is best represented as a set"
-const XYPartitionSet = Set{Element}
+Base.hash(x::XYPartition) = mapreduce(hash, ⊻, x)
 
-function Base.hash(x::XYPartition)
-    l = length(x)
-    # @assert 0 < l <= 3
-    if l == 1
-        @inbounds hash(x[1])
-    elseif l == 2
-        @inbounds hash(x[1]) ⊻ hash(x[2])
-    else
-        @inbounds hash(x[1]) ⊻ hash(x[2]) ⊻ hash(x[3])
-    end
-end
-
-Base.isequal(x::XYPartitionSet,y::XYPartition) = false
-Base.isequal(x::XYPartition,y::XYPartitionSet) = false
 function Base.isequal(x::XYPartition, y::XYPartition)
     l = length(x)
     length(y) != l && return false
-    # @assert 0 < l <= 3
-    if l == 1
-        @inbounds x[1] === y[1]
-    elseif l == 2
-        @inbounds (x[1] === y[1] && x[2] === y[2]) || (x[1] === y[2] && x[2] === y[1])
-    else
-        @inbounds (x[1] === y[1] && x[2] === y[2] && x[3] === y[3]) ||
-                    (x[1] === y[1] && x[2] === y[3] && x[3] === y[2]) ||
-                    (x[1] === y[2] && x[2] === y[1] && x[3] === y[3]) ||
-                    (x[1] === y[3] && x[2] === y[1] && x[3] === y[2]) ||
-                    (x[1] === y[2] && x[2] === y[3] && x[3] === y[1]) ||
-                    (x[1] === y[3] && x[2] === y[2] && x[3] === y[1])
+    for i in eachindex(x)
+        found = false
+        for j = 0:l-1
+            x[i] === y[1+(i+j-1)%l] && (found = true) && break
+        end
+        !found && return false
     end
+    true
 end
 
-"Represent an XY-partition that has not yet been compiled into a disjunction"
-const XYPartitionKey = Union{XYPartition,XYPartitionSet}
-
 "Unique nodes cache for decision nodes"
-const Unique⋁Cache = Dict{XYPartitionKey,Sdd⋁Node}
+const Unique⋁Cache = Dict{XYPartition,Sdd⋁Node}
 
 "Representation of the arguments of an Apply call"
 struct ApplyArgs 
@@ -243,7 +220,7 @@ Construct a unique decision gate for the given vtree
 """
 function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode)::Sdd⋁Node
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
-    cachekey(xy::XYPartition) =  length(xy) <= 3 ? xy : XYPartitionSet(xy)
+    cachekey(xy::XYPartition) =  xy
     get!(mgr.unique⋁cache, cachekey(xy)) do 
         node = Sdd⋁Node(xy2ands(xy, mgr), mgr)
         # TODO: add equals and hash between XYPartition and Vector{Sdd⋀Node}, avoiding the need to allocate two vectors here
