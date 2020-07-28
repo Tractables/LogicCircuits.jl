@@ -27,23 +27,24 @@ end
 "Represent an XY-partition that has not yet been compiled into a disjunction"
 const XYPartition = Vector{Element}
 
-Base.hash(x::XYPartition) = mapreduce(hash, ⊻, x)
+"Broader definition of an XYPartition, also including vectors of nodes"
+const XYPartitionPlus = Union{XYPartition,Vector{Sdd⋀Node}}
 
-function Base.isequal(x::XYPartition, y::XYPartition)
-    l = length(x)
-    length(y) != l && return false
-    for i in eachindex(x)
-        found = false
-        for j = 0:l-1
-            x[i] === y[1+(i+j-1)%l] && (found = true) && break
+Base.hash(x::XYPartitionPlus) = mapreduce(e -> hash(e.prime, hash(e.sub)), ⊻, x)
+
+function Base.isequal(x::XYPartitionPlus, y::XYPartitionPlus)
+    length(x) != length(y) && return false
+    (x == y) && return true
+    # note: the rest of this function could be removed if the XYPartitions were sorted, but that is not advantageous: the sorting is too slow
+    return all(x) do e1
+        any(y) do e2
+            e1.prime === e2.prime && e1.sub === e2.sub
         end
-        !found && return false
     end
-    true
 end
 
 "Unique nodes cache for decision nodes"
-const Unique⋁Cache = Dict{XYPartition,Sdd⋁Node}
+const Unique⋁Cache = Dict{XYPartitionPlus,Sdd⋁Node}
 
 "Representation of the arguments of an Apply call"
 struct ApplyArgs 
@@ -220,19 +221,16 @@ Construct a unique decision gate for the given vtree
 """
 function unique⋁(xy::XYPartition, mgr::TrimSddMgrInnerNode)::Sdd⋁Node
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
-    cachekey(xy::XYPartition) =  xy
-    get!(mgr.unique⋁cache, cachekey(xy)) do 
-        node = Sdd⋁Node(xy2ands(xy, mgr), mgr)
-        # TODO: add equals and hash between XYPartition and Vector{Sdd⋀Node}, avoiding the need to allocate two vectors here
-        not_xy = [Element(prime(e), !sub(e)) for e in xy]
-        not_node = Sdd⋁Node(xy2ands(not_xy, mgr), mgr, node)
+    get!(mgr.unique⋁cache, xy) do 
+        xynodes = [Sdd⋀Node(prime(e), sub(e), mgr) for e in xy]
+        node = Sdd⋁Node(xynodes, mgr)
+        not_xynodes = [Sdd⋀Node(prime(e), !sub(e), mgr) for e in xy]
+        not_node = Sdd⋁Node(not_xynodes, mgr, node)
         node.negation = not_node
-        mgr.unique⋁cache[cachekey(not_xy)] = not_node
+        mgr.unique⋁cache[not_xynodes] = not_node
         node
     end
 end
-
-@inline xy2ands(xy::XYPartition, mgr::TrimSddMgrInnerNode) = [Sdd⋀Node(prime(e), sub(e), mgr) for e in xy]
 
 
 """
