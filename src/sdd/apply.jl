@@ -1,14 +1,14 @@
 """
 Conjoin two SDDs
 """
-@inline conjoin(::SddFalseNode, ::SddTrueNode)::SddFalseNode = false_sdd
-@inline conjoin(::SddTrueNode, ::SddFalseNode)::SddFalseNode = false_sdd
-@inline conjoin(s::Sdd, ::SddTrueNode)::Sdd = s
-@inline conjoin(::Sdd, ::SddFalseNode)::SddFalseNode = false_sdd
-@inline conjoin(::SddTrueNode, s::Sdd)::Sdd = s
-@inline conjoin(::SddFalseNode, ::Sdd)::SddFalseNode = false_sdd
-@inline conjoin(::SddTrueNode, ::SddTrueNode)::Sdd = true_sdd
-@inline conjoin(::SddFalseNode, ::SddFalseNode)::Sdd = false_sdd
+@inline conjoin(::SddFalseNode, ::SddTrueNode) = false_sdd
+@inline conjoin(::SddTrueNode, ::SddFalseNode) = false_sdd
+@inline conjoin(s::Sdd, ::SddTrueNode) = s
+@inline conjoin(::Sdd, ::SddFalseNode) = false_sdd
+@inline conjoin(::SddTrueNode, s::Sdd) = s
+@inline conjoin(::SddFalseNode, ::Sdd) = false_sdd
+@inline conjoin(::SddTrueNode, ::SddTrueNode) = true_sdd
+@inline conjoin(::SddFalseNode, ::SddFalseNode) = false_sdd
 
 # const stats = Dict{Tuple{Int,Int},Int}()
 
@@ -46,11 +46,11 @@ function conjoin_cartesian(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     end
     get!(mgr(n1).conjoin_cache, ApplyArgs(n1,n2)) do 
         conjoin_cartesian_general(n1,n2)
-    end
+    end::Sdd
 end
 
 
-function conjoin_cartesian_general(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
+function conjoin_cartesian_general(n1::Sdd⋁Node, n2::Sdd⋁Node)
     # vast majority of cases are 2x2 and 2x3 applies, yet specializing for those cases does not appear to speed things up
 
     out = XYPartition()
@@ -69,7 +69,7 @@ function conjoin_cartesian_general(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     conjoin_cartesian_cheap(out, elems1, elems2, maski, maskj)
     conjoin_cartesian_expensive(out, elems1, elems2, maski, maskj)
     
-    canonicalize(out, mgr(n1))
+    canonicalize(out, mgr(n1))::Sdd
 end
 
 function conjoin_cartesian_cheap(out, elems1, elems2, maski, maskj)
@@ -141,7 +141,7 @@ end
 """
 Conjoin two SDDs when one descends from the other
 """
-function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
+function conjoin_descendent(d::Sdd, n::Sdd)
     get!(mgr(n).conjoin_cache, ApplyArgs(d,n)) do 
         elems = children(n)
         if varsubset_left(d, n)
@@ -191,7 +191,7 @@ end
 """
 Conjoin two SDDs in separate parts of the vtree
 """
-function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
+function conjoin_indep(s::Sdd, t::Sdd)
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
     lca_mgr = lca(mgr(s),mgr(t))
     get!(lca_mgr.conjoin_cache, ApplyArgs(s,t)) do 
@@ -205,7 +205,7 @@ function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
         end
         # TODO: the XY partition must already be compressed and trimmed
         unique⋁(elements, lca_mgr)
-    end
+    end::Sdd⋁Node
 end
 
 """

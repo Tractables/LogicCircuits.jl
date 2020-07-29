@@ -17,10 +17,10 @@ export prime, sub, sdd_size, sdd_num_nodes, mgr,
 #####################
 
 "Get the manager of a `Sdd` node, which is its `SddMgr` vtree"
-mgr(s::Sdd) = s.vtree::SddMgr
+mgr(s::Sdd) = s.vtree
 
-@inline constant(::SddTrueNode)::Bool = true
-@inline constant(::SddFalseNode)::Bool = false
+@inline constant(::SddTrueNode) = true
+@inline constant(::SddFalseNode) = false
 
 @inline children(n::Sdd⋀Node) = [n.prime,n.sub]
 @inline children(n::Sdd⋁Node) = n.children
