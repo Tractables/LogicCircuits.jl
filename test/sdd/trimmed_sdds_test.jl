@@ -5,12 +5,12 @@ using LogicCircuits: Element # test some internals
 @testset "Trimmed SDD test" begin
 
     num_vars = 7
-    mgr = TrimSddMgr(num_vars, :balanced)
+    mgr = SddMgr(num_vars, :balanced)
     
     @test num_variables(mgr) == num_vars
     @test num_nodes(mgr) == 2*num_vars-1
     @test num_edges(mgr) == 2*num_vars-2
-    @test mgr isa TrimSddMgr
+    @test mgr isa SddMgr
 
     @test varsubset(left_most_descendent(mgr), mgr)
     @test varsubset(mgr.left, mgr)

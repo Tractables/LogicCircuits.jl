@@ -18,8 +18,8 @@ include("structured/plain_vtrees.jl")
 include("structured/structured_logic_nodes.jl")
 
 include("sdd/sdds.jl")
-include("sdd/trimmed_sdds.jl")
-include("sdd/trimmed_apply.jl")
+include("sdd/sdd_functions.jl")
+include("sdd/apply.jl")
 
 include("LoadSave/LoadSave.jl")
 @reexport using .LoadSave

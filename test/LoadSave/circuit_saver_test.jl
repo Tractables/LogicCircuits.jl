@@ -14,7 +14,7 @@ include("../helper/plain_logic_circuits.jl")
 
 
   mktempdir() do tmp
-    mgr = TrimSddMgr(7, :balanced)
+    mgr = SddMgr(7, :balanced)
     v = Dict([(i => compile(mgr, Lit(i))) for i=1:7])
     c = (v[1] | !v[2] | v[3]) &
         (v[2] | !v[7] | v[6]) &

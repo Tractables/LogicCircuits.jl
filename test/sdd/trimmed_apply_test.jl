@@ -4,7 +4,7 @@ using LogicCircuits
 @testset "Trimmed apply test" begin
 
     num_vars = 7
-    mgr = TrimSddMgr(num_vars, :balanced)
+    mgr = SddMgr(num_vars, :balanced)
     
     x = Var(1)
     y = Var(2)
@@ -153,7 +153,7 @@ end
 @testset "Trimmed apply regression test 1" begin
 
     v = zoo_vtree("iscas89/s386.scan.min.vtree")
-    mgr = TrimSddMgr(v)
+    mgr = SddMgr(v)
     v70 = compile(mgr,Lit(70))
     v71 = compile(mgr,Lit(71))
     n = (v70 & v71) | (!v70 & !v71)

@@ -52,9 +52,9 @@
     @test num_variables(vtree) == 17
     @test vtree isa PlainVtree
 
-    vtree = zoo_vtree("easy/C17_mince.min.vtree", TrimSddMgr)
+    vtree = zoo_vtree("easy/C17_mince.min.vtree", SddMgr)
     @test num_nodes(vtree) == 33
     @test num_variables(vtree) == 17
-    @test vtree isa TrimSddMgr
+    @test vtree isa SddMgr
 
 end
