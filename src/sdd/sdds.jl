@@ -24,7 +24,7 @@ end
 const XYPartition = Vector{Element}
 
 "Unique nodes cache for decision nodes"
-const Unique⋁Cache = Dict{XYPartition,Sdd} # second argument could be more precise?
+const Unique⋁Cache = Dict{XYPartition,Sdd}
 
 "Broader definition of an XYPartition, also including vectors of nodes"
 
@@ -78,12 +78,11 @@ mutable struct SddMgrInnerNode <: SddMgr
 
     conjoin_cache::ApplyCache
 
-    SddMgrInnerNode(left::SddMgr, right::SddMgr) = begin
+    SddMgrInnerNode(left::SddMgr, right::SddMgr) where D = begin
         @assert isdisjoint(variables(left), variables(right))
         this = new(left, right, nothing, 
             union(variables(left), variables(right)), 
-            Unique⋁Cache(), ApplyCache()
-        )
+            Unique⋁Cache(), ApplyCache())
         @assert left.parent === nothing
         left.parent = this
         @assert right.parent === nothing

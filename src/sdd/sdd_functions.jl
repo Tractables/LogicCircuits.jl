@@ -95,62 +95,51 @@ Compile a given variable, literal, or constant
 """
 function compile(n::SddMgrLeafNode, l::Lit)::SddLiteralNode
     @assert n.var == lit2var(l) "Cannot compile literal $l respecting vtree leaf for variable $(n.var)"
-    if l>0 # positive literal
-        n.positive_literal
+    l>0 ? n.positive_literal::SddLiteralNode : n.negative_literal::SddLiteralNode
+end
+
+function compile(n::SddMgrInnerNode, l::Lit)
+    if lit2var(l) ∈ variables(n.left)
+        compile(n.left, l)::SddLiteralNode
     else
-        n.negative_literal
+        @assert lit2var(l) ∈ variables(n.right) "$l is not contained in this vtree $n with scope $(variables(n))"
+        compile(n.right, l)::SddLiteralNode
     end
 end
 
-function compile(n::SddMgrInnerNode, l::Lit)::SddLiteralNode
-    if lit2var(l) in variables(n.left)
-        compile(n.left, l)
-    elseif lit2var(l) in variables(n.right)
-        compile(n.right, l)
-    else 
-        error("$l is not contained in this vtree $n with scope $(variables(n))")
-    end
-end
-
-# TODO: add type argument to distinguish from other circuit compilers for constants
-function compile(::SddMgr, constant::Bool)::SddConstantNode
-    if constant == true
-        true_sdd
-    else
-        false_sdd
-    end
-end
+compile(::SddMgr, constant::Bool) =
+    constant ? true_sdd : false_sdd
 
 """
 Negate an SDD
 """
-@inline negate(::SddFalseNode)::SddTrueNode = true_sdd
-@inline negate(::SddTrueNode)::SddFalseNode = false_sdd
+@inline negate(::SddFalseNode) = true_sdd
+@inline negate(::SddTrueNode) = false_sdd
 
-function negate(s::SddLiteralNode)::SddLiteralNode 
+function negate(s::SddLiteralNode)
     if ispositive(s) 
-        mgr(s).negative_literal
+        mgr(s).negative_literal::SddLiteralNode
     else
-        mgr(s).positive_literal
+        mgr(s).positive_literal::SddLiteralNode
     end
 end
 
-negate(node::Sdd⋁Node)::Sdd⋁Node = node.negation
+negate(node::Sdd⋁Node) = node.negation::Sdd⋁Node
 
 @inline Base.:!(s) = negate(s)
 
 """
 Get the canonical compilation of the given XY Partition
 """
-function canonicalize(xy::XYPartition, mgr::SddMgrInnerNode)::Sdd
+function canonicalize(xy::XYPartition, mgr::SddMgrInnerNode)
     # @assert !isempty(xy)
-    return canonicalize_compressed(compress(xy), mgr)
+    return canonicalize_compressed(compress(xy), mgr)::Sdd
 end
 
 """
 Compress a given XY Partition (merge elements with identical subs)
 """
-function compress(xy::XYPartition)::XYPartition
+function compress(xy::XYPartition)
     compressed = true
     for i in eachindex(xy), j in i+1:length(xy)
         if (sub(xy[i]) === sub(xy[j]))
@@ -160,7 +149,7 @@ function compress(xy::XYPartition)::XYPartition
     end
     compressed && return xy
     # make it compressed
-    out = Vector{Element}()
+    out = XYPartition()
     sizehint!(out, length(xy))
     mask = falses(length(xy))
     for i in eachindex(xy) 
@@ -177,13 +166,13 @@ function compress(xy::XYPartition)::XYPartition
             push!(out,Element(prime_all,sub_i))
         end
     end
-    return out
+    return out::XYPartition
 end
 
 """
 Get the canonical compilation of the given compressed XY Partition
 """
-function canonicalize_compressed(xy::XYPartition, mgr::SddMgrInnerNode)::Sdd
+function canonicalize_compressed(xy::XYPartition, mgr::SddMgrInnerNode)
     # @assert !isempty(xy)
     # trim
     if length(xy) == 1 && (prime(first(xy)) === true_sdd)
@@ -196,22 +185,24 @@ function canonicalize_compressed(xy::XYPartition, mgr::SddMgrInnerNode)::Sdd
         end
     end
     # get unique node representation
-    return unique⋁(xy, mgr)
+    return unique⋁(xy, mgr)::Sdd⋁Node
 end
 
 """
 Construct a unique decision gate for the given vtree
 """
-function unique⋁(xy::XYPartition, mgr::SddMgrInnerNode)::Sdd
+function unique⋁(xy::XYPartition, mgr::SddMgrInnerNode)
     #TODO add finalization trigger to remove from the cache when the node is gc'ed + weak value reference
     get!(mgr.unique⋁cache, xy) do 
         xynodes = [Sdd⋀Node(prime(e), sub(e), mgr) for e in xy]
         node = Sdd⋁Node(xynodes, mgr)
+        # some memory allocations can be saved here, by not allocating the intermediate vector of elements
+        # however, that does not appear to speed things up...
         not_xy = [Element(prime(e), !sub(e)) for e in xy]
         not_xynodes = [Sdd⋀Node(prime(e), sub(e), mgr) for e in not_xy]
         not_node = Sdd⋁Node(not_xynodes, mgr, node)
         node.negation = not_node
         mgr.unique⋁cache[not_xy] = not_node
         node
-    end
+    end::Sdd⋁Node
 end
