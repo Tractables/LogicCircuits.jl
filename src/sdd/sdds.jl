@@ -160,15 +160,10 @@ const false_sdd = SddFalseNode(false, nothing)
 mutable struct Sdd⋀Node <: SddInnerNode
     prime::Sdd
     sub::Sdd
-    # cannot specify OR node type: no cycles in types...
-    vtree::SddMgrInnerNode #TODO remove vtree field, we don't need it?
+    vtree::SddMgrInnerNode
     counter::UInt32
     data
-    Sdd⋀Node(p,s,v) = begin
-        # @assert !isliteralgate(p) || variable(p) ∈ v.left
-        # @assert !isliteralgate(s) || variable(s) ∈ v.right
-        new(p,s,v,false)
-    end
+    Sdd⋀Node(p,s,v) = new(p,s,v,false)
 end
 
 "A SDD logical disjunction node"
