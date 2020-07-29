@@ -2,7 +2,7 @@ export StructLogicCircuit, PlainStructLogicCircuit,
     PlainStructLogicLeafNode, PlainStructLogicInnerNode,
     PlainStructLiteralNode, PlainStructConstantNode, PlainStructTrueNode, PlainStructFalseNode,
     PlainStruct⋀Node, PlainStruct⋁Node,
-    vtree, vtree_safe
+    vtree, vtree_safe, prime, sub
 
 #####################
 # Logic circuits that are structured,
@@ -106,6 +106,13 @@ const structfalse = PlainStructFalseNode(nothing, 0)
 @inline vtree_safe(n::PlainStructLogicInnerNode) = vtree(n)
 @inline vtree_safe(n::PlainStructLiteralNode) = vtree(n)
 @inline vtree_safe(::PlainStructConstantNode) = nothing
+
+# alias some SDD terminology: primes and subs
+"Get the prime, that is, the first conjunct"
+@inline prime(n) = n.prime
+
+"Get the sub, that is, the second and last conjunct"
+@inline sub(n) = n.sub
 
 conjoin(arguments::Vector{<:PlainStructLogicCircuit};
         reuse=nothing, use_vtree=nothing) =

@@ -1,35 +1,136 @@
-export SddMgr, Sdd, SddLeafNode, SddInnerNode, SddLiteralNode, SddConstantNode, 
-       Sdd⋀Node, Sdd⋁Node, prime, sub, sdd_size, sdd_num_nodes, mgr
+export Sdd, SddMgr, 
+    SddLeafNode, SddInnerNode, SddLiteralNode, SddConstantNode, 
+    Sdd⋀Node, Sdd⋁Node, SddTrueNode, SddFalseNode,
+    sdd_mgr_for
 
 #############
-# SddMgr
+# Trimmed Sdds
+#############
+
+"Root of the trimmed Sdd circuit node hierarchy"
+abstract type Sdd <: StructLogicCircuit end
+
+#############
+# Elements and XY Partitions
+#############
+
+"Represents elements that are not yet compiled into conjunctions"
+struct Element
+    prime::Sdd
+    sub::Sdd
+end
+
+"Represent an XY-partition that has not yet been compiled into a disjunction"
+const XYPartition = Vector{Element}
+
+"Unique nodes cache for decision nodes"
+const Unique⋁Cache = Dict{XYPartition,Sdd} # second argument could be more precise?
+
+"Broader definition of an XYPartition, also including vectors of nodes"
+
+Base.hash(x::XYPartition) = mapreduce(e -> hash(e.prime, hash(e.sub)), ⊻, x)
+
+function Base.isequal(x::XYPartition, y::XYPartition)
+    length(x) != length(y) && return false
+    (x == y) && return true
+    # note: the rest of this function could be removed if the XYPartitions were sorted, but that is not advantageous: the sorting is too slow
+    return all(x) do e1
+        any(y) do e2
+            e1.prime === e2.prime && e1.sub === e2.sub
+        end
+    end
+end
+
+#############
+# Apply cache
+#############
+
+"Representation of the arguments of an Apply call"
+struct ApplyArgs
+    a1::Sdd
+    a2::Sdd
+end
+
+Base.hash(aa::ApplyArgs) = hash(aa.a1) ⊻ hash(aa.a2)
+Base.isequal(x::ApplyArgs,y::ApplyArgs) = 
+    (x.a1 === y.a1 && x.a2 === y.a2 ) || (x.a1 === y.a2 && x.a2 === y.a1) 
+
+"Apply cache for the result of conjunctions and disjunctions"
+const ApplyCache = Dict{ApplyArgs,Sdd}
+
+#############
+# Trimmed Sdd managers
 #############
 
 "Root of the SDD manager node hierarchy"
 abstract type SddMgr <: Vtree end
 
-#############
-# Sdd
-# Sdd nodes are really identical to StructLogicCircuit nodes, 
-# except that Or nodes keep track of their negation for fast "apply".
-#############
+"SDD manager inner vtree node for trimmed SDD nodes"
+mutable struct SddMgrInnerNode <: SddMgr
 
-"Root of the SDD circuit node hierarchy"
-abstract type Sdd <: StructLogicCircuit end
+    left::SddMgr
+    right::SddMgr
+    
+    parent::Union{SddMgrInnerNode, Nothing}
+
+    variables::BitSet
+    unique⋁cache::Unique⋁Cache
+
+    conjoin_cache::ApplyCache
+
+    SddMgrInnerNode(left::SddMgr, right::SddMgr) = begin
+        @assert isdisjoint(variables(left), variables(right))
+        this = new(left, right, nothing, 
+            union(variables(left), variables(right)), 
+            Unique⋁Cache(), ApplyCache()
+        )
+        @assert left.parent === nothing
+        left.parent = this
+        @assert right.parent === nothing
+        right.parent = this
+        this
+    end
+
+end
+
+"SDD manager leaf vtree node for trimmed SDD nodes"
+mutable struct SddMgrLeafNode <: SddMgr
+
+    var::Var
+    parent::Union{SddMgrInnerNode, Nothing}
+
+    positive_literal::Sdd
+    negative_literal::Sdd
+
+    SddMgrLeafNode(v::Var) = begin
+        this = new(v, nothing)
+        this.positive_literal = construct_new_sdd_literal(this, var2lit(v))
+        this.negative_literal = construct_new_sdd_literal(this, -var2lit(v))
+        this
+    end    
+
+end
+
+@inline NodeType(::SddMgrLeafNode) = Leaf()
+@inline NodeType(::SddMgrInnerNode) = Inner()
+
+#############
+# Sdd nodes
+#############
 
 "A SDD logical leaf node"
 abstract type SddLeafNode <: Sdd end
 
 "A SDD logical inner node"
-abstract type SddInnerNode{V} <: Sdd end
+abstract type SddInnerNode <: Sdd end
 
 "A SDD logical literal leaf node, representing the positive or negative literal of its variable"
-mutable struct SddLiteralNode{V} <: SddLeafNode
+mutable struct SddLiteralNode <: SddLeafNode
     literal::Lit
-    vtree::V
+    vtree::SddMgrLeafNode
     data
     counter::UInt32
-    SddLiteralNode(l,v::V) where V = new{V}(l,v,nothing,false)
+    SddLiteralNode(l,v) = new(l,v,nothing,false)
 end
 
 """
@@ -42,39 +143,44 @@ abstract type SddConstantNode <: SddLeafNode end
 mutable struct SddTrueNode <: SddConstantNode 
     counter::UInt32
     data
-    SddTrueNode() = new(false)
 end
+
+"Canonical true Sdd node"
+const true_sdd = SddTrueNode(false, nothing)
 
 "A SDD logical false constant."
 mutable struct SddFalseNode <: SddConstantNode 
     counter::UInt32
     data
-    SddFalseNode() = new(false)
 end
 
+"Canonical false Sdd node"
+const false_sdd = SddFalseNode(false, nothing)
+
 "A SDD logical conjunction node"
-mutable struct Sdd⋀Node{V} <: SddInnerNode{V}
+mutable struct Sdd⋀Node <: SddInnerNode
     prime::Sdd
     sub::Sdd
-    vtree::V #TODO remove vtree field, we don't need it?
+    # cannot specify OR node type: no cycles in types...
+    vtree::SddMgrInnerNode #TODO remove vtree field, we don't need it?
     counter::UInt32
     data
-    Sdd⋀Node(p,s,v::V) where V = begin
+    Sdd⋀Node(p,s,v) = begin
         # @assert !isliteralgate(p) || variable(p) ∈ v.left
         # @assert !isliteralgate(s) || variable(s) ∈ v.right
-        new{V}(p,s,v,false)
+        new(p,s,v,false)
     end
 end
 
 "A SDD logical disjunction node"
-mutable struct Sdd⋁Node{V} <: SddInnerNode{V}
-    children::Vector{Sdd⋀Node{V}}
-    vtree::V
+mutable struct Sdd⋁Node <: SddInnerNode
+    children::Vector{Sdd⋀Node}
+    vtree::SddMgrInnerNode
     counter::UInt32
     negation::Sdd⋁Node
     data
-    Sdd⋁Node(ch,v::V) where V = new{V}(ch, v, false) # leave negation uninitialized
-    Sdd⋁Node(ch,v::V,neg) where V = new{V}(ch, v, false, neg)
+    Sdd⋁Node(ch,v) = new(ch, v, false) # leave negation uninitialized
+    Sdd⋁Node(ch,v,neg) = new(ch, v, false, neg)
 end
 
 #####################
@@ -87,82 +193,21 @@ end
 @inline GateType(::Type{<:Sdd⋁Node}) = ⋁Gate()
 
 #####################
-# methods
+# Constructor
 #####################
 
-"Get the manager of a `Sdd` node, which is its `SddMgr` vtree"
-mgr(s::Sdd) = s.vtree::SddMgr
+SddMgr(v::Var) = SddMgrLeafNode(v)
+SddMgr(left::SddMgr, right::SddMgr) = SddMgrInnerNode(left, right)
 
-@inline constant(::SddTrueNode)::Bool = true
-@inline constant(::SddFalseNode)::Bool = false
-@inline children(n::Sdd⋀Node) = [n.prime,n.sub]
-@inline children(n::Sdd⋁Node) = n.children
+"Obtain an SDD manager that can support compiling the given circuit"
+sdd_mgr_for(c::Sdd) = mgr(c)
+sdd_mgr_for(c::StructLogicCircuit) =
+    (vtree(c) isa SddMgr) ? vtree(c) : SddMgr(vtree(c))
+sdd_mgr_for(c::LogicCircuit) = 
+    SddMgr(SddMgr.(Var.(variables(c))), :balanced) # this could be "smarter" finding a good vtree
 
-# alias some SDD terminology: primes and subs
-"Get the prime, that is, the first conjunct"
-@inline prime(n::Sdd⋀Node)::Sdd = n.prime
-
-"Get the sub, that is, the second and last conjunct"
-@inline sub(n::Sdd⋀Node)::Sdd = n.sub
-
-"Count the number of elements in the decision nodes of the SDD"
-sdd_size(sdd::Sdd) = mapreduce(n -> num_children(n), +, ⋁_nodes(sdd); init=0) # defined as the number of `elements`; length(⋀_nodes(sdd)) also works but undercounts in case the compiler decides to cache elements
-
-"Count the number of decision nodes in the SDD"
-sdd_num_nodes(sdd::Sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
-
-Base.show(io::IO, ::SddTrueNode) = print(io, "⊤")
-Base.show(io::IO, ::SddFalseNode) = print(io, "⊥")
-Base.show(io::IO, c::SddLiteralNode) = print(io, literal(c))
-Base.show(io::IO, c::Sdd⋀Node) = begin
-    recshow(c::Union{SddConstantNode,SddLiteralNode}) = "$c"
-    recshow(c::Sdd⋁Node) = "D$(hash(c))"
-    print(io, "($(recshow(prime(c))),$(recshow(sub(c))))")
-end
-Base.show(io::IO, c::Sdd⋁Node) = begin
-    elems = ["$e" for e in children(c)]
-    print(io, "[$(join(elems,','))]")
-end
-
-#############
-# compilation
-#############
-
-compile(::Type{<:Sdd}, mgr::SddMgr, arg::Bool) = compile(mgr, arg)
-compile(::Type{<:Sdd}, mgr::SddMgr, arg::Lit) = compile(mgr, arg)
-compile(::Type{<:Sdd}, mgr::SddMgr, arg::LogicCircuit) = compile(mgr, arg)
-
-"Compile a circuit (e.g., CNF or DNF) into an SDD, bottom up by distributing circuit nodes over vtree nodes"
-
-compile(mgr::SddMgr, c::LogicCircuit, scopes=variables_by_node(c)) = 
-    compile(mgr, c, GateType(c), scopes)
-compile(mgr::SddMgr, c::LogicCircuit, ::ConstantGate, _) = 
-    compile(mgr, constant(c))
-compile(mgr::SddMgr, c::LogicCircuit, ::LiteralGate, _) = 
-    compile(mgr, literal(c))
-compile(mgr::SddMgr, c::LogicCircuit, gt::InnerGate, scopes) =
-    compile(mgr, NodeType(mgr), children(c), gt, scopes)
-compile(mgr::SddMgr, children::Vector{<:LogicCircuit}, gt::InnerGate, scopes) =
-    compile(mgr, NodeType(mgr), children, gt, scopes)
-
-function compile(mgr::SddMgr, ::Leaf, children::Vector{<:LogicCircuit}, gt::InnerGate, scopes)
-    isempty(children) && return compile(mgr, neutral(gt))
-    mapreduce(x -> compile(mgr,x,scopes), op(gt), children)
-end
-
-using Statistics: mean
-
-function compile(mgr::SddMgr, ::Inner, children::Vector{<:LogicCircuit}, gt::InnerGate, scopes)
-    isempty(children) && return compile(mgr, neutral(gt))
-
-    # partition children according to vtree
-    left_children = filter(x -> subseteq_fast(scopes[x], variables(mgr.left)), children)
-    right_children = filter(x -> subseteq_fast(scopes[x], variables(mgr.right)), children)
-    middle_children = setdiff(children, left_children, right_children)
-
-    # separately compile left and right vtree children
-    left = compile(mgr.left, left_children, gt, scopes)
-    right = compile(mgr.right, right_children, gt, scopes)
-
-    mapreduce(x -> compile(mgr,x,scopes), op(gt), middle_children; init=op(gt)(left, right))
+"Helper function to construct new SDD literal objects in SddMgrLeafNode constructor"
+function construct_new_sdd_literal(n::SddMgrLeafNode, l::Lit)::SddLiteralNode
+    @assert n.var == lit2var(l) "Cannot compile literal $l respecting vtree leaf for variable $(n.var)"
+    SddLiteralNode(l,n)
 end

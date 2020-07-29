@@ -106,7 +106,7 @@ using LogicCircuits
     @test model_count(ref) == BigInt(2)^10
     @test isempty(intersect(linearize(f),linearize(ref)))
 
-    mgr = TrimSddMgr(7, :balanced)
+    mgr = SddMgr(7, :balanced)
     v = Dict([(i => compile(mgr, Lit(i))) for i=1:7])
     c = (v[1] | !v[2] | v[3]) &
         (v[2] | !v[7] | v[6]) &
