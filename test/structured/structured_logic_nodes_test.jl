@@ -5,10 +5,10 @@ using LogicCircuits
     
     vtree = PlainVtree(10, :balanced)
     f = fully_factorized_circuit(StructLogicCircuit, vtree)
-    @test num_nodes(f) == 20+10+9+1
-    @test num_edges(f) == 20+18+1
+    @test num_nodes(f) == 20+10+9*2+1
+    @test num_edges(f) == 20+18+9+1
     @test length(and_nodes(f)) == 9
-    @test length(or_nodes(f)) == 10+1
+    @test length(or_nodes(f)) == 10+9+1
     
     @test respects_vtree(f)
     @test respects_vtree(f, PlainVtree(10, :balanced))
@@ -74,7 +74,7 @@ using LogicCircuits
     @test num_edges(plainf) == num_edges(f)
     @test num_nodes(plainf) == num_nodes(f) 
     @test length(and_nodes(plainf)) == 9
-    @test length(or_nodes(plainf)) == 10+1
+    @test length(or_nodes(plainf)) == 10+9+1
     @test model_count(plainf) == BigInt(2)^10
     @test isempty(intersect(linearize(f),linearize(plainf)))
 
@@ -88,7 +88,7 @@ using LogicCircuits
     @test num_edges(ref) == num_edges(f)
     @test num_nodes(ref) == num_nodes(f) 
     @test length(and_nodes(ref)) == 9
-    @test length(or_nodes(ref)) == 10+1
+    @test length(or_nodes(ref)) == 10+9+1
     @test model_count(ref) == BigInt(2)^10
     @test isempty(intersect(linearize(f),linearize(ref)))
 
@@ -102,7 +102,7 @@ using LogicCircuits
     @test num_edges(ref) == num_edges(f)
     @test num_nodes(ref) == num_nodes(f) 
     @test length(and_nodes(ref)) == 9
-    @test length(or_nodes(ref)) == 10+1
+    @test length(or_nodes(ref)) == 10+9+1
     @test model_count(ref) == BigInt(2)^10
     @test isempty(intersect(linearize(f),linearize(ref)))
 

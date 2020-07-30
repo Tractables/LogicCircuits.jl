@@ -189,7 +189,7 @@ function fully_factorized_circuit(::Type{<:PlainStructLogicCircuit}, vtree::Vtre
         neg = compile(PlainStructLogicCircuit, vtree, -var2lit(v))
         pos | neg
     end
-    f_inner(i,cs) = conjoin(cs)
+    f_inner(i,cs) = disjoin([conjoin(cs)])
     c = foldup_aggregate(vtree, f_leaf, f_inner, PlainStructLogicCircuit)
     disjoin([c]) # "bias term"
 end
