@@ -18,8 +18,8 @@ const UpFlow1 = BitVector
 
 "Container for circuit flows represented as an implicit conjunction of a prime and sub bit vector (saves memory allocations in circuits with many binary conjunctions)"
 struct UpFlow2
-    prime_flow::BitVector
-    sub_flow::BitVector
+    prime_flow::UpFlow1
+    sub_flow::UpFlow1
 end
 
 const UpFlow = Union{UpFlow1,UpFlow2}
@@ -74,7 +74,7 @@ function evaluate(root::LogicCircuit, data::Batch;
         end
     end
     
-    # ensure flow us Flow1 at the root, even when it's a conjunction
+    # ensure flow is Flow1 at the root, even when it's a conjunction
     root_flow = UpFlow1(foldup(root, f_con, f_lit, fa, fo, UpFlow; nload, nsave, reset))
     return nsave(root, root_flow)
 end

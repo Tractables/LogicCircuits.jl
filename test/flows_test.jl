@@ -9,9 +9,9 @@ using Random: bitrand
     r1a = conjoin([r1]) # add a unary And gate
 
     input = [1 0 1 0 1 0 1 0 1 0;
-            1 1 1 1 1 1 1 1 1 1;
-            0 0 0 0 0 0 0 0 0 0;
-            0 1 1 0 1 0 0 1 0 1]
+             1 1 1 1 1 1 1 1 1 1;
+             0 0 0 0 0 0 0 0 0 0;
+             0 1 1 0 1 0 0 1 0 1]
 
     input = BitArray(input)
 
