@@ -29,7 +29,7 @@ using Random: bitrand, rand
     end
 
     num_vars = 7
-    mgr = TrimSddMgr(num_vars, :balanced)
+    mgr = SddMgr(num_vars, :balanced)
     v = Dict([(i => compile(mgr, Lit(i))) for i=1:num_vars])
     c = (v[1] | !v[2] | v[3]) &
         (v[2] | !v[7] | v[6]) &
@@ -56,7 +56,7 @@ using Random: bitrand, rand
     end
 
     num_vars = 7
-    mgr = TrimSddMgr(num_vars, :balanced)
+    mgr = SddMgr(num_vars, :balanced)
     v = Dict([(i => compile(mgr, Lit(i))) for i=1:num_vars])
     c = (v[1] | !v[2] | v[3]) &
         (v[2] | !v[7] | v[6]) &
