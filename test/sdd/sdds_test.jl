@@ -3,14 +3,6 @@ using LogicCircuits
 
 include("../helper/validate_sdd.jl")
 
-@testset "SDD tests" begin
-
-   # just to make code coverage happy
-   @test istrue(SddTrueNode())
-   @test isfalse(SddFalseNode())
-
-end
-
 @testset "CNF compiler tests" begin
 
    cnf = zoo_cnf("easy/C17_mince.cnf")
@@ -41,7 +33,7 @@ end
       cnf = zoo_cnf("$suite/$name.cnf")
       vtree = zoo_vtree("$suite/$name.min.vtree");
 
-      mgr = TrimSddMgr(vtree)
+      mgr = SddMgr(vtree)
       # cnfΔ = @time compile_cnf(mgr, cnf)
       cnfΔ = compile(mgr, cnf)
 

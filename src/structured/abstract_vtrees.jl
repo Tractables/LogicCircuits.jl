@@ -20,9 +20,6 @@ abstract type Vtree <: Tree end
 "Get the variable in a vtree leaf"
 function variable end
 
-# all vtrees are assumed to have parent fields
-@inline parent(n::Vtree)::Union{Nothing,PlainVtreeInnerNode} = n.parent
-
 in(v::Var, vtree::Vtree) = v ∈ variables(vtree)
 
 "Find the leaf in the vtree that represents the given variable"

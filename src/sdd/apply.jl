@@ -1,20 +1,20 @@
 """
 Conjoin two SDDs
 """
-@inline conjoin(::SddFalseNode, ::SddTrueNode)::SddFalseNode = trimfalse
-@inline conjoin(::SddTrueNode, ::SddFalseNode)::SddFalseNode = trimfalse
-@inline conjoin(s::Sdd, ::SddTrueNode)::Sdd = s
-@inline conjoin(::Sdd, ::SddFalseNode)::SddFalseNode = trimfalse
-@inline conjoin(::SddTrueNode, s::Sdd)::Sdd = s
-@inline conjoin(::SddFalseNode, ::Sdd)::SddFalseNode = trimfalse
-@inline conjoin(::SddTrueNode, ::SddTrueNode)::Sdd = trimtrue
-@inline conjoin(::SddFalseNode, ::SddFalseNode)::Sdd = trimfalse
+@inline conjoin(::SddFalseNode, ::SddTrueNode) = false_sdd
+@inline conjoin(::SddTrueNode, ::SddFalseNode) = false_sdd
+@inline conjoin(s::Sdd, ::SddTrueNode) = s
+@inline conjoin(::Sdd, ::SddFalseNode) = false_sdd
+@inline conjoin(::SddTrueNode, s::Sdd) = s
+@inline conjoin(::SddFalseNode, ::Sdd) = false_sdd
+@inline conjoin(::SddTrueNode, ::SddTrueNode) = true_sdd
+@inline conjoin(::SddFalseNode, ::SddFalseNode) = false_sdd
 
 # const stats = Dict{Tuple{Int,Int},Int}()
 
 function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd 
-    if tmgr(s) === tmgr(t)
-        (s === t) ? s : trimfalse
+    if mgr(s) === mgr(t)
+        (s === t) ? s : false_sdd
     else
         conjoin_indep(s,t)
     end
@@ -24,7 +24,7 @@ end
 # Note: attempts to make a special cache for conjunctions with literals have not yielded speedups
 
 function conjoin(s::Sdd, t::Sdd)::Sdd 
-    if tmgr(s) === tmgr(t)
+    if mgr(s) === mgr(t)
         conjoin_cartesian(t,s)
     elseif varsubset(s,t)
         conjoin_descendent(s,t)
@@ -42,15 +42,15 @@ function conjoin_cartesian(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     if n1 === n2
         return n1
     elseif n1 === !n2
-        return trimfalse
+        return false_sdd
     end
-    get!(tmgr(n1).conjoin_cache, ApplyArgs(n1,n2)) do 
+    get!(mgr(n1).conjoin_cache, ApplyArgs(n1,n2)) do 
         conjoin_cartesian_general(n1,n2)
-    end
+    end::Sdd
 end
 
 
-function conjoin_cartesian_general(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
+function conjoin_cartesian_general(n1::Sdd⋁Node, n2::Sdd⋁Node)
     # vast majority of cases are 2x2 and 2x3 applies, yet specializing for those cases does not appear to speed things up
 
     out = XYPartition()
@@ -69,7 +69,7 @@ function conjoin_cartesian_general(n1::Sdd⋁Node, n2::Sdd⋁Node)::Sdd
     conjoin_cartesian_cheap(out, elems1, elems2, maski, maskj)
     conjoin_cartesian_expensive(out, elems1, elems2, maski, maskj)
     
-    canonicalize(out, tmgr(n1))
+    canonicalize(out, mgr(n1))::Sdd
 end
 
 function conjoin_cartesian_cheap(out, elems1, elems2, maski, maskj)
@@ -118,7 +118,7 @@ function conjoin_cartesian_expensive(out, elems1, elems2, maski, maskj)
                 if !maski[i] && !maskj[j] 
                     e2 = elems2[j]
                     newprime = conjoin(prime(e1),prime(e2))
-                    if newprime !== trimfalse
+                    if newprime !== false_sdd
                         newsub = conjoin(sub(e1),sub(e2))
                         push!(out, Element(newprime, newsub))
                     end
@@ -141,8 +141,8 @@ end
 """
 Conjoin two SDDs when one descends from the other
 """
-function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
-    get!(tmgr(n).conjoin_cache, ApplyArgs(d,n)) do 
+function conjoin_descendent(d::Sdd, n::Sdd)
+    get!(mgr(n).conjoin_cache, ApplyArgs(d,n)) do 
         elems = children(n)
         if varsubset_left(d, n)
             out = XYPartition()
@@ -150,15 +150,15 @@ function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
             i = findfirst(c -> prime(c) === d, elems)
             if issomething(i)
                 # there is a prime equal to d, all other primes will conjoin to false
-                if sub(elems[i]) === trimfalse
-                    return trimfalse
-                elseif sub(elems[i]) === trimtrue
+                if sub(elems[i]) === false_sdd
+                    return false_sdd
+                elseif sub(elems[i]) === true_sdd
                     return d
                 else
                     push!(out, Element(d, sub(elems[i])))
-                    push!(out, Element(!d, trimfalse))
+                    push!(out, Element(!d, false_sdd))
                     # since d is not a constant, must be trimmed and compressed
-                    return unique⋁(out, tmgr(n))
+                    return unique⋁(out, mgr(n))
                 end
             end
             i = findfirst(c -> prime(c) === !d, elems)
@@ -170,7 +170,7 @@ function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
             else
                 for e in elems
                     newprime = conjoin(prime(e),d)
-                    if (newprime !== trimfalse) 
+                    if (newprime !== false_sdd) 
                         push!(out, Element(newprime, sub(e)))
                     elseif newprime === d
                         # all future conjunctions will yield false
@@ -178,33 +178,34 @@ function conjoin_descendent(d::Sdd, n::Sdd)::Sdd # specialize for Literals?
                     end
                 end
             end
-            push!(out, Element(!d, trimfalse))
+            push!(out, Element(!d, false_sdd))
         else 
             # @assert varsubset_right(d, n)
+            # TODO: build vector and compress all at once...
             out = [Element(prime(e),conjoin(sub(e),d)) for e in elems]
         end
-        canonicalize(out, tmgr(n))
+        canonicalize(out, mgr(n))
     end
 end
 
 """
 Conjoin two SDDs in separate parts of the vtree
 """
-function conjoin_indep(s::Sdd, t::Sdd)::Sdd⋁Node
+function conjoin_indep(s::Sdd, t::Sdd)
     # @assert GateType(s)!=ConstantGate() && GateType(t)!=ConstantGate()
-    mgr = lca(tmgr(s),tmgr(t))
-    get!(mgr.conjoin_cache, ApplyArgs(s,t)) do 
-        if varsubset_left(tmgr(s), mgr)
-            @assert varsubset_right(tmgr(t), mgr)
-            elements = Element[Element(s,t),Element(!s,trimfalse)]
+    lca_mgr = lca(mgr(s),mgr(t))
+    get!(lca_mgr.conjoin_cache, ApplyArgs(s,t)) do 
+        if varsubset_left(mgr(s), lca_mgr)
+            @assert varsubset_right(mgr(t), lca_mgr)
+            elements = Element[Element(s,t),Element(!s,false_sdd)]
         else 
-            @assert varsubset_left(tmgr(t), mgr)
-            @assert varsubset_right(tmgr(s), mgr)
-            elements = Element[Element(t,s),Element(!t,trimfalse)]
+            @assert varsubset_left(mgr(t), lca_mgr)
+            @assert varsubset_right(mgr(s), lca_mgr)
+            elements = Element[Element(t,s),Element(!t,false_sdd)]
         end
         # TODO: the XY partition must already be compressed and trimmed
-        unique⋁(elements, mgr)
-    end
+        unique⋁(elements, lca_mgr)
+    end::Sdd⋁Node
 end
 
 """
