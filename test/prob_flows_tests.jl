@@ -28,58 +28,44 @@ using Random: bitrand, rand
         @test n.data.prob_upflow == n.data.prob_downflow
     end
 
-    num_vars = 7
-    mgr = SddMgr(num_vars, :balanced)
-    v = Dict([(i => compile(mgr, Lit(i))) for i=1:num_vars])
-    c = (v[1] | !v[2] | v[3]) &
-        (v[2] | !v[7] | v[6]) &
-        (v[3] | !v[4] | v[5]) &
-        (v[1] | !v[4] | v[6])
-    d = smooth(PlainLogicCircuit(c)) # flows don't make sense unless the circuit is smooth; cannot smooth trimmed SDDs
-    input = bitrand(25, num_vars)
-    input = Array{Float64, 2}(input)
-    compute_flows(d, input)
-    foreach(literal_nodes(d)) do n
-        @test n.data.prob_downflow == n.data.prob_upflow .* d.data.prob_upflow
-    end
+    l_a = LogicCircuit(Lit(1))
+    l_na = LogicCircuit(Lit(-1))
+    l_b = LogicCircuit(Lit(2))
+    l_nb = LogicCircuit(Lit(-2))
+    l_c = LogicCircuit(Lit(3))
+    l_nc = LogicCircuit(Lit(-3))
+    
+    o_c = (l_a & l_b & l_c) | (l_a & l_nb & l_c) | (l_na & l_b & l_c) | (l_na & l_nb & l_c)
+    o_nc = (l_a & l_b & l_nc) | (l_a & l_nb & l_nc) | (l_na & l_b & l_nc) | (l_na & l_nb & l_nc)
+    r = (o_c | o_nc)
 
-    l1 = LogicCircuit(Lit(1))
-    l2 = LogicCircuit(Lit(2))
-    l3 = LogicCircuit(Lit(-1))
-    l4 = LogicCircuit(Lit(-2))
-    r = (l1 & l2) | (l3 & l4)
-    input = bitrand(4,2)
-    input = Array{Float64, 2}(input)
+    input = rand(Float64, (10,3))
     compute_flows(r, input)
-    foreach(literal_nodes(r)) do n
-        @test n.data.prob_downflow == n.data.prob_upflow .* r.data.prob_upflow
+    @test all(@. abs(r.data.prob_upflow - 1.0) <= 1e-7)
+    @test all(@. abs(r.data.prob_downflow - 1.0) <= 1e-7)
+    @test all(@. abs(o_c.data.prob_upflow - input[:, 3]) <= 1e-7)
+    @test all(@. abs(o_c.data.prob_downflow - input[:, 3]) <= 1e-7)
+    @test all(@. abs(o_nc.data.prob_upflow + input[:, 3] - 1.0) <= 1e-7)
+    @test all(@. abs(o_nc.data.prob_downflow + input[:, 3] - 1.0) <= 1e-7)
+
+    foreach(literal_nodes(r)) do n 
+        @test all(@. abs(n.data.prob_upflow - n.data.prob_downflow) <= 1e-7)
     end
 
-    num_vars = 7
-    mgr = SddMgr(num_vars, :balanced)
-    v = Dict([(i => compile(mgr, Lit(i))) for i=1:num_vars])
-    c = (v[1] | !v[2] | v[3]) &
-        (v[2] | !v[7] | v[6]) &
-        (v[3] | !v[4] | v[5]) &
-        (v[1] | !v[4] | v[6])
-    d = smooth(PlainLogicCircuit(c)) # flows don't make sense unless the circuit is smooth; cannot smooth trimmed SDDs
-    input = rand(Float64, (25, num_vars))
-    compute_flows(d, input)
-    foreach(literal_nodes(d)) do n
-        #@test n.data.prob_downflow == n.data.prob_upflow .* d.data.prob_upflow
-        @test true
-    end
-
-    l1 = LogicCircuit(Lit(1))
-    l2 = LogicCircuit(Lit(2))
-    l3 = LogicCircuit(Lit(-1))
-    l4 = LogicCircuit(Lit(-2))
-    r = (l1 & l2) | (l3 & l4)
-    input = rand(Float64, (4,2))
+    o_c = (l_a & l_b & l_c) | (l_na & l_b & l_c)
+    o_nc = (l_a & l_nb & l_nc) | (l_na & l_nb & l_nc)
+    r = (o_c | o_nc)
+    input = rand(Float64, (10,3))
     compute_flows(r, input)
-    foreach(literal_nodes(r)) do n
-        #@test n.data.prob_downflow == n.data.prob_upflow .* r.data.prob_upflow
-        @test true
-    end
-    #TODO; check why tests would fail on general inputs within range (0, 1); Implementation is wrong or Underflow is the issue
+    @test all(@. abs(o_c.data.prob_upflow - input[:, 2] * input[:, 3]) <= 1e-7)
+    @test all(@. abs(o_c.data.prob_downflow -  o_c.data.prob_upflow) <= 1e-7)
+    @test all(@. abs(o_nc.data.prob_upflow - (1.0 - input[:, 2]) * (1.0 - input[:, 3])) <= 1e-7)
+    @test all(@. abs(o_nc.data.prob_downflow -  o_nc.data.prob_upflow) <= 1e-7)
+    @test all(@. abs(l_a.data.prob_downflow - l_a.data.prob_upflow * r.data.prob_downflow) <= 1e-7)
+    @test all(@. abs(l_na.data.prob_downflow - l_na.data.prob_upflow * r.data.prob_downflow) <= 1e-7)
+    @test all(@. abs(l_b.data.prob_downflow - input[:, 2] * input[:, 3]) <= 1e-7)
+    @test all(@. abs(l_b.data.prob_downflow - l_c.data.prob_downflow) <= 1e-7)
+    @test all(@. abs(l_nb.data.prob_downflow - (1.0 - input[:, 2]) * (1.0 - input[:, 3])) <= 1e-7)
+    @test all(@. abs(l_nb.data.prob_downflow - l_nc.data.prob_downflow) <= 1e-7)
+
 end

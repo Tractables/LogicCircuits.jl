@@ -138,22 +138,41 @@ function compute_flows(circuit::LogicCircuit, data::FloatBatch)
 
     foreach_down(circuit; setcounter=false) do n
         if isinner(n) && !isfactorized(n)
-            prob_downflow_n = prob_downflow(n)
-            for c in children(n)
-                if isfactorized(c)
-                    # @assert num_children(c) == 2
-                    prob_upflow2_c = c.data::ProbUpDownFlow2
-                    # propogate one level further downward
-                    for i = 1:2
-                        prob_downflow_c = prob_downflow(@inbounds children(c)[i])
-                        prob_downflow_c .+= prob_downflow_n .* prob_upflow2_c.prime_prob_flow .* prob_upflow2_c.sub_prob_flow
+            prob_upflow_n = (n.data::ProbUpDownFlow1).prob_upflow
+            if is⋁gate(n)
+                # the downflow of children of an OR gate need to be normalized by the OR gate's upflow
+                prob_downflow_n = prob_downflow(n)
+                for c in children(n)
+                    if isfactorized(c)
+                        # @assert num_children(c) == 2
+                        prob_upflow2_c = c.data::ProbUpDownFlow2
+                        # propogate one level further downward
+                        for i = 1:2
+                            prob_downflow_c = prob_downflow(@inbounds children(c)[i])
+                            prob_downflow_c .+= prob_downflow_n .* prob_upflow2_c.prime_prob_flow .* prob_upflow2_c.sub_prob_flow ./ prob_upflow_n
+                        end
+                    else
+                        prob_upflow1_c = (c.data::ProbUpDownFlow1).prob_upflow
+                        prob_downflow_c = prob_downflow(c)
+                        prob_downflow_c .+= prob_downflow_n .* prob_upflow1_c ./ prob_upflow_n
                     end
-                else
-                    prob_upflow1_c = (c.data::ProbUpDownFlow1).prob_upflow
-                    prob_downflow_c = prob_downflow(c)
-                    prob_downflow_c .+= prob_downflow_n .* prob_upflow1_c
                 end
-            end
+            else
+                # the downflow of children of an AND gate shall directly inherent from the AND gate
+                for c in children(n)
+                    if isfactorized(c)
+                        # @assert num_children(c) == 2
+                        # propogate one level further downward
+                        for i = 1:2
+                            prob_downflow_c = prob_downflow(@inbounds children(c)[i])
+                            prob_downflow_c .+= prob_upflow_n
+                        end
+                    else
+                        prob_downflow_c = prob_downflow(c)
+                        prob_downflow_c .+= prob_upflow_n
+                    end
+                end
+            end 
         end
         nothing
     end
