@@ -13,7 +13,7 @@ import Statistics: mean, std
 export num_examples, num_features, 
        example, feature_values,
        isnumericdata, isbinarydata, number_precision,
-       shuffle_examples, threshold, soften,
+       shuffle_examples, batch, threshold, soften,
        ll_per_example, bits_per_pixel
 
 
@@ -63,9 +63,16 @@ isbinarydata(df::DataFrame) = all(t -> t <: Bool, eltypes(df))
 
 Shuffle the examples in the data
 """
-shuffle_examples(df::DataFrame) = df[shuffle(axes(df, 1)), :]
-shuffle_examples(m::AbstractMatrix) = m[shuffle(1:end), :]
+shuffle_examples(data::Union{DataFrame,AbstractMatrix}) = data[shuffle(axes(data, 1)), :]
 
+"Create mini-batches"
+function batch(data::Union{DataFrame,AbstractMatrix}, batchsize=1024)
+    data = shuffle_examples(data)
+    map(1:batchsize:num_examples(data)) do start_index 
+        stop_index = min(start_index + batchsize - 1, num_examples(data))
+        data[start_index:stop_index, :]
+    end
+end
 
 "Threshold a numeric dataset making it binary"
 threshold(train, valid, test) = threshold(train, valid, test, 0.05) # default threshold offset (used for MNIST)

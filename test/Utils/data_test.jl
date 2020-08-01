@@ -43,6 +43,15 @@ using DataFrames: DataFrame, DataFrameRow
     @test !isbinarydata(df)
     @test isbinarydata(dfb)
 
+    @test length(batch(mb,1)) == 3
+    @test length(batch(mb,2)) == 2
+    @test length(batch(mb,3)) == 1
+    @test length(batch(mb,4)) == 1
+    @test sum(num_examples, batch(mb,1)) == 3
+    @test sum(num_examples, batch(mb,2)) == 3
+    @test sum(num_examples, batch(mb,3)) == 3
+    @test sum(num_examples, batch(mb,4)) == 3
+
     @test num_examples(shuffle_examples(m)) == 3
     @test num_examples(shuffle_examples(df)) == 3
     @test 1 in feature_values(shuffle_examples(m), 1) 
