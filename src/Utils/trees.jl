@@ -1,5 +1,3 @@
-using DataStructures
-
 export parent, has_parent, isroot, 
        lca, find_leaf, depth, find_inode, 
        Tree, isequal_local, print_tree

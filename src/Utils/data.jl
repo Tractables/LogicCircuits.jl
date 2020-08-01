@@ -12,8 +12,8 @@ import Statistics: mean, std
 
 export num_examples, num_features, 
        example, feature_values,
-       isnumericdata, isbinarydata,
-       shuffle_examples, threshold,
+       isnumericdata, isbinarydata, number_precision,
+       shuffle_examples, threshold, soften,
        ll_per_example, bits_per_pixel
 
 
@@ -47,11 +47,13 @@ isnumericdata(::AbstractMatrix) = false
 isnumericdata(::AbstractMatrix{<:Number}) = true
 isnumericdata(df::DataFrame) = all(t -> t <: Number, eltypes(df))
 
+"Find a number type that can capture all data points"
+number_precision(df::DataFrame) = reduce(typejoin, eltypes(df))
+
 "Is the dataset binary?"
 isbinarydata(::AbstractMatrix) = false
 isbinarydata(::AbstractMatrix{Bool}) = true
 isbinarydata(df::DataFrame) = all(t -> t <: Bool, eltypes(df))
-
 
 # DATA TRANSFORMATIONS
 
@@ -90,6 +92,9 @@ function threshold(train::AbstractMatrix{<:Number}, valid, test, offset)
     return train, valid, test
 end
 
+"Turn binary data into floating point data close to 0 and 1."
+soften(data, softness=0.05; precision=Float32) =
+    data .* precision(1-2*softness) .+ precision(softness) 
 
 # LIKELIHOOD HELPERS
 
