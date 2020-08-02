@@ -43,23 +43,23 @@ flow_type(data::DataFrame) = begin
 end
 
 function evaluate(root::LogicCircuit, data::Batch, ::Type{F}=flow_type(data);
-                  nload = nload, nsave = nsave, reset=true) where F
+                  upflow = nload, upflow! = nsave, reset=true) where F
     
     num_examples::Int = Utils.num_examples(data)
 
     root_flow = foldup(root, 
-        n -> evaluate_constant(n, F, nload, num_examples),
-        n -> evaluate_literal(n, F, nload, data),
-        (n, call) -> evaluate_and(n, call, F, nload, num_examples),
-        (n, call) -> evaluate_or(n, call, F, nload, num_examples),
-        UpFlow{F}; nload, nsave, reset)
+        n -> evaluate_constant(n, F, upflow, num_examples),
+        n -> evaluate_literal(n, F, upflow, data),
+        (n, call) -> evaluate_and(n, call, F, upflow, num_examples),
+        (n, call) -> evaluate_or(n, call, F, upflow, num_examples),
+        UpFlow{F}; nload=upflow, nsave=upflow!, reset)
 
     # ensure flow is Flow1 at the root, even when it's a conjunction
-    return nsave(root, materialize(root_flow))::F
+    return upflow!(root, materialize(root_flow))::F
 end
 
-@inline function evaluate_constant(n, ::Type{F}, nload, num_examples) where F
-    cache = nload(n)
+@inline function evaluate_constant(n, ::Type{F}, upflow, num_examples) where F
+    cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples
         istrue(n) ? cache::F .= one(F) : cache::F .= zero(F)  
     else
@@ -67,9 +67,9 @@ end
     end
 end
 
-@inline function evaluate_literal(n, ::Type{F}, nload, data) where F
+@inline function evaluate_literal(n, ::Type{F}, upflow, data) where F
     fv = feature_values(data,variable(n))
-    cache = nload(n)
+    cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples(data)
         if ispositive(n) 
             return cache::F .= fv
@@ -85,13 +85,14 @@ end
     end
 end
 
-@inline function evaluate_and(n, call, ::Type{F}, nload, num_examples) where F
-    cache = nload(n)
+@inline function evaluate_and(n, call, ::Type{F}, upflow, num_examples) where F
+    cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples
         reuse = cache::F
         c1 = call(@inbounds children(n)[1])::UpFlow{F}
         if num_children(n) == 1
-            return materialize!(reuse, c1)
+            materialize!(reuse, c1)
+            return reuse
         else
             c2 = call(@inbounds children(n)[2])::UpFlow{F}
             if num_children(n) == 2 && c1 isa F && c2 isa F 
@@ -123,12 +124,13 @@ end
     end
 end
 
-@inline function evaluate_or(n, call, ::Type{F}, nload, num_examples) where F
-    cache = nload(n)
+@inline function evaluate_or(n, call, ::Type{F}, upflow, num_examples) where F
+    cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples
         reuse = cache::F
         if num_children(n) == 1
-            return materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})::F
+            materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})::F
+            return reuse
         else
             materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})
             for c in children(n)[2:end]
@@ -156,9 +158,9 @@ end
 @inline materialize(elems::UpFlow2) = flow_and(elems.prime_flow, elems.sub_flow)
 
 "Turn a implicit `UpFlow2{F}` into its concrete flow `F` and assign to `sink`"
-@inline materialize!(sink, elems) = (sink === elems) ? sink : (sink .= elems)
-@inline materialize!(sink::BitVector, elems::BitFlow2) = (@avx @. sink = elems.prime_flow & elems.sub_flow)::BitVector
-@inline materialize!(sink::FloatVector, elems::FloatFlow2) = (@avx @. sink = elems.prime_flow * elems.sub_flow)::FloatVector
+@inline materialize!(sink, elems) = ((sink === elems) ? nothing : (sink .= elems; nothing))
+@inline materialize!(sink::BitVector, elems::BitFlow2) = (@avx @. sink = elems.prime_flow & elems.sub_flow); nothing
+@inline materialize!(sink::FloatVector, elems::FloatFlow2) = (@avx @. sink = elems.prime_flow * elems.sub_flow); nothing
 
 "Complement a flow (corresponding to logical negation)"
 @inline complement(x::AbstractVector{Bool})::BitVector = broadcast(!,x)
@@ -252,7 +254,7 @@ function compute_flows(circuit::LogicCircuit, data::Batch, ::Type{F}) where F
         end
     end
 
-    evaluate(circuit, data, F; nload=upflow, nsave=upflow!, reset=false)
+    evaluate(circuit, data, F; upflow, upflow!, reset=false)
     
     # downward pass
 
