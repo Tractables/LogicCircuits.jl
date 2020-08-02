@@ -144,10 +144,10 @@ function filter(p::Function, root::Dag, ::Type{T} = Union{})::Vector where T
 end
 
 "Default getter to obtain data associated with a node"
-nload(n) = n.data
+@inline nload(n) = n.data
 
 "Default setter to assign data associated with a node"
-nsave(n,v) = n.data = v
+@inline nsave(n,v) = n.data = v
 
 """
     foldup(node::Dag, 

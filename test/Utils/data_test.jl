@@ -26,8 +26,6 @@ using DataFrames: DataFrame, DataFrameRow
 
     @test feature_values(m,2) == [2,4,6]
     @test feature_values(df,2) == [2,4,6]
-    @test feature_values(mb,2) isa BitVector
-    @test feature_values(mb,2) == BitVector([false,true,true])
     @test feature_values(dfb,2) isa BitVector
     @test feature_values(dfb,2) == BitVector([false,true,true])
 

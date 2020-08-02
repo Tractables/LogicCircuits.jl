@@ -48,45 +48,100 @@ function evaluate(root::LogicCircuit, data::Batch;
 end
 
 function evaluate(root::LogicCircuit, data::Batch, ::Type{F};
-                   nload = nload, nsave = nsave, reset=true) where F
+                  nload = nload, nsave = nsave, reset=true) where F
     
     num_examples::Int = Utils.num_examples(data)
 
     @inline f_lit(n) = begin
-        fv::F = feature_values(data,variable(n))
-        ispositive(n) ? fv : complement(fv)
+        fv = feature_values(data,variable(n))
+        cache = nload(n)
+        if (cache isa F) && length(cache::F) == num_examples
+            if ispositive(n) 
+                return cache::F .= fv
+            else
+                complement!(cache::F, fv)
+            end
+        else
+            if ispositive(n) 
+                return convert(F,fv)
+            else
+                complement(fv)
+            end
+        end
     end
     
-    @inline f_con(n) = istrue(n) ? always(F, num_examples) : never(F, num_examples)
-    
+    @inline f_con(n) = begin
+        cache = nload(n)
+        if (cache isa F) && length(cache::F) == num_examples
+            istrue(n) ? cache::F .= one(F) : cache::F .= zero(F)  
+        else
+            istrue(n) ? always(F, num_examples) : never(F, num_examples)
+        end
+    end
+
     @inline fa(n, call) = begin
-        if num_children(n) == 1
-            return materialize(call(@inbounds children(n)[1])::UpFlow{F})
+        cache = nload(n)
+        if (cache isa F) && length(cache::F) == num_examples
+            reuse = cache::F
+            c1 = call(@inbounds children(n)[1])::UpFlow{F}
+            if num_children(n) == 1
+                return materialize!(reuse, c1)
+            else
+                c2 = call(@inbounds children(n)[2])::UpFlow{F}
+                if num_children(n) == 2 && c1 isa F && c2 isa F 
+                    return UpFlow2{F}(c1, c2) # no need to allocate a new flow, but cannot reuse F
+                end
+                materialize!(reuse, c1)
+                flow_and!(reuse, c2)
+                for c in children(n)[3:end]
+                    flow_and!(reuse, call(c)::UpFlow{F})
+                end
+                return reuse::F
+            end
         else
             c1 = call(@inbounds children(n)[1])::UpFlow{F}
-            c2 = call(@inbounds children(n)[2])::UpFlow{F}
-            if num_children(n) == 2 && c1 isa F && c2 isa F 
-                return UpFlow2(c1, c2) # no need to allocate a new BitVector
+            if num_children(n) == 1
+                return materialize(c1)::F
+            else
+                c2 = call(@inbounds children(n)[2])::UpFlow{F}
+                if num_children(n) == 2 && c1 isa F && c2 isa F 
+                    # note: reusing an existing UpFlow2{F} seems to slow things down...
+                    return UpFlow2{F}(c1, c2) # no need to allocate a new flow
+                end
+                x = flow_and(c1, c2)
+                for c in children(n)[3:end]
+                    flow_and!(x, call(c)::UpFlow{F})
+                end
+                return x::F
             end
-            x = flow_and(c1, c2)
-            for c in children(n)[3:end]
-                flow_and!(x, call(c)::UpFlow{F})
-            end
-            return x
         end
     end
     
     @inline fo(n, call) = begin
-        if num_children(n) == 1
-            return materialize(call(@inbounds children(n)[1])::UpFlow{F})
-        else
-            c1 = call(@inbounds children(n)[1])::UpFlow{F}
-            c2 = call(@inbounds children(n)[2])::UpFlow{F}
-            x = flow_or(c1, c2)
-            for c in children(n)[3:end]
-                flow_or!(x, call(c)::UpFlow{F})
+        cache = nload(n)
+        if (cache isa F) && length(cache::F) == num_examples
+            reuse = cache::F
+            if num_children(n) == 1
+                return materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})::F
+            else
+                materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})
+                for c in children(n)[2:end]
+                    flow_or!(reuse, call(c)::UpFlow{F})
+                end
+                return reuse::F
             end
-            return x
+        else
+            if num_children(n) == 1
+                return materialize(call(@inbounds children(n)[1])::UpFlow{F})::F
+            else
+                c1 = call(@inbounds children(n)[1])::UpFlow{F}
+                c2 = call(@inbounds children(n)[2])::UpFlow{F}
+                x = flow_or(c1, c2)
+                for c in children(n)[3:end]
+                    flow_or!(x, call(c)::UpFlow{F})
+                end
+                return x::F
+            end
         end
     end
     
@@ -99,9 +154,18 @@ end
 @inline materialize(elems) = elems
 @inline materialize(elems::UpFlow2) = flow_and(elems.prime_flow, elems.sub_flow)
 
+"Turn a implicit `UpFlow2{F}` into its concrete flow `F` and assign to `sink`"
+@inline materialize!(sink, elems) = (sink === elems) ? sink : (sink .= elems)
+@inline materialize!(sink::BitVector, elems::BitFlow2) = (@avx @. sink = elems.prime_flow & elems.sub_flow)::BitVector
+@inline materialize!(sink::FloatVector, elems::FloatFlow2) = (@avx @. sink = elems.prime_flow * elems.sub_flow)::FloatVector
+
 "Complement a flow (corresponding to logical negation)"
-@inline complement(x::BitVector) = broadcast(!,x)
-@inline complement(x::Vector{T}) where T<:AbstractFloat = @avx one(T) .- x
+@inline complement(x::AbstractVector{Bool})::BitVector = broadcast(!,x)
+@inline complement(x::AbstractVector{T}) where {T<:AbstractFloat} = (@avx one(T) .- x)
+
+"Complement a flow (corresponding to logical negation) and assign to `sink`"
+@inline complement!(sink::BitVector, x::AbstractVector{Bool}) = @. sink = !x
+@inline complement!(sink::FloatVector, x::AbstractVector{T}) where T<:AbstractFloat = @avx @. sink = one(T) - x
 
 "Compute the logical and of two flow objects"
 @inline flow_and(x::BitVector, y::BitVector) = @. x & y
@@ -158,15 +222,33 @@ end
 
 function compute_flows(circuit::LogicCircuit, data::Batch, ::Type{F}) where F
 
+    num_examples::Int = Utils.num_examples(data)
+
     # upward pass
     @inline upflow!(n, v) = begin
-        n.data = (v isa F) ? UpDownFlow1(v) : v
-        v
+        if v isa F
+            if n.data isa UpDownFlow1{F} && length((n.data::UpDownFlow1{F}).upflow) == num_examples
+                cache = n.data::UpDownFlow1{F}
+                (cache.upflow !== v) && (cache.upflow .= v)
+                cache.downflow .= zero(eltype(F))
+            else
+                n.data = UpDownFlow1(v)
+            end
+        else
+            @assert v isa UpFlow2{F}
+            n.data = v::UpFlow2{F}
+        end
+        return v
     end
 
     @inline upflow(n) = begin
-        d = n.data::UpDownFlow{F}
-        (d isa UpDownFlow1{F}) ? d.upflow : d
+        if n.data isa UpDownFlow1{F}
+            return (n.data::UpDownFlow1{F}).upflow
+        elseif n.data isa UpDownFlow2{F}
+            return n.data::UpDownFlow2{F}
+        else
+            return nothing
+        end
     end
 
     evaluate(circuit, data, F; nload=upflow, nsave=upflow!, reset=false)

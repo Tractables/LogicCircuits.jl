@@ -39,8 +39,8 @@ num_features(m::AbstractMatrix) = size(m,2)
 example(d,i) = d[i,:]
 
 "Get the ith feature values"
-feature_values(df::DataFrame, i) = df[!,i]
-feature_values(m::AbstractMatrix, i) = m[:,i]
+feature_values(df::DataFrame, i) = df[!,i] #no need for a view, already fast on DataFrames
+feature_values(m::AbstractMatrix, i) = @view m[:,i]
 
 "Is the dataset numeric?"
 isnumericdata(::AbstractMatrix) = false
