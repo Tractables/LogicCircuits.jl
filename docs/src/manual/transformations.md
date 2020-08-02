@@ -13,7 +13,7 @@ For example, to condition on ``\lnot x_2``, you can use [`condition`](@ref) as f
 ```@example condition
 using LogicCircuits # hide
 lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
-c2not = condition(lc, Int32(-2));
+c2not = condition(lc, Lit(-2));
 
 num_nodes(lc), num_nodes(c2not)
 ```
