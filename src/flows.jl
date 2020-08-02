@@ -129,8 +129,8 @@ end
     if (cache isa F) && length(cache::F) == num_examples
         reuse = cache::F
         if num_children(n) == 1
-            materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})::F
-            return reuse
+            materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})
+            return reuse::F
         else
             materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})
             for c in children(n)[2:end]
@@ -257,46 +257,43 @@ function compute_flows(circuit::LogicCircuit, data::Batch, ::Type{F}) where F
     evaluate(circuit, data, F; upflow, upflow!, reset=false)
     
     # downward pass
+    (circuit.data::UpDownFlow1{F}).downflow .= (circuit.data::UpDownFlow1{F}).upflow
+    foreach_down(n -> flow_down_inode(n, F), circuit; setcounter=false)
 
-    @inline downflow1(n) = (n.data::UpDownFlow1{F}).downflow
-    @inline upflow1(n) = (n.data::UpDownFlow1{F}).upflow
-    @inline isfactorized(n) = n.data::UpDownFlow{F} isa UpDownFlow2{F}
-
-    downflow1(circuit) .= upflow1(circuit)
-
-    foreach_down(circuit; setcounter=false) do n
-        if isinner(n) && !isfactorized(n)
-            downflow_n = downflow1(n)
-            upflow_n = upflow1(n)
-            for c in children(n)
-                if isfactorized(c)
-                    # @assert num_children(c) == 2
-                    upflow2_c = c.data::UpDownFlow2{F}
-                    # propagate one level further down
-                    for i = 1:2
-                        downflow_gc = downflow1(@inbounds children(c)[i])
-                        if is⋁gate(n)
-                            acc_downflow_or(downflow_gc, downflow_n, upflow2_c, upflow_n)
-                        else
-                            acc_downflow_and(downflow_gc, downflow_n)
-                        end
-                    end
-                else
-                    upflow1_c = (c.data::UpDownFlow1{F}).upflow
-                    downflow_c = downflow1(c)
-                    if is⋁gate(n)
-                        acc_downflow_or(downflow_c, downflow_n, upflow1_c, upflow_n)
-                    else
-                        acc_downflow_and(downflow_c, downflow_n)
-                    end
-                end
-            end 
-        end
-        nothing
-    end
-    
     nothing
 end
+
+@inline function flow_down_inode(n, ::Type{F}) where F
+    if isinner(n) && (n.data isa UpDownFlow1{F})
+        updownflow_n = n.data::UpDownFlow1{F}
+        downflow_n = updownflow_n.downflow
+        upflow_n = updownflow_n.upflow
+        for c in children(n)
+            if c.data isa UpDownFlow2{F}
+                # @assert num_children(c) == 2
+                upflow2_c = c.data::UpDownFlow2{F}
+                # propagate one level further down
+                for i = 1:2
+                    downflow_gc = ((@inbounds children(c)[i]).data::UpDownFlow1{F}).downflow
+                    if is⋁gate(n)
+                        acc_downflow_or(downflow_gc, downflow_n, upflow2_c, upflow_n)
+                    else
+                        acc_downflow_and(downflow_gc, downflow_n)
+                    end
+                end
+            else
+                updownflow_c = c.data::UpDownFlow1{F}
+                if is⋁gate(n)
+                    acc_downflow_or(updownflow_c.downflow, downflow_n, updownflow_c.upflow, upflow_n)
+                else
+                    acc_downflow_and(updownflow_c.downflow, downflow_n)
+                end
+            end
+        end 
+    end
+    nothing
+end
+
 
 "Accumulate the downflow from an And node to its children"
 @inline acc_downflow_and(downflow_c::BitVector, downflow_n::BitVector) =
