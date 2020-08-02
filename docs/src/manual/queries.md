@@ -1,10 +1,5 @@
 # [Queries](@id man-queries)
 
-!!! note
-
-    This page is still under construction.
-
-
 
 ## Evaluation
 Given a logic circuit ``\Delta`` and an assignment to its variable, we would like to know the output of the circuit. For example, if ``\Delta = X \land Y ``, and we assign ``x``, ``\lnot y``:
@@ -16,9 +11,9 @@ X \land Y = \text{true} \land \text{false} = \text{false}
 ```@example eval
 using LogicCircuits # hide
 lc = load_logic_circuit(zoo_psdd_file("plants.psdd"));
-data, _, _ = twenty_datasets("plants");
+train, valid, test = twenty_datasets("plants");
 
-results = lc(data);
+results = lc(train);
 results[1:3]
 ```
 
