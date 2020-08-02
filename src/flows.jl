@@ -205,11 +205,12 @@ end
 #####################
 
 "Container for both the upward and downward flow of a given type `F`"
-struct UpDownFlow1{F}
+mutable struct UpDownFlow1{F}
     upflow::F
     downflow::F
+    hasdownflow::Bool
     UpDownFlow1(upf::F) where F = 
-        new{F}(upf, never(F, length(upf)))
+        new{F}(upf, F(undef, length(upf)), false)
 end
 
 "Container for the upward implicit flow of type `F`, for which no downward flow is stored"
@@ -233,7 +234,7 @@ function compute_flows(circuit::LogicCircuit, data::Batch, ::Type{F}) where F
             if n.data isa UpDownFlow1{F} && length((n.data::UpDownFlow1{F}).upflow) == num_examples
                 cache = n.data::UpDownFlow1{F}
                 (cache.upflow !== v) && (cache.upflow .= v)
-                cache.downflow .= zero(eltype(F))
+                cache.hasdownflow = false
             else
                 n.data = UpDownFlow1(v)
             end
@@ -257,7 +258,7 @@ function compute_flows(circuit::LogicCircuit, data::Batch, ::Type{F}) where F
     evaluate(circuit, data, F; upflow, upflow!, reset=false)
     
     # downward pass
-    (circuit.data::UpDownFlow1{F}).downflow .= (circuit.data::UpDownFlow1{F}).upflow
+    circuit.data.downflow .= circuit.data.upflow
     foreach_down(n -> flow_down_inode(n, F), circuit; setcounter=false)
 
     nothing
@@ -274,20 +275,22 @@ end
                 upflow2_c = c.data::UpDownFlow2{F}
                 # propagate one level further down
                 for i = 1:2
-                    downflow_gc = ((@inbounds children(c)[i]).data::UpDownFlow1{F}).downflow
+                    updownflow_gc = (@inbounds children(c)[i]).data::UpDownFlow1{F}
                     if is⋁gate(n)
-                        acc_downflow_or(downflow_gc, downflow_n, upflow2_c, upflow_n)
+                        acc_downflow_or(updownflow_gc.downflow, downflow_n, upflow2_c, upflow_n, updownflow_gc.hasdownflow)
                     else
-                        acc_downflow_and(downflow_gc, downflow_n)
+                        acc_downflow_and(updownflow_gc.downflow, downflow_n, updownflow_gc.hasdownflow)
                     end
+                    updownflow_gc.hasdownflow = true
                 end
             else
                 updownflow_c = c.data::UpDownFlow1{F}
                 if is⋁gate(n)
-                    acc_downflow_or(updownflow_c.downflow, downflow_n, updownflow_c.upflow, upflow_n)
+                    acc_downflow_or(updownflow_c.downflow, downflow_n, updownflow_c.upflow, upflow_n, updownflow_c.hasdownflow)
                 else
-                    acc_downflow_and(updownflow_c.downflow, downflow_n)
+                    acc_downflow_and(updownflow_c.downflow, downflow_n, updownflow_c.hasdownflow)
                 end
+                updownflow_c.hasdownflow = true
             end
         end 
     end
@@ -296,23 +299,50 @@ end
 
 
 "Accumulate the downflow from an And node to its children"
-@inline acc_downflow_and(downflow_c::BitVector, downflow_n::BitVector) =
-    @. downflow_c |= downflow_n
-@inline acc_downflow_and(downflow_c::FloatVector, downflow_n::FloatVector) =
-    @avx @. downflow_c += downflow_n
-    
+@inline acc_downflow_and(downflow_c::BitVector, downflow_n::BitVector, hasdownflow) =
+    if hasdownflow
+        @. downflow_c |= downflow_n
+    else
+        @. downflow_c = downflow_n
+    end
+
+@inline acc_downflow_and(downflow_c::FloatVector, downflow_n::FloatVector, hasdownflow) =
+    if hasdownflow
+        @avx @. downflow_c += downflow_n
+    else
+        @avx @. downflow_c = downflow_n
+    end
+
 "Accumulate the downflow from an Or node to its children"
 @inline acc_downflow_or(downflow_c::BitVector, downflow_n::BitVector, 
-                        upflow1_c::BitVector, ::BitVector) =
-    @. downflow_c |= downflow_n & upflow1_c
+                        upflow1_c::BitVector, ::BitVector, hasdownflow) =
+    if hasdownflow
+        @. downflow_c |= downflow_n & upflow1_c
+    else
+        @. downflow_c = downflow_n & upflow1_c
+    end
+
 @inline acc_downflow_or(downflow_c::FloatVector, downflow_n::FloatVector, 
-                               upflow1_c::FloatVector, upflow_n::FloatVector) =
-    @avx @. downflow_c += downflow_n * upflow1_c / upflow_n
+                               upflow1_c::FloatVector, upflow_n::FloatVector, hasdownflow) =
+    if hasdownflow
+        @avx @. downflow_c += downflow_n * upflow1_c / upflow_n
+    else
+        @avx @. downflow_c = downflow_n * upflow1_c / upflow_n
+    end
 
 # the following methods skip children with implicit flows, and push the flow down to the grandchildren immediately
 @inline acc_downflow_or(downflow_gc::BitVector, downflow_n::BitVector, 
-                               upflow2_c::BitFlow2, ::BitVector) =
-    @. downflow_gc |= downflow_n & upflow2_c.prime_flow & upflow2_c.sub_flow
+                               upflow2_c::BitFlow2, ::BitVector, hasdownflow) =
+    if hasdownflow
+        @. downflow_gc |= downflow_n & upflow2_c.prime_flow & upflow2_c.sub_flow
+    else
+        @. downflow_gc = downflow_n & upflow2_c.prime_flow & upflow2_c.sub_flow
+    end
+
 @inline acc_downflow_or(downflow_gc::FloatVector, downflow_n::FloatVector, 
-                               upflow2_c::FloatFlow2, upflow_n::FloatVector) =
-    @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
+                               upflow2_c::FloatFlow2, upflow_n::FloatVector, hasdownflow) =
+    if hasdownflow
+        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
+    else
+        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
+    end
