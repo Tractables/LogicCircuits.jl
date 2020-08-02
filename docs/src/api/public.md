@@ -32,6 +32,7 @@ save_as_dot2tex
 ```@docs
 issmooth
 isdecomposable
+isdeterministic
 iscanonical
 ```
 

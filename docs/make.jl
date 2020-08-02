@@ -23,6 +23,7 @@ const pages = [
     ],
     "API" => [
         "api/public.md",
+        "api/types.md",
         "Internals" => map(
             s -> "api/internals/$(s)",
             sort(readdir(joinpath(@__DIR__, "src/api/internals")))

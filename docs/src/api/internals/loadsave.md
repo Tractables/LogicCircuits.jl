@@ -1,5 +1,5 @@
 
-# [LoadSave](@id api-internal-io)
+# [LoadSave](@id api-internal-loadsave)
 
 ```@autodocs
 Modules = [LogicCircuits.LoadSave]
