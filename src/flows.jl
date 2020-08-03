@@ -315,13 +315,23 @@ end
         @. downflow_c = downflow_n & upflow1_c
     end
 
-@inline acc_downflow_or(downflow_c::FloatVector, downflow_n::FloatVector, 
-                               upflow1_c::FloatVector, upflow_n::FloatVector, hasdownflow) =
-    if hasdownflow
-        @avx @. downflow_c += downflow_n * upflow1_c / upflow_n
+@inline function acc_downflow_or(downflow_c::FloatVector, downflow_n::FloatVector, 
+                               upflow1_c::FloatVector, upflow_n::FloatVector, hasdownflow)
+    if all(@. upflow_n == 0.0)
+        @assert all(@. upflow1_c == 0.0)
+        if hasdownflow
+            @avx @. downflow_c += downflow_n
+        else
+            @avx @. downflow_c = downflow_n
+        end
     else
-        @avx @. downflow_c = downflow_n * upflow1_c / upflow_n
+        if hasdownflow
+            @avx @. downflow_c += downflow_n * upflow1_c / upflow_n
+        else
+            @avx @. downflow_c = downflow_n * upflow1_c / upflow_n
+        end
     end
+end
 
 # the following methods skip children with implicit flows, and push the flow down to the grandchildren immediately
 @inline acc_downflow_or(downflow_gc::BitVector, downflow_n::BitVector, 
@@ -332,10 +342,22 @@ end
         @. downflow_gc = downflow_n & upflow2_c.prime_flow & upflow2_c.sub_flow
     end
 
-@inline acc_downflow_or(downflow_gc::FloatVector, downflow_n::FloatVector, 
-                               upflow2_c::FloatFlow2, upflow_n::FloatVector, hasdownflow) =
-    if hasdownflow
-        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
+@inline function acc_downflow_or(downflow_gc::FloatVector, downflow_n::FloatVector, 
+                               upflow2_c::FloatFlow2, upflow_n::FloatVector, hasdownflow)
+    # to prevent the 0.0 denominator
+    if all(@. upflow_n == 0.0)
+        @assert all(@. upflow2_c.prime_flow == 0.0)
+        @assert all(@. upflow2_c.sub_flow == 0.0)
+        if hasdownflow
+            @avx @. downflow_gc += downflow_n
+        else
+            @avx @. downflow_gc = downflow_n
+        end
     else
-        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
+        if hasdownflow
+            @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
+        else
+            @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
+        end
     end
+end
