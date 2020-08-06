@@ -47,7 +47,7 @@ function evaluate(root::LogicCircuit, data::Batch, ::Type{F}=flow_type(data);
     
     num_examples::Int = Utils.num_examples(data)
 
-    root_flow = foldup_aggregate(root, 
+    root_flow = foldup(root, 
         n -> evaluate_constant(n, F, upflow, num_examples),
         n -> evaluate_literal(n, F, upflow, data),
         (n, call) -> evaluate_and(n, call, F, upflow, num_examples),
@@ -85,61 +85,68 @@ end
     end
 end
 
-@inline function evaluate_and(n, cs, ::Type{F}, upflow, num_examples) where F
+@inline function evaluate_and(n, call, ::Type{F}, upflow, num_examples) where F
     cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples
         reuse = cache::F
+        c1 = call(@inbounds children(n)[1])::UpFlow{F}
         if num_children(n) == 1
-            materialize!(reuse, cs[1])
+            materialize!(reuse, c1)
             return reuse
         else
-            if num_children(n) == 2 && cs[1] isa F && cs[2] isa F 
-                return UpFlow2{F}(cs[1], cs[2]) # no need to allocate a new flow, but cannot reuse F
+            c2 = call(@inbounds children(n)[2])::UpFlow{F}
+            if num_children(n) == 2 && c1 isa F && c2 isa F 
+                return UpFlow2{F}(c1, c2) # no need to allocate a new flow, but cannot reuse F
             end
-            materialize!(reuse, cs[1])
-            flow_and!(reuse, cs[2])
-            for c in cs[3:end]
-                flow_and!(reuse, c)
+            materialize!(reuse, c1)
+            flow_and!(reuse, c2)
+            for c in children(n)[3:end]
+                flow_and!(reuse, call(c)::UpFlow{F})
             end
             return reuse::F
         end
     else
+        c1 = call(@inbounds children(n)[1])::UpFlow{F}
         if num_children(n) == 1
-            return materialize(cs[1])::F
+            return materialize(c1)::F
         else
-            if num_children(n) == 2 && cs[1] isa F && cs[2] isa F 
+            c2 = call(@inbounds children(n)[2])::UpFlow{F}
+            if num_children(n) == 2 && c1 isa F && c2 isa F 
                 # note: reusing an existing UpFlow2{F} seems to slow things down...
-                return UpFlow2{F}(cs[1], cs[2]) # no need to allocate a new flow
+                return UpFlow2{F}(c1, c2) # no need to allocate a new flow
             end
-            x = flow_and(cs[1], cs[2])
-            for c in cs[3:end]
-                flow_and!(x, c)
+            x = flow_and(c1, c2)
+            for c in children(n)[3:end]
+                flow_and!(x, call(c)::UpFlow{F})
             end
             return x::F
         end
     end
 end
 
-@inline function evaluate_or(n, cs, ::Type{F}, upflow, num_examples) where F
+@inline function evaluate_or(n, call, ::Type{F}, upflow, num_examples) where F
     cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples
         reuse = cache::F
-        materialize!(reuse, cs[1])
         if num_children(n) == 1
+            materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})
             return reuse::F
         else
-            for c in cs[2:end]
-                flow_or!(reuse, c)
+            materialize!(reuse, call(@inbounds children(n)[1])::UpFlow{F})
+            for c in children(n)[2:end]
+                flow_or!(reuse, call(c)::UpFlow{F})
             end
             return reuse::F
         end
     else
         if num_children(n) == 1
-            return materialize(cs[1])::F
+            return materialize(call(@inbounds children(n)[1])::UpFlow{F})::F
         else
-            x = flow_or(cs[1], cs[2])
-            for c in cs[3:end]
-                flow_or!(x, c)
+            c1 = call(@inbounds children(n)[1])::UpFlow{F}
+            c2 = call(@inbounds children(n)[2])::UpFlow{F}
+            x = flow_or(c1, c2)
+            for c in children(n)[3:end]
+                flow_or!(x, call(c)::UpFlow{F})
             end
             return x::F
         end
