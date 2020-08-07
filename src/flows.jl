@@ -349,8 +349,8 @@ end
     normalizer = upflow_n
     indices = findall(normalizer .== 0.0)
     if length(indices) > 0
-        @assert all(upflow2_c[indices].prime_flow .== 0.0)
-        @assert all(upflow2_c[indices].sub_flow .== 0.0)
+        @assert all(upflow2_c.prime_flow[indices] .== 0.0)
+        @assert all(upflow2_c.sub_flow[indices] .== 0.0)
         normalizer = copy(upflow_n)
         normalizer[indices] .= 1.0
     end
