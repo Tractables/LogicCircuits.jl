@@ -317,19 +317,20 @@ end
 
 @inline function acc_downflow_or(downflow_c::FloatVector, downflow_n::FloatVector, 
                                upflow1_c::FloatVector, upflow_n::FloatVector, hasdownflow)
-    if all(@. upflow_n == 0.0)
-        @assert all(@. upflow1_c == 0.0)
-        if hasdownflow
-            @avx @. downflow_c += downflow_n
-        else
-            @avx @. downflow_c = downflow_n
-        end
+    # to prevent 0.0 denominator
+    normalizer = upflow_n
+    indices = findall(normalizer .== 0.0)
+    if length(indices) > 0
+        @assert all(upflow1_c[indices] .== 0.0)
+        normalizer = copy(upflow_n)
+        normalizer[indices] .= 1.0
+    end
+
+
+    if hasdownflow
+        @avx @. downflow_c += downflow_n * upflow1_c / normalizer
     else
-        if hasdownflow
-            @avx @. downflow_c += downflow_n * upflow1_c / upflow_n
-        else
-            @avx @. downflow_c = downflow_n * upflow1_c / upflow_n
-        end
+        @avx @. downflow_c = downflow_n * upflow1_c / normalizer
     end
 end
 
@@ -344,21 +345,20 @@ end
 
 @inline function acc_downflow_or(downflow_gc::FloatVector, downflow_n::FloatVector, 
                                upflow2_c::FloatFlow2, upflow_n::FloatVector, hasdownflow)
-    # to prevent the 0.0 denominator
-    if all(@. upflow_n == 0.0)
-        @assert all(@. upflow2_c.prime_flow == 0.0)
-        @assert all(@. upflow2_c.sub_flow == 0.0)
-        if hasdownflow
-            @avx @. downflow_gc += downflow_n
-        else
-            @avx @. downflow_gc = downflow_n
-        end
+    # to prevent 0.0 denominator
+    normalizer = upflow_n
+    indices = findall(normalizer .== 0.0)
+    if length(indices) > 0
+        @assert all(upflow2_c[indices].prime_flow .== 0.0)
+        @assert all(upflow2_c[indices].sub_flow .== 0.0)
+        normalizer = copy(upflow_n)
+        normalizer[indices] .= 1.0
+    end
+
+    if hasdownflow
+        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / normalizer
     else
-        if hasdownflow
-            @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
-        else
-            @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / upflow_n
-        end
+        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / normalizer
     end
 end
 
