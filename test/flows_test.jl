@@ -110,6 +110,7 @@ end
     o_nc = (l_a & l_nb & l_nc) | (l_na & l_nb & l_nc)
     r = (o_c | o_nc)
     input = rand(Float64, (10,3))
+    input[1:5, 3] .= 0.0
     compute_flows(r, input)
     @test all(o_c.data.upflow .≈ input[:, 2] .* input[:, 3])
     @test all(o_c.data.downflow .≈ o_c.data.upflow)
@@ -120,20 +121,6 @@ end
     @test all(l_b.data.downflow .≈ input[:, 2] .* input[:, 3])
     @test all(l_b.data.downflow .≈ l_c.data.downflow)
     @test all(l_nb.data.downflow .≈ (1.0 .- input[:, 2]) .* (1.0 .- input[:, 3]))
-    @test all(l_nb.data.downflow .≈ l_nc.data.downflow)
-
-    input[:, 3] .= 0.0
-    compute_flows(r, input)
-
-    @test all(o_c.data.upflow .≈ 0.0)
-    @test all(o_c.data.downflow .≈ o_c.data.upflow)
-    @test all(o_nc.data.upflow .≈ 1.0 .- input[:, 2])
-    @test all(o_nc.data.downflow .≈ o_nc.data.upflow)
-    @test all(l_a.data.downflow .≈ l_a.data.upflow .* r.data.downflow)
-    @test all(l_na.data.downflow .≈ l_na.data.upflow .* r.data.downflow)
-    @test all(l_b.data.downflow .≈ 0.0)
-    @test all(l_b.data.downflow .≈ l_c.data.downflow)
-    @test all(l_nb.data.downflow .≈ 1.0 .- input[:, 2] )
     @test all(l_nb.data.downflow .≈ l_nc.data.downflow)
 
 end
