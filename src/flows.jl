@@ -47,7 +47,7 @@ function evaluate(root::LogicCircuit, data::Batch, ::Type{F}=flow_type(data);
     
     num_examples::Int = Utils.num_examples(data)
 
-    root_flow = foldup_aggregate(root, 
+    root_flow = foldup(root, 
         n -> evaluate_constant(n, F, upflow, num_examples),
         n -> evaluate_literal(n, F, upflow, data),
         (n, call) -> evaluate_and(n, call, F, upflow, num_examples),
@@ -58,7 +58,7 @@ function evaluate(root::LogicCircuit, data::Batch, ::Type{F}=flow_type(data);
     return upflow!(root, materialize(root_flow))::F
 end
 
-@inline function evaluate_constant(n, ::Type{F}, upflow, num_examples) where F
+@noinline function evaluate_constant(n, ::Type{F}, upflow, num_examples) where F
     cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples
         istrue(n) ? cache::F .= one(F) : cache::F .= zero(F)  
@@ -67,7 +67,7 @@ end
     end
 end
 
-@inline function evaluate_literal(n, ::Type{F}, upflow, data) where F
+@noinline function evaluate_literal(n, ::Type{F}, upflow, data) where F
     fv = feature_values(data,variable(n))
     cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples(data)
@@ -85,65 +85,65 @@ end
     end
 end
 
-@inline function evaluate_and(n, cs, ::Type{F}, upflow, num_examples) where F
+@noinline function evaluate_and(n, call, ::Type{F}, upflow, num_examples) where F
     cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples
         reuse = cache::F
+        c1 = call(@inbounds children(n)[1])::UpFlow{F}
         if num_children(n) == 1
-            materialize!(reuse, cs[1])
+            materialize!(reuse, c1)
             return reuse
         else
-            if num_children(n) == 2 && cs[1] isa F && cs[2] isa F 
-                return UpFlow2{F}(cs[1], cs[2]) # no need to allocate a new flow, but cannot reuse F
+            c2 = call(@inbounds children(n)[2])::UpFlow{F}
+            if num_children(n) == 2 && c1 isa F && c2 isa F 
+                return UpFlow2{F}(c1, c2) # no need to allocate a new flow, but cannot reuse F
             end
-            materialize!(reuse, cs[1])
-            flow_and!(reuse, cs[2])
-            for c in cs[3:end]
-                flow_and!(reuse, c)
+            materialize!(reuse, c1)
+            flow_and!(reuse, c2)
+            for c in children(n)[3:end]
+                flow_and!(reuse, call(c)::UpFlow{F})
             end
             return reuse::F
         end
     else
+        c1 = call(@inbounds children(n)[1])::UpFlow{F}
         if num_children(n) == 1
-            return materialize(cs[1])::F
+            return materialize(c1)::F
         else
-            if num_children(n) == 2 && cs[1] isa F && cs[2] isa F 
+            c2 = call(@inbounds children(n)[2])::UpFlow{F}
+            if num_children(n) == 2 && c1 isa F && c2 isa F 
                 # note: reusing an existing UpFlow2{F} seems to slow things down...
-                return UpFlow2{F}(cs[1], cs[2]) # no need to allocate a new flow
+                return UpFlow2{F}(c1, c2) # no need to allocate a new flow
             end
-            x = flow_and(cs[1], cs[2])
-            for c in cs[3:end]
-                flow_and!(x, c)
+            x = flow_and(c1, c2)
+            for c in children(n)[3:end]
+                flow_and!(x, call(c)::UpFlow{F})
             end
             return x::F
         end
     end
 end
 
-@inline function evaluate_or(n, cs, ::Type{F}, upflow, num_examples) where F
+@noinline function evaluate_or(n, call, ::Type{F}, upflow, num_examples) where F
     cache = upflow(n)
     if (cache isa F) && length(cache::F) == num_examples
         reuse = cache::F
-        materialize!(reuse, cs[1])
-        if num_children(n) == 1
-            return reuse::F
-        else
-            for c in cs[2:end]
-                flow_or!(reuse, c)
-            end
-            return reuse::F
-        end
+        unrolled_sum(F, n, reuse, call)
+        return reuse::F
     else
         if num_children(n) == 1
-            return materialize(cs[1])::F
+            return materialize(call(@inbounds children(n)[1])::UpFlow{F})::F
         else
-            x = flow_or(cs[1], cs[2])
-            for c in cs[3:end]
-                flow_or!(x, c)
+            c1 = call(@inbounds children(n)[1])::UpFlow{F}
+            c2 = call(@inbounds children(n)[2])::UpFlow{F}
+            x = flow_or(c1, c2)
+            for c in children(n)[3:end]
+                flow_or!(x, call(c)::UpFlow{F})
             end
             return x::F
         end
     end
+
 end
 
 "Turn a implicit `UpFlow2{F}` into its concrete flow `F`"
@@ -361,3 +361,121 @@ end
         end
     end
 end
+
+#####################
+# generated functions to help compute flows
+#####################
+
+@generated function unrolled_sum(::Type{F}, n, r, call) where {F}
+    return quote
+        l = num_children(n)
+        $(gen_unrolled_sum(F, true))
+        while i <= l 
+            $(gen_unrolled_sum(F, false))
+        end
+        r::$F
+    end
+end
+
+function gen_unrolled_sum(::Type{F}, assign) where F
+    i = assign ? :(1) : :(i)
+    return quote 
+        c1 = call(@inbounds children(n)[$i])::UpFlow{$F}
+        if c1 isa $F
+            # try to unroll 4 more Fs
+            $(gen_unrolled_sum(F, assign, 5-1, false, [:(c1::$F)], 1))
+        else
+            # try to unroll 2 more UpFlow2{F}s
+            $(gen_unrolled_sum(F, assign, 3-1, true, [(:((c1::UpFlow2{$F}).prime_flow), :((c1::UpFlow2{$F}).sub_flow))], 1))
+        end
+    end
+end
+
+function gen_unrolled_sum(::Type{F}, assign::Bool, budget::Int, factorized::Bool, elems::Vector, o::Int)::Expr where F
+    nextindex = assign ? :($(1+o)) : :(i+$o)
+    ci = Symbol("c$(1+o)")
+    iplusplus = assign ? :(i = $nextindex) : :(i += $o)
+    elems_with_e1 = [elems..., :($ci::$F)]
+    elems_with_e2 = [elems..., (:(($ci::UpFlow2{$F}).prime_flow), :(($ci::UpFlow2{$F}).sub_flow))]
+    if budget<=0
+        return quote
+            $(gen_sum_kernel(F, assign, elems))
+            $iplusplus
+        end
+    elseif !factorized
+        return quote
+            if $nextindex <= l 
+                $ci = call(@inbounds children(n)[$nextindex])::UpFlow{$F}
+                if $ci isa $F
+                    $(gen_unrolled_sum(F, assign, budget-1, factorized, elems_with_e1, o+1))
+                else
+                    $(gen_unrolled_sum(F, assign, 0, factorized, elems_with_e2, o+1))
+                end
+            else
+                $(gen_unrolled_sum(F, assign, 0, factorized, elems, o))
+            end
+        end
+    else # factorized
+        return quote
+            if $nextindex <= l 
+                $ci = call(@inbounds children(n)[$nextindex])::UpFlow{$F}
+                if $ci isa $F
+                    $(gen_unrolled_sum(F, assign, 0, factorized, elems_with_e1, o+1))
+                else
+                    $(gen_unrolled_sum(F, assign, budget-1, factorized, elems_with_e2, o+1))
+                end
+            else
+                $(gen_unrolled_sum(F, assign, 0, factorized, elems, o))
+            end
+        end
+    end
+end
+
+function gen_sum_kernel(::Type{F}, assign::Bool, elems::Vector)::Expr where F
+    elem_sum::Expr = mapreduce(
+        e -> gen_product_kernel(F,e), 
+        (v1,v2) -> gen_sum_kernel(F,v1,v2), 
+        elems)
+    if assign
+        if elem_sum == elems[1]
+            return :((r === $elem_sum) || $(gen_sum_kernel_assign(F, elem_sum)))
+        else
+            return gen_sum_kernel_assign(F, elem_sum)
+        end
+    else
+        return gen_sum_kernel_acc(F, elem_sum)
+    end
+end
+
+gen_sum_kernel(::Type{F}, v1::Expr, v2::Expr) where F<:AbstractVector{<:AbstractFloat} = :($v1 .+ $v2)
+gen_sum_kernel(::Type{F}, v1::Expr, v2::Expr) where F<:AbstractVector{UInt} = :($v1 .| $v2)
+gen_sum_kernel(::Type{F}, v1::Expr, v2::Expr) where F<:BitVector = :($v1 .| $v2)
+
+function gen_sum_kernel_assign(::Type{F}, elem_sum::Expr)::Expr where F<:AbstractVector{<:AbstractFloat}
+    return :(@avx r .= $elem_sum) 
+end
+
+function gen_sum_kernel_assign(::Type{F}, elem_sum::Expr) where F<:BitVector
+    return :(r .= $elem_sum) 
+end
+
+function gen_sum_kernel_assign(::Type{F}, elem_sum::Expr) where F<:AbstractVector{UInt}
+    return :(@avx r .= $elem_sum) 
+end
+
+
+function gen_sum_kernel_acc(::Type{F}, elem_sum::Expr)::Expr where F<:AbstractVector{<:AbstractFloat}
+    return :(@avx r .+= $elem_sum) 
+end
+
+function gen_sum_kernel_acc(::Type{F}, elem_sum::Expr) where F<:BitVector
+    return :(r .|= $elem_sum) 
+end
+
+function gen_sum_kernel_acc(::Type{F}, elem_sum::Expr) where F<:AbstractVector{UInt}
+    return :(@avx r .|= $elem_sum) 
+end
+
+gen_product_kernel(::Type{<:AbstractVector{<:AbstractFloat}}, e::Tuple{Expr,Expr})::Expr = :($(e[1]) .* $(e[2]))
+gen_product_kernel(::Type{<:AbstractVector{<:Union{Bool,UInt}}}, e::Tuple{Expr,Expr})::Expr = :($(e[1]) .& $(e[2]))
+gen_product_kernel(_,e::Expr)::Expr = e
