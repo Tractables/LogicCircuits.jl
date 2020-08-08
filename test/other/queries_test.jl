@@ -2,7 +2,7 @@ using Test
 using Suppressor
 using LogicCircuits
 
-include("helper/plain_logic_circuits.jl")
+include("../helper/plain_logic_circuits.jl")
 
 @testset "Queries test" begin
     

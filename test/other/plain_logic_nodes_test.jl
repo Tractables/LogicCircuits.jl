@@ -1,7 +1,7 @@
 using Test
 using LogicCircuits
 
-include("helper/plain_logic_circuits.jl")
+include("../helper/plain_logic_circuits.jl")
 
 @testset "Plain logic nodes" begin
     n1 = little_2var()

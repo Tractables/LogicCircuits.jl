@@ -1,7 +1,7 @@
 using Test
 using LogicCircuits
 
-include("helper/plain_logic_circuits.jl")
+include("../helper/plain_logic_circuits.jl")
 
 @testset "Smooth test" begin
     for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"), 
