@@ -1,7 +1,7 @@
 export evaluate, compute_flows
 
 using DataFrames: DataFrame
-using LoopVectorization: @avx
+using LoopVectorization: @avx, vifelse
 
 #####################
 # performance-critical queries related to circuit flows
@@ -317,13 +317,14 @@ end
         @. downflow_c = downflow_n & upflow1_c
     end
 
+@inline make_finite(x::T) where T = vifelse(isfinite(x), x, zero(T))
+
 @inline function acc_downflow_or(downflow_c::FloatVector, downflow_n::FloatVector, 
                                upflow1_c::FloatVector, upflow_n::FloatVector, hasdownflow, scratch)
-    @. scratch = replace_inf_nan(upflow1_c/upflow_n)
     if hasdownflow
-        @avx @. downflow_c += downflow_n * scratch
+        @avx @. downflow_c += downflow_n * make_finite(upflow1_c/upflow_n)
     else
-        @avx @. downflow_c = downflow_n * scratch
+        @avx @. downflow_c = downflow_n * make_finite(upflow1_c/upflow_n)
     end
 end
 
@@ -338,15 +339,12 @@ end
 
 @inline function acc_downflow_or(downflow_gc::FloatVector, downflow_n::FloatVector, 
                                upflow2_c::FloatFlow2, upflow_n::FloatVector, hasdownflow, scratch)
-    @. scratch = replace_inf_nan(upflow2_c.sub_flow/upflow_n)
     if hasdownflow
-        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * scratch
+        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * make_finite(upflow2_c.sub_flow/upflow_n)
     else
-        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * scratch
+        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * make_finite(upflow2_c.sub_flow/upflow_n)
     end
 end
-
-@inline replace_inf_nan(x::T) where T = ifelse((isnan(x) || isinf(x)), zero(T), x)
 
 #####################
 # generated functions to help compute flows
