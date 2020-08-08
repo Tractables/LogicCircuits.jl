@@ -14,6 +14,13 @@ By default this will install the package at `~/.julia/dev` and allow you to chan
 
 ## Testing
 
+
+### Prerequisite
+Set the following environment variable, to automatically download data artifacts needed during tests without user input. Otherwise the tests would fail if the artifact is not already downloaded.
+
+    export DATADEPS_ALWAYS_ACCEPT=1
+
+### Running the tests:
 Make sure to run the tests before commiting new code.
 
 To run all the tests:
