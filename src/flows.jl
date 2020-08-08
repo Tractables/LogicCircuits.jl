@@ -42,6 +42,12 @@ flow_type(data::DataFrame) = begin
     Vector{number_precision(data)}
 end
 
+"Is the flow factorized as a `UpFlow2?`"
+isfactorized(x) = x isa UpFlow2
+
+"Can the existing flow be reused for the given type and number of examples?"
+isreusable(cache, F, num_examples) = (cache isa F) && length(cache::F) == num_examples
+
 function evaluate(root::LogicCircuit, data::Batch, ::Type{F}=flow_type(data);
                   upflow = nload, upflow! = nsave, reset=true) where F
     
@@ -60,7 +66,7 @@ end
 
 @noinline function evaluate_constant(n, ::Type{F}, upflow, num_examples) where F
     cache = upflow(n)
-    if (cache isa F) && length(cache::F) == num_examples
+    if isreusable(cache, F, num_examples)
         istrue(n) ? cache::F .= one(F) : cache::F .= zero(F)  
     else
         istrue(n) ? always(F, num_examples) : never(F, num_examples)
@@ -70,80 +76,88 @@ end
 @noinline function evaluate_literal(n, ::Type{F}, upflow, data) where F
     fv = feature_values(data,variable(n))
     cache = upflow(n)
-    if (cache isa F) && length(cache::F) == num_examples(data)
+    if isreusable(cache, F, num_examples(data))
         if ispositive(n) 
-            return cache::F .= fv
+            cache::F .= fv
         else
             complement!(cache::F, fv)::F
         end
     else
         if ispositive(n) 
-            return convert(F,fv)
+            convert(F,fv)
         else
             complement(fv)::F
         end
     end
 end
 
-@noinline function evaluate_and(n, call, ::Type{F}, upflow, num_examples) where F
+function evaluate_and(n, call, ::Type{F}, upflow, num_examples) where F
     cache = upflow(n)
-    if (cache isa F) && length(cache::F) == num_examples
-        reuse = cache::F
-        c1 = call(@inbounds children(n)[1])::UpFlow{F}
-        if num_children(n) == 1
-            materialize!(reuse, c1)
-            return reuse
-        else
-            c2 = call(@inbounds children(n)[2])::UpFlow{F}
-            if num_children(n) == 2 && c1 isa F && c2 isa F 
-                return UpFlow2{F}(c1, c2) # no need to allocate a new flow, but cannot reuse F
-            end
-            materialize!(reuse, c1)
-            flow_and!(reuse, c2)
-            for c in children(n)[3:end]
-                flow_and!(reuse, call(c)::UpFlow{F})
-            end
-            return reuse::F
-        end
+    if isreusable(cache, F, num_examples)
+        evaluate_and_reuse(cache::F, n, call, F)::UpFlow{F}
     else
-        c1 = call(@inbounds children(n)[1])::UpFlow{F}
-        if num_children(n) == 1
-            return materialize(c1)::F
-        else
-            c2 = call(@inbounds children(n)[2])::UpFlow{F}
-            if num_children(n) == 2 && c1 isa F && c2 isa F 
-                # note: reusing an existing UpFlow2{F} seems to slow things down...
-                return UpFlow2{F}(c1, c2) # no need to allocate a new flow
-            end
-            x = flow_and(c1, c2)
-            for c in children(n)[3:end]
-                flow_and!(x, call(c)::UpFlow{F})
-            end
-            return x::F
-        end
+        evaluate_and_fresh(n, call, F)::UpFlow{F}
     end
 end
 
-@noinline function evaluate_or(n, call, ::Type{F}, upflow, num_examples) where F
-    cache = upflow(n)
-    if (cache isa F) && length(cache::F) == num_examples
-        reuse = cache::F
-        unrolled_sum(F, n, reuse, call)
-        return reuse::F
+function evaluate_and_reuse(reuse, n, call, ::Type{F}) where F
+    c1 = call(@inbounds children(n)[1])::UpFlow{F}
+    if num_children(n) == 1
+        return materialize!(reuse, c1)
     else
-        if num_children(n) == 1
-            return materialize(call(@inbounds children(n)[1])::UpFlow{F})::F
-        else
-            c1 = call(@inbounds children(n)[1])::UpFlow{F}
-            c2 = call(@inbounds children(n)[2])::UpFlow{F}
-            x = flow_or(c1, c2)
-            for c in children(n)[3:end]
-                flow_or!(x, call(c)::UpFlow{F})
-            end
-            return x::F
+        c2 = call(@inbounds children(n)[2])::UpFlow{F}
+        if num_children(n) == 2 && !isfactorized(c1) && !isfactorized(c2) 
+            return UpFlow2{F}(c1, c2) # no need to allocate a new flow, but cannot reuse F
         end
+        materialize!(reuse, c1)
+        flow_and!(reuse, c2)
+        for c in children(n)[3:end]
+            flow_and!(reuse, call(c)::UpFlow{F})
+        end
+        return reuse::F
+    end
+end
+
+function evaluate_and_fresh(n, call, ::Type{F}) where F
+    c1 = call(@inbounds children(n)[1])::UpFlow{F}
+    if num_children(n) == 1
+        return materialize(c1)::F
+    else
+        c2 = call(@inbounds children(n)[2])::UpFlow{F}
+        if num_children(n) == 2 && !isfactorized(c1) && !isfactorized(c2) 
+            # note: reusing an existing UpFlow2{F} seems to slow things down...
+            return UpFlow2{F}(c1, c2) # no need to allocate a new flow
+        end
+        x = flow_and(c1, c2)
+        for c in children(n)[3:end]
+            flow_and!(x, call(c)::UpFlow{F})
+        end
+        return x::F
+    end
+end
+
+function evaluate_or(n, call, ::Type{F}, upflow, num_examples) where F
+    cache = upflow(n)
+    if isreusable(cache, F, num_examples)
+        unrolled_sum(F, n, cache::F, call)::UpFlow{F}
+    else
+        evaluate_or_fresh(n, call, F)::UpFlow{F}
     end
 
+end
+
+function evaluate_or_fresh(n, call, ::Type{F}) where F
+    if num_children(n) == 1
+        return materialize(call(@inbounds children(n)[1])::UpFlow{F})::F
+    else
+        c1 = call(@inbounds children(n)[1])::UpFlow{F}
+        c2 = call(@inbounds children(n)[2])::UpFlow{F}
+        x = flow_or(c1, c2)
+        for c in children(n)[3:end]
+            flow_or!(x, call(c)::UpFlow{F})
+        end
+        return x::F
+    end
 end
 
 "Turn a implicit `UpFlow2{F}` into its concrete flow `F`"
@@ -151,9 +165,9 @@ end
 @inline materialize(elems::UpFlow2) = flow_and(elems.prime_flow, elems.sub_flow)
 
 "Turn a implicit `UpFlow2{F}` into its concrete flow `F` and assign to `sink`"
-@inline materialize!(sink, elems) = ((sink === elems) ? nothing : (sink .= elems; nothing))
-@inline materialize!(sink::BitVector, elems::BitFlow2) = (@avx @. sink = elems.prime_flow & elems.sub_flow); nothing
-@inline materialize!(sink::FloatVector, elems::FloatFlow2) = (@avx @. sink = elems.prime_flow * elems.sub_flow); nothing
+@inline materialize!(sink, elems) = ((sink === elems) ? sink : (sink .= elems))
+@inline materialize!(sink::BitVector, elems::BitFlow2) = (@avx @. sink = elems.prime_flow & elems.sub_flow)
+@inline materialize!(sink::FloatVector, elems::FloatFlow2) = (@avx @. sink = elems.prime_flow * elems.sub_flow)
 
 "Complement a flow (corresponding to logical negation)"
 @inline complement(x::AbstractVector{Bool})::BitVector = broadcast(!,x)
@@ -365,7 +379,7 @@ function gen_unrolled_sum(::Type{F}, assign) where F
     i = assign ? :(1) : :(i)
     return quote 
         c1 = call(@inbounds children(n)[$i])::UpFlow{$F}
-        if c1 isa $F
+        if !isfactorized(c1)
             # try to unroll 4 more Fs
             $(gen_unrolled_sum(F, assign, 5-1, false, [:(c1::$F)], 1))
         else
@@ -390,7 +404,7 @@ function gen_unrolled_sum(::Type{F}, assign::Bool, budget::Int, factorized::Bool
         return quote
             if $nextindex <= l 
                 $ci = call(@inbounds children(n)[$nextindex])::UpFlow{$F}
-                if $ci isa $F
+                if !isfactorized($ci)
                     $(gen_unrolled_sum(F, assign, budget-1, factorized, elems_with_e1, o+1))
                 else
                     $(gen_unrolled_sum(F, assign, 0, factorized, elems_with_e2, o+1))
@@ -403,7 +417,7 @@ function gen_unrolled_sum(::Type{F}, assign::Bool, budget::Int, factorized::Bool
         return quote
             if $nextindex <= l 
                 $ci = call(@inbounds children(n)[$nextindex])::UpFlow{$F}
-                if $ci isa $F
+                if !isfactorized($ci)
                     $(gen_unrolled_sum(F, assign, 0, factorized, elems_with_e1, o+1))
                 else
                     $(gen_unrolled_sum(F, assign, budget-1, factorized, elems_with_e2, o+1))
