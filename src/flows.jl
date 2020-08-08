@@ -247,17 +247,19 @@ function compute_flows(circuit::LogicCircuit, data::Batch, ::Type{F}) where F
             return nothing
         end
     end
-
+    
     evaluate(circuit, data, F; upflow, upflow!, reset=false)
     
     # downward pass
     circuit.data.downflow .= circuit.data.upflow
-    foreach_down(n -> flow_down_inode(n, F), circuit; setcounter=false)
+    scratch = F(undef, num_examples)
+
+    foreach_down(n -> flow_down_inode(n, F, scratch), circuit; setcounter=false)
 
     nothing
 end
 
-@inline function flow_down_inode(n, ::Type{F}) where F
+@inline function flow_down_inode(n, ::Type{F}, scratch) where F
     if isinner(n) && (n.data isa UpDownFlow1{F})
         updownflow_n = n.data::UpDownFlow1{F}
         downflow_n = updownflow_n.downflow
@@ -270,18 +272,18 @@ end
                 for i = 1:2
                     updownflow_gc = (@inbounds children(c)[i]).data::UpDownFlow1{F}
                     if is⋁gate(n)
-                        acc_downflow_or(updownflow_gc.downflow, downflow_n, upflow2_c, upflow_n, updownflow_gc.hasdownflow)
+                        acc_downflow_or(updownflow_gc.downflow, downflow_n, upflow2_c, upflow_n, updownflow_gc.hasdownflow, scratch)
                     else
-                        acc_downflow_and(updownflow_gc.downflow, downflow_n, updownflow_gc.hasdownflow)
+                        acc_downflow_and(updownflow_gc.downflow, downflow_n, updownflow_gc.hasdownflow, scratch)
                     end
                     updownflow_gc.hasdownflow = true
                 end
             else
                 updownflow_c = c.data::UpDownFlow1{F}
                 if is⋁gate(n)
-                    acc_downflow_or(updownflow_c.downflow, downflow_n, updownflow_c.upflow, upflow_n, updownflow_c.hasdownflow)
+                    acc_downflow_or(updownflow_c.downflow, downflow_n, updownflow_c.upflow, upflow_n, updownflow_c.hasdownflow, scratch)
                 else
-                    acc_downflow_and(updownflow_c.downflow, downflow_n, updownflow_c.hasdownflow)
+                    acc_downflow_and(updownflow_c.downflow, downflow_n, updownflow_c.hasdownflow, scratch)
                 end
                 updownflow_c.hasdownflow = true
             end
@@ -292,14 +294,14 @@ end
 
 
 "Accumulate the downflow from an And node to its children"
-@inline acc_downflow_and(downflow_c::BitVector, downflow_n::BitVector, hasdownflow) =
+@inline acc_downflow_and(downflow_c::BitVector, downflow_n::BitVector, hasdownflow, scratch) =
     if hasdownflow
         @. downflow_c |= downflow_n
     else
         @. downflow_c = downflow_n
     end
 
-@inline acc_downflow_and(downflow_c::FloatVector, downflow_n::FloatVector, hasdownflow) =
+@inline acc_downflow_and(downflow_c::FloatVector, downflow_n::FloatVector, hasdownflow, scratch) =
     if hasdownflow
         @avx @. downflow_c += downflow_n
     else
@@ -308,7 +310,7 @@ end
 
 "Accumulate the downflow from an Or node to its children"
 @inline acc_downflow_or(downflow_c::BitVector, downflow_n::BitVector, 
-                        upflow1_c::BitVector, ::BitVector, hasdownflow) =
+                        upflow1_c::BitVector, ::BitVector, hasdownflow, scratch) =
     if hasdownflow
         @. downflow_c |= downflow_n & upflow1_c
     else
@@ -316,27 +318,18 @@ end
     end
 
 @inline function acc_downflow_or(downflow_c::FloatVector, downflow_n::FloatVector, 
-                               upflow1_c::FloatVector, upflow_n::FloatVector, hasdownflow)
-    # to prevent 0.0 denominator
-    normalizer = upflow_n
-    indices = findall(normalizer .== 0.0)
-    if length(indices) > 0
-        @assert all(upflow1_c[indices] .== 0.0)
-        normalizer = copy(upflow_n)
-        normalizer[indices] .= 1.0
-    end
-
-
+                               upflow1_c::FloatVector, upflow_n::FloatVector, hasdownflow, scratch)
+    @. scratch = replace_inf_nan(upflow1_c/upflow_n)
     if hasdownflow
-        @avx @. downflow_c += downflow_n * upflow1_c / normalizer
+        @avx @. downflow_c += downflow_n * scratch
     else
-        @avx @. downflow_c = downflow_n * upflow1_c / normalizer
+        @avx @. downflow_c = downflow_n * scratch
     end
 end
 
 # the following methods skip children with implicit flows, and push the flow down to the grandchildren immediately
 @inline acc_downflow_or(downflow_gc::BitVector, downflow_n::BitVector, 
-                               upflow2_c::BitFlow2, ::BitVector, hasdownflow) =
+                               upflow2_c::BitFlow2, ::BitVector, hasdownflow, scratch) =
     if hasdownflow
         @. downflow_gc |= downflow_n & upflow2_c.prime_flow & upflow2_c.sub_flow
     else
@@ -344,23 +337,16 @@ end
     end
 
 @inline function acc_downflow_or(downflow_gc::FloatVector, downflow_n::FloatVector, 
-                               upflow2_c::FloatFlow2, upflow_n::FloatVector, hasdownflow)
-    # to prevent 0.0 denominator
-    normalizer = upflow_n
-    indices = findall(normalizer .== 0.0)
-    if length(indices) > 0
-        @assert all(upflow2_c.prime_flow[indices] .== 0.0)
-        @assert all(upflow2_c.sub_flow[indices] .== 0.0)
-        normalizer = copy(upflow_n)
-        normalizer[indices] .= 1.0
-    end
-
+                               upflow2_c::FloatFlow2, upflow_n::FloatVector, hasdownflow, scratch)
+    @. scratch = replace_inf_nan(upflow2_c.sub_flow/upflow_n)
     if hasdownflow
-        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / normalizer
+        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * scratch
     else
-        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * upflow2_c.sub_flow / normalizer
+        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * scratch
     end
 end
+
+@inline replace_inf_nan(x::T) where T = ifelse((isnan(x) || isinf(x)), zero(T), x)
 
 #####################
 # generated functions to help compute flows
