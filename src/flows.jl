@@ -2,6 +2,7 @@ export evaluate, compute_flows
 
 using DataFrames: DataFrame
 using LoopVectorization: @avx, vifelse
+using CUDA
 
 #####################
 # performance-critical queries related to circuit flows
@@ -16,7 +17,9 @@ end
 const Batch = Union{<:AbstractMatrix, DataFrame}
 
 "A vector of some float type"
-const FloatVector = Vector{<:AbstractFloat}
+const FloatVector = AbstractVector{<:AbstractFloat}
+const CPUFloatVector = Vector{<:AbstractFloat}
+const GPUFloatVector = CuVector{<:AbstractFloat}
 
 "Container for circuit flows represented as an implicit conjunction of a prime and sub bit vector (saves memory allocations in circuits with many binary conjunctions)"
 struct UpFlow2{F}
@@ -32,6 +35,8 @@ const BitFlow2 = UpFlow2{BitVector}
 
 "Implicit conjunction of two Float flows"
 const FloatFlow2 = UpFlow2{<:FloatVector}
+const CPUFloatFlow2 = UpFlow2{<:CPUFloatVector}
+const GPUFloatFlow2 = UpFlow2{<:GPUFloatVector}
 
 "For a given input, what is the right type of the flow data?"
 flow_type(::AbstractMatrix{<:Bool}) = BitVector
@@ -45,8 +50,9 @@ end
 "Is the flow factorized as a `UpFlow2?`"
 isfactorized(x) = x isa UpFlow2
 
-"Can the existing flow be reused for the given type and number of examples?"
-isreusable(cache, F, num_examples) = (cache isa F) && length(cache::F) == num_examples
+"Return a reusable flow vector if one is already allocated"
+reuseable_flow(cache, ::Type{F}, num_examples) where F =
+    (cache isa F && length(cache::F) == num_examples) ? cache::F : nothing
 
 function evaluate(root::LogicCircuit, data::Batch, ::Type{F}=flow_type(data);
                   upflow = nload, upflow! = nsave, reset=true) where F
@@ -65,9 +71,9 @@ function evaluate(root::LogicCircuit, data::Batch, ::Type{F}=flow_type(data);
 end
 
 @noinline function evaluate_constant(n, ::Type{F}, upflow, num_examples) where F
-    cache = upflow(n)
-    if isreusable(cache, F, num_examples)
-        istrue(n) ? cache::F .= one(F) : cache::F .= zero(F)  
+    reuse = reuseable_flow(upflow(n), F, num_examples)::Union{Nothing,F}
+    if issomething(reuse)
+        istrue(n) ? reuse::F .= one(F) : reuse::F .= zero(F)  
     else
         istrue(n) ? always(F, num_examples) : never(F, num_examples)
     end
@@ -75,26 +81,34 @@ end
 
 @noinline function evaluate_literal(n, ::Type{F}, upflow, data) where F
     fv = feature_values(data,variable(n))
-    cache = upflow(n)
-    if isreusable(cache, F, num_examples(data))
+    reuse = reuseable_flow(upflow(n), F, num_examples(data))::Union{Nothing,F}
+    if issomething(reuse)
         if ispositive(n) 
-            cache::F .= fv
+            reuse::F .= fv
         else
-            complement!(cache::F, fv)::F
+            complement!(reuse::F, fv)::F
         end
     else
         if ispositive(n) 
-            convert(F,fv)
+            convert(F,fv)::F
         else
             complement(fv)::F
         end
     end
 end
 
+"Complement a flow (corresponding to logical negation)"
+@inline complement(x::AbstractVector{Bool})::BitVector = broadcast(!,x)
+@inline complement(x::AbstractVector{T}) where {T<:AbstractFloat} = (@avx one(T) .- x)
+
+"Complement a flow (corresponding to logical negation) and assign to `sink`"
+@inline complement!(sink::BitVector, x::AbstractVector{Bool}) = @. sink = !x
+@inline complement!(sink::CPUFloatVector, x::AbstractVector{T}) where T<:AbstractFloat = @avx @. sink = one(T) - x
+
 function evaluate_and(n, call, ::Type{F}, upflow, num_examples) where F
-    cache = upflow(n)
-    if isreusable(cache, F, num_examples)
-        evaluate_and_reuse(cache::F, n, call, F)::UpFlow{F}
+    reuse = reuseable_flow(upflow(n), F, num_examples)::Union{Nothing,F}
+    if issomething(reuse)
+        evaluate_and_reuse(reuse::F, n, call, F)::UpFlow{F}
     else
         evaluate_and_fresh(n, call, F)::UpFlow{F}
     end
@@ -137,9 +151,9 @@ function evaluate_and_fresh(n, call, ::Type{F}) where F
 end
 
 function evaluate_or(n, call, ::Type{F}, upflow, num_examples) where F
-    cache = upflow(n)
-    if isreusable(cache, F, num_examples)
-        unrolled_sum(F, n, cache::F, call)::UpFlow{F}
+    reuse = reuseable_flow(upflow(n), F, num_examples)::Union{Nothing,F}
+    if issomething(reuse)
+        unrolled_sum(F, n, reuse::F, call)::UpFlow{F}
     else
         evaluate_or_fresh(n, call, F)::UpFlow{F}
     end
@@ -167,45 +181,38 @@ end
 "Turn a implicit `UpFlow2{F}` into its concrete flow `F` and assign to `sink`"
 @inline materialize!(sink, elems) = ((sink === elems) ? sink : (sink .= elems))
 @inline materialize!(sink::BitVector, elems::BitFlow2) = (@avx @. sink = elems.prime_flow & elems.sub_flow)
-@inline materialize!(sink::FloatVector, elems::FloatFlow2) = (@avx @. sink = elems.prime_flow * elems.sub_flow)
+@inline materialize!(sink::CPUFloatVector, elems::CPUFloatFlow2) = (@avx @. sink = elems.prime_flow * elems.sub_flow)
 
-"Complement a flow (corresponding to logical negation)"
-@inline complement(x::AbstractVector{Bool})::BitVector = broadcast(!,x)
-@inline complement(x::AbstractVector{T}) where {T<:AbstractFloat} = (@avx one(T) .- x)
-
-"Complement a flow (corresponding to logical negation) and assign to `sink`"
-@inline complement!(sink::BitVector, x::AbstractVector{Bool}) = @. sink = !x
-@inline complement!(sink::FloatVector, x::AbstractVector{T}) where T<:AbstractFloat = @avx @. sink = one(T) - x
 
 "Compute the logical and of two flow objects"
 @inline flow_and(x::BitVector, y::BitVector) = @. x & y
-@inline flow_and(x::FloatVector, y::FloatVector) = @avx @. x * y
+@inline flow_and(x::CPUFloatVector, y::CPUFloatVector) = @avx @. x * y
 @inline flow_and(x::BitVector, y::BitFlow2) = @. x & y.prime_flow & y.sub_flow
-@inline flow_and(x::FloatVector, y::FloatFlow2) = @avx @. x * y.prime_flow * y.sub_flow
+@inline flow_and(x::CPUFloatVector, y::CPUFloatFlow2) = @avx @. x * y.prime_flow * y.sub_flow
 @inline flow_and(y::UpFlow2, x) = flow_and(x, y)
 @inline flow_and(x::BitFlow2, y::BitFlow2) = @. x.prime_flow & x.sub_flow & y.prime_flow & y.sub_flow
-@inline flow_and(x::FloatFlow2, y::FloatFlow2) = @avx @. x.prime_flow * x.sub_flow * y.prime_flow * y.sub_flow
+@inline flow_and(x::CPUFloatFlow2, y::CPUFloatFlow2) = @avx @. x.prime_flow * x.sub_flow * y.prime_flow * y.sub_flow
 
 "Compute the logical or of two flow objects"
 @inline flow_or(x::BitVector, y::BitVector) = @. x | y
-@inline flow_or(x::FloatVector, y::FloatVector) = @avx @. x + y
+@inline flow_or(x::CPUFloatVector, y::CPUFloatVector) = @avx @. x + y
 @inline flow_or(x::BitVector, y::BitFlow2) = @. x | (y.prime_flow & y.sub_flow)
-@inline flow_or(x::FloatVector, y::FloatFlow2) = @avx @. x + (y.prime_flow * y.sub_flow)
+@inline flow_or(x::CPUFloatVector, y::CPUFloatFlow2) = @avx @. x + (y.prime_flow * y.sub_flow)
 @inline flow_or(y::UpFlow2, x) = flow_or(x, y)
 @inline flow_or(x::BitFlow2, y::BitFlow2) = @. (x.prime_flow & x.sub_flow) | (y.prime_flow & y.sub_flow)
-@inline flow_or(x::FloatFlow2, y::FloatFlow2) = @avx @. (x.prime_flow * x.sub_flow) + (y.prime_flow * y.sub_flow)
+@inline flow_or(x::CPUFloatFlow2, y::CPUFloatFlow2) = @avx @. (x.prime_flow * x.sub_flow) + (y.prime_flow * y.sub_flow)
 
 "And one logical flow with another in place"
 @inline flow_and!(x::BitVector, v::BitVector) = @. x = x & v; nothing
-@inline flow_and!(x::FloatVector, v::FloatVector) = @avx @. x = x * v; nothing
+@inline flow_and!(x::CPUFloatVector, v::CPUFloatVector) = @avx @. x = x * v; nothing
 @inline flow_and!(x::BitVector, v::BitFlow2) = @. x = x & (v.prime_flow & v.sub_flow); nothing
-@inline flow_and!(x::FloatVector, v::FloatFlow2) = @avx @. x = x * (v.prime_flow * v.sub_flow); nothing
+@inline flow_and!(x::CPUFloatVector, v::CPUFloatFlow2) = @avx @. x = x * (v.prime_flow * v.sub_flow); nothing
 
 "Or one logical flow with another in place"
 @inline flow_or!(x::BitVector, v::BitVector) = @. x = x | v; nothing
-@inline flow_or!(x::FloatVector, v::FloatVector) = @avx @. x = x + v; nothing
+@inline flow_or!(x::CPUFloatVector, v::CPUFloatVector) = @avx @. x = x + v; nothing
 @inline flow_or!(x::BitVector, v::BitFlow2) = @. x = x | (v.prime_flow & v.sub_flow); nothing
-@inline flow_or!(x::FloatVector, v::FloatFlow2) = @avx @. x = x + (v.prime_flow * v.sub_flow); nothing
+@inline flow_or!(x::CPUFloatVector, v::CPUFloatFlow2) = @avx @. x = x + (v.prime_flow * v.sub_flow); nothing
 
 #####################
 # downward pass
@@ -315,7 +322,7 @@ end
         @. downflow_c = downflow_n
     end
 
-@inline acc_downflow_and(downflow_c::FloatVector, downflow_n::FloatVector, hasdownflow, scratch) =
+@inline acc_downflow_and(downflow_c::CPUFloatVector, downflow_n::CPUFloatVector, hasdownflow, scratch) =
     if hasdownflow
         @avx @. downflow_c += downflow_n
     else
@@ -333,8 +340,8 @@ end
 
 @inline make_finite(x::T) where T = vifelse(isfinite(x), x, zero(T))
 
-@inline function acc_downflow_or(downflow_c::FloatVector, downflow_n::FloatVector, 
-                               upflow1_c::FloatVector, upflow_n::FloatVector, hasdownflow, scratch)
+@inline function acc_downflow_or(downflow_c::CPUFloatVector, downflow_n::CPUFloatVector, 
+                               upflow1_c::CPUFloatVector, upflow_n::CPUFloatVector, hasdownflow, scratch)
     if hasdownflow
         @avx @. downflow_c += downflow_n * make_finite(upflow1_c/upflow_n)
     else
@@ -351,8 +358,8 @@ end
         @. downflow_gc = downflow_n & upflow2_c.prime_flow & upflow2_c.sub_flow
     end
 
-@inline function acc_downflow_or(downflow_gc::FloatVector, downflow_n::FloatVector, 
-                               upflow2_c::FloatFlow2, upflow_n::FloatVector, hasdownflow, scratch)
+@inline function acc_downflow_or(downflow_gc::CPUFloatVector, downflow_n::CPUFloatVector, 
+                               upflow2_c::CPUFloatFlow2, upflow_n::CPUFloatVector, hasdownflow, scratch)
     if hasdownflow
         @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * make_finite(upflow2_c.sub_flow/upflow_n)
     else

@@ -6,14 +6,16 @@
 # TODO: support weighted datasets by using a `DataFrames` weight column
 # TODO: support `missing` for missing values
 
-import DataFrames: DataFrame, nrow, ncol, eltypes
+import DataFrames: DataFrame, nrow, ncol, eltypes, mapcols
 import Random: shuffle
 import Statistics: mean, std
+import CUDA: CuVector, CuMatrix
 
 export num_examples, num_features, 
        example, feature_values,
        isnumericdata, isbinarydata, number_precision,
        shuffle_examples, batch, threshold, soften,
+       to_gpu, to_cpu,
        ll_per_example, bits_per_pixel
 
 
@@ -102,6 +104,14 @@ end
 "Turn binary data into floating point data close to 0 and 1."
 soften(data, softness=0.05; precision=Float32) =
     data .* precision(1-2*softness) .+ precision(softness) 
+
+
+to_gpu(m::Matrix) = CuMatrix(m)
+to_gpu(df::DataFrame) = mapcols(c -> CuVector(c),df)
+
+to_cpu(m::Array) = 
+    m isa AbstractArray{Bool} ? BitArray(m) : Array(m)
+to_cpu(df::DataFrame) = mapcols(to_cpu, df)
 
 # LIKELIHOOD HELPERS
 

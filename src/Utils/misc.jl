@@ -5,6 +5,8 @@ export issomething, order_asc, isdisjoint, pushrand!, init_array, subseteq_fast,
        always, never, uniform, logsumexp,
        noop, map_values, groupby
 
+using CUDA: CuArray, CUDA
+
 "Is the argument not `nothing`?"
 @inline issomething(x) = !isnothing(x)
 
@@ -85,11 +87,13 @@ function variables end
 "An array of 100% probabilities for the given element type"
 @inline always(::Type{T}, dims::Int...) where T<:Number = ones(T, dims...)
 @inline always(::Type{T}, dims::Int...) where T<:Bool = trues(dims...)
+@inline always(::Type{<:CuArray{T}}, dims::Int...) where T = CUDA.ones(T, dims...)
 @inline always(::Type{T}, dims::Int...) where T<:AbstractArray = always(eltype(T), dims...)::T
 
 "An array of 0% probabilities for the given element type"
 @inline never(::Type{T}, dims::Int...) where T<:Number = zeros(T, dims...)
 @inline never(::Type{T}, dims::Int...) where T<:Bool = falses(dims...)
+@inline never(::Type{<:CuArray{T}}, dims::Int...) where T = CUDA.zeros(T, dims...)
 @inline never(::Type{T}, dims::Int...) where T<:AbstractArray = never(eltype(T), dims...)::T
 
 "An array of uniform probabilities"

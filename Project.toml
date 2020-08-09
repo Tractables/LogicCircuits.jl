@@ -4,6 +4,7 @@ version = "0.1.1"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
 MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
@@ -15,6 +16,7 @@ StatsFuns = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
 
 [compat]
 CSV = "0.6"
+CUDA = "1.2"
 DataFrames = "0.21"
 LoopVectorization = "0.8.20"
 MLDatasets = "0.4, 0.5"
