@@ -40,7 +40,8 @@ const GPUFloatFlow2 = UpFlow2{<:GPUFloatVector}
 
 "For a given input, what is the right type of the flow data?"
 flow_type(::AbstractMatrix{<:Bool}) = BitVector
-flow_type(m::AbstractMatrix{<:AbstractFloat}) = Vector{eltype(m)}
+flow_type(m::Matrix{<:AbstractFloat}) = Vector{eltype(m)}
+flow_type(m::CuMatrix{<:AbstractFloat}) = CuVector{eltype(m)}
 flow_type(data::DataFrame) = begin
     isbinarydata(data) && return BitVector
     @assert isnumericdata(data) "Only floating point and binary flows are supported"
@@ -177,11 +178,11 @@ function gen_unrolled_evaluation(::Type{F}; assign, fresh, eval_or) where F
         c1 = call(@inbounds children(n)[$i])::UpFlow{$F}
         if !isfactorized(c1)
             # try to unroll more Fs
-            $(gen_unrolled_evaluation(F, 2-1, elems1, 1; 
+            $(gen_unrolled_evaluation(F, 3-1, elems1, 1; 
                 factorized=false, assign, fresh, eval_or))
         else
             # try to unroll more UpFlow2{F}s
-            $(gen_unrolled_evaluation(F, 2-1, elems2, 1; 
+            $(gen_unrolled_evaluation(F, 3-1, elems2, 1; 
                 factorized=true, assign, fresh, eval_or))
         end
     end
@@ -345,14 +346,13 @@ function compute_flows(circuit::LogicCircuit, data::Batch, ::Type{F}) where F
     
     # downward pass
     circuit.data.downflow .= circuit.data.upflow
-    scratch = F(undef, num_examples)
 
-    foreach_down(n -> flow_down_inode(n, F, scratch), circuit; setcounter=false)
+    foreach_down(n -> flow_down_inode(n, F), circuit; setcounter=false)
 
     nothing
 end
 
-@inline function flow_down_inode(n, ::Type{F}, scratch) where F
+@inline function flow_down_inode(n, ::Type{F}) where F
     if isinner(n) && (n.data isa UpDownFlow1{F})
         updownflow_n = n.data::UpDownFlow1{F}
         downflow_n = updownflow_n.downflow
@@ -365,18 +365,18 @@ end
                 for i = 1:2
                     updownflow_gc = (@inbounds children(c)[i]).data::UpDownFlow1{F}
                     if is⋁gate(n)
-                        acc_downflow_or(updownflow_gc.downflow, downflow_n, upflow2_c, upflow_n, updownflow_gc.hasdownflow, scratch)
+                        acc_downflow_or(updownflow_gc.downflow, downflow_n, upflow2_c, upflow_n, updownflow_gc.hasdownflow)
                     else
-                        acc_downflow_and(updownflow_gc.downflow, downflow_n, updownflow_gc.hasdownflow, scratch)
+                        acc_downflow_and(updownflow_gc.downflow, downflow_n, updownflow_gc.hasdownflow)
                     end
                     updownflow_gc.hasdownflow = true
                 end
             else
                 updownflow_c = c.data::UpDownFlow1{F}
                 if is⋁gate(n)
-                    acc_downflow_or(updownflow_c.downflow, downflow_n, updownflow_c.upflow, upflow_n, updownflow_c.hasdownflow, scratch)
+                    acc_downflow_or(updownflow_c.downflow, downflow_n, updownflow_c.upflow, upflow_n, updownflow_c.hasdownflow)
                 else
-                    acc_downflow_and(updownflow_c.downflow, downflow_n, updownflow_c.hasdownflow, scratch)
+                    acc_downflow_and(updownflow_c.downflow, downflow_n, updownflow_c.hasdownflow)
                 end
                 updownflow_c.hasdownflow = true
             end
@@ -387,43 +387,57 @@ end
 
 
 "Accumulate the downflow from an And node to its children"
-@inline acc_downflow_and(downflow_c::BitVector, downflow_n::BitVector, hasdownflow, scratch) =
+@inline acc_downflow_and(downflow_c::BitVector, downflow_n::BitVector, hasdownflow) =
     if hasdownflow
         @. downflow_c |= downflow_n
     else
         @. downflow_c = downflow_n
     end
 
-@inline acc_downflow_and(downflow_c::CPUFloatVector, downflow_n::CPUFloatVector, hasdownflow, scratch) =
+@inline acc_downflow_and(downflow_c::CPUFloatVector, downflow_n::CPUFloatVector, hasdownflow) =
     if hasdownflow
         @avx @. downflow_c += downflow_n
     else
         @avx @. downflow_c = downflow_n
     end
 
+@inline acc_downflow_and(downflow_c::GPUFloatVector, downflow_n::GPUFloatVector, hasdownflow) =
+    if hasdownflow
+        downflow_c .+= downflow_n
+    else
+        downflow_c .= downflow_n
+    end
+
 "Accumulate the downflow from an Or node to its children"
 @inline acc_downflow_or(downflow_c::BitVector, downflow_n::BitVector, 
-                        upflow1_c::BitVector, ::BitVector, hasdownflow, scratch) =
+                        upflow1_c::BitVector, ::BitVector, hasdownflow) =
     if hasdownflow
         @. downflow_c |= downflow_n & upflow1_c
     else
         @. downflow_c = downflow_n & upflow1_c
     end
 
-@inline make_finite(x::T) where T = vifelse(isfinite(x), x, zero(T))
-
 @inline function acc_downflow_or(downflow_c::CPUFloatVector, downflow_n::CPUFloatVector, 
-                               upflow1_c::CPUFloatVector, upflow_n::CPUFloatVector, hasdownflow, scratch)
+                               upflow1_c::CPUFloatVector, upflow_n::CPUFloatVector, hasdownflow)
     if hasdownflow
-        @avx @. downflow_c += downflow_n * make_finite(upflow1_c/upflow_n)
+        @avx @. downflow_c += downflow_n * make_finite(upflow1_c / upflow_n)
     else
-        @avx @. downflow_c = downflow_n * make_finite(upflow1_c/upflow_n)
+        @avx @. downflow_c = downflow_n * make_finite(upflow1_c / upflow_n)
     end
+end
+
+@inline function acc_downflow_or(downflow_c::GPUFloatVector, downflow_n::GPUFloatVector, 
+    upflow1_c::GPUFloatVector, upflow_n::GPUFloatVector, hasdownflow)
+    if hasdownflow
+        downflow_c .+= downflow_n .* make_finite.(upflow1_c ./ upflow_n)
+    else
+        downflow_c .= downflow_n .* make_finite.(upflow1_c ./ upflow_n)
+end
 end
 
 # the following methods skip children with implicit flows, and push the flow down to the grandchildren immediately
 @inline acc_downflow_or(downflow_gc::BitVector, downflow_n::BitVector, 
-                               upflow2_c::BitFlow2, ::BitVector, hasdownflow, scratch) =
+                               upflow2_c::BitFlow2, ::BitVector, hasdownflow) =
     if hasdownflow
         @. downflow_gc |= downflow_n & upflow2_c.prime_flow & upflow2_c.sub_flow
     else
@@ -431,10 +445,21 @@ end
     end
 
 @inline function acc_downflow_or(downflow_gc::CPUFloatVector, downflow_n::CPUFloatVector, 
-                               upflow2_c::CPUFloatFlow2, upflow_n::CPUFloatVector, hasdownflow, scratch)
+                               upflow2_c::CPUFloatFlow2, upflow_n::CPUFloatVector, hasdownflow)
     if hasdownflow
-        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * make_finite(upflow2_c.sub_flow/upflow_n)
+        @avx @. downflow_gc += downflow_n * upflow2_c.prime_flow * make_finite(upflow2_c.sub_flow / upflow_n)
     else
-        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * make_finite(upflow2_c.sub_flow/upflow_n)
+        @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * make_finite(upflow2_c.sub_flow / upflow_n)
     end
 end
+
+@inline function acc_downflow_or(downflow_gc::GPUFloatVector, downflow_n::GPUFloatVector, 
+                               upflow2_c::GPUFloatFlow2, upflow_n::GPUFloatVector, hasdownflow)
+    if hasdownflow
+        downflow_gc .+= downflow_n .* upflow2_c.prime_flow .* make_finite.(upflow2_c.sub_flow ./ upflow_n)
+    else
+        downflow_gc .= downflow_n .* upflow2_c.prime_flow .* make_finite.(upflow2_c.sub_flow ./ upflow_n)
+    end
+end
+
+@inline make_finite(x::T) where T = vifelse(isfinite(x), x, zero(T))
