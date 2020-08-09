@@ -15,7 +15,7 @@ export num_examples, num_features,
        example, feature_values,
        isnumericdata, isbinarydata, number_precision,
        shuffle_examples, batch, threshold, soften,
-       to_gpu, to_cpu,
+       to_gpu, to_cpu, isgpu,
        ll_per_example, bits_per_pixel
 
 
@@ -112,6 +112,8 @@ to_gpu(df::DataFrame) = mapcols(c -> CuVector(c),df)
 to_cpu(m::Array) = 
     m isa AbstractArray{Bool} ? BitArray(m) : Array(m)
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
+
+isgpu(df::DataFrame) = all(c -> (c isa CuVector), eachcol(df))
 
 # LIKELIHOOD HELPERS
 

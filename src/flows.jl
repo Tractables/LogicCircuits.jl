@@ -44,7 +44,8 @@ flow_type(m::AbstractMatrix{<:AbstractFloat}) = Vector{eltype(m)}
 flow_type(data::DataFrame) = begin
     isbinarydata(data) && return BitVector
     @assert isnumericdata(data) "Only floating point and binary flows are supported"
-    Vector{number_precision(data)}
+    pr = number_precision(data)
+    isgpu(data) ? CuVector{pr} : Vector{pr}
 end
 
 "Is the flow factorized as a `UpFlow2?`"
@@ -69,6 +70,8 @@ function evaluate(root::LogicCircuit, data::Batch, ::Type{F}=flow_type(data);
     # ensure flow is Flow1 at the root, even when it's a conjunction
     return upflow!(root, materialize(root_flow))::F
 end
+
+# evaluate leafs
 
 @noinline function evaluate_constant(n, ::Type{F}, upflow, num_examples) where F
     reuse = reuseable_flow(upflow(n), F, num_examples)::Union{Nothing,F}
@@ -99,11 +102,19 @@ end
 
 "Complement a flow (corresponding to logical negation)"
 @inline complement(x::AbstractVector{Bool})::BitVector = broadcast(!,x)
-@inline complement(x::AbstractVector{T}) where {T<:AbstractFloat} = (@avx one(T) .- x)
+@inline complement(x::Vector{T}) where {T<:AbstractFloat} = (@avx one(T) .- x)
+@inline complement(x::CuVector{T}) where {T<:AbstractFloat} = (one(T) .- x)
+@inline complement(x::AbstractVector{T}) where {T<:AbstractFloat} = (one(T) .- x) # for slices
 
 "Complement a flow (corresponding to logical negation) and assign to `sink`"
-@inline complement!(sink::BitVector, x::AbstractVector{Bool}) = @. sink = !x
-@inline complement!(sink::CPUFloatVector, x::AbstractVector{T}) where T<:AbstractFloat = @avx @. sink = one(T) - x
+@inline complement!(sink::BitVector, x::AbstractVector{Bool}) = 
+    @. sink = !x
+@inline complement!(sink::CPUFloatVector, x::AbstractVector{T}) where T<:AbstractFloat = 
+    @avx @. sink = one(T) - x
+@inline complement!(sink::GPUFloatVector, x::AbstractVector{T}) where T<:AbstractFloat = 
+    sink .= one(T) .- x
+
+# evaluate ands
 
 function evaluate_and(n, call, ::Type{F}, upflow, num_examples) where F
     reuse = reuseable_flow(upflow(n), F, num_examples)::Union{Nothing,F}
@@ -150,30 +161,6 @@ function evaluate_and_fresh(n, call, ::Type{F}) where F
     end
 end
 
-function evaluate_or(n, call, ::Type{F}, upflow, num_examples) where F
-    reuse = reuseable_flow(upflow(n), F, num_examples)::Union{Nothing,F}
-    if issomething(reuse)
-        unrolled_sum(F, n, reuse::F, call)::UpFlow{F}
-    else
-        evaluate_or_fresh(n, call, F)::UpFlow{F}
-    end
-
-end
-
-function evaluate_or_fresh(n, call, ::Type{F}) where F
-    if num_children(n) == 1
-        return materialize(call(@inbounds children(n)[1])::UpFlow{F})::F
-    else
-        c1 = call(@inbounds children(n)[1])::UpFlow{F}
-        c2 = call(@inbounds children(n)[2])::UpFlow{F}
-        x = flow_or(c1, c2)
-        for c in children(n)[3:end]
-            flow_or!(x, call(c)::UpFlow{F})
-        end
-        return x::F
-    end
-end
-
 "Turn a implicit `UpFlow2{F}` into its concrete flow `F`"
 @inline materialize(elems) = elems
 @inline materialize(elems::UpFlow2) = flow_and(elems.prime_flow, elems.sub_flow)
@@ -183,36 +170,149 @@ end
 @inline materialize!(sink::BitVector, elems::BitFlow2) = (@avx @. sink = elems.prime_flow & elems.sub_flow)
 @inline materialize!(sink::CPUFloatVector, elems::CPUFloatFlow2) = (@avx @. sink = elems.prime_flow * elems.sub_flow)
 
-
 "Compute the logical and of two flow objects"
 @inline flow_and(x::BitVector, y::BitVector) = @. x & y
 @inline flow_and(x::CPUFloatVector, y::CPUFloatVector) = @avx @. x * y
+@inline flow_and(x::GPUFloatVector, y::GPUFloatVector) = x .* y
 @inline flow_and(x::BitVector, y::BitFlow2) = @. x & y.prime_flow & y.sub_flow
 @inline flow_and(x::CPUFloatVector, y::CPUFloatFlow2) = @avx @. x * y.prime_flow * y.sub_flow
+@inline flow_and(x::GPUFloatVector, y::GPUFloatFlow2) = x .* y.prime_flow .* y.sub_flow
 @inline flow_and(y::UpFlow2, x) = flow_and(x, y)
 @inline flow_and(x::BitFlow2, y::BitFlow2) = @. x.prime_flow & x.sub_flow & y.prime_flow & y.sub_flow
 @inline flow_and(x::CPUFloatFlow2, y::CPUFloatFlow2) = @avx @. x.prime_flow * x.sub_flow * y.prime_flow * y.sub_flow
-
-"Compute the logical or of two flow objects"
-@inline flow_or(x::BitVector, y::BitVector) = @. x | y
-@inline flow_or(x::CPUFloatVector, y::CPUFloatVector) = @avx @. x + y
-@inline flow_or(x::BitVector, y::BitFlow2) = @. x | (y.prime_flow & y.sub_flow)
-@inline flow_or(x::CPUFloatVector, y::CPUFloatFlow2) = @avx @. x + (y.prime_flow * y.sub_flow)
-@inline flow_or(y::UpFlow2, x) = flow_or(x, y)
-@inline flow_or(x::BitFlow2, y::BitFlow2) = @. (x.prime_flow & x.sub_flow) | (y.prime_flow & y.sub_flow)
-@inline flow_or(x::CPUFloatFlow2, y::CPUFloatFlow2) = @avx @. (x.prime_flow * x.sub_flow) + (y.prime_flow * y.sub_flow)
+@inline flow_and(x::GPUFloatFlow2, y::GPUFloatFlow2) = x.prime_flow .* x.sub_flow .* y.prime_flow .* y.sub_flow
 
 "And one logical flow with another in place"
 @inline flow_and!(x::BitVector, v::BitVector) = @. x = x & v; nothing
 @inline flow_and!(x::CPUFloatVector, v::CPUFloatVector) = @avx @. x = x * v; nothing
+@inline flow_and!(x::GPUFloatVector, v::GPUFloatVector) = x .= x .* v; nothing
 @inline flow_and!(x::BitVector, v::BitFlow2) = @. x = x & (v.prime_flow & v.sub_flow); nothing
 @inline flow_and!(x::CPUFloatVector, v::CPUFloatFlow2) = @avx @. x = x * (v.prime_flow * v.sub_flow); nothing
+@inline flow_and!(x::GPUFloatVector, v::GPUFloatFlow2) = x .= x .* (v.prime_flow .* v.sub_flow); nothing
 
-"Or one logical flow with another in place"
-@inline flow_or!(x::BitVector, v::BitVector) = @. x = x | v; nothing
-@inline flow_or!(x::CPUFloatVector, v::CPUFloatVector) = @avx @. x = x + v; nothing
-@inline flow_or!(x::BitVector, v::BitFlow2) = @. x = x | (v.prime_flow & v.sub_flow); nothing
-@inline flow_or!(x::CPUFloatVector, v::CPUFloatFlow2) = @avx @. x = x + (v.prime_flow * v.sub_flow); nothing
+# evaluate ors
+
+function evaluate_or(n, call, ::Type{F}, upflow, num_examples) where F
+    reuse = reuseable_flow(upflow(n), F, num_examples)::Union{Nothing,F}
+    if issomething(reuse)
+        sum_loop_reuse(F, n, reuse::F, call)::UpFlow{F}
+    else
+        sum_loop_fresh(F, n, call)::UpFlow{F}
+    end
+end
+
+@generated sum_loop_reuse(::Type{F}, n, r, call) where {F} =
+    gen_sum_loop(F; fresh=false)
+
+@generated sum_loop_fresh(::Type{F}, n, call) where {F} =
+    gen_sum_loop(F; fresh=true)
+
+#####################
+# generated functions to help compute flows
+#####################
+
+function gen_sum_loop(::Type{F}; fresh) where F
+    return quote
+        l = num_children(n)
+        $(gen_unrolled_sum(F; assign=true, fresh))
+        while i <= l 
+            $(gen_unrolled_sum(F; assign=false, fresh))
+        end
+        r::$F
+    end
+end
+
+function gen_unrolled_sum(::Type{F}; assign, fresh) where F
+    i = assign ? :(1) : :(i)
+    elems1 = [:(c1::$F)]
+    elems2 = [(:((c1::UpFlow2{$F}).prime_flow), :((c1::UpFlow2{$F}).sub_flow))]
+    return quote 
+        c1 = call(@inbounds children(n)[$i])::UpFlow{$F}
+        if !isfactorized(c1)
+            # try to unroll more Fs
+            $(gen_unrolled_sum(F, 2-1, elems1, 1; factorized=false, assign, fresh))
+        else
+            # try to unroll more UpFlow2{F}s
+            $(gen_unrolled_sum(F, 2-1, elems2, 1; factorized=true, assign, fresh))
+        end
+    end
+end
+
+function gen_unrolled_sum(::Type{F}, budget::Int, elems::Vector, o::Int; 
+                          factorized, assign, fresh)::Expr where F
+    nextindex = assign ? :($(1+o)) : :(i+$o)
+    ci = Symbol("c$(1+o)")
+    elems_with_e1 = [elems..., :($ci::$F)]
+    elems_with_e2 = [elems..., (:(($ci::UpFlow2{$F}).prime_flow), :(($ci::UpFlow2{$F}).sub_flow))]
+    if budget<=0
+        iplusplus = assign ? :(i = $nextindex) : :(i += $o)
+        return quote
+            $(gen_unrolled_sum_base(F, elems; assign, fresh))
+            $iplusplus
+        end
+    elseif !factorized
+        return quote
+            if $nextindex <= l 
+                $ci = call(@inbounds children(n)[$nextindex])::UpFlow{$F}
+                if !isfactorized($ci)
+                    $(gen_unrolled_sum(F, budget-1, elems_with_e1, o+1; factorized, assign, fresh))
+                else
+                    $(gen_unrolled_sum(F, 0, elems_with_e2, o+1; factorized, assign, fresh))
+                end
+            else
+                $(gen_unrolled_sum(F, 0, elems, o; factorized, assign, fresh))
+            end
+        end
+    else # factorized
+        return quote
+            if $nextindex <= l 
+                $ci = call(@inbounds children(n)[$nextindex])::UpFlow{$F}
+                if !isfactorized($ci)
+                    $(gen_unrolled_sum(F, 0, elems_with_e1, o+1; factorized, assign, fresh))
+                else
+                    $(gen_unrolled_sum(F, budget-1, elems_with_e2, o+1; factorized, assign, fresh))
+                end
+            else
+                $(gen_unrolled_sum(F, 0, elems, o; factorized, assign, fresh))
+            end
+        end
+    end
+end
+
+function gen_unrolled_sum_base(::Type{F}, elems::Vector; assign, fresh)::Expr where F
+    elem_sum::Expr = mapreduce(
+        e -> gen_product_kernel(F,e), 
+        (v1,v2) -> gen_sum_kernel(F,v1,v2), elems)
+    if assign
+        if !fresh && elem_sum == elems[1]
+            return :((r === $elem_sum) || $(gen_assign_kernel(F, elem_sum; fresh)))
+        else
+            return gen_assign_kernel(F, elem_sum; fresh)
+        end
+    else
+        return gen_acc_sum_kernel(F, elem_sum)
+    end
+end
+
+gen_assign_kernel(::Type{<:CPUFloatVector}, rhs::Expr; fresh) =
+    fresh ? :(r = @avx $rhs) : :(@avx r .= $rhs) 
+gen_assign_kernel(::Type{<:GPUFloatVector}, rhs::Expr; fresh) =
+    fresh ? :(r = $rhs) : :(r .= $rhs) 
+gen_assign_kernel(::Type{<:BitVector}, rhs::Expr; fresh) =
+    fresh ? :(r = $rhs) : :(r .= $rhs) 
+
+gen_acc_sum_kernel(::Type{<:CPUFloatVector}, rhs::Expr) = :(@avx r .+= $rhs)
+gen_acc_sum_kernel(::Type{<:GPUFloatVector}, rhs::Expr) = :(r .+= $rhs)
+gen_acc_sum_kernel(::Type{<:BitVector}, rhs::Expr) = :(r .|= $rhs) 
+
+gen_sum_kernel(::Type{<:FloatVector}, v1::Expr, v2::Expr) = :($v1 .+ $v2)
+gen_sum_kernel(::Type{<:BitVector}, v1::Expr, v2::Expr) = :($v1 .| $v2)
+    
+gen_product_kernel(::Type{<:FloatVector}, e::Tuple{Expr,Expr}) = :($(e[1]) .* $(e[2]))
+gen_product_kernel(::Type{<:BitVector}, e::Tuple{Expr,Expr}) = :($(e[1]) .& $(e[2]))
+gen_product_kernel(_, e::Expr) = e
+
+
 
 #####################
 # downward pass
@@ -366,121 +466,3 @@ end
         @avx @. downflow_gc = downflow_n * upflow2_c.prime_flow * make_finite(upflow2_c.sub_flow/upflow_n)
     end
 end
-
-#####################
-# generated functions to help compute flows
-#####################
-
-@generated function unrolled_sum(::Type{F}, n, r, call) where {F}
-    return quote
-        l = num_children(n)
-        $(gen_unrolled_sum(F, true))
-        while i <= l 
-            $(gen_unrolled_sum(F, false))
-        end
-        r::$F
-    end
-end
-
-function gen_unrolled_sum(::Type{F}, assign) where F
-    i = assign ? :(1) : :(i)
-    return quote 
-        c1 = call(@inbounds children(n)[$i])::UpFlow{$F}
-        if !isfactorized(c1)
-            # try to unroll 4 more Fs
-            $(gen_unrolled_sum(F, assign, 5-1, false, [:(c1::$F)], 1))
-        else
-            # try to unroll 2 more UpFlow2{F}s
-            $(gen_unrolled_sum(F, assign, 3-1, true, [(:((c1::UpFlow2{$F}).prime_flow), :((c1::UpFlow2{$F}).sub_flow))], 1))
-        end
-    end
-end
-
-function gen_unrolled_sum(::Type{F}, assign::Bool, budget::Int, factorized::Bool, elems::Vector, o::Int)::Expr where F
-    nextindex = assign ? :($(1+o)) : :(i+$o)
-    ci = Symbol("c$(1+o)")
-    iplusplus = assign ? :(i = $nextindex) : :(i += $o)
-    elems_with_e1 = [elems..., :($ci::$F)]
-    elems_with_e2 = [elems..., (:(($ci::UpFlow2{$F}).prime_flow), :(($ci::UpFlow2{$F}).sub_flow))]
-    if budget<=0
-        return quote
-            $(gen_sum_kernel(F, assign, elems))
-            $iplusplus
-        end
-    elseif !factorized
-        return quote
-            if $nextindex <= l 
-                $ci = call(@inbounds children(n)[$nextindex])::UpFlow{$F}
-                if !isfactorized($ci)
-                    $(gen_unrolled_sum(F, assign, budget-1, factorized, elems_with_e1, o+1))
-                else
-                    $(gen_unrolled_sum(F, assign, 0, factorized, elems_with_e2, o+1))
-                end
-            else
-                $(gen_unrolled_sum(F, assign, 0, factorized, elems, o))
-            end
-        end
-    else # factorized
-        return quote
-            if $nextindex <= l 
-                $ci = call(@inbounds children(n)[$nextindex])::UpFlow{$F}
-                if !isfactorized($ci)
-                    $(gen_unrolled_sum(F, assign, 0, factorized, elems_with_e1, o+1))
-                else
-                    $(gen_unrolled_sum(F, assign, budget-1, factorized, elems_with_e2, o+1))
-                end
-            else
-                $(gen_unrolled_sum(F, assign, 0, factorized, elems, o))
-            end
-        end
-    end
-end
-
-function gen_sum_kernel(::Type{F}, assign::Bool, elems::Vector)::Expr where F
-    elem_sum::Expr = mapreduce(
-        e -> gen_product_kernel(F,e), 
-        (v1,v2) -> gen_sum_kernel(F,v1,v2), 
-        elems)
-    if assign
-        if elem_sum == elems[1]
-            return :((r === $elem_sum) || $(gen_sum_kernel_assign(F, elem_sum)))
-        else
-            return gen_sum_kernel_assign(F, elem_sum)
-        end
-    else
-        return gen_sum_kernel_acc(F, elem_sum)
-    end
-end
-
-gen_sum_kernel(::Type{F}, v1::Expr, v2::Expr) where F<:AbstractVector{<:AbstractFloat} = :($v1 .+ $v2)
-gen_sum_kernel(::Type{F}, v1::Expr, v2::Expr) where F<:AbstractVector{UInt} = :($v1 .| $v2)
-gen_sum_kernel(::Type{F}, v1::Expr, v2::Expr) where F<:BitVector = :($v1 .| $v2)
-
-function gen_sum_kernel_assign(::Type{F}, elem_sum::Expr)::Expr where F<:AbstractVector{<:AbstractFloat}
-    return :(@avx r .= $elem_sum) 
-end
-
-function gen_sum_kernel_assign(::Type{F}, elem_sum::Expr) where F<:BitVector
-    return :(r .= $elem_sum) 
-end
-
-function gen_sum_kernel_assign(::Type{F}, elem_sum::Expr) where F<:AbstractVector{UInt}
-    return :(@avx r .= $elem_sum) 
-end
-
-
-function gen_sum_kernel_acc(::Type{F}, elem_sum::Expr)::Expr where F<:AbstractVector{<:AbstractFloat}
-    return :(@avx r .+= $elem_sum) 
-end
-
-function gen_sum_kernel_acc(::Type{F}, elem_sum::Expr) where F<:BitVector
-    return :(r .|= $elem_sum) 
-end
-
-function gen_sum_kernel_acc(::Type{F}, elem_sum::Expr) where F<:AbstractVector{UInt}
-    return :(@avx r .|= $elem_sum) 
-end
-
-gen_product_kernel(::Type{<:AbstractVector{<:AbstractFloat}}, e::Tuple{Expr,Expr})::Expr = :($(e[1]) .* $(e[2]))
-gen_product_kernel(::Type{<:AbstractVector{<:Union{Bool,UInt}}}, e::Tuple{Expr,Expr})::Expr = :($(e[1]) .& $(e[2]))
-gen_product_kernel(_,e::Expr)::Expr = e
