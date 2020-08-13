@@ -154,9 +154,10 @@ function evaluate(bit_circuit::CuBitCircuit, data::CuMatrix{Float32}, reuse=noth
     nn = nl+nd
     v = value_matrix(CuMatrix, ne, nn, reuse)
     set_leaf_layer(v, data)
-    numblocks = ceil(Int, ne/256)
+    num_threads_per_block = 256
+    numblocks = ceil(Int, ne/num_threads_per_block)
     CUDA.@sync begin
-        @cuda threads=256 blocks=numblocks evaluate_kernel_cuda(v, bit_circuit.decisions, bit_circuit.elements, ne, nd, nl)
+        @cuda threads=num_threads_per_block blocks=numblocks evaluate_kernel_cuda(v, bit_circuit.decisions, bit_circuit.elements, ne, nd, nl)
     end
     return v
 end
@@ -171,6 +172,53 @@ function evaluate_kernel_cuda(v, decisions, elements, ne, nd, nl)
             v[j, nl+i] = v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
             for k=first_elem+1:last_elem
                 v[j, nl+i] += v[j, elements[1,k]] * v[j, elements[2,k]]
+            end
+        end
+    end
+    return nothing
+end
+
+function compute_flows(bit_circuit::CuBitCircuit, data::CuMatrix{Float32}, reuse_up=nothing, reuse_down=nothing)
+    ne = num_examples(data)
+    nf = num_features(data)
+    nd = size(bit_circuit.decisions)[2]
+    nl = 2+2*nf
+    nn = nl+nd
+    v = value_matrix(CuMatrix, ne, nn, reuse_up)
+    flow = if reuse_down isa CuArray{Float32} && size(reuse_down) == (ne, nn)
+        reuse_down
+    else
+        CUDA.zeros(Float32, ne, nn)
+    end
+    set_leaf_layer(v, data)
+    num_threads_per_block = 256
+    numblocks = ceil(Int, ne/num_threads_per_block)
+    CUDA.@sync begin
+        @cuda threads=num_threads_per_block blocks=numblocks compute_flows_kernel_cuda(v, flow, bit_circuit.decisions, bit_circuit.elements, ne, nd, nl)
+    end
+    return flow, v
+end
+
+function compute_flows_kernel_cuda(v, flow, decisions, elements, ne, nd, nl)
+    evaluate_kernel_cuda(v, decisions, elements, ne, nd, nl)
+    index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    stride = blockDim().x * gridDim().x
+    for j = index:stride:ne
+        flow[j, nl+nd] = v[j, nl+nd]
+        for i = nd:-1:1
+            first_elem = decisions[1,i]
+            last_elem = decisions[2,i]
+            n_up = v[j, nl+i]
+            if n_up > zero(Float32)
+                n_down = flow[j, nl+i]
+                for k=first_elem:last_elem
+                    e1 = elements[1,k]
+                    e2 = elements[2,k]
+                    c_up = v[j, e1] * v[j, e2]
+                    additional_flow = c_up / n_up * n_down
+                    flow[j, e1] += additional_flow
+                    flow[j, e2] += additional_flow
+                end
             end
         end
     end
