@@ -170,8 +170,9 @@ function evaluate_kernel_cuda(v, decisions, elements, ne, nd, nl)
             first_elem = decisions[1,i]
             last_elem = decisions[2,i]
             v[j, nl+i] = v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
-            for k=first_elem+1:last_elem
-                v[j, nl+i] += v[j, elements[1,k]] * v[j, elements[2,k]]
+            while first_elem < last_elem
+                first_elem += 1
+                v[j, nl+i] += v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
             end
         end
     end
@@ -224,6 +225,80 @@ function compute_flows_kernel_cuda(v, flow, decisions, elements, ne, nd, nl)
     end
     return nothing
 end
-
-#TODO: downward pass
 #TODO: layered circuit
+
+
+struct Layer
+    decisions::Matrix{Int32}
+    elements::Matrix{Int32}
+end
+
+struct LayeredBitCircuit
+    layers::Vector{Layer}
+end
+
+struct LayeredDecisionId
+    layer_id::Int32
+    decision_id::Int32
+end
+
+LayeredBitCircuit(circuit::LogicCircuit, num_features) = begin
+    @assert is⋁gate(circuit)
+    decisions::Vector{Vector{Int32}} = Vector{Vector{Int32}}()
+    elements::Vector{Vector{Int32}} = Vector{Vector{Int32}}()
+    num_elements::Vector{Int32} = Vector{Int32}()
+    ensure_layer(i) = begin
+        if length(decisions) < i
+            # add a new layer
+            push!(decisions, Int32[])
+            push!(elements, Int32[])
+            push!(num_elements, 0)
+        end
+    end
+    num_decisions::Int32 = 2*num_features+2
+    
+    f_con(n) = LayeredDecisionId(0, istrue(n) ? TRUE_BITS : FALSE_BITS)
+    f_lit(n) = LayeredDecisionId(0, 
+        ispositive(n) ? Int32(2+variable(n)) : Int32(2+num_features+variable(n)))
+
+    f_and(n, cs) = begin
+        @assert length(cs) == 2
+        LayeredDecisionId[cs[1], cs[2]]
+    end
+    f_or(n, cs) = begin
+        # determine layer
+        layer_id = zero(Int32)
+        for c in cs
+            if c isa Vector{LayeredDecisionId}
+                @assert length(c) == 2
+                layer_id = max(layer_id, c[1].layer_id, c[2].layer_id)
+            else
+                @assert c isa LayeredDecisionId
+                layer_id = max(layer_id, c.layer_id)
+            end
+        end
+        layer_id += 1
+        ensure_layer(layer_id)
+        first_element = num_elements[layer_id] + 1
+        for c in cs
+            if c isa Vector{LayeredDecisionId}
+                num_elements[layer_id] += 1
+                push!(elements[layer_id], c[1].decision_id, c[2].decision_id)
+            else
+                num_elements[layer_id] += 1
+                push!(elements[layer_id], c.decision_id, TRUE_BITS)
+            end
+        end
+        num_decisions += 1
+        push!(decisions[layer_id], first_element, num_elements[layer_id])
+        LayeredDecisionId(layer_id, num_decisions)
+    end
+
+    foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, 
+        Union{LayeredDecisionId,Vector{LayeredDecisionId}})
+    
+    layers = map(decisions, elements) do d, e
+        Layer(reshape(d, 2, :), reshape(e, 2, :))
+    end
+    return LayeredBitCircuit(layers)
+end
