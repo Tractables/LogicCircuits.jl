@@ -1,6 +1,6 @@
 using CUDA
 
-export BitCircuit, CuBitCircuit
+export BitCircuit, CuBitCircuit, LayeredBitCircuit, CuLayeredBitCircuit
 
 # In a bits circuit,
 # 1 is true, 2 is false
@@ -266,6 +266,7 @@ LayeredBitCircuit(circuit::LogicCircuit, num_features) = begin
         LayeredDecisionId[cs[1], cs[2]]
     end
     f_or(n, cs) = begin
+        num_decisions += 1
         # determine layer
         layer_id = zero(Int32)
         for c in cs
@@ -289,8 +290,7 @@ LayeredBitCircuit(circuit::LogicCircuit, num_features) = begin
                 push!(elements[layer_id], c.decision_id, TRUE_BITS)
             end
         end
-        num_decisions += 1
-        push!(decisions[layer_id], first_element, num_elements[layer_id])
+        push!(decisions[layer_id], num_decisions, first_element, num_elements[layer_id])
         LayeredDecisionId(layer_id, num_decisions)
     end
 
@@ -298,7 +298,107 @@ LayeredBitCircuit(circuit::LogicCircuit, num_features) = begin
         Union{LayeredDecisionId,Vector{LayeredDecisionId}})
     
     layers = map(decisions, elements) do d, e
-        Layer(reshape(d, 2, :), reshape(e, 2, :))
+        Layer(reshape(d, 3, :), reshape(e, 2, :))
     end
     return LayeredBitCircuit(layers)
+end
+
+struct CuLayer
+    decisions::CuMatrix{Int32}
+    elements::CuMatrix{Int32}
+    CuLayer(l::Layer) = new(CuMatrix(l.decisions), CuMatrix(l.elements))
+end
+
+struct CuLayeredBitCircuit
+    layers::Vector{CuLayer}
+    CuLayeredBitCircuit(l::LayeredBitCircuit) = new(map(CuLayer, l.layers))
+end
+
+num_decisions(l::CuLayer) = size(l.decisions)[2]
+num_decisions(l::CuLayeredBitCircuit) = sum(num_decisions, l.layers)
+
+function evaluate(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse=nothing)
+    ne = num_examples(data)
+    nf = num_features(data)
+    nd = num_decisions(bit_circuit)
+    nl = 2+2*nf
+    nn = nl+nd
+    v = value_matrix(CuMatrix, ne, nn, reuse)
+    set_leaf_layer(v, data)
+    num_threads_per_block = 256
+    numblocks = ceil(Int, ne/num_threads_per_block)
+    decision_id_offset = nl
+    for layer in bit_circuit.layers 
+        CUDA.@sync @cuda threads=num_threads_per_block blocks=numblocks evaluate_layer_kernel_cuda(v, layer.decisions, layer.elements, ne, num_decisions(layer))
+        decision_id_offset += num_decisions(layer)
+    end
+    return v
+end
+
+function evaluate_layer_kernel_cuda(v, decisions, elements, ne, num_decisions)
+    index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    stride = blockDim().x * gridDim().x
+    for j = index:stride:ne
+        for i = 1:num_decisions
+            decision_id = decisions[1,i]
+            first_elem = decisions[2,i]
+            last_elem = decisions[3,i]
+            v[j, decision_id] = v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
+            while first_elem < last_elem
+                first_elem += 1
+                v[j, decision_id] += v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
+            end
+        end
+    end
+    return nothing
+end
+
+function evaluate2(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse=nothing)
+    ne = num_examples(data)
+    nf = num_features(data)
+    nd = num_decisions(bit_circuit)
+    nl = 2+2*nf
+    nn = nl+nd
+    v = value_matrix(CuMatrix, ne, nn, reuse)
+    set_leaf_layer(v, data)
+    decision_id_offset = nl
+    dec_per_thread = 8
+    for layer in bit_circuit.layers
+        ndl = num_decisions(layer)
+        num_threads = balance_threads(ne,nd/dec_per_thread, 7)
+        num_blocks = (ceil(Int, ne/num_threads[1]), ceil(Int, ndl/num_threads[2]/dec_per_thread)) 
+        CUDA.@sync @cuda threads=num_threads blocks=num_blocks evaluate_layer_kernel_cuda2(v, layer.decisions, layer.elements, ne, ndl)
+        decision_id_offset += ndl
+    end
+    return v
+end
+
+# assign threads to examples and decisions nodes so that everything is a power of 2
+function balance_threads(num_examples, num_decisions, total_log2)
+    ratio = num_examples / num_decisions
+    k = ceil(Int, (log2(ratio) + total_log2)/2)
+    k = min(max(0, k), total_log2)
+    l = total_log2-k
+    (2^k, 2^l)
+end
+
+
+function evaluate_layer_kernel_cuda2(v, decisions, elements, ne, num_decisions)
+    index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
+    stride_x = blockDim().x * gridDim().x
+    stride_y = blockDim().y * gridDim().y
+    for j = index_x:stride_x:ne
+        for i = index_y:stride_y:num_decisions
+            decision_id = decisions[1,i]
+            first_elem = decisions[2,i]
+            last_elem = decisions[3,i]
+            v[j, decision_id] = v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
+            while first_elem < last_elem
+                first_elem += 1
+                v[j, decision_id] += v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
+            end
+        end
+    end
+    return nothing
 end

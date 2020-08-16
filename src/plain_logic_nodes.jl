@@ -112,6 +112,8 @@ function disjoin(arguments::Vector{<:PlainLogicCircuit};
     return Plain⋁Node(arguments)
 end
 
+negate(a::PlainLiteralNode) = compile(PlainLiteralNode, -a.literal)
+
 # claim `PlainLogicCircuit` as the default `LogicCircuit` implementation
 compile(::Type{LogicCircuit}, args...) =
     compile(PlainLogicCircuit, args...)
