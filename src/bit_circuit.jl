@@ -317,6 +317,8 @@ end
 
 num_decisions(l::CuLayer) = size(l.decisions)[2]
 num_decisions(l::CuLayeredBitCircuit) = sum(num_decisions, l.layers)
+num_decisions(l::Layer) = size(l.decisions)[2]
+num_decisions(l::LayeredBitCircuit) = sum(num_decisions, l.layers)
 
 function evaluate(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse=nothing)
     ne = num_examples(data)
@@ -462,4 +464,123 @@ function compute_flows2(circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, r
     v = evaluate2(circuit, data, reuse_up)
     flow = pass_down2(circuit, data, v, reuse_down)
     return flow, v
+end
+
+
+function evaluate3(bit_circuit::LayeredBitCircuit, data::Matrix{Float32}, reuse=nothing)
+    ne = num_examples(data)
+    nn = 2+2*num_features(data)+num_decisions(bit_circuit)
+    v = value_matrix(Matrix{Float32}, ne, nn, reuse)
+    set_leaf_layer(v, data)
+    for layer in bit_circuit.layers
+        els = layer.elements
+        foreach(eachcol(layer.decisions)) do decision
+            decision_id = @inbounds decision[1]
+            first_elem = @inbounds decision[2]
+            last_elem = @inbounds decision[3]
+            if first_elem == last_elem
+                assign_flow(v, decision_id, els[1,first_elem], els[2,first_elem])
+                first_elem += 1
+            else
+                assign_flow2(v, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
+                first_elem += 2
+            end
+            while first_elem <= last_elem
+                if first_elem == last_elem
+                    accum_flow(v, decision_id, els[1,first_elem], els[2,first_elem])
+                    first_elem += 1
+                else
+                    accum_flow2(v, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
+                    first_elem += 2
+                end
+            end
+        end
+    end
+    return v
+end
+
+function evaluate4(bit_circuit::LayeredBitCircuit, data::Matrix{Float32}, reuse=nothing)
+    ne = num_examples(data)
+    nn = 2+2*num_features(data)+num_decisions(bit_circuit)
+    v = value_matrix(Matrix{Float32}, ne, nn, reuse)
+    set_leaf_layer(v, data)
+    for layer in bit_circuit.layers
+        decisions = layer.decisions
+        els = layer.elements
+        Threads.@threads for i in 1:size(decisions)[2]
+            decision_id = @inbounds decisions[1,i]
+            first_elem = @inbounds decisions[2,i]
+            last_elem = @inbounds decisions[3,i]
+            if first_elem == last_elem
+                assign_flow(v, decision_id, els[1,first_elem], els[2,first_elem])
+                first_elem += 1
+            else
+                assign_flow2(v, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
+                first_elem += 2
+            end
+            while first_elem <= last_elem
+                if first_elem == last_elem
+                    accum_flow(v, decision_id, els[1,first_elem], els[2,first_elem])
+                    first_elem += 1
+                else
+                    accum_flow2(v, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
+                    first_elem += 2
+                end
+            end
+        end
+    end
+    return v
+end
+
+function evaluate5(bit_circuit::LayeredBitCircuit, data::Matrix{Float32}, reuse=nothing)
+    ne = num_examples(data)
+    nn = 2+2*num_features(data)+num_decisions(bit_circuit)
+    v = value_matrix(Matrix{Float32}, ne, nn, reuse)
+    set_leaf_layer(v, data)
+    for layer in bit_circuit.layers
+        decisions = layer.decisions
+        els = layer.elements
+        exa_threads, dec_threads = balance_threads_cpu(ne, num_decisions(layer), 2*Threads.nthreads())
+        decision_range = 1:size(decisions)[2]
+        decision_parts = Iterators.partition(decision_range, ceil(Int,length(decision_range) / dec_threads))
+        example_range = 1:ne
+        example_parts = Iterators.partition(example_range, ceil(Int,length(example_range) / exa_threads))
+        @sync for decision_part in decision_parts
+            for example_part in example_parts
+                Threads.@spawn begin
+                    for i in decision_part
+                        decision_id = @inbounds decisions[1,i]
+                        first_elem = @inbounds decisions[2,i]
+                        last_elem = @inbounds decisions[3,i]
+                        w = @view v[example_part,:]
+                        if first_elem == last_elem
+                            assign_flow(w, decision_id, els[1,first_elem], els[2,first_elem])
+                            first_elem += 1
+                        else
+                            assign_flow2(w, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
+                            first_elem += 2
+                        end
+                        while first_elem <= last_elem
+                            if first_elem == last_elem
+                                accum_flow(w, decision_id, els[1,first_elem], els[2,first_elem])
+                                first_elem += 1
+                            else
+                                accum_flow2(w, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
+                                first_elem += 2
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return v
+end
+
+function balance_threads_cpu(num_examples, num_decisions, total; relative_cost=5)
+    ratio = num_examples/relative_cost / num_decisions
+    k = ceil(Int, sqrt(total*ratio))
+    k = min(k, total)
+    l = ceil(Int, total/k)
+    (k,l)
 end
