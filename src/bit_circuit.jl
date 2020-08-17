@@ -1,7 +1,8 @@
 using CUDA
 
-export BitCircuit, CuBitCircuit, LayeredBitCircuit, CuLayeredBitCircuit
-export value_matrix, set_leaf_layer, evaluate_kernel_cuda, LayeredDecisionId, balance_threads, compute_flows2 # facilitate functions in logistic circuits
+export BitCircuit, CuBitCircuit
+export Layer, CuLayer, LayeredDecisionId, LayeredBitCircuit, CuLayeredBitCircuit
+export num_decisions, num_elements, balance_threads, compute_flows2 # facilitate functions in logistic circuits
 
 # In a bits circuit,
 # 1 is true, 2 is false
