@@ -1,7 +1,7 @@
 using CUDA
 
 export BitCircuit, CuBitCircuit, LayeredBitCircuit, CuLayeredBitCircuit
-export value_matrix, set_leaf_layer, evaluate_kernel_cuda, LayeredDecisionId, balance_threads, evaluate_layer_kernel_cuda2 # facilitate functions in logistic circuits
+export value_matrix, set_leaf_layer, evaluate_kernel_cuda, LayeredDecisionId, balance_threads, compute_flows2 # facilitate functions in logistic circuits
 
 # In a bits circuit,
 # 1 is true, 2 is false
@@ -320,6 +320,12 @@ num_decisions(l::CuLayeredBitCircuit) = sum(num_decisions, l.layers)
 num_decisions(l::Layer) = size(l.decisions)[2]
 num_decisions(l::LayeredBitCircuit) = sum(num_decisions, l.layers)
 
+num_elements(l::CuLayer) = size(l.elements)[2]
+num_elements(l::CuLayeredBitCircuit) = sum(num_elements, l.layers)
+num_elements(l::Layer) = size(l.elements)[2]
+num_elements(l::LayeredBitCircuit) = sum(num_elements, l.layers)
+
+
 function evaluate(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse=nothing)
     ne = num_examples(data)
     nf = num_features(data)
@@ -378,23 +384,25 @@ function pass_down2(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, v
     ne = num_examples(data)
     nf = num_features(data)
     nd = num_decisions(bit_circuit)
+    nel = num_elements(bit_circuit)
     nl = 2+2*nf
     nn = nl+nd
-    flow = if reuse_down isa CuArray{Float32} && size(reuse_down) == (ne, nn)
-        reuse_down .= zero(Float32)
+    node_flow, edge_flow = if reuse_down isa Tuple{CuArray{Float32}} && size(reuse_down[1]) == (ne, nn) && size(reuse_down[2]) == (ne, nel)
+        reuse_down[1] .= zero(Float32)
+        reuse_down[2] .= zero(Float32)
         reuse_down
     else
-        CUDA.zeros(Float32, ne, nn)
+        CUDA.zeros(Float32, ne, nn), CUDA.zeros(Float32, ne, nel)
     end
-    flow[:,end] .= v[:,end] # set flow at root
-    dec_per_thread = 4
+    node_flow[:,end] .= v[:,end] # set flow at root
+    dec_per_thread = 3
     CUDA.@sync for layer in Iterators.reverse(bit_circuit.layers)
         ndl = num_decisions(layer)
         num_threads = balance_threads(ne,ndl/dec_per_thread, 8)
         num_blocks = (ceil(Int, ne/num_threads[1]), ceil(Int, ndl/num_threads[2]/dec_per_thread)) 
-        @cuda threads=num_threads blocks=num_blocks pass_down_layer_kernel_cuda2(flow, v, layer.decisions, layer.elements)
+        @cuda threads=num_threads blocks=num_blocks pass_down_layer_kernel_cuda2(node_flow, edge_flow, v, layer.decisions, layer.elements)
     end
-    return flow
+    return node_flow, edge_flow
 end
 
 # assign threads to examples and decisions nodes so that everything is a power of 2
@@ -429,7 +437,7 @@ function evaluate_layer_kernel_cuda2(v, decisions, elements)
     return nothing
 end
 
-function pass_down_layer_kernel_cuda2(flow, v, decisions, elements)
+function pass_down_layer_kernel_cuda2(node_flow, edge_flow, v, decisions, elements)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
@@ -443,15 +451,15 @@ function pass_down_layer_kernel_cuda2(flow, v, decisions, elements)
             last_elem = @inbounds decisions[3,i]
             n_up = @inbounds v[j, decision_id]
             if n_up > zero(Float32)
-                n_down = @inbounds flow[j, decision_id]
+                n_down = @inbounds node_flow[j, decision_id]
                 while first_elem <= last_elem
                     e1 = @inbounds elements[1,first_elem]
                     e2 = @inbounds elements[2,first_elem]
                     c_up = @inbounds (v[j, e1] * v[j, e2])
-                    additional_flow = c_up / n_up * n_down
+                    @inbounds edge_flow[j, first_elem] = c_up / n_up * n_down
                     # following needs to be memory safe
-                    CUDA.@atomic flow[j, e1] += additional_flow #atomic is automatically inbounds
-                    CUDA.@atomic flow[j, e2] += additional_flow #atomic is automatically inbounds
+                    CUDA.@atomic node_flow[j, e1] += edge_flow[j, first_elem] #atomic is automatically inbounds
+                    CUDA.@atomic node_flow[j, e2] +=  edge_flow[j, first_elem] #atomic is automatically inbounds
                     first_elem += 1
                 end
             end
@@ -462,8 +470,8 @@ end
 
 function compute_flows2(circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse_up=nothing, reuse_down=nothing)
     v = evaluate2(circuit, data, reuse_up)
-    flow = pass_down2(circuit, data, v, reuse_down)
-    return flow, v
+    node_flow, edge_flow = pass_down2(circuit, data, v, reuse_down)
+    return node_flow, edge_flow, v
 end
 
 
