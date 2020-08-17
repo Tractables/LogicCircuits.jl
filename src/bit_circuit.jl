@@ -326,6 +326,37 @@ num_elements(l::CuLayeredBitCircuit) = sum(num_elements, l.layers)
 num_elements(l::Layer) = size(l.elements)[2]
 num_elements(l::LayeredBitCircuit) = sum(num_elements, l.layers)
 
+function layered_flow_matrix(::Type{<:Vector{Matrix}}, ne, layered_nel, reuse)
+    layer_comp(reuse_layer, nel) = (size(reuse_layer) == (ne, nel))
+    if reuse isa Vector && all(map(layer_comp, reuse, layered_nel))
+        for layer in reuse
+            layer .= 0.0
+        end
+        reuse
+    else
+        layers = Vector{Matrix{Float32}}()
+        for nel in layered_nel
+            push!(layers, zeros(Float32, ne, nel))
+        end
+        layers
+    end
+end
+
+function layered_flow_matrix(::Type{<:Vector{CuMatrix}}, ne, layered_nel, reuse)
+    layer_comp(reuse_layer, nel) = (size(reuse_layer) == (ne, nel))
+    if reuse isa Vector && all(map(layer_comp, reuse, layered_nel))
+        for layer in reuse
+            layer .= 0.0
+        end
+        reuse
+    else
+        layers = Vector{CuMatrix{Float32}}()
+        for nel in layered_nel
+            push!(layers, CUDA.zeros(Float32, ne, nel))
+        end
+        layers
+    end
+end
 
 function evaluate(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse=nothing)
     ne = num_examples(data)
@@ -385,23 +416,28 @@ function pass_down2(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, v
     ne = num_examples(data)
     nf = num_features(data)
     nd = num_decisions(bit_circuit)
-    nel = num_elements(bit_circuit)
     nl = 2+2*nf
     nn = nl+nd
-    node_flow, edge_flow = if reuse_down isa Tuple{CuArray{Float32}} && size(reuse_down[1]) == (ne, nn) && size(reuse_down[2]) == (ne, nel)
-        reuse_down[1] .= zero(Float32)
-        reuse_down[2] .= zero(Float32)
-        reuse_down
+    layered_nel = map(num_elements, bit_circuit.layers)
+    node_flow, edge_flow = if reuse_down isa Tuple{CuArray{Float32}, Vector{CuMatrix{Float32}}} 
+        if size(reuse_down[1]) == (ne, nn)
+            reuse_down[1] .= zero(Float32)
+            reuse_down[1], layered_flow_matrix(Vector{CuMatrix}, ne, layered_nel, reuse_down[2])
+        else
+            CUDA.zeros(Float32, ne, nn), layered_flow_matrix(Vector{CuMatrix}, ne, layered_nel, reuse_down[2])
+        end
     else
-        CUDA.zeros(Float32, ne, nn), CUDA.zeros(Float32, ne, nel)
+        CUDA.zeros(Float32, ne, nn), layered_flow_matrix(Vector{CuMatrix}, ne, layered_nel, nothing)
     end
     node_flow[:,end] .= v[:,end] # set flow at root
     dec_per_thread = 3
-    CUDA.@sync for layer in Iterators.reverse(bit_circuit.layers)
+    CUDA.@sync for i = length(bit_circuit.layers):-1:1
+        layer = bit_circuit.layers[i]
+        edge_flow_layer = edge_flow[i]
         ndl = num_decisions(layer)
         num_threads = balance_threads(ne,ndl/dec_per_thread, 8)
         num_blocks = (ceil(Int, ne/num_threads[1]), ceil(Int, ndl/num_threads[2]/dec_per_thread)) 
-        @cuda threads=num_threads blocks=num_blocks pass_down_layer_kernel_cuda2(node_flow, edge_flow, v, layer.decisions, layer.elements)
+        @cuda threads=num_threads blocks=num_blocks pass_down_layer_kernel_cuda2(node_flow, edge_flow_layer, v, layer.decisions, layer.elements)
     end
     return node_flow, edge_flow
 end
