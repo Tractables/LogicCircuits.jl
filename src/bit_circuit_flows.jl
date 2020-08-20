@@ -6,7 +6,7 @@ using CUDA
   
 function evaluate(circuit::BitCircuit, data, reuse=nothing)
     @assert num_features(data) == num_features(circuit) 
-    values = similar!(reuse, values_type(data), num_examples(data), num_nodes(data, circuit))
+    values = similar!(reuse, values_type(data), num_examples(data), num_nodes(circuit))
     set_leaf_layer(values, data)
     evaluate_layers(circuit, values)
     return values

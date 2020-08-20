@@ -117,6 +117,12 @@ struct NodeId
     node_id::Int32
 end
 
+import .Utils: num_nodes # extend
+
+"How many nodes are indexed by a given bit circuit?"
+num_nodes(circuit::BitCircuit) =
+    2+2*num_features(circuit)+num_decisions(circuit)
+
 "Number of decision nodes (disjunctions) in layer or bit circuit"
 num_decisions(l::Layer) = size(l.decisions, 2)
 num_decisions(c::BitCircuit) = sum(num_decisions, c.layers)
@@ -139,6 +145,4 @@ to_cpu(l::Layer) = Layer(to_cpu(l.decisions), to_cpu(l.elements))
 to_cpu(c::BitCircuit) = 
     BitCircuit(map(to_cpu, c.layers), c.num_features)
 
-"How many nodes are indexed by a given bit circuit?"
-num_nodes(data, circuit::BitCircuit) =
-    2+2*num_features(data)+num_decisions(circuit)
+
