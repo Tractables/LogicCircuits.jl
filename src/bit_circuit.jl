@@ -1,10 +1,12 @@
 using CUDA
 
-export BitCircuit, CuBitCircuit
-export Layer, CuLayer, LayeredDecisionId, LayeredBitCircuit, CuLayeredBitCircuit
-export num_decisions, num_elements, balance_threads, compute_flows2 # facilitate functions in logistic circuits
+export Layer, BitCircuit, num_decisions, num_elements
 
-# In a bits circuit,
+#####################
+# Bit Circuits
+#####################
+
+# In a bits circuit, id
 # 1 is true, 2 is false
 const TRUE_BITS = Int32(1)
 const FALSE_BITS = Int32(2)
@@ -12,243 +14,41 @@ const FALSE_BITS = Int32(2)
 # nf+3:2nf+2 are nf negative literals
 # 2nf+2:end are inner decision nodes
 
-struct BitCircuit
-    decisions::Matrix{Int32}
-    elements::Matrix{Int32}
+"""
+A layer in a bit circuit consists of D decision nodes, represented as a 3xD matrix, 
+where decisions[1,:] are the node ids, decisions[2,:] is the index of the first element,
+and decisions[3,:] is the index of the last element in de decision node.
+The E elements are represented by a 2xE matrix, where elements[1,:] are the prime 
+node ids, and elements[2,:] are the sub node ids.
+"""
+struct Layer{M<:AbstractMatrix{Int32}}
+    decisions::M
+    elements::M
 end
 
-BitCircuit(circuit::LogicCircuit, num_features) = begin
-    @assert is⋁gate(circuit)
-    decisions::Vector{Int32} = Vector{Int32}()
-    elements::Vector{Int32} = Vector{Int32}()
-    num_decisions::Int32 = 2*num_features+2
-    num_elements::Int32 = 0
+"""
+A bit circuit is a sequence of layers of decision nodes, 
+which have node ids assuming `num_features` input features in the 0th layer.  
+"""
+struct BitCircuit{M<:AbstractMatrix{Int32}}
+    layers::Vector{Layer{M}}
+    num_features::Int
+end
+
+function BitCircuit(circuit::LogicCircuit, data) 
+    BitCircuit(circuit, num_features(data))
+end
+
+"construct a new `BitCircuit` accomodating the given number of features"
+function BitCircuit(circuit::LogicCircuit, num_features::Int)
+    @assert is⋁gate(circuit) "BitCircuits need to consist of decision nodes"
     
-    f_con(n) = istrue(n) ? TRUE_BITS : FALSE_BITS
-    f_lit(n) = ispositive(n) ? Int32(2+variable(n)) : Int32(2+num_features+variable(n))
-    f_and(n, cs) = begin
-        @assert length(cs) == 2
-        Int32[cs[1], cs[2]]
-    end
-    f_or(n, cs) = begin
-        first_element = num_elements+1
-        for c in cs
-            if c isa Vector{Int32}
-                @assert length(c) == 2
-                num_elements += 1
-                push!(elements, c[1], c[2])
-            else
-                @assert c isa Int32
-                num_elements += 1
-                push!(elements, c, TRUE_BITS)
-            end
-        end
-        num_decisions += 1
-        push!(decisions, first_element, num_elements)
-        num_decisions
-    end
-    foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, Union{Int32,Vector{Int32}})
-    decisions2 = reshape(decisions, 2, :)
-    elements2 = reshape(elements, 2, :) 
-    return BitCircuit(decisions2, elements2)
-end
-
-function value_matrix(::Type{<:Array}, ne, nn, reuse)
-    if reuse isa Array && size(reuse) == (ne, nn)
-        reuse
-    else
-        Matrix{Float32}(undef, ne, nn)
-    end
-end
-
-function value_matrix(::Type{<:CuArray}, ne, nn, reuse)
-    if reuse isa CuArray && size(reuse) == (ne, nn)
-        reuse
-    else
-        CuMatrix{Float32}(undef, ne, nn)
-    end
-end
-  
-function assign_flow(v, i, e1p, e1s) 
-    v1 = @view v[:,i]
-    v2 = @view v[:,e1p]
-    v3 = @view v[:,e1s]
-    v1 .= v2 .* v3
-end
-
-function accum_flow(v, i, e1p, e1s)
-    v1 = @view v[:,i]
-    v2 = @view v[:,e1p]
-    v3 = @view v[:,e1s]
-    v1 .+= v2 .* v3
-end
-   
-function assign_flow2(v, i, e1p, e1s, e2p, e2s) 
-    v1 = @view v[:,i]
-    v2 = @view v[:,e1p]
-    v3 = @view v[:,e1s]
-    v4 = @view v[:,e2p]
-    v5 = @view v[:,e2s]
-    v1 .= v2 .* v3 .+ v4 .* v5
-end
-
-function accum_flow2(v, i, e1p, e1s, e2p, e2s) 
-    v1 = @view v[:,i]
-    v2 = @view v[:,e1p]
-    v3 = @view v[:,e1s]
-    v4 = @view v[:,e2p]
-    v5 = @view v[:,e2s]
-    v1 .+= v2 .* v3 .+ v4 .* v5
-end
-
-function set_leaf_layer(v, data) 
-    nf = num_features(data)
-    v[:,TRUE_BITS] .= one(Float32)
-    v[:,FALSE_BITS] .= zero(Float32)
-    v[:,3:nf+2] .= data
-    v[:,nf+3:2*nf+2] .= one(Float32) .- data
-end
-
-function evaluate(bit_circuit::BitCircuit, data::T, reuse=nothing) where T<:AbstractMatrix{Float32}
-    ne = num_examples(data)
-    nf = num_features(data)
-    decisions = bit_circuit.decisions
-    elements = bit_circuit.elements 
-    nd = size(decisions)[2]
-    nl = 2+2*nf
-    nn = nl+nd
-    v = value_matrix(T, ne, nn, reuse)
-    set_leaf_layer(v, data)
-    for i = 1:nd
-        first_elem = decisions[1,i]
-        last_elem = decisions[2,i]
-        if first_elem == last_elem
-            assign_flow(v, nl+i, elements[1,first_elem], elements[2,first_elem])
-            first_elem += 1
-        else
-            assign_flow2(v, nl+i, elements[1,first_elem], elements[2,first_elem], elements[1,first_elem+1], elements[2,first_elem+1])
-            first_elem += 2
-        end
-        while first_elem <= last_elem
-            if first_elem == last_elem
-                accum_flow(v, nl+i, elements[1,first_elem], elements[2,first_elem])
-                first_elem += 1
-            else
-                accum_flow2(v, nl+i, elements[1,first_elem], elements[2,first_elem], elements[1,first_elem+1], elements[2,first_elem+1])
-                first_elem += 2
-            end
-        end
-    end
-    return v
-end
-
-struct CuBitCircuit
-    decisions::CuMatrix{Int32}
-    elements::CuMatrix{Int32}
-    CuBitCircuit(bc::BitCircuit) = new(CuMatrix(bc.decisions), CuMatrix(bc.elements))
-end
-
-function evaluate(bit_circuit::CuBitCircuit, data::CuMatrix{Float32}, reuse=nothing)
-    ne = num_examples(data)
-    nf = num_features(data)
-    nd = size(bit_circuit.decisions)[2]
-    nl = 2+2*nf
-    nn = nl+nd
-    v = value_matrix(CuMatrix, ne, nn, reuse)
-    set_leaf_layer(v, data)
-    num_threads_per_block = 256
-    numblocks = ceil(Int, ne/num_threads_per_block)
-    CUDA.@sync begin
-        @cuda threads=num_threads_per_block blocks=numblocks evaluate_kernel_cuda(v, bit_circuit.decisions, bit_circuit.elements, ne, nd, nl)
-    end
-    return v
-end
-
-function evaluate_kernel_cuda(v, decisions, elements, ne, nd, nl)
-    index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-    stride = blockDim().x * gridDim().x
-    for j = index:stride:ne
-        for i = 1:nd
-            first_elem = decisions[1,i]
-            last_elem = decisions[2,i]
-            v[j, nl+i] = v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
-            while first_elem < last_elem
-                first_elem += 1
-                v[j, nl+i] += v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
-            end
-        end
-    end
-    return nothing
-end
-
-function compute_flows(bit_circuit::CuBitCircuit, data::CuMatrix{Float32}, reuse_up=nothing, reuse_down=nothing)
-    ne = num_examples(data)
-    nf = num_features(data)
-    nd = size(bit_circuit.decisions)[2]
-    nl = 2+2*nf
-    nn = nl+nd
-    v = value_matrix(CuMatrix, ne, nn, reuse_up)
-    flow = if reuse_down isa CuArray{Float32} && size(reuse_down) == (ne, nn)
-        reuse_down
-    else
-        CUDA.zeros(Float32, ne, nn)
-    end
-    set_leaf_layer(v, data)
-    num_threads_per_block = 256
-    numblocks = ceil(Int, ne/num_threads_per_block)
-    CUDA.@sync begin
-        @cuda threads=num_threads_per_block blocks=numblocks compute_flows_kernel_cuda(v, flow, bit_circuit.decisions, bit_circuit.elements, ne, nd, nl)
-    end
-    return flow, v
-end
-
-function compute_flows_kernel_cuda(v, flow, decisions, elements, ne, nd, nl)
-    evaluate_kernel_cuda(v, decisions, elements, ne, nd, nl)
-    index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-    stride = blockDim().x * gridDim().x
-    for j = index:stride:ne
-        flow[j, nl+nd] = v[j, nl+nd]
-        for i = nd:-1:1
-            first_elem = decisions[1,i]
-            last_elem = decisions[2,i]
-            n_up = v[j, nl+i]
-            if n_up > zero(Float32)
-                n_down = flow[j, nl+i]
-                for k=first_elem:last_elem
-                    e1 = elements[1,k]
-                    e2 = elements[2,k]
-                    c_up = v[j, e1] * v[j, e2]
-                    additional_flow = c_up / n_up * n_down
-                    flow[j, e1] += additional_flow
-                    flow[j, e2] += additional_flow
-                end
-            end
-        end
-    end
-    return nothing
-end
-#TODO: layered circuit
-
-
-struct Layer
-    decisions::Matrix{Int32}
-    elements::Matrix{Int32}
-end
-
-struct LayeredBitCircuit
-    layers::Vector{Layer}
-end
-
-struct LayeredDecisionId
-    layer_id::Int32
-    decision_id::Int32
-end
-
-LayeredBitCircuit(circuit::LogicCircuit, num_features) = begin
-    @assert is⋁gate(circuit)
+    # store data in vectors to facilitate push!
     decisions::Vector{Vector{Int32}} = Vector{Vector{Int32}}()
     elements::Vector{Vector{Int32}} = Vector{Vector{Int32}}()
     num_elements::Vector{Int32} = Vector{Int32}()
+    
+    # add a new layer when it is encountered
     ensure_layer(i) = begin
         if length(decisions) < i
             # add a new layer
@@ -257,336 +57,88 @@ LayeredBitCircuit(circuit::LogicCircuit, num_features) = begin
             push!(num_elements, 0)
         end
     end
-    num_decisions::Int32 = 2*num_features+2
     
-    f_con(n) = LayeredDecisionId(0, istrue(n) ? TRUE_BITS : FALSE_BITS)
-    f_lit(n) = LayeredDecisionId(0, 
+    f_con(n) = NodeId(0, istrue(n) ? TRUE_BITS : FALSE_BITS)
+
+    f_lit(n) = NodeId(0, 
         ispositive(n) ? Int32(2+variable(n)) : Int32(2+num_features+variable(n)))
 
-    f_and(n, cs) = begin
-        @assert length(cs) == 2
-        LayeredDecisionId[cs[1], cs[2]]
+    f_and(_, cs) = begin
+        @assert length(cs) == 2 "Elements should be conjunctions of two arguments"
+        NodeId[cs[1], cs[2]]
     end
-    f_or(n, cs) = begin
+
+    num_decisions::Int32 = 2*num_features+2
+
+    f_or(_, cs) = begin
         num_decisions += 1
-        # determine layer
+
+        # first determine layer
         layer_id = zero(Int32)
         for c in cs
-            if c isa Vector{LayeredDecisionId}
+            if c isa Vector{NodeId}
                 @assert length(c) == 2
                 layer_id = max(layer_id, c[1].layer_id, c[2].layer_id)
             else
-                @assert c isa LayeredDecisionId
+                @assert c isa NodeId
                 layer_id = max(layer_id, c.layer_id)
             end
         end
         layer_id += 1
         ensure_layer(layer_id)
+
+        # second add elements to bit circuit
         first_element = num_elements[layer_id] + 1
         for c in cs
-            if c isa Vector{LayeredDecisionId}
+            if c isa Vector{NodeId}
                 num_elements[layer_id] += 1
-                push!(elements[layer_id], c[1].decision_id, c[2].decision_id)
+                push!(elements[layer_id], c[1].node_id, c[2].node_id)
             else
                 num_elements[layer_id] += 1
-                push!(elements[layer_id], c.decision_id, TRUE_BITS)
+                push!(elements[layer_id], c.node_id, TRUE_BITS)
             end
         end
         push!(decisions[layer_id], num_decisions, first_element, num_elements[layer_id])
-        LayeredDecisionId(layer_id, num_decisions)
+        NodeId(layer_id, num_decisions)
     end
 
-    foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, 
-        Union{LayeredDecisionId,Vector{LayeredDecisionId}})
+    foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, Union{NodeId,Vector{NodeId}})
     
     layers = map(decisions, elements) do d, e
-        Layer(reshape(d, 3, :), reshape(e, 2, :))
+        Layer{Matrix{Int32}}(reshape(d, 3, :), reshape(e, 2, :))
     end
-    return LayeredBitCircuit(layers)
+
+    return BitCircuit{Matrix{Int32}}(layers, num_features)
 end
 
-struct CuLayer
-    decisions::CuMatrix{Int32}
-    elements::CuMatrix{Int32}
-    CuLayer(l::Layer) = new(CuMatrix(l.decisions), CuMatrix(l.elements))
+"The layer id and node id associated with a node"
+struct NodeId
+    layer_id::Int32
+    node_id::Int32
 end
 
-struct CuLayeredBitCircuit
-    layers::Vector{CuLayer}
-    CuLayeredBitCircuit(l::LayeredBitCircuit) = new(map(CuLayer, l.layers))
-end
+"Number of decision nodes (disjunctions) in layer or bit circuit"
+num_decisions(l::Layer) = size(l.decisions, 2)
+num_decisions(c::BitCircuit) = sum(num_decisions, c.layers)
 
-num_decisions(l::CuLayer) = size(l.decisions)[2]
-num_decisions(l::CuLayeredBitCircuit) = sum(num_decisions, l.layers)
-num_decisions(l::Layer) = size(l.decisions)[2]
-num_decisions(l::LayeredBitCircuit) = sum(num_decisions, l.layers)
+"Number of elements (conjunctions) in layer or bit circuit"
+num_elements(l::Layer) = size(l.elements, 2)
+num_elements(c::BitCircuit) = sum(num_elements, c.layers)
 
-num_elements(l::CuLayer) = size(l.elements)[2]
-num_elements(l::CuLayeredBitCircuit) = sum(num_elements, l.layers)
-num_elements(l::Layer) = size(l.elements)[2]
-num_elements(l::LayeredBitCircuit) = sum(num_elements, l.layers)
+import .Utils: num_features #extend
 
-function evaluate(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse=nothing)
-    ne = num_examples(data)
-    nf = num_features(data)
-    nd = num_decisions(bit_circuit)
-    nl = 2+2*nf
-    nn = nl+nd
-    v = value_matrix(CuMatrix, ne, nn, reuse)
-    set_leaf_layer(v, data)
-    num_threads_per_block = 256
-    numblocks = ceil(Int, ne/num_threads_per_block)
-    decision_id_offset = nl
-    for layer in bit_circuit.layers 
-        CUDA.@sync @cuda threads=num_threads_per_block blocks=numblocks evaluate_layer_kernel_cuda(v, layer.decisions, layer.elements, ne, num_decisions(layer))
-        decision_id_offset += num_decisions(layer)
-    end
-    return v
-end
+num_features(c::BitCircuit) = c.num_features
 
-function evaluate_layer_kernel_cuda(v, decisions, elements, ne, num_decisions)
-    index = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-    stride = blockDim().x * gridDim().x
-    for j = index:stride:ne
-        for i = 1:num_decisions
-            decision_id = decisions[1,i]
-            first_elem = decisions[2,i]
-            last_elem = decisions[3,i]
-            v[j, decision_id] = v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
-            while first_elem < last_elem
-                first_elem += 1
-                v[j, decision_id] += v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
-            end
-        end
-    end
-    return nothing
-end
+import .Utils: to_gpu, to_cpu #extend
 
-function evaluate2(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse=nothing)
-    ne = num_examples(data)
-    nf = num_features(data)
-    nd = num_decisions(bit_circuit)
-    nl = 2+2*nf
-    nn = nl+nd
-    v = value_matrix(CuMatrix, ne, nn, reuse)
-    set_leaf_layer(v, data)
-    dec_per_thread = 8
-    CUDA.@sync for layer in bit_circuit.layers
-        ndl = num_decisions(layer)
-        num_threads = balance_threads(ne,ndl/dec_per_thread, 8)
-        num_blocks = (ceil(Int, ne/num_threads[1]), ceil(Int, ndl/num_threads[2]/dec_per_thread)) 
-        @cuda threads=num_threads blocks=num_blocks evaluate_layer_kernel_cuda2(v, layer.decisions, layer.elements)
-    end
-    return v
-end
+to_gpu(l::Layer) = Layer(to_gpu(l.decisions), to_gpu(l.elements))
+to_gpu(c::BitCircuit) = 
+    BitCircuit(map(to_gpu, c.layers), c.num_features)
 
-function pass_down2(bit_circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, v, reuse_down=nothing)
-    ne = num_examples(data)
-    nf = num_features(data)
-    nd = num_decisions(bit_circuit)
-    nl = 2+2*nf
-    nn = nl+nd
-    flow = if reuse_down isa CuArray{Float32} && size(reuse_down) == (ne, nn)
-        reuse_down .= zero(Float32)
-        reuse_down
-    else
-        CUDA.zeros(Float32, ne, nn)
-    end
-    flow[:,end] .= v[:,end] # set flow at root
-    dec_per_thread = 4
-    CUDA.@sync for layer in Iterators.reverse(bit_circuit.layers)
-        ndl = num_decisions(layer)
-        num_threads = balance_threads(ne,ndl/dec_per_thread, 8)
-        num_blocks = (ceil(Int, ne/num_threads[1]), ceil(Int, ndl/num_threads[2]/dec_per_thread)) 
-        @cuda threads=num_threads blocks=num_blocks pass_down_layer_kernel_cuda2(flow, v, layer.decisions, layer.elements)
-    end
-    return flow
-end
+to_cpu(l::Layer) = Layer(to_cpu(l.decisions), to_cpu(l.elements))
+to_cpu(c::BitCircuit) = 
+    BitCircuit(map(to_cpu, c.layers), c.num_features)
 
-# assign threads to examples and decisions nodes so that everything is a power of 2
-function balance_threads(num_examples, num_decisions, total_log2)
-    ratio = num_examples / num_decisions
-    k = ceil(Int, (log2(ratio) + total_log2)/2)
-    k = min(max(0, k), total_log2)
-    l = total_log2-k
-    (2^k, 2^l)
-end
-
-
-function evaluate_layer_kernel_cuda2(v, decisions, elements)
-    index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-    index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
-    stride_x = blockDim().x * gridDim().x
-    stride_y = blockDim().y * gridDim().y
-    ne, _ = size(v)
-    _, num_decisions = size(decisions)
-    for j = index_x:stride_x:ne
-        for i = index_y:stride_y:num_decisions
-            decision_id = @inbounds decisions[1,i]
-            first_elem = @inbounds decisions[2,i]
-            last_elem = @inbounds decisions[3,i]
-            @inbounds v[j, decision_id] = v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
-            while first_elem < last_elem
-                first_elem += 1
-                @inbounds v[j, decision_id] += v[j, elements[1,first_elem]] * v[j, elements[2,first_elem]]
-            end
-        end
-    end
-    return nothing
-end
-
-function pass_down_layer_kernel_cuda2(flow, v, decisions, elements)
-    index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
-    index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
-    stride_x = blockDim().x * gridDim().x
-    stride_y = blockDim().y * gridDim().y
-    ne, _ = size(v)
-    _, num_decisions = size(decisions)
-    for j = index_x:stride_x:ne
-        for i = index_y:stride_y:num_decisions
-            decision_id = @inbounds decisions[1,i]
-            first_elem = @inbounds decisions[2,i]
-            last_elem = @inbounds decisions[3,i]
-            n_up = @inbounds v[j, decision_id]
-            if n_up > zero(Float32)
-                n_down = @inbounds flow[j, decision_id]
-                while first_elem <= last_elem
-                    e1 = @inbounds elements[1,first_elem]
-                    e2 = @inbounds elements[2,first_elem]
-                    c_up = @inbounds (v[j, e1] * v[j, e2])
-                    additional_flow = c_up / n_up * n_down
-                    # following needs to be memory safe
-                    CUDA.@atomic flow[j, e1] += additional_flow #atomic is automatically inbounds
-                    CUDA.@atomic flow[j, e2] += additional_flow #atomic is automatically inbounds
-                    first_elem += 1
-                end
-            end
-        end
-    end
-    return nothing
-end
-
-function compute_flows2(circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse_up=nothing, reuse_down=nothing)
-    v = evaluate2(circuit, data, reuse_up)
-    flow = pass_down2(circuit, data, v, reuse_down)
-    return flow, v
-end
-
-
-function evaluate3(bit_circuit::LayeredBitCircuit, data::Matrix{Float32}, reuse=nothing)
-    ne = num_examples(data)
-    nn = 2+2*num_features(data)+num_decisions(bit_circuit)
-    v = value_matrix(Matrix{Float32}, ne, nn, reuse)
-    set_leaf_layer(v, data)
-    for layer in bit_circuit.layers
-        els = layer.elements
-        foreach(eachcol(layer.decisions)) do decision
-            decision_id = @inbounds decision[1]
-            first_elem = @inbounds decision[2]
-            last_elem = @inbounds decision[3]
-            if first_elem == last_elem
-                assign_flow(v, decision_id, els[1,first_elem], els[2,first_elem])
-                first_elem += 1
-            else
-                assign_flow2(v, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
-                first_elem += 2
-            end
-            while first_elem <= last_elem
-                if first_elem == last_elem
-                    accum_flow(v, decision_id, els[1,first_elem], els[2,first_elem])
-                    first_elem += 1
-                else
-                    accum_flow2(v, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
-                    first_elem += 2
-                end
-            end
-        end
-    end
-    return v
-end
-
-function evaluate4(bit_circuit::LayeredBitCircuit, data::Matrix{Float32}, reuse=nothing)
-    ne = num_examples(data)
-    nn = 2+2*num_features(data)+num_decisions(bit_circuit)
-    v = value_matrix(Matrix{Float32}, ne, nn, reuse)
-    set_leaf_layer(v, data)
-    for layer in bit_circuit.layers
-        decisions = layer.decisions
-        els = layer.elements
-        Threads.@threads for i in 1:size(decisions)[2]
-            decision_id = @inbounds decisions[1,i]
-            first_elem = @inbounds decisions[2,i]
-            last_elem = @inbounds decisions[3,i]
-            if first_elem == last_elem
-                assign_flow(v, decision_id, els[1,first_elem], els[2,first_elem])
-                first_elem += 1
-            else
-                assign_flow2(v, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
-                first_elem += 2
-            end
-            while first_elem <= last_elem
-                if first_elem == last_elem
-                    accum_flow(v, decision_id, els[1,first_elem], els[2,first_elem])
-                    first_elem += 1
-                else
-                    accum_flow2(v, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
-                    first_elem += 2
-                end
-            end
-        end
-    end
-    return v
-end
-
-function evaluate5(bit_circuit::LayeredBitCircuit, data::Matrix{Float32}, reuse=nothing)
-    ne = num_examples(data)
-    nn = 2+2*num_features(data)+num_decisions(bit_circuit)
-    v = value_matrix(Matrix{Float32}, ne, nn, reuse)
-    set_leaf_layer(v, data)
-    for layer in bit_circuit.layers
-        decisions = layer.decisions
-        els = layer.elements
-        exa_threads, dec_threads = balance_threads_cpu(ne, num_decisions(layer), 2*Threads.nthreads())
-        decision_range = 1:size(decisions)[2]
-        decision_parts = Iterators.partition(decision_range, ceil(Int,length(decision_range) / dec_threads))
-        example_range = 1:ne
-        example_parts = Iterators.partition(example_range, ceil(Int,length(example_range) / exa_threads))
-        @sync for decision_part in decision_parts
-            for example_part in example_parts
-                Threads.@spawn begin
-                    for i in decision_part
-                        decision_id = @inbounds decisions[1,i]
-                        first_elem = @inbounds decisions[2,i]
-                        last_elem = @inbounds decisions[3,i]
-                        w = @view v[example_part,:]
-                        if first_elem == last_elem
-                            assign_flow(w, decision_id, els[1,first_elem], els[2,first_elem])
-                            first_elem += 1
-                        else
-                            assign_flow2(w, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
-                            first_elem += 2
-                        end
-                        while first_elem <= last_elem
-                            if first_elem == last_elem
-                                accum_flow(w, decision_id, els[1,first_elem], els[2,first_elem])
-                                first_elem += 1
-                            else
-                                accum_flow2(w, decision_id, els[1,first_elem], els[2,first_elem], els[1,first_elem+1], els[2,first_elem+1])
-                                first_elem += 2
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return v
-end
-
-function balance_threads_cpu(num_examples, num_decisions, total; relative_cost=5)
-    ratio = num_examples/relative_cost / num_decisions
-    k = ceil(Int, sqrt(total*ratio))
-    k = min(k, total)
-    l = ceil(Int, total/k)
-    (k,l)
-end
+"How many nodes are indexed by a given bit circuit?"
+num_nodes(data, circuit::BitCircuit) =
+    2+2*num_features(data)+num_decisions(circuit)

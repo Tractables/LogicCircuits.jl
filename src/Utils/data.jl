@@ -105,15 +105,20 @@ end
 soften(data, softness=0.05; precision=Float32) =
     data .* precision(1-2*softness) .+ precision(softness) 
 
-
-to_gpu(m::Matrix) = CuMatrix(m)
+"Move data to the GPU"
+to_gpu(m::AbstractArray) = CuArray(m)
 to_gpu(df::DataFrame) = mapcols(c -> CuVector(c),df)
 
-to_cpu(m::Array) = 
+"Move data to the CPU"
+to_cpu(m::AbstractArray) = 
     m isa AbstractArray{Bool} ? BitArray(m) : Array(m)
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
 
-isgpu(df::DataFrame) = all(c -> (c isa CuVector), eachcol(df))
+"Check whether data resides on the GPU"
+isgpu(df::DataFrame) = all(isgpu, eachcol(df))
+isgpu(::Array) = false
+isgpu(::BitArray) = false
+isgpu(::CuArray) = true
 
 # LIKELIHOOD HELPERS
 

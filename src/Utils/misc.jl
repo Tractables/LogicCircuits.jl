@@ -1,11 +1,12 @@
 # Miscellaneous utilities.
 
-export issomething, order_asc, isdisjoint, pushrand!, init_array, subseteq_fast,
+export issomething, order_asc, isdisjoint, pushrand!, init_array, 
+       subseteq_fast, similar!,
        Var, Lit, var2lit, lit2var, variables, num_variables,
        always, never, uniform, logsumexp,
        noop, map_values, groupby
 
-using CUDA: CuArray, CUDA
+using CUDA: CuArray, CuVector, CuMatrix, CUDA
 
 "Is the argument not `nothing`?"
 @inline issomething(x) = !isnothing(x)
@@ -51,6 +52,15 @@ function subseteq_fast(s::BitSet,t::BitSet) # see https://discourse.julialang.or
     length(s.bits) > length(t.bits) && return false
     length(s) > length(t) && return false
     return all(e -> e ∈ t, s)
+end
+
+"Reuse a given array if it has the right type and size, otherwise make a new one"
+function similar!(reuse, ::Type{A}, desired_size...) where A<:AbstractArray
+    if reuse isa A && size(reuse) == (desired_size...)
+        reuse
+    else
+        A(undef, desired_size...)
+    end
 end
 
 #####################
