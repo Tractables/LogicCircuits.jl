@@ -28,7 +28,9 @@ end
 
 """
 A bit circuit is a sequence of layers of decision nodes, 
-which have node ids assuming `num_features` input features in the 0th layer.  
+which have node ids assuming `num_features` input features in the 0th layer.
+They are a "flat" representation of a circuit, essentially a bit string,
+that can be processed by lower level code (i.e., GPU kernels)
 """
 struct BitCircuit{M<:AbstractMatrix{Int32}}
     layers::Vector{Layer{M}}
