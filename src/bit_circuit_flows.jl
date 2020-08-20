@@ -1,6 +1,6 @@
 using CUDA
 
-export evaluate, pass_down_flows, compute_flows
+export evaluate, pass_down_flows, compute_values_flows
 
 #####################
 # Bit circuit evaluation upward pass
@@ -141,7 +141,7 @@ end
 
 function set_init_flows(flows::AbstractArray{F}, values::AbstractArray{F}) where F<:AbstractFloat
     flows .= zero(F)
-    flows[:,end] .= values[:,end] # set flow at root
+    @views flows[:,end] .= values[:,end] # set flow at root
 end
 
 # downward pass helpers on CPU
@@ -197,8 +197,9 @@ end
 # Bit circuit values and flows (up and downward pass)
 #####################
 
-# function compute_flows(circuit::CuLayeredBitCircuit, data::CuMatrix{Float32}, reuse_up=nothing, reuse_down=nothing)
-#     v = evaluate2(circuit, data, reuse_up)
-#     flow = pass_down2(circuit, data, v, reuse_down)
-#     return flow, v
-# end
+"Compute the value and flow of each node"
+function compute_values_flows(circuit::BitCircuit, data, reuse_values=nothing, reuse_flows=nothing)
+    values = evaluate(circuit, data, reuse_values)
+    flows = pass_down_flows(circuit, data, values, reuse_flows)
+    return values, flows
+end
