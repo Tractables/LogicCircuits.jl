@@ -56,7 +56,7 @@ end
 
 "Reuse a given array if it has the right type and size, otherwise make a new one"
 function similar!(reuse, ::Type{A}, desired_size...) where A<:AbstractArray
-    if reuse isa A && size(reuse) == (desired_size...)
+    if reuse isa A && size(reuse) == (desired_size...,)
         reuse
     else
         A(undef, desired_size...)
