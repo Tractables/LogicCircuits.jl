@@ -8,38 +8,65 @@ export evaluate, pass_down_flows, compute_values_flows
   
 function evaluate(circuit::BitCircuit, data, reuse=nothing)
     @assert num_features(data) == num_features(circuit) 
-    values = similar!(reuse, values_type(data), num_examples(data), num_nodes(circuit))
-    set_leaf_layer(values, data)
+    values = init_values(data, reuse, num_nodes(circuit))
     evaluate_layers(circuit, values)
     return values
 end
 
-"As a function of the data type, what should be the flow type?"
-values_type(::Matrix{Float32}) = Matrix{Float32}
-values_type(::Matrix{UInt}) = Matrix{UInt}
-values_type(::CuMatrix{Float32}) = CuMatrix{Float32}
-values_type(::CuMatrix{UInt}) = CuMatrix{UInt}
-#unclear what to do with BitArray...
-values_type(data::DataFrame) = begin
-    @assert isnumericdata(data) "Only floating point values are supported"
-    pr = number_precision(data)
-    isgpu(data) ? CuMatrix{pr} : Matrix{pr}
-end
-
-"Initialize values for the leaf nodes by copying from the data"
-function set_leaf_layer(values, data) 
+"Initialize values from the data (floating point)"
+function init_values(data::AbstractArray{<:AbstractFloat}, reuse, num_nodes)
+    values = similar!(reuse, typeof(data), size(data, 1), num_nodes)
     nf = num_features(data)
     #TODO check if this also works with dataframes
-    values[:,TRUE_BITS] .= one(Float32)
-    values[:,FALSE_BITS] .= zero(Float32)
-    values[:,3:nf+2] .= data
-    values[:,nf+3:2*nf+2] .= one(Float32) .- data
+    @views values[:,TRUE_BITS] .= one(Float32)
+    @views values[:,FALSE_BITS] .= zero(Float32)
+    @views values[:,3:nf+2] .= data
+    @views values[:,nf+3:2*nf+2] .= one(Float32) .- data
+    return values
+end
+
+"Initialize values from the data (bit vectors)"
+function init_values(data::AbstractArray{B}, reuse, num_nodes) where {B<:Unsigned}
+    values = similar!(reuse, typeof(data), size(data, 1), num_nodes)
+    nf = num_features(data)
+    #TODO check if this also works with dataframes
+    @views values[:,TRUE_BITS] .= typemax(B)
+    @views values[:,FALSE_BITS] .= typemin(B)
+    @views values[:,3:nf+2] .= data
+    @views values[:,nf+3:2*nf+2] .= .~ data
+    return values
+end
+
+"Initialize values from the data (data frames)"
+function init_values(data::DataFrame, reuse, num_nodes)
+    if isbinarydata(data)
+        flowtype = isgpu(data) ? CuMatrix{UInt} : Matrix{UInt}
+        values = similar!(reuse, flowtype, num_bitstrings(data), num_nodes)
+        @views values[:,TRUE_BITS] .= typemax(UInt)
+        @views values[:,FALSE_BITS] .= typemin(UInt)
+        for i=1:num_features(data)
+            @views values[:,2+i] .= feature_bitstrings(data,i)
+            @views values[:,2+num_features(data)+i] .= .~ feature_bitstrings(data,i)
+        end
+    else
+        @assert isnumericdata(data) "Only floating point and binary flows are supported"
+        pr = number_precision(data)
+        flowtype = isgpu(data) ? CuMatrix{pr} : Matrix{pr}
+        values = similar!(reuse, flowtype, num_examples(data), num_nodes)
+        @views values[:,TRUE_BITS] .= one(Float32)
+        @views values[:,FALSE_BITS] .= zero(Float32)
+        for i=1:num_features(data)
+            @views values[:,2+i] .= feature_values(data,i)
+            @views values[:,2+num_features(data)+i] .= one(Float32) .- feature_values(data,i)
+        end
+    end
+    return values
 end
 
 # upward pass helpers on CPU
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
-function evaluate_layers(circuit::BitCircuit, values::Matrix{Float32})
+function evaluate_layers(circuit::BitCircuit, values::Matrix)
     for layer in circuit.layers
         decs = layer.decisions
         els = layer.elements
@@ -67,30 +94,42 @@ function evaluate_layers(circuit::BitCircuit, values::Matrix{Float32})
     end
 end
 
-assign_value(v, i, e1p, e1s) =
+assign_value(v::Matrix{<:AbstractFloat}, i, e1p, e1s) =
     @views @. @avx v[:,i] = v[:,e1p] * v[:,e1s]
 
-accum_value(v, i, e1p, e1s) =
+accum_value(v::Matrix{<:AbstractFloat}, i, e1p, e1s) =
     @views @. v[:,i] += v[:,e1p] * v[:,e1s] # adding @avx crashes macro
    
-assign_value(v, i, e1p, e1s, e2p, e2s) =
+assign_value(v::Matrix{<:AbstractFloat}, i, e1p, e1s, e2p, e2s) =
     @views @. @avx v[:,i] = v[:,e1p] * v[:,e1s] + v[:,e2p] * v[:,e2s]
 
-accum_value(v, i, e1p, e1s, e2p, e2s) =
+accum_value(v::Matrix{<:AbstractFloat}, i, e1p, e1s, e2p, e2s) =
     @views @. v[:,i] += v[:,e1p] * v[:,e1s] + v[:,e2p] * v[:,e2s] # adding @avx crashes macro
 
+assign_value(v::Matrix{<:Unsigned}, i, e1p, e1s) =
+    @views @. @avx v[:,i] = v[:,e1p] & v[:,e1s]
 
+accum_value(v::Matrix{<:Unsigned}, i, e1p, e1s) =
+    @views @. v[:,i] |= v[:,e1p] & v[:,e1s] # adding @avx crashes macro
+    
+assign_value(v::Matrix{<:Unsigned}, i, e1p, e1s, e2p, e2s) =
+    @views @. @avx v[:,i] = v[:,e1p] & v[:,e1s] | v[:,e2p] & v[:,e2s]
+
+accum_value(v::Matrix{<:Unsigned}, i, e1p, e1s, e2p, e2s) =
+    @views @. v[:,i] |= v[:,e1p] & v[:,e1s] | v[:,e2p] & v[:,e2s] # adding @avx crashes macro
+    
 # upward pass helpers on GPU
 
 "Evaluate the layers of a bit circuit on the GPU"
-function evaluate_layers(circuit::BitCircuit, values::CuMatrix{Float32};  dec_per_thread = 8, log2_threads_per_block = 8)
+function evaluate_layers(circuit::BitCircuit, values::CuMatrix;  dec_per_thread = 8, log2_threads_per_block = 8)
     CUDA.@sync for layer in circuit.layers
         num_examples = size(values, 1)
         num_decision_sets = num_decisions(layer)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
-                      ceil(Int, num_decision_sets/num_threads[2])) 
-        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer.decisions, layer.elements, values)
+                      ceil(Int, num_decision_sets/num_threads[2]))
+        ops = eltype(values) <: AbstractFloat ? (+, *) : (|, &)
+        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer.decisions, layer.elements, values, ops...)
     end
 end
 
@@ -104,7 +143,7 @@ function balance_threads(num_examples, num_decisions, total_log2)
 end
 
 "CUDA kernel for circuit evaluation"
-function evaluate_layers_cuda(decisions, elements, values)
+function evaluate_layers_cuda(decisions, elements, values, plus, times)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
@@ -115,11 +154,12 @@ function evaluate_layers_cuda(decisions, elements, values)
             k = @inbounds decisions[2,i]
             els_end = @inbounds decisions[3,i]
             @inbounds values[j, decision_id] = 
-                values[j, elements[1,k]] * values[j, elements[2,k]]
+                times(values[j, elements[1,k]], values[j, elements[2,k]])
             while k < els_end
                 k += 1
-                @inbounds values[j, decision_id] += 
-                    values[j, elements[1,k]] * values[j, elements[2,k]]
+                @inbounds values[j, decision_id] = plus(
+                    values[j, decision_id],
+                    times(values[j, elements[1,k]], values[j, elements[2,k]]))
             end # would loop unrolling help here as on CPU? probably not?
         end
     end
@@ -131,23 +171,22 @@ end
 #####################
 
 "When values of nodes have already been computed, do a downward pass computing the flows at each node"
-function pass_down_flows(circuit::BitCircuit, data, values, reuse=nothing)
-    @assert num_features(data) == num_features(circuit)
-    flows = similar!(reuse, values_type(data), size(values)...)
+function pass_down_flows(circuit::BitCircuit, values, reuse=nothing)
+    flows = similar!(reuse, typeof(values), size(values)...)
     set_init_flows(flows, values)
     pass_down_flows_layers(circuit, flows, values)
     return flows
 end
 
-function set_init_flows(flows::AbstractArray{F}, values::AbstractArray{F}) where F<:AbstractFloat
-    flows .= zero(F)
+function set_init_flows(flows::AbstractArray{F}, values::AbstractArray{F}) where F
+    flows .= (F <: AbstractFloat) ? zero(F) : typemin(F)
     @views flows[:,end] .= values[:,end] # set flow at root
 end
 
 # downward pass helpers on CPU
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
-function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix{Float32}, values::Matrix{Float32})
+function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix)
     locks = [Threads.ReentrantLock() for i=1:num_nodes(circuit)]    
     for layer in Iterators.reverse(circuit.layers)
         decs = layer.decisions
@@ -163,7 +202,7 @@ function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix{Float32}, val
     end
 end
 
-function accum_flow(f, v, d, p, s, locks)
+function accum_flow(f::Matrix{<:AbstractFloat}, v, d, p, s, locks)
     # retrieve locks in index order to avoid deadlock
     l1, l2 = order_asc(p,s)
     lock(locks[l1]) do 
@@ -176,6 +215,15 @@ function accum_flow(f, v, d, p, s, locks)
                 f[j, s] += a
             end
         end
+    end
+end
+
+function accum_flow(f::Matrix{<:Unsigned}, v, d, p, s, locks)
+    lock(locks[p]) do 
+        @views @. f[:, p] |= v[:, p] & v[:, s] & f[:, d]
+    end
+    lock(locks[s]) do 
+        @views @. f[:, s] |= v[:, p] & v[:, s] & f[:, d]
     end
 end
 
@@ -231,6 +279,6 @@ end
 "Compute the value and flow of each node"
 function compute_values_flows(circuit::BitCircuit, data, reuse_values=nothing, reuse_flows=nothing)
     values = evaluate(circuit, data, reuse_values)
-    flows = pass_down_flows(circuit, data, values, reuse_flows)
+    flows = pass_down_flows(circuit, values, reuse_flows)
     return values, flows
 end

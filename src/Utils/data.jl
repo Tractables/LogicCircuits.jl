@@ -13,7 +13,8 @@ import CUDA: CuVector, CuMatrix
 
 export num_examples, num_features, 
        example, feature_values,
-       isnumericdata, isbinarydata, number_precision,
+       isnumericdata, isbinarydata, 
+       num_bitstrings, feature_bitstrings, number_precision,
        shuffle_examples, batch, threshold, soften,
        to_gpu, to_cpu, isgpu,
        ll_per_example, bits_per_pixel
@@ -55,7 +56,19 @@ number_precision(df::DataFrame) = reduce(typejoin, eltypes(df))
 "Is the dataset binary?"
 isbinarydata(::AbstractMatrix) = false
 isbinarydata(::AbstractMatrix{Bool}) = true
-isbinarydata(df::DataFrame) = all(t -> t <: Bool, eltypes(df))
+isbinarydata(::AbstractMatrix{<:Unsigned}) = true
+isbinarydata(df::DataFrame) = 
+    all(t -> t <: Bool, eltypes(df)) || all(t -> t <: Unsigned, eltypes(df))
+
+"For binary data, how many bit strings are needed to store one feature?"
+num_bitstrings(d) = num_bitstrings(feature_values(d,1))
+num_bitstrings(v::BitVector) = length(v.chunks)
+num_bitstrings(v::AbstractVector{<:Unsigned}) = length(v)
+
+"For binary data, retrieve it as a vector of bit strings"
+feature_bitstrings(d, i) = feature_bitstrings(feature_values(d,i))
+feature_bitstrings(v::BitVector) = v.chunks
+feature_bitstrings(v::AbstractVector{<:Unsigned}) = v
 
 # DATA TRANSFORMATIONS
 
@@ -107,7 +120,13 @@ soften(data, softness=0.05; precision=Float32) =
 
 "Move data to the GPU"
 to_gpu(m::AbstractArray) = CuArray(m)
-to_gpu(df::DataFrame) = mapcols(c -> CuVector(c),df)
+to_gpu(df::DataFrame) = begin
+    if isbinarydata(df) # binary data on CPU is assumed to be a BitVector
+        mapcols(c -> CuVector(c.chunks), df)
+    else
+        mapcols(c -> CuVector(c), df)
+    end
+end
 
 "Move data to the CPU"
 to_cpu(m::AbstractArray) = 
