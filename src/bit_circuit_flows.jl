@@ -128,8 +128,7 @@ function evaluate_layers(circuit::BitCircuit, values::CuMatrix;  dec_per_thread 
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2]))
-        ops = eltype(values) <: AbstractFloat ? (+, *) : (|, &)
-        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer.decisions, layer.elements, values, ops...)
+        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer.decisions, layer.elements, values)
     end
 end
 
@@ -143,7 +142,7 @@ function balance_threads(num_examples, num_decisions, total_log2)
 end
 
 "CUDA kernel for circuit evaluation"
-function evaluate_layers_cuda(decisions, elements, values, plus, times)
+function evaluate_layers_cuda(decisions, elements, values)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
@@ -154,17 +153,24 @@ function evaluate_layers_cuda(decisions, elements, values, plus, times)
             k = @inbounds decisions[2,i]
             els_end = @inbounds decisions[3,i]
             @inbounds values[j, decision_id] = 
-                times(values[j, elements[1,k]], values[j, elements[2,k]])
+                el_value(values[j, elements[1,k]], values[j, elements[2,k]])
             while k < els_end
                 k += 1
-                @inbounds values[j, decision_id] = plus(
-                    values[j, decision_id],
-                    times(values[j, elements[1,k]], values[j, elements[2,k]]))
+                @inbounds accum_el_value(values, j, decision_id, values[j, 
+                            elements[1,k]], values[j, elements[2,k]])
             end # would loop unrolling help here as on CPU? probably not?
         end
     end
     return nothing
 end
+
+el_value(p::AbstractFloat, s) = p * s
+el_value(p::Unsigned, s) = p & s
+
+accum_el_value(values, j, decision_id, p::AbstractFloat, s) =
+    @inbounds values[j, decision_id] += el_value(p, s)
+accum_el_value(values, j, decision_id, p::Unsigned, s) =
+    @inbounds values[j, decision_id] |= el_value(p, s)
 
 #####################
 # Bit circuit flows downward pass
@@ -230,7 +236,7 @@ end
 # downward pass helpers on GPU
 
 "Pass flows down the layers of a bit circuit on the GPU"
-function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix{Float32}, values::CuMatrix{Float32};  
+function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix;  
                                 dec_per_thread = 4, log2_threads_per_block = 8)
     CUDA.@sync for layer in Iterators.reverse(circuit.layers)
         num_examples = size(values, 1)
@@ -254,16 +260,15 @@ function pass_down_flows_layers_cuda(decisions, elements, flows, values)
             k = @inbounds decisions[2,i]
             els_end = @inbounds decisions[3,i]
             n_up = @inbounds values[j, decision_id]
-            if n_up > zero(Float32)
+            if !iszero(n_up)
                 n_down = @inbounds flows[j, decision_id]
                 while k <= els_end
                     e1 = @inbounds elements[1,k]
                     e2 = @inbounds elements[2,k]
-                    c_up = @inbounds (values[j, e1] * values[j, e2])
-                    additional_flow = c_up / n_up * n_down
+                    @inbounds add = additional_flow(values[j, e1], values[j, e2], n_up, n_down)
                     # following needs to be memory safe, hence @atomic
-                    CUDA.@atomic flows[j, e1] += additional_flow #atomic is automatically inbounds
-                    CUDA.@atomic flows[j, e2] += additional_flow #atomic is automatically inbounds
+                    accum_flow(flows, j, e1, add)
+                    accum_flow(flows, j, e2, add)
                     k += 1
                 end
             end
@@ -271,6 +276,15 @@ function pass_down_flows_layers_cuda(decisions, elements, flows, values)
     end
     return nothing
 end
+
+additional_flow(p_up::AbstractFloat, s_up, n_up, n_down) = p_up * s_up / n_up * n_down
+additional_flow(p_up::Unsigned, s_up, n_up, n_down) = p_up & s_up & n_down
+
+accum_flow(flows, j, e, add::AbstractFloat) = 
+    CUDA.@atomic flows[j, e] += add #atomic is automatically inbounds
+
+accum_flow(flows, j, e, add::Unsigned) = 
+    CUDA.@atomic flows[j, e] |= add #atomic is automatically inbounds
 
 #####################
 # Bit circuit values and flows (up and downward pass)
