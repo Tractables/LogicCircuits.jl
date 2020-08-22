@@ -1,6 +1,6 @@
 using CUDA
 
-export Layer, BitCircuit, num_decisions, num_elements
+export NodeId, BitCircuit, num_decisions, num_elements
 
 #####################
 # Bit Circuits
@@ -13,6 +13,12 @@ const FALSE_BITS = Int32(2)
 # 3:nf+2 are nf positive literals
 # nf+3:2nf+2 are nf negative literals
 # 2nf+2:end are inner decision nodes
+
+"The layer id and node id associated with a node"
+struct NodeId
+    layer_id::UInt32
+    node_id::UInt32
+end
 
 """
 A bit circuit is a sequence of layers of decision nodes, 
@@ -29,13 +35,13 @@ struct BitCircuit{V,M}
     num_features::Int
 end
 
-function BitCircuit(circuit::LogicCircuit, data)
-    bc = BitCircuit(circuit, num_features(data))
+function BitCircuit(circuit::LogicCircuit, data; reset=true)
+    bc = BitCircuit(circuit, num_features(data); reset)
     return isgpu(data) ? to_gpu(bc) : bc
 end
 
 "construct a new `BitCircuit` accomodating the given number of features"
-function BitCircuit(circuit::LogicCircuit, num_features::Int)
+function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
     @assert is⋁gate(circuit) "BitCircuits need to consist of decision nodes"
     
     f_con(n) = NodeId(0, istrue(n) ? TRUE_BITS : FALSE_BITS)
@@ -62,8 +68,8 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int)
             num_elements += one(UInt32)
             if c isa Vector{NodeId}
                 @assert length(c) == 2
-                layer_id = max(layer_id, c[1].layer_id, c[2].layer_id)
-                push!(elements, c[1].node_id, c[2].node_id)
+                @inbounds layer_id = max(layer_id, c[1].layer_id, c[2].layer_id)
+                @inbounds push!(elements, c[1].node_id, c[2].node_id)
             else
                 @assert c isa NodeId
                 layer_id = max(layer_id, c.layer_id)
@@ -78,15 +84,9 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int)
         NodeId(layer_id, num_decisions)
     end
 
-    foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, Union{NodeId,Vector{NodeId}})
+    foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, Union{NodeId,Vector{NodeId}}; reset)
     
     return BitCircuit(layers, reshape(nodes, 2, :), reshape(elements, 2, :), num_features)
-end
-
-"The layer id and node id associated with a node"
-struct NodeId
-    layer_id::UInt32
-    node_id::UInt32
 end
 
 import .Utils: num_nodes # extend

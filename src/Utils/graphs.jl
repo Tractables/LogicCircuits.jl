@@ -1,6 +1,6 @@
 export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
-       reset_counter, foreach, clear_data, filter, 
+       reset_counter, foreach, foreach_reset, clear_data, filter, 
        nload, nsave,
        foldup, foldup_aggregate, 
        count_parents, foreach_down,
@@ -111,6 +111,20 @@ function foreach_rec(f::Function, node::Dag)
         if isinner(node)
             for c in children(node)
                 foreach_rec(f, c)
+            end
+        end
+        f(node)
+    end
+    nothing # returning nothing helps save some allocations and time
+end
+
+"Apply a function to each node in a graph, bottom up, while resetting the counter"
+function foreach_reset(f::Function, node::Dag)
+    if node.counter != 0
+        node.counter = 0
+        if isinner(node)
+            for c in children(node)
+                foreach_reset(f, c)
             end
         end
         f(node)

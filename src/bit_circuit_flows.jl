@@ -226,10 +226,10 @@ end
 
 function accum_flow(f::Matrix{<:Unsigned}, v, d, p, s, locks)
     lock(locks[p]) do 
-        @views @. f[:, p] |= v[:, p] & v[:, s] & f[:, d]
+        @inbounds @views @. f[:, p] |= v[:, p] & v[:, s] & f[:, d]
     end
     lock(locks[s]) do 
-        @views @. f[:, s] |= v[:, p] & v[:, s] & f[:, d]
+        @inbounds @views @. f[:, s] |= v[:, p] & v[:, s] & f[:, d]
     end
 end
 
