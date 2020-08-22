@@ -67,9 +67,8 @@ end
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
 function evaluate_layers(circuit::BitCircuit, values::Matrix)
-    for layer in circuit.layers
-        decs = layer.decisions
-        els = layer.elements
+    for decs in circuit.layers
+        els = circuit.elements
         Threads.@threads for i in 1:size(decs)[2]
             dec_id = @inbounds decs[1,i]
             j = @inbounds decs[2,i]
@@ -124,11 +123,11 @@ accum_value(v::Matrix{<:Unsigned}, i, e1p, e1s, e2p, e2s) =
 function evaluate_layers(circuit::BitCircuit, values::CuMatrix;  dec_per_thread = 8, log2_threads_per_block = 8)
     CUDA.@sync for layer in circuit.layers
         num_examples = size(values, 1)
-        num_decision_sets = num_decisions(layer)/dec_per_thread
+        num_decision_sets = size(layer,2)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2]))
-        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer.decisions, layer.elements, values)
+        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer, circuit.elements, values)
     end
 end
 
@@ -194,9 +193,8 @@ end
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
 function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix)
     locks = [Threads.ReentrantLock() for i=1:num_nodes(circuit)]    
-    for layer in Iterators.reverse(circuit.layers)
-        decs = layer.decisions
-        els = layer.elements
+    for decs in Iterators.reverse(circuit.layers)
+        els = circuit.elements
         Threads.@threads for i in 1:size(decs)[2]
             dec_id = @inbounds decs[1,i]
             els_start = @inbounds decs[2,i]
@@ -240,11 +238,11 @@ function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::Cu
                                 dec_per_thread = 4, log2_threads_per_block = 8)
     CUDA.@sync for layer in Iterators.reverse(circuit.layers)
         num_examples = size(values, 1)
-        num_decision_sets = num_decisions(layer)/dec_per_thread
+        num_decision_sets = size(layer,2)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2])) 
-        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer.decisions, layer.elements, flows, values)
+        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer, circuit.elements, flows, values)
     end
 end
 
