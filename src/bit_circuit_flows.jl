@@ -67,12 +67,11 @@ end
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
 function evaluate_layers(circuit::BitCircuit, values::Matrix)
-    for decs in circuit.layers
-        els = circuit.elements
-        Threads.@threads for i in 1:size(decs)[2]
-            dec_id = @inbounds decs[1,i]
-            j = @inbounds decs[2,i]
-            els_end = @inbounds decs[3,i]
+    els = circuit.elements
+    for layer in circuit.layers
+        Threads.@threads for dec_id in layer
+            j = @inbounds circuit.nodes[1,dec_id]
+            els_end = @inbounds circuit.nodes[2,dec_id]
             if j == els_end
                 assign_value(values, dec_id, els[1,j], els[2,j])
                 j += 1
@@ -123,11 +122,11 @@ accum_value(v::Matrix{<:Unsigned}, i, e1p, e1s, e2p, e2s) =
 function evaluate_layers(circuit::BitCircuit, values::CuMatrix;  dec_per_thread = 8, log2_threads_per_block = 8)
     CUDA.@sync for layer in circuit.layers
         num_examples = size(values, 1)
-        num_decision_sets = size(layer,2)/dec_per_thread
+        num_decision_sets = length(layer)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2]))
-        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer, circuit.elements, values)
+        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer, circuit.nodes, circuit.elements, values)
     end
 end
 
@@ -141,16 +140,16 @@ function balance_threads(num_examples, num_decisions, total_log2)
 end
 
 "CUDA kernel for circuit evaluation"
-function evaluate_layers_cuda(decisions, elements, values)
+function evaluate_layers_cuda(layer, nodes, elements, values)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
     stride_y = blockDim().y * gridDim().y
     for j = index_x:stride_x:size(values,1)
-        for i = index_y:stride_y:size(decisions, 2)
-            decision_id = @inbounds decisions[1,i]
-            k = @inbounds decisions[2,i]
-            els_end = @inbounds decisions[3,i]
+        for i = index_y:stride_y:length(layer)
+            decision_id = @inbounds layer[i]
+            k = @inbounds nodes[1,decision_id]
+            els_end = @inbounds nodes[2,decision_id]
             @inbounds values[j, decision_id] = 
                 el_value(values[j, elements[1,k]], values[j, elements[2,k]])
             while k < els_end
@@ -176,10 +175,10 @@ accum_el_value(values, j, decision_id, p::Unsigned, s) =
 #####################
 
 "When values of nodes have already been computed, do a downward pass computing the flows at each node"
-function pass_down_flows(circuit::BitCircuit, values, reuse=nothing; f=noop)
+function pass_down_flows(circuit::BitCircuit, values, reuse=nothing; node_flow=noop, edge_flow=noop)
     flows = similar!(reuse, typeof(values), size(values)...)
     set_init_flows(flows, values)
-    pass_down_flows_layers(circuit, flows, values, f)
+    pass_down_flows_layers(circuit, flows, values, node_flow, edge_flow)
     return flows
 end
 
@@ -191,17 +190,19 @@ end
 # downward pass helpers on CPU
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
-function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, f)
+function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, node_flow, edge_flow)
+    els = circuit.elements
     locks = [Threads.ReentrantLock() for i=1:num_nodes(circuit)]    
-    for decs in Iterators.reverse(circuit.layers)
-        els = circuit.elements
-        Threads.@threads for i in 1:size(decs)[2]
-            dec_id = @inbounds decs[1,i]
-            els_start = @inbounds decs[2,i]
-            els_end = @inbounds decs[3,i]
+    for layer in Iterators.reverse(circuit.layers)
+        Threads.@threads for dec_id in layer
+            els_start = @inbounds circuit.nodes[1,dec_id]
+            els_end = @inbounds circuit.nodes[2,dec_id]
+            node_flow(flows, values, dec_id, els_start, els_end, locks)
             for j = els_start:els_end
-                accum_flow(flows, values, dec_id, els[1,j], els[2,j], locks)
-                f(flows, values, dec_id, j, locks)
+                p = els[1,j]
+                s = els[2,j]
+                accum_flow(flows, values, dec_id, p, s, locks)
+                edge_flow(flows, values, dec_id, j, p, s, els_start, els_end, locks)
             end
         end
     end
@@ -235,29 +236,29 @@ end
 # downward pass helpers on GPU
 
 "Pass flows down the layers of a bit circuit on the GPU"
-function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, f; 
+function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, node_flow, edge_flow; 
             dec_per_thread = 4, log2_threads_per_block = 8)
     CUDA.@sync for layer in Iterators.reverse(circuit.layers)
         num_examples = size(values, 1)
-        num_decision_sets = size(layer,2)/dec_per_thread
+        num_decision_sets = length(layer)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2])) 
-        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer, circuit.elements, flows, values, f)
+        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer, circuit.nodes, circuit.elements, flows, values, node_flow, edge_flow)
     end
 end
 
 "CUDA kernel for passing flows down circuit"
-function pass_down_flows_layers_cuda(decisions, elements, flows, values, f)
+function pass_down_flows_layers_cuda(layer, nodes, elements, flows, values, node_flow, edge_flow)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
     stride_y = blockDim().y * gridDim().y
     for k = index_x:stride_x:size(values,1)
-        for i = index_y:stride_y:size(decisions,2)
-            decision_id = @inbounds decisions[1,i]
-            j = @inbounds decisions[2,i]
-            els_end = @inbounds decisions[3,i]
+        for i = index_y:stride_y:length(layer) #TODO swap loops??
+            decision_id = @inbounds layer[i]
+            j = @inbounds nodes[1,decision_id]
+            els_end = @inbounds nodes[2,decision_id]
             n_up = @inbounds values[k, decision_id]
             if !iszero(n_up)
                 n_down = @inbounds flows[k, decision_id]
@@ -268,7 +269,7 @@ function pass_down_flows_layers_cuda(decisions, elements, flows, values, f)
                     # following needs to be memory safe, hence @atomic
                     accum_flow(flows, k, e1, add)
                     accum_flow(flows, k, e2, add)
-                    f(flows, values, decision_id, j, add)
+                    # edge_flow(flows, values, decision_id, j, add)
                     j += 1
                 end
             end
@@ -292,8 +293,8 @@ accum_flow(flows, j, e, add::Unsigned) =
 
 "Compute the value and flow of each node"
 function compute_values_flows(circuit::BitCircuit, data, 
-            reuse_values=nothing, reuse_flows=nothing; f=noop)
+            reuse_values=nothing, reuse_flows=nothing; node_flow=noop, edge_flow=noop)
     values = evaluate(circuit, data, reuse_values)
-    flows = pass_down_flows(circuit, values, reuse_flows; f)
+    flows = pass_down_flows(circuit, values, reuse_flows; node_flow, edge_flow)
     return values, flows
 end
