@@ -122,7 +122,7 @@ end
 #####################
 
 "Function that does nothing"
-noop(_...) = nothing
+@inline noop(_...) = nothing
 
 "Map the values in the dictionary, retaining the same keys"
 function map_values(f::Function, dict::AbstractDict{K}, vtype::Type)::AbstractDict{K,vtype} where K

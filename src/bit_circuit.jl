@@ -100,7 +100,7 @@ num_decisions(c::BitCircuit) =
     sum(l -> size(l, 2), c.layers)
 
 "Number of elements (conjunctions) in layer or bit circuit"
-num_elements(c::BitCircuit) = length(c.elements)
+num_elements(c::BitCircuit) = size(c.elements,2)
 
 import .Utils: num_features #extend
 

@@ -176,10 +176,10 @@ accum_el_value(values, j, decision_id, p::Unsigned, s) =
 #####################
 
 "When values of nodes have already been computed, do a downward pass computing the flows at each node"
-function pass_down_flows(circuit::BitCircuit, values, reuse=nothing)
+function pass_down_flows(circuit::BitCircuit, values, reuse=nothing; f=noop)
     flows = similar!(reuse, typeof(values), size(values)...)
     set_init_flows(flows, values)
-    pass_down_flows_layers(circuit, flows, values)
+    pass_down_flows_layers(circuit, flows, values, f)
     return flows
 end
 
@@ -191,7 +191,7 @@ end
 # downward pass helpers on CPU
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
-function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix)
+function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, f)
     locks = [Threads.ReentrantLock() for i=1:num_nodes(circuit)]    
     for decs in Iterators.reverse(circuit.layers)
         els = circuit.elements
@@ -201,6 +201,7 @@ function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matr
             els_end = @inbounds decs[3,i]
             for j = els_start:els_end
                 accum_flow(flows, values, dec_id, els[1,j], els[2,j], locks)
+                f(flows, values, dec_id, j, locks)
             end
         end
     end
@@ -234,40 +235,41 @@ end
 # downward pass helpers on GPU
 
 "Pass flows down the layers of a bit circuit on the GPU"
-function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix;  
-                                dec_per_thread = 4, log2_threads_per_block = 8)
+function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, f; 
+            dec_per_thread = 4, log2_threads_per_block = 8)
     CUDA.@sync for layer in Iterators.reverse(circuit.layers)
         num_examples = size(values, 1)
         num_decision_sets = size(layer,2)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2])) 
-        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer, circuit.elements, flows, values)
+        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer, circuit.elements, flows, values, f)
     end
 end
 
 "CUDA kernel for passing flows down circuit"
-function pass_down_flows_layers_cuda(decisions, elements, flows, values)
+function pass_down_flows_layers_cuda(decisions, elements, flows, values, f)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
     stride_y = blockDim().y * gridDim().y
-    for j = index_x:stride_x:size(values,1)
+    for k = index_x:stride_x:size(values,1)
         for i = index_y:stride_y:size(decisions,2)
             decision_id = @inbounds decisions[1,i]
-            k = @inbounds decisions[2,i]
+            j = @inbounds decisions[2,i]
             els_end = @inbounds decisions[3,i]
-            n_up = @inbounds values[j, decision_id]
+            n_up = @inbounds values[k, decision_id]
             if !iszero(n_up)
-                n_down = @inbounds flows[j, decision_id]
-                while k <= els_end
-                    e1 = @inbounds elements[1,k]
-                    e2 = @inbounds elements[2,k]
-                    @inbounds add = additional_flow(values[j, e1], values[j, e2], n_up, n_down)
+                n_down = @inbounds flows[k, decision_id]
+                while j <= els_end
+                    e1 = @inbounds elements[1,j]
+                    e2 = @inbounds elements[2,j]
+                    @inbounds add = additional_flow(values[k, e1], values[k, e2], n_up, n_down)
                     # following needs to be memory safe, hence @atomic
-                    accum_flow(flows, j, e1, add)
-                    accum_flow(flows, j, e2, add)
-                    k += 1
+                    accum_flow(flows, k, e1, add)
+                    accum_flow(flows, k, e2, add)
+                    f(flows, values, decision_id, j, add)
+                    j += 1
                 end
             end
         end
@@ -289,8 +291,9 @@ accum_flow(flows, j, e, add::Unsigned) =
 #####################
 
 "Compute the value and flow of each node"
-function compute_values_flows(circuit::BitCircuit, data, reuse_values=nothing, reuse_flows=nothing)
+function compute_values_flows(circuit::BitCircuit, data, 
+            reuse_values=nothing, reuse_flows=nothing; f=noop)
     values = evaluate(circuit, data, reuse_values)
-    flows = pass_down_flows(circuit, values, reuse_flows)
+    flows = pass_down_flows(circuit, values, reuse_flows; f)
     return values, flows
 end
