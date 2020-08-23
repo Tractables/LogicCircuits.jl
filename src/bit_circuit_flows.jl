@@ -73,18 +73,24 @@ function evaluate_layers(circuit::BitCircuit, values::Matrix)
             j = @inbounds circuit.nodes[1,dec_id]
             els_end = @inbounds circuit.nodes[2,dec_id]
             if j == els_end
-                assign_value(values, dec_id, els[1,j], els[2,j])
+                assign_value(values, dec_id, els[2,j], els[3,j])
+                # @assert els[1,j] == dec_id
                 j += 1
             else
-                assign_value(values, dec_id, els[1,j], els[2,j], els[1,j+1], els[2,j+1])
+                assign_value(values, dec_id, els[2,j], els[3,j], els[2,j+1], els[3,j+1])
+                # @assert els[1,j] == dec_id
+                # @assert els[1,j+1] == dec_id
                 j += 2
             end
             while j <= els_end
                 if j == els_end
-                    accum_value(values, dec_id, els[1,j], els[2,j])
+                    accum_value(values, dec_id, els[2,j], els[3,j])
+                    # @assert els[1,j] == dec_id
                     j += 1
                 else
-                    accum_value(values, dec_id, els[1,j], els[2,j], els[1,j+1], els[2,j+1])
+                    accum_value(values, dec_id, els[2,j], els[3,j], els[2,j+1], els[3,j+1])
+                    # @assert els[1,j] == dec_id
+                    # @assert els[1,j+1] == dec_id
                     j += 2
                 end
             end
@@ -151,11 +157,11 @@ function evaluate_layers_cuda(layer, nodes, elements, values)
             k = @inbounds nodes[1,decision_id]
             els_end = @inbounds nodes[2,decision_id]
             @inbounds values[j, decision_id] = 
-                el_value(values[j, elements[1,k]], values[j, elements[2,k]])
+                el_value(values[j, elements[2,k]], values[j, elements[3,k]])
             while k < els_end
                 k += 1
                 @inbounds accum_el_value(values, j, decision_id, values[j, 
-                            elements[1,k]], values[j, elements[2,k]])
+                            elements[2,k]], values[j, elements[3,k]])
             end # would loop unrolling help here as on CPU? probably not?
         end
     end
@@ -175,10 +181,10 @@ accum_el_value(values, j, decision_id, p::Unsigned, s) =
 #####################
 
 "When values of nodes have already been computed, do a downward pass computing the flows at each node"
-function pass_down_flows(circuit::BitCircuit, values, reuse=nothing; node_flow=noop, edge_flow=noop)
+function pass_down_flows(circuit::BitCircuit, values, reuse=nothing; on_node=noop, on_edge=noop)
     flows = similar!(reuse, typeof(values), size(values)...)
     set_init_flows(flows, values)
-    pass_down_flows_layers(circuit, flows, values, node_flow, edge_flow)
+    pass_down_flows_layers(circuit, flows, values, on_node, on_edge)
     return flows
 end
 
@@ -190,19 +196,20 @@ end
 # downward pass helpers on CPU
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
-function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, node_flow, edge_flow)
+function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, on_node, on_edge)
     els = circuit.elements
     locks = [Threads.ReentrantLock() for i=1:num_nodes(circuit)]    
     for layer in Iterators.reverse(circuit.layers)
         Threads.@threads for dec_id in layer
             els_start = @inbounds circuit.nodes[1,dec_id]
             els_end = @inbounds circuit.nodes[2,dec_id]
-            node_flow(flows, values, dec_id, els_start, els_end, locks)
+            on_node(flows, values, dec_id, els_start, els_end, locks)
+            #TODO do something faster when els_start == els_end?
             for j = els_start:els_end
-                p = els[1,j]
-                s = els[2,j]
+                p = els[2,j]
+                s = els[3,j]
                 accum_flow(flows, values, dec_id, p, s, locks)
-                edge_flow(flows, values, dec_id, j, p, s, els_start, els_end, locks)
+                on_edge(flows, values, dec_id, j, p, s, els_start, els_end, locks)
             end
         end
     end
@@ -215,10 +222,10 @@ function accum_flow(f::Matrix{<:AbstractFloat}, v, d, p, s, locks)
         lock(locks[l2]) do 
             # note: in future, if there is a need to scale to many more threads, it would be beneficial to avoid this synchronization by ordering downward pass layers by child id, not parent id, so that there is no contention when processing a single layer and no need for synchronization, as in the upward pass
             @avx for j in 1:size(f,1)
-                a = v[j, p] * v[j, s] / v[j, d] * f[j, d]
-                a = vifelse(isfinite(a), a, zero(Float32))
-                f[j, p] += a
-                f[j, s] += a
+                edge_flow = v[j, p] * v[j, s] / v[j, d] * f[j, d]
+                edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(Float32))
+                f[j, p] += edge_flow
+                f[j, s] += edge_flow
             end
         end
     end
@@ -236,7 +243,7 @@ end
 # downward pass helpers on GPU
 
 "Pass flows down the layers of a bit circuit on the GPU"
-function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, node_flow, edge_flow; 
+function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, on_node, on_edge; 
             dec_per_thread = 4, log2_threads_per_block = 8)
     CUDA.@sync for layer in Iterators.reverse(circuit.layers)
         num_examples = size(values, 1)
@@ -244,33 +251,34 @@ function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::Cu
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2])) 
-        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer, circuit.nodes, circuit.elements, flows, values, node_flow, edge_flow)
+        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer, circuit.nodes, circuit.elements, flows, values, on_node, on_edge)
     end
 end
 
 "CUDA kernel for passing flows down circuit"
-function pass_down_flows_layers_cuda(layer, nodes, elements, flows, values, node_flow, edge_flow)
+function pass_down_flows_layers_cuda(layer, nodes, elements, flows, values, on_node, on_edge)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
     stride_y = blockDim().y * gridDim().y
     for k = index_x:stride_x:size(values,1)
         for i = index_y:stride_y:length(layer) #TODO swap loops??
-            decision_id = @inbounds layer[i]
-            j = @inbounds nodes[1,decision_id]
-            els_end = @inbounds nodes[2,decision_id]
-            n_up = @inbounds values[k, decision_id]
-            if !iszero(n_up)
-                n_down = @inbounds flows[k, decision_id]
-                while j <= els_end
-                    e1 = @inbounds elements[1,j]
-                    e2 = @inbounds elements[2,j]
-                    @inbounds add = additional_flow(values[k, e1], values[k, e2], n_up, n_down)
+            dec_id = @inbounds layer[i]
+            els_start = @inbounds nodes[1,dec_id]
+            els_end = @inbounds nodes[2,dec_id]
+            n_up = @inbounds values[k, dec_id]
+            on_node(flows, values, dec_id, els_start, els_end, k)
+            if !iszero(n_up) # on_edge will only get called when edge flows are non-zero
+                n_down = @inbounds flows[k, dec_id]
+                #TODO do something faster when els_start == els_end?
+                for j = els_start:els_end
+                    p = @inbounds elements[2,j]
+                    s = @inbounds elements[3,j]
+                    @inbounds edge_flow = compute_edge_flow(values[k, p], values[k, s], n_up, n_down)
                     # following needs to be memory safe, hence @atomic
-                    accum_flow(flows, k, e1, add)
-                    accum_flow(flows, k, e2, add)
-                    # edge_flow(flows, values, decision_id, j, add)
-                    j += 1
+                    accum_flow(flows, k, p, edge_flow)
+                    accum_flow(flows, k, s, edge_flow)
+                    on_edge(flows, values, dec_id, j, p, s, els_start, els_end, k, edge_flow)
                 end
             end
         end
@@ -278,14 +286,14 @@ function pass_down_flows_layers_cuda(layer, nodes, elements, flows, values, node
     return nothing
 end
 
-additional_flow(p_up::AbstractFloat, s_up, n_up, n_down) = p_up * s_up / n_up * n_down
-additional_flow(p_up::Unsigned, s_up, n_up, n_down) = p_up & s_up & n_down
+compute_edge_flow(p_up::AbstractFloat, s_up, n_up, n_down) = p_up * s_up / n_up * n_down
+compute_edge_flow(p_up::Unsigned, s_up, n_up, n_down) = p_up & s_up & n_down
 
-accum_flow(flows, j, e, add::AbstractFloat) = 
-    CUDA.@atomic flows[j, e] += add #atomic is automatically inbounds
+accum_flow(flows, j, e, edge_flow::AbstractFloat) = 
+    CUDA.@atomic flows[j, e] += edge_flow #atomic is automatically inbounds
 
-accum_flow(flows, j, e, add::Unsigned) = 
-    CUDA.@atomic flows[j, e] |= add #atomic is automatically inbounds
+accum_flow(flows, j, e, edge_flow::Unsigned) = 
+    CUDA.@atomic flows[j, e] |= edge_flow #atomic is automatically inbounds
 
 #####################
 # Bit circuit values and flows (up and downward pass)
@@ -293,8 +301,10 @@ accum_flow(flows, j, e, add::Unsigned) =
 
 "Compute the value and flow of each node"
 function compute_values_flows(circuit::BitCircuit, data, 
-            reuse_values=nothing, reuse_flows=nothing; node_flow=noop, edge_flow=noop)
-    values = evaluate(circuit, data, reuse_values)
-    flows = pass_down_flows(circuit, values, reuse_flows; node_flow, edge_flow)
+            reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop)
+    bc = isgpu(data) ? to_gpu(circuit) : to_cpu(circuit)
+    values = evaluate(bc, data, reuse_values)
+    flows = pass_down_flows(bc, values, reuse_flows; on_node, on_edge)
+    #TODO: check if values or flows are reused, otherwise manually garbage collect
     return values, flows
 end
