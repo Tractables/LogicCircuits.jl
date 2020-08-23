@@ -1,6 +1,6 @@
 using CUDA
 
-export NodeId, BitCircuit, num_decisions, num_elements
+export NodeId, ⋁NodeId, ⋀NodeId, BitCircuit, num_decisions, num_elements
 
 #####################
 # Bit Circuits
@@ -16,11 +16,11 @@ const FALSE_BITS = Int32(2)
 
 "The BitCircuit ids associated with a node"
 abstract type NodeId end
-struct ⋁NodeId <: NodeId
+mutable struct ⋁NodeId <: NodeId #somehow mutable is faster
     layer_id::UInt32
     node_id::UInt32
 end
-struct ⋀NodeId <: NodeId
+mutable struct ⋀NodeId <: NodeId #somehow mutable is faster
     layer_id::UInt32
     prime_id::UInt32
     sub_id::UInt32
@@ -55,9 +55,9 @@ end
 function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
     @assert is⋁gate(circuit) "BitCircuits need to consist of decision nodes"
     
-    f_con(n) = ⋁NodeId(0, istrue(n) ? TRUE_BITS : FALSE_BITS)
+    f_con(n) = ⋁NodeId(zero(UInt32), istrue(n) ? TRUE_BITS : FALSE_BITS)
 
-    f_lit(n) = ⋁NodeId(0, 
+    f_lit(n) = ⋁NodeId(zero(UInt32), 
         ispositive(n) ? UInt32(2+variable(n)) : UInt32(2+num_features+variable(n)))
 
     f_and(_, cs) = begin
