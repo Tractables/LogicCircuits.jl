@@ -25,34 +25,24 @@ function init_values(data::AbstractArray{<:AbstractFloat}, reuse, num_nodes)
     return values
 end
 
-"Initialize values from the data (bit vectors)"
-function init_values(data::AbstractArray{B}, reuse, num_nodes) where {B<:Unsigned}
-    values = similar!(reuse, typeof(data), size(data, 1), num_nodes)
-    nf = num_features(data)
-    #TODO check if this also works with dataframes
-    @views values[:,TRUE_BITS] .= typemax(B)
-    @views values[:,FALSE_BITS] .= typemin(B)
-    @views values[:,3:nf+2] .= data
-    @views values[:,nf+3:2*nf+2] .= .~ data
-    return values
-end
-
 "Initialize values from the data (data frames)"
 function init_values(data::DataFrame, reuse, num_nodes)
     if isbinarydata(data)
         flowtype = isgpu(data) ? CuMatrix{UInt} : Matrix{UInt}
-        values = similar!(reuse, flowtype, num_bitstrings(data), num_nodes)
+        values = similar!(reuse, flowtype, num_chunks(data), num_nodes)
         @views values[:,TRUE_BITS] .= typemax(UInt)
         @views values[:,FALSE_BITS] .= typemin(UInt)
         for i=1:num_features(data)
-            @views values[:,2+i] .= feature_bitstrings(data,i)
-            @views values[:,2+num_features(data)+i] .= .~ feature_bitstrings(data,i)
-            # warning: we need to set the negative literals beyond the Bi
+            @views values[:,2+i] .= chunks(data,i)
+            @views values[:,2+num_features(data)+i] .= .~ chunks(data,i)
         end
+        # warning: there are now some 1 bits beyond the BitVector mask.
+        # therefore, reset those to 0
+        @views values[end,1:2+2*num_features(data)] .&= _msk_end(data)
+        
     else
         @assert isfpdata(data) "Only floating point and binary flows are supported"
-        pr = eltype(data)
-        flowtype = isgpu(data) ? CuMatrix{pr} : Matrix{pr}
+        flowtype = isgpu(data) ? CuMatrix{eltype(data)} : Matrix{eltype(data)}
         values = similar!(reuse, flowtype, num_examples(data), num_nodes)
         @views values[:,TRUE_BITS] .= one(Float32)
         @views values[:,FALSE_BITS] .= zero(Float32)

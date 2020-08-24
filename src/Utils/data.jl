@@ -3,11 +3,11 @@ import Random: shuffle
 import Statistics: mean, std
 import CUDA: CuVector, CuMatrix
 
-export CuBitVector, AbstractBitVector, chunks,
+export CuBitVector, AbstractBitVector, chunks, _msk_end,
     num_examples, num_features, 
     example, feature_values,
     isfpdata, isbinarydata, 
-    num_bitstrings, feature_bitstrings, eltype,
+    num_chunks, chunk, eltype,
     shuffle_examples, batch, threshold, soften,
     to_gpu, to_cpu, isgpu,
     ll_per_example, bits_per_pixel
@@ -38,8 +38,11 @@ end
 "Retro-fitted super type of all bit vectors"
 const AbstractBitVector = Union{BitVector, CuBitVector}
 
-"Retrieve chunks of bit vector"
-chunks(v::AbstractBitVector) = v.chunks
+import Base: length, _msk_end #extend
+@inline length(v::CuBitVector) = v.len
+@inline _msk_end(v::CuBitVector) = _msk_end(length(v))
+@inline _msk_end(df::DataFrame) = _msk_end(num_examples(df))
+
 
 """
     num_examples(df::DataFrame)
@@ -81,8 +84,12 @@ isbinarydata(::AbstractMatrix{<:AbstractFloat}) = false
 isbinarydata(df::DataFrame) = all(t -> t <: Bool, eltypes(df))
 
 "For binary data, how many `UInt64` bit strings are needed to store one feature?"
-num_bitstrings(d) = num_bitstrings(feature_values(d,1))
-num_bitstrings(v::AbstractBitVector) = length(v.chunks)
+num_chunks(d) = num_chunks(feature_values(d,1))
+num_chunks(v::AbstractBitVector) = length(v.chunks)
+
+"Retrieve chunks of bit vector"
+chunks(v::AbstractBitVector) = v.chunks
+chunks(df::DataFrame, i) = chunks(feature_values(df, i))
 
 # DATA TRANSFORMATIONS
 
@@ -141,7 +148,7 @@ to_cpu(cv::CuBitVector) = begin
     v = BitVector()
     v.chunks = to_gpu(cv.chunks)
     v.len = cv.len
-    v.dims = (1,)
+    # v.dims unused by vectors
 end
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
 
