@@ -1,5 +1,6 @@
 using Test
 using LogicCircuits
+using DataFrames: DataFrame
 
 @testset "Structured logic nodes" begin
     
@@ -61,10 +62,10 @@ using LogicCircuits
     @test isone(sat_prob(f))
     @test model_count(f) == BigInt(2)^10
 
-    @test f(BitArray([1 0 1 0 1 0 1 0 1 0;
+    @test f(DataFrame(BitArray([1 0 1 0 1 0 1 0 1 0;
                        1 1 1 1 1 1 1 1 1 1;
                        0 0 0 0 0 0 0 0 0 0;
-                       0 1 1 0 1 0 0 1 0 1])) == [1,1,1,1]
+                       0 1 1 0 1 0 0 1 0 1]))) == BitVector([1,1,1,1])
 
     plainf = PlainLogicCircuit(f) 
     foreach(plainf) do n
