@@ -47,10 +47,11 @@ function init_values(data::DataFrame, reuse, num_nodes)
         for i=1:num_features(data)
             @views values[:,2+i] .= feature_bitstrings(data,i)
             @views values[:,2+num_features(data)+i] .= .~ feature_bitstrings(data,i)
+            # warning: we need to set the negative literals beyond the Bi
         end
     else
-        @assert isnumericdata(data) "Only floating point and binary flows are supported"
-        pr = number_precision(data)
+        @assert isfpdata(data) "Only floating point and binary flows are supported"
+        pr = eltype(data)
         flowtype = isgpu(data) ? CuMatrix{pr} : Matrix{pr}
         values = similar!(reuse, flowtype, num_examples(data), num_nodes)
         @views values[:,TRUE_BITS] .= one(Float32)

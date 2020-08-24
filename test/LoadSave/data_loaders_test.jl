@@ -13,9 +13,9 @@ using DataFrames
     @test num_examples(train) == 60000
     @test num_features(test) == 784
     @test num_examples(test) == 10000
-    @test isnumericdata(train)
+    @test isfpdata(train)
     @test !isbinarydata(train)
-    @test isnumericdata(test)
+    @test isfpdata(test)
     @test !isbinarydata(test)
     
     @test feature_values(train, 1) isa Vector{Float32}
@@ -31,9 +31,9 @@ using DataFrames
     @test num_examples(train) == 60000
     @test num_features(test) == 784
     @test num_examples(test) == 10000
-    @test isnumericdata(train)
+    @test isfpdata(train)
     @test !isbinarydata(train)
-    @test isnumericdata(test)
+    @test isfpdata(test)
     @test !isbinarydata(test)
     
     @test feature_values(train, 1) isa Vector{Float32}
@@ -49,9 +49,9 @@ using DataFrames
     @test num_features(test) == 784
     @test num_examples(test) == 10000
 
-    @test isnumericdata(train)
+    @test !isfpdata(train)
     @test isbinarydata(train)
-    @test isnumericdata(test)
+    @test !isfpdata(test)
     @test isbinarydata(test)
     
     @test feature_values(train, 1) isa BitVector
@@ -70,9 +70,9 @@ using DataFrames
     @test num_examples(train) == 60000
     @test num_features(test) == 784+1
     @test num_examples(test) == 10000
-    @test isnumericdata(train)
+    @test !isfpdata(train) # because of the label being Int
     @test !isbinarydata(train)
-    @test isnumericdata(test)
+    @test !isfpdata(test) # because of the label being Int
     @test !isbinarydata(test)
     
     @test feature_values(train, 1) isa Vector{Float32}
@@ -88,11 +88,11 @@ using DataFrames
     @test num_features(test) == 784
     @test num_examples(test) == 10000
 
-    @test isnumericdata(train)
+    @test !isfpdata(train)
     @test isbinarydata(train)
-    @test isnumericdata(valid)
+    @test !isfpdata(valid)
     @test isbinarydata(valid)
-    @test isnumericdata(test)
+    @test !isfpdata(test)
     @test isbinarydata(test)
     
     @test feature_values(train, 1) isa BitVector

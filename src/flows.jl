@@ -44,8 +44,8 @@ flow_type(m::Matrix{<:AbstractFloat}) = Vector{eltype(m)}
 flow_type(m::CuMatrix{<:AbstractFloat}) = CuVector{eltype(m)}
 flow_type(data::DataFrame) = begin
     isbinarydata(data) && return BitVector
-    @assert isnumericdata(data) "Only floating point and binary flows are supported"
-    pr = number_precision(data)
+    @assert isfpdata(data) "Only floating point and binary flows are supported"
+    pr = eltype(data)
     isgpu(data) ? CuVector{pr} : Vector{pr}
 end
 
