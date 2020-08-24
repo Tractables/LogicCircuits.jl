@@ -55,7 +55,6 @@ end
 "construct a new `BitCircuit` accomodating the given number of features"
 function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
     #TODO: consider not using foldup_aggregate and instead calling twice to ensure order but save allocations
-    @assert is⋁gate(circuit) "BitCircuits need to consist of decision nodes"
     
     f_con(n) = ⋁NodeId(zero(UInt32), istrue(n) ? TRUE_BITS : FALSE_BITS)
 
@@ -117,7 +116,7 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
     end
 
     r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeId; reset)
-    @assert (r isa ⋁NodeId) "BitCircuit roots are assumed to be decision nodes (OR nodes)"
+    to_decision(r)
     
     return BitCircuit(layers, reshape(nodes, 2, :), reshape(elements, 3, :), num_features)
 end
