@@ -19,7 +19,7 @@ function smooth(root::Node)::Node
             union!(parent_scope, scope)
             smooth_child
         end
-        return (conjoin([smooth_children...]; reuse=n), parent_scope)
+        (conjoin([smooth_children...]; reuse=n), parent_scope)
     end
     f_o(n, call) = begin
         parent_scope = mapreduce(c -> call(c)[2], union, children(n))
@@ -41,7 +41,7 @@ the `missing_scope` variables are added to the scope, using literals from `lit_n
 """
 function smooth_node(node::Node, missing_scope, lit_nodes)
     if isempty(missing_scope)
-        return node
+        return node # avoid adding unnecessary nodes
     else
         get_lit(l) = get!(() -> compile(typeof(node), l), lit_nodes, l)
         ors = map(collect(missing_scope)) do v
@@ -50,7 +50,7 @@ function smooth_node(node::Node, missing_scope, lit_nodes)
             not_lit_node = get_lit(-lit)
             disjoin([lit_node, not_lit_node]; reuse=node)
         end
-        return conjoin([node, ors...]; reuse=node)
+        conjoin([node, ors...]; reuse=node)
     end
 end
 

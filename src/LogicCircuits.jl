@@ -8,10 +8,9 @@ include("Utils/Utils.jl")
 @reexport using .Utils
 
 include("abstract_logic_nodes.jl")
+include("bit_circuit.jl")
 include("queries.jl")
 include("flows.jl")
-include("bit_circuit.jl")
-include("bit_circuit_flows.jl")
 include("transformations.jl")
 include("plain_logic_nodes.jl")
 

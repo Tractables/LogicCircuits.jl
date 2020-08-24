@@ -38,6 +38,15 @@ end
 "Retro-fitted super type of all bit vectors"
 const AbstractBitVector = Union{BitVector, CuBitVector}
 
+AbstractBitVector(chunks::CuVector{UInt64}, len) = CuBitVector(chunks, len)
+AbstractBitVector(chunks::Vector{UInt64}, len) = begin
+    v = BitVector()
+    v.chunks = chunks
+    v.len = len
+    # v.dims unused by vectors
+    return v
+end
+
 import Base: length, _msk_end #extend
 @inline length(v::CuBitVector) = v.len
 @inline _msk_end(v::CuBitVector) = _msk_end(length(v))
@@ -138,18 +147,13 @@ soften(data, softness=0.05; precision=Float32) =
 "Move data to the GPU"
 to_gpu(d::Union{CuBitVector,CuArray}) = d
 to_gpu(m::Array) = CuArray(m)
-to_gpu(v::BitVector) = CuBitVector(to_gpu(chunks(v)), length(v))
+to_gpu(v::BitVector) = AbstractBitVector(to_gpu(chunks(v)), length(v))
 to_gpu(df::DataFrame) = mapcols(to_gpu, df)
 
 "Move data to the CPU"
 to_cpu(m::Union{BitVector,Array}) = m
 to_cpu(m::CuArray) = Array(m)
-to_cpu(cv::CuBitVector) = begin
-    v = BitVector()
-    v.chunks = to_gpu(cv.chunks)
-    v.len = cv.len
-    # v.dims unused by vectors
-end
+to_cpu(cv::CuBitVector) = AbstractBitVector(to_cpu(cv.chunks), length(cv))
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
 
 "Check whether data resides on the GPU"

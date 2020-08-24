@@ -1,5 +1,8 @@
+using DataFrames: DataFrame
+
 export variables_by_node, issmooth, isdecomposable,
     isdeterministic, iscanonical,
+    evaluate,
     sat_prob, model_count, prob_equiv_signature
 
 #####################
@@ -184,17 +187,27 @@ function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
 end
 
 #####################
-# algebraic model counting queries
+# Circuit evaluation
 #####################
+  
+# evaluate a circuit as a function
+function (root::LogicCircuit)(data...)
+    evaluate(root, data...)
+end
 
 "Evaluate the circuit bottom-up for a given input"
 evaluate(root::LogicCircuit, data::Real...) =
     evaluate(root, collect(data))
 
-function evaluate(root::LogicCircuit, data::AbstractVector{<:Real})
-    batch_data = reshape(data, 1, length(data)) # create a fake batch of 1 data point
-    evaluate(root, batch_data)[1] # run the batch algorithm
-end
+evaluate(root::LogicCircuit, data::AbstractVector{Bool}) =
+    evaluate(root, DataFrame(reshape(BitVector(data), 1, length(data))))[1]
+
+evaluate(root::LogicCircuit, data::AbstractVector{<:AbstractFloat}) =
+    evaluate(root, reshape(data, 1, length(data)))[1]
+
+#####################
+# algebraic model counting queries
+#####################
 
 """
     sat_prob(root::LogicCircuit; varprob::Function)::Rational{BigInt}

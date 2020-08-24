@@ -47,22 +47,45 @@ struct BitCircuit{V,M}
     num_features::Int
 end
 
-function BitCircuit(circuit::LogicCircuit, data; reset=true)
-    BitCircuit(circuit, num_features(data); reset)
+function BitCircuit(circuit::LogicCircuit, data; reset=true, on_gpu=false)
+    bc = BitCircuit(circuit, num_features(data); reset)
+    return on_gpu ? to_gpu(bc) : bc
 end
 
 "construct a new `BitCircuit` accomodating the given number of features"
 function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
+    #TODO: consider not using foldup_aggregate and instead calling twice to ensure order but save allocations
     @assert is⋁gate(circuit) "BitCircuits need to consist of decision nodes"
     
     f_con(n) = ⋁NodeId(zero(UInt32), istrue(n) ? TRUE_BITS : FALSE_BITS)
 
     f_lit(n) = ⋁NodeId(zero(UInt32), 
         ispositive(n) ? UInt32(2+variable(n)) : UInt32(2+num_features+variable(n)))
+        
+    to_decision(c) = begin
+        if c isa ⋀NodeId
+            # need to add a dummy decision node in between AND nodes
+            num_decisions += one(UInt32)
+            num_elements += one(UInt32)
+            push!(elements, num_decisions, c.prime_id, c.sub_id)
+            layer_id = c.layer_id + one(UInt32)
+            length(layers) < layer_id && push!(layers, UInt32[])
+            push!(nodes, num_elements, num_elements)
+            push!(layers[layer_id], num_decisions)
+            ⋁NodeId(layer_id, num_decisions)
+        else
+            c
+        end
+    end
 
-    f_and(_, cs) = begin
-        @assert length(cs) == 2 "Elements should be conjunctions of two arguments"
-        ⋀NodeId(cs[1]::⋁NodeId, cs[2]::⋁NodeId)
+    f_and(n, cs) = begin
+        @assert length(cs) > 1 "BitCircuits only support AND gates with at least two children"
+        a12 = ⋀NodeId(to_decision(cs[1]), to_decision(cs[2]))
+        if length(cs) == 2
+            a12
+        else
+            f_and(n, [a12, cs[3:end]...])
+        end
     end
 
     # store data in vectors to facilitate push!
@@ -93,7 +116,8 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
         ⋁NodeId(layer_id, num_decisions)
     end
 
-    foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeId; reset)
+    r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeId; reset)
+    @assert (r isa ⋁NodeId) "BitCircuit roots are assumed to be decision nodes (OR nodes)"
     
     return BitCircuit(layers, reshape(nodes, 2, :), reshape(elements, 3, :), num_features)
 end
