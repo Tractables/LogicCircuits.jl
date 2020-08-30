@@ -108,6 +108,9 @@ function compile end
 # methods to easily construct circuits
 #####################
 
+@inline conjoin(xs::LogicCircuit...) = conjoin(collect(xs))
+@inline disjoin(xs::LogicCircuit...) = disjoin(collect(xs))
+
 @inline Base.:&(x::LogicCircuit, y::LogicCircuit) = conjoin(x,y)
 @inline Base.:|(x::LogicCircuit, y::LogicCircuit) = disjoin(x,y)
 

@@ -94,8 +94,6 @@ end
 "Get the children of a given inner node"
 @inline children(n::PlainLogicInnerNode) = n.children
 
-@inline conjoin(xs::PlainLogicCircuit...) = conjoin(collect(xs))
-
 function conjoin(arguments::Vector{<:PlainLogicCircuit};
                  reuse=nothing)
     @assert length(arguments) > 0
@@ -103,7 +101,6 @@ function conjoin(arguments::Vector{<:PlainLogicCircuit};
     return Plain⋀Node(arguments)
 end
 
-@inline disjoin(xs::PlainLogicCircuit...) = disjoin(collect(xs))
 
 function disjoin(arguments::Vector{<:PlainLogicCircuit};
                     reuse=nothing)
@@ -132,8 +129,10 @@ function compile(::Type{<:PlainLogicCircuit}, circuit::LogicCircuit)
     foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, PlainLogicCircuit)
 end
 
+
 fully_factorized_circuit(::Type{LogicCircuit}, n::Int) =
     fully_factorized_circuit(PlainLogicCircuit, n)
+
 function fully_factorized_circuit(::Type{<:PlainLogicCircuit}, n::Int)
     ors = map(1:n) do v
         v = Var(v)

@@ -170,7 +170,6 @@ compile(::Type{<:PlainStructLogicCircuit}, b::Bool) =
 compile(::Type{<:PlainStructLogicCircuit}, vtree::Vtree, l::Lit) =
     PlainStructLiteralNode(l,find_leaf(lit2var(l),vtree))
 
-
 function compile(::Type{<:PlainStructLogicCircuit}, vtree::Vtree, circuit::LogicCircuit)
     f_con(n) = compile(PlainStructLogicCircuit, constant(n)) 
     f_lit(n) = compile(PlainStructLogicCircuit, vtree, literal(n))
