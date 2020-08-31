@@ -9,7 +9,7 @@ export evaluate_all, pass_down_flows, compute_values_flows
 #####################
 
 evaluate(circuit::LogicCircuit, data) =
-    evaluate(BitCircuit(circuit, data; on_gpu = isgpu(data)), data)
+    evaluate(BitCircuit(circuit, data; gpu = isgpu(data)), data)
 
 evaluate(circuit::BitCircuit, data::AbstractArray{<:AbstractFloat}) =
     evaluate_all(circuit,data)[:,end]
@@ -31,7 +31,7 @@ end
 "Compute the value and flow of each node"
 function compute_values_flows(circuit::LogicCircuit, data, 
     reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop) 
-    bc = BitCircuit(circuit, data; on_gpu = isgpu(data))
+    bc = BitCircuit(circuit, data; gpu = isgpu(data))
     compute_values_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge)
 end
 
