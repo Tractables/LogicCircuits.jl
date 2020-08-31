@@ -114,6 +114,14 @@ const structfalse = PlainStructFalseNode(nothing, 0)
 "Get the sub, that is, the second and last conjunct"
 @inline sub(n) = n.sub
 
+# StructLogicCircuit has a default argument for respects: its root's vtree
+respects_vtree(circuit::StructLogicCircuit) = 
+    respects_vtree(circuit, vtree(circuit))
+    
+#####################
+# constructors and compilation
+#####################
+
 conjoin(arguments::Vector{<:PlainStructLogicCircuit};
         reuse=nothing, use_vtree=nothing) =
         conjoin(arguments...; reuse, use_vtree)
@@ -131,12 +139,6 @@ function conjoin(a1::PlainStructLogicCircuit,
     return PlainStruct⋀Node(a1, a2, use_vtree)
 end
 
-# StructLogicCircuit has a default argument for respects: its root's vtree
-respects_vtree(circuit::StructLogicCircuit) = 
-    respects_vtree(circuit, vtree(circuit))
-
-@inline disjoin(xs::PlainStructLogicCircuit...) = disjoin(collect(xs))
-
 function disjoin(arguments::Vector{<:PlainStructLogicCircuit};
                  reuse=nothing, use_vtree=nothing)
     @assert length(arguments) > 0
@@ -153,6 +155,9 @@ end
 # Syntactic sugar for compile with a vtree
 (t::Tuple{<:Type,<:Vtree})(arg) = compile(t[1], t[2], arg)
 (t::Tuple{<:Vtree,<:Type})(arg) = compile(t[2], t[1], arg)
+
+compile(n::StructLogicCircuit, args...) = 
+    compile(typeof(n), root(vtree(n)), args...)
 
 # claim `PlainStructLogicCircuit` as the default `LogicCircuit` implementation that has a vtree
 compile(::Type{StructLogicCircuit}, args...) =

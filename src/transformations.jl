@@ -43,7 +43,7 @@ function smooth_node(node::Node, missing_scope, lit_nodes)
     if isempty(missing_scope)
         return node # avoid adding unnecessary nodes
     else
-        get_lit(l) = get!(() -> compile(typeof(node), l), lit_nodes, l)
+        get_lit(l) = get!(() -> compile(node, l), lit_nodes, l)
         ors = map(collect(missing_scope)) do v
             lit = var2lit(Var(v))
             lit_node = get_lit(lit)
@@ -79,7 +79,7 @@ end
 
 Remove all constant leafs from the circuit
 """
-function propagate_constants(root::Node)
+function propagate_constants(root::Node; remove_unary=false)
     (false_node, true_node) = canonical_constants(root)
     if isnothing(true_node)
         true_node = compile(typeof(root), true)
@@ -95,7 +95,13 @@ function propagate_constants(root::Node)
         else
             T = promote_type(typeof(n), typeof.(cn)...)
             proped_children = convert(Vector{T}, filter(c -> !istrue(c), cn))
-            isempty(proped_children) ? true_node : conjoin(proped_children; reuse=n)
+            if isempty(proped_children)
+                return true_node
+            elseif remove_unary && issingle(proped_children)
+                return proped_children[1]
+            else
+                return conjoin(proped_children; reuse=n)
+            end
         end
     end
     f_o(n, cn) = begin
@@ -104,7 +110,13 @@ function propagate_constants(root::Node)
         else
             T = promote_type(typeof(n), typeof.(cn)...)
             proped_children = convert(Vector{T}, filter(c -> !isfalse(c), cn))
-            isempty(proped_children) ? false_node : disjoin(proped_children; reuse=n)
+            if isempty(proped_children)
+                return false_node
+            elseif remove_unary && issingle(proped_children)
+                return proped_children[1]
+            else
+                return disjoin(proped_children; reuse=n)
+            end
         end
     end
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)

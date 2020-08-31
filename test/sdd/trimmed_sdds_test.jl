@@ -116,4 +116,5 @@ using LogicCircuits: Element # test some internals
     @test n1(true, false, false, true, false, false, false)
     @test !n1(false, true, false, true, false, false, false)
 
+
 end

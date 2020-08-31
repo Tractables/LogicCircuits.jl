@@ -1,6 +1,6 @@
 # Miscellaneous utilities.
 
-export issomething, order_asc, isdisjoint, pushrand!, init_array, 
+export issomething, issingle, order_asc, isdisjoint, pushrand!, init_array, 
        subseteq_fast, similar!,
        Var, Lit, var2lit, lit2var, variables, num_variables,
        always, never, uniform, logsumexp,
@@ -10,6 +10,9 @@ using CUDA: CuArray, CuVector, CuMatrix, CUDA
 
 "Is the argument not `nothing`?"
 @inline issomething(x) = !isnothing(x)
+
+"Is the argument of length 1; a singleton?"
+@inline issingle(x) = (length(x) == 1)
 
 "Order the arguments in a tuple in ascending order"
 @inline order_asc(x, y) = x > y ? (y, x) : (x , y)

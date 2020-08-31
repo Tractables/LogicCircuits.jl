@@ -148,6 +148,8 @@ using LogicCircuits
     @test model_count(f4c) == model_count(f4)
     @test f4c.vtree === f4.vtree
 
+    # @test_throws Exception propagate_constants(f4) # breaks bit in canonical false node, creating problems in other tests
+
 end
 
 @testset "Trimmed apply regression test 1" begin

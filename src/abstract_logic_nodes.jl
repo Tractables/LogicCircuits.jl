@@ -125,6 +125,8 @@ function compile end
 # Syntactic sugar for compile
 (T::Type{<:LogicCircuit})(args...) = compile(T, args...)
 
+compile(n::LogicCircuit, args...) = compile(typeof(n), args...)
+
 "Generate a fully factorized circuit over the given range of variables"
 function fully_factorized_circuit end
 

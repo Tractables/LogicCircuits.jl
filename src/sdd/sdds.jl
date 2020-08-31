@@ -144,6 +144,7 @@ mutable struct SddTrueNode <: SddConstantNode
     data
 end
 
+# there is an issue with using this canonical node: if someone breaks the `bit` field in one SDD manager, it will be broken for all SDD managers...
 "Canonical true Sdd node"
 const true_sdd = SddTrueNode(false, nothing)
 
@@ -153,6 +154,7 @@ mutable struct SddFalseNode <: SddConstantNode
     data
 end
 
+# there is an issue with using this canonical node: if someone breaks the `bit` field in one SDD manager, it will be broken for all SDD managers...
 "Canonical false Sdd node"
 const false_sdd = SddFalseNode(false, nothing)
 

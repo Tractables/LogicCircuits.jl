@@ -1,4 +1,4 @@
-export parent, has_parent, isroot, 
+export parent, has_parent, root, isroot, 
        lca, find_leaf, depth, find_inode, 
        Tree, isequal_local, print_tree
 
@@ -20,6 +20,10 @@ parent(n::Tree) = n.parent
 
 "Does the node have a parent?"
 @inline has_parent(n::Tree)::Bool = issomething(parent(n))
+
+"Get the root of the given tree node"
+root(n::Tree) =
+    has_parent(n) ? root(parent(n)) : n
 
 "Is the node the root of its tree?"
 @inline isroot(n::Tree)::Bool = !has_parent(n)

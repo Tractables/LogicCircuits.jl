@@ -123,5 +123,12 @@ using DataFrames: DataFrame
     @test num_edges(c2) == 147
     @test num_variables(c2) == 7
 
+    c2 = propagate_constants(c2; remove_unary=true)
+    foreach(c2) do n
+      @test n isa PlainStructLogicCircuit
+    end
+    @test num_edges(c2) == 69
+    @test num_variables(c2) == 7
+
 end
 
