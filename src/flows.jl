@@ -273,6 +273,7 @@ function accum_flow(f::Matrix{<:Unsigned}, v, d, p, s, locks)
     end
 end
 
+
 # downward pass helpers on GPU
 
 "Pass flows down the layers of a bit circuit on the GPU"

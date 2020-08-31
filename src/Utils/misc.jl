@@ -1,6 +1,7 @@
 # Miscellaneous utilities.
 
-export issomething, issingle, order_asc, isdisjoint, pushrand!, init_array, 
+export issomething, issingle, order_asc, isdisjoint, 
+       pushrand!, get_bit, init_array, 
        subseteq_fast, similar!,
        Var, Lit, var2lit, lit2var, variables, num_variables,
        always, never, uniform, logsumexp,
@@ -43,6 +44,9 @@ function pushrand!(v::AbstractVector{<:Any}, element)
     end
     v
 end
+
+"Retrieve the jth bit from a `BitVector` chunk"
+get_bit(chunk, j) = chunk & (UInt64(1) << Base._mod64(j-1)) != 0
 
 "An array of undetermined values (fast) for the given element type"
 @inline init_array(::Type{T}, dims::Int...) where T<:Number = Array{T}(undef, dims...)
