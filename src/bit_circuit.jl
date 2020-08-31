@@ -47,20 +47,28 @@ struct BitCircuit{V,M}
     num_features::Int
 end
 
-function BitCircuit(circuit::LogicCircuit, data; reset=true, on_gpu=false)
-    bc = BitCircuit(circuit, num_features(data); reset)
-    return on_gpu ? to_gpu(bc) : bc
+function BitCircuit(circuit::LogicCircuit, data; reset=true, gpu=false, on_decision=noop)
+    bc = BitCircuit(circuit, num_features(data); reset, on_decision)
+    return gpu ? to_gpu(bc) : bc
 end
 
 "construct a new `BitCircuit` accomodating the given number of features"
-function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
+function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_decision=noop)
     #TODO: consider not using foldup_aggregate and instead calling twice to ensure order but save allocations
     
     f_con(n) = ⋁NodeId(zero(UInt32), istrue(n) ? TRUE_BITS : FALSE_BITS)
 
     f_lit(n) = ⋁NodeId(zero(UInt32), 
         ispositive(n) ? UInt32(2+variable(n)) : UInt32(2+num_features+variable(n)))
-        
+      
+
+    # store data in vectors to facilitate push!
+    layers::Vector{Vector{UInt32}} = Vector{Vector{UInt32}}()
+    nodes::Vector{UInt32} = zeros(UInt32, 2*(2+2*num_features))
+    elements::Vector{UInt32} = Vector{UInt32}()
+    num_decisions::UInt32 = 2*num_features+2
+    num_elements::UInt32 = zero(UInt32)
+
     to_decision(c) = begin
         if c isa ⋀NodeId
             # need to add a dummy decision node in between AND nodes
@@ -71,6 +79,7 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
             length(layers) < layer_id && push!(layers, UInt32[])
             push!(nodes, num_elements, num_elements)
             push!(layers[layer_id], num_decisions)
+            on_decision(nothing, c, layer_id, num_decisions, num_elements, num_elements)
             ⋁NodeId(layer_id, num_decisions)
         else
             c
@@ -86,15 +95,8 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
             f_and(n, [a12, cs[3:end]...])
         end
     end
-
-    # store data in vectors to facilitate push!
-    layers::Vector{Vector{UInt32}} = Vector{Vector{UInt32}}()
-    nodes::Vector{UInt32} = zeros(UInt32, 2*(2+2*num_features))
-    elements::Vector{UInt32} = Vector{UInt32}()
-    num_decisions::UInt32 = 2*num_features+2
-    num_elements::UInt32 = zero(UInt32)
     
-    f_or(_, cs) = begin
+    f_or(n, cs) = begin
         first_element = num_elements + one(UInt32)
         layer_id = zero(UInt32)
         num_decisions += one(UInt32)
@@ -112,6 +114,7 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true)
         length(layers) < layer_id && push!(layers, UInt32[])
         push!(nodes, first_element, num_elements)
         push!(layers[layer_id], num_decisions)
+        on_decision(n, cs, layer_id, num_decisions, first_element, num_elements)
         ⋁NodeId(layer_id, num_decisions)
     end
 
