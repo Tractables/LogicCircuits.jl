@@ -9,7 +9,7 @@ export CuBitVector, AbstractBitVector, chunks, _msk_end,
     isfpdata, isbinarydata, 
     num_chunks, chunk, eltype,
     shuffle_examples, batch, threshold, soften,
-    to_gpu, to_cpu, isgpu, same_device
+    to_gpu, to_cpu, isgpu, same_device,
     ll_per_example, bits_per_pixel
 
 # Basic data-related utilities.
@@ -161,6 +161,7 @@ isgpu(::Union{Array, BitArray}) = false
 isgpu(::Union{CuArray, CuBitVector}) = true
 isgpu(df::DataFrame) = all(isgpu, eachcol(df))
 
+"Ensure that `x` resides on the same device as `data`"
 same_device(x, data) = isgpu(data) ? to_gpu(x) : to_cpu(x)
 
 # LIKELIHOOD HELPERS
