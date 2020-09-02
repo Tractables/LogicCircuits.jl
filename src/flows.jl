@@ -39,7 +39,6 @@ function compute_values_flows(circuit::BitCircuit, data,
             reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop)
     values = evaluate_all(circuit, data, reuse_values)
     flows = pass_down_flows(circuit, values, reuse_flows; on_node, on_edge)
-    #TODO: check if values or flows are reused, otherwise manually garbage collect
     return values, flows
 end
 

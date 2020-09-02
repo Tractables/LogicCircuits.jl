@@ -47,9 +47,8 @@ struct BitCircuit{V,M}
     num_features::Int
 end
 
-function BitCircuit(circuit::LogicCircuit, data; reset=true, gpu=false, on_decision=noop)
-    bc = BitCircuit(circuit, num_features(data); reset, on_decision)
-    return gpu ? to_gpu(bc) : bc
+function BitCircuit(circuit::LogicCircuit, data; reset=true, on_decision=noop)
+    BitCircuit(circuit, num_features(data); reset, on_decision)
 end
 
 "construct a new `BitCircuit` accomodating the given number of features"
