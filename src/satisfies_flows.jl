@@ -2,7 +2,7 @@ using CUDA: CUDA, @cuda
 using DataFrames: DataFrame
 using LoopVectorization: @avx
 
-export evaluate, evaluate_all, pass_down_flows, compute_values_flows
+export satisfies, satisfies_all, pass_down_flows, satisfies_flows
 
 #####################
 # Circuit evaluation
@@ -10,24 +10,24 @@ export evaluate, evaluate_all, pass_down_flows, compute_values_flows
   
 # evaluate a circuit as a function
 function (root::LogicCircuit)(data...)
-    evaluate(root, data...)
+    satisfies(root, data...)
 end
 
 "Evaluate the circuit bottom-up for a given input"
-evaluate(root::LogicCircuit, data::Real...) =
-    evaluate(root, collect(data))
+satisfies(root::LogicCircuit, data::Real...) =
+    satisfies(root, collect(data))
 
-evaluate(root::LogicCircuit, data::AbstractVector{Bool}) =
-    evaluate(root, DataFrame(reshape(BitVector(data), 1, length(data))))[1]
+satisfies(root::LogicCircuit, data::AbstractVector{Bool}) =
+    satisfies(root, DataFrame(reshape(BitVector(data), 1, length(data))))[1]
 
-evaluate(root::LogicCircuit, data::AbstractVector{<:AbstractFloat}) =
-    evaluate(root, DataFrame(reshape(data, 1, length(data))))[1]
+satisfies(root::LogicCircuit, data::AbstractVector{<:AbstractFloat}) =
+    satisfies(root, DataFrame(reshape(data, 1, length(data))))[1]
 
-evaluate(circuit::LogicCircuit, data::DataFrame) =
-    evaluate(same_device(BitCircuit(circuit, data), data) , data)
+satisfies(circuit::LogicCircuit, data::DataFrame) =
+    satisfies(same_device(BitCircuit(circuit, data), data) , data)
 
-function evaluate(circuit::BitCircuit, data::DataFrame)::AbstractVector
-    output = evaluate_all(circuit,data)[:,end]
+function satisfies(circuit::BitCircuit, data::DataFrame)::AbstractVector
+    output = satisfies_all(circuit,data)[:,end]
     if isbinarydata(data)
         return AbstractBitVector(output, num_examples(data))
     else
@@ -41,15 +41,15 @@ end
 #####################
 
 "Compute the value and flow of each node"
-function compute_values_flows(circuit::LogicCircuit, data, 
+function satisfies_flows(circuit::LogicCircuit, data, 
     reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop) 
     bc = same_device(BitCircuit(circuit, data), data)
-    compute_values_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge)
+    satisfies_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge)
 end
 
-function compute_values_flows(circuit::BitCircuit, data, 
+function satisfies_flows(circuit::BitCircuit, data, 
             reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop)
-    values = evaluate_all(circuit, data, reuse_values)
+    values = satisfies_all(circuit, data, reuse_values)
     flows = pass_down_flows(circuit, values, reuse_flows; on_node, on_edge)
     return values, flows
 end
@@ -59,7 +59,7 @@ end
 #####################
 
 "Evaluate the circuit bottom-up for a given input and return the value of all nodes"
-function evaluate_all(circuit::BitCircuit, data, reuse=nothing)
+function satisfies_all(circuit::BitCircuit, data, reuse=nothing)
     @assert num_features(data) == num_features(circuit) 
     @assert iscomplete(data)
     values = init_values(data, reuse, num_nodes(circuit))

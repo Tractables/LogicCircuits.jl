@@ -18,7 +18,7 @@ using DataFrames: DataFrame
     r = fully_factorized_circuit(StructLogicCircuit, vtree)
     @test r(input) == BitVector([1,1,1,1])
     
-    v, f = compute_values_flows(r, input)
+    v, f = satisfies_flows(r, input)
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] == f[:,id] # invariant of logically valid circuits
@@ -35,7 +35,7 @@ using DataFrames: DataFrame
     
     r = smooth(PlainLogicCircuit(c)) # flows don't make sense unless the circuit is smooth; cannot smooth trimmed SDDs
 
-    v, f = compute_values_flows(r, input)
+    v, f = satisfies_flows(r, input)
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] .& v[:,end] == f[:,id] # invariant of all circuits
@@ -48,7 +48,7 @@ using DataFrames: DataFrame
     r = (l1 & l2) | (l3 & l4)
     input = DataFrame(bitrand(4,2))
 
-    v, f = compute_values_flows(r, input)
+    v, f = satisfies_flows(r, input)
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] .& v[:,end] == f[:,id] # invariant of all circuits
@@ -68,7 +68,7 @@ end
 
     @test r(input) ≈ [1.0, 1.0, 1.0, 1.0]
 
-    v, f = compute_values_flows(r, input)
+    v, f = satisfies_flows(r, input)
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] ≈ f[:,id] # invariant of logically valid circuits
@@ -89,7 +89,7 @@ end
 
     @test all(r(input) .≈ 1.0)
 
-    v, f = compute_values_flows(r, input)
+    v, f = satisfies_flows(r, input)
     @test all(v[:,end] .≈ 1.0)
     @test all(f[:,end].≈ 1.0)
     @test all(v[:,o_c.data.node_id] .≈ input[:, 3])
@@ -110,7 +110,7 @@ end
     input = DataFrame(rand(Float64, (10,3)))
     input[1:5, 3] .= 0.0
 
-    v, f = compute_values_flows(r, input)
+    v, f = satisfies_flows(r, input)
     @test all(v[:,o_c.data.node_id] .≈ input[:, 2] .* input[:, 3])
     @test all(f[:,o_c.data.node_id] .≈ v[:,o_c.data.node_id])
     @test all(v[:,o_nc.data.node_id] .≈ (1.0 .- input[:, 2]) .* (1.0 .- input[:, 3]))
