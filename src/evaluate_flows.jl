@@ -2,19 +2,29 @@ using CUDA: CUDA, @cuda
 using DataFrames: DataFrame
 using LoopVectorization: @avx
 
-export evaluate_all, pass_down_flows, compute_values_flows
+export evaluate, evaluate_all, pass_down_flows, compute_values_flows
 
 #####################
-# Circuit evaluation of the root of the circuit
+# Circuit evaluation
 #####################
-
-function evaluate(circuit::LogicCircuit, data)
-    bc = BitCircuit(circuit, data)
-    evaluate(same_device(bc, data) , data)
+  
+# evaluate a circuit as a function
+function (root::LogicCircuit)(data...)
+    evaluate(root, data...)
 end
 
-evaluate(circuit::BitCircuit, data::AbstractArray{<:AbstractFloat}) =
-    evaluate_all(circuit,data)[:,end]
+"Evaluate the circuit bottom-up for a given input"
+evaluate(root::LogicCircuit, data::Real...) =
+    evaluate(root, collect(data))
+
+evaluate(root::LogicCircuit, data::AbstractVector{Bool}) =
+    evaluate(root, DataFrame(reshape(BitVector(data), 1, length(data))))[1]
+
+evaluate(root::LogicCircuit, data::AbstractVector{<:AbstractFloat}) =
+    evaluate(root, DataFrame(reshape(data, 1, length(data))))[1]
+
+evaluate(circuit::LogicCircuit, data::DataFrame) =
+    evaluate(same_device(BitCircuit(circuit, data), data) , data)
 
 function evaluate(circuit::BitCircuit, data::DataFrame)::AbstractVector
     output = evaluate_all(circuit,data)[:,end]
@@ -51,25 +61,14 @@ end
 "Evaluate the circuit bottom-up for a given input and return the value of all nodes"
 function evaluate_all(circuit::BitCircuit, data, reuse=nothing)
     @assert num_features(data) == num_features(circuit) 
+    @assert iscomplete(data)
     values = init_values(data, reuse, num_nodes(circuit))
     evaluate_layers(circuit, values)
     return values
 end
 
-"Initialize values from the data (floating point)"
-function init_values(data::AbstractArray{<:AbstractFloat}, reuse, num_nodes)
-    values = similar!(reuse, typeof(data), size(data, 1), num_nodes)
-    nf = num_features(data)
-    #TODO check if this also works with dataframes
-    @views values[:,TRUE_BITS] .= one(Float32)
-    @views values[:,FALSE_BITS] .= zero(Float32)
-    @views values[:,3:nf+2] .= data
-    @views values[:,nf+3:2*nf+2] .= one(Float32) .- data
-    return values
-end
-
 "Initialize values from the data (data frames)"
-function init_values(data::DataFrame, reuse, num_nodes)
+function init_values(data, reuse, num_nodes)
     if isbinarydata(data)
         flowtype = isgpu(data) ? CuMatrix{UInt} : Matrix{UInt}
         values = similar!(reuse, flowtype, num_chunks(data), num_nodes)

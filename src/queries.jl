@@ -2,7 +2,6 @@ using DataFrames: DataFrame
 
 export variables_by_node, issmooth, isdecomposable,
     isdeterministic, iscanonical,
-    evaluate,
     sat_prob, model_count, prob_equiv_signature
 
 #####################
@@ -185,25 +184,6 @@ function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
    end
    return true
 end
-
-#####################
-# Circuit evaluation
-#####################
-  
-# evaluate a circuit as a function
-function (root::LogicCircuit)(data...)
-    evaluate(root, data...)
-end
-
-"Evaluate the circuit bottom-up for a given input"
-evaluate(root::LogicCircuit, data::Real...) =
-    evaluate(root, collect(data))
-
-evaluate(root::LogicCircuit, data::AbstractVector{Bool}) =
-    evaluate(root, DataFrame(reshape(BitVector(data), 1, length(data))))[1]
-
-evaluate(root::LogicCircuit, data::AbstractVector{<:AbstractFloat}) =
-    evaluate(root, reshape(data, 1, length(data)))[1]
 
 #####################
 # algebraic model counting queries

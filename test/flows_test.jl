@@ -61,10 +61,10 @@ end
     
     r = fully_factorized_circuit(PlainLogicCircuit, 10)
 
-    input = Float64[1 0 1 0 1 0 1 0 1 0;
+    input = DataFrame(Float64[1 0 1 0 1 0 1 0 1 0;
                     1 1 1 1 1 1 1 1 1 1;
                     0 0 0 0 0 0 0 0 0 0;
-                    0 1 1 0 1 0 0 1 0 1]
+                    0 1 1 0 1 0 0 1 0 1])
 
     @test r(input) ≈ [1.0, 1.0, 1.0, 1.0]
 
@@ -85,7 +85,7 @@ end
     o_nc = (l_a & l_b & l_nc) | (l_a & l_nb & l_nc) | (l_na & l_b & l_nc) | (l_na & l_nb & l_nc)
     r = (o_c | o_nc)
 
-    input = rand(Float64, (10,3))
+    input = DataFrame(rand(Float64, (10,3)))
 
     @test all(r(input) .≈ 1.0)
 
@@ -107,7 +107,7 @@ end
     o_nc = (l_a & l_nb & l_nc) | (l_na & l_nb & l_nc)
     r = (o_c | o_nc)
 
-    input = rand(Float64, (10,3))
+    input = DataFrame(rand(Float64, (10,3)))
     input[1:5, 3] .= 0.0
 
     v, f = compute_values_flows(r, input)
