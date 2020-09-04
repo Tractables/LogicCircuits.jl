@@ -5,7 +5,7 @@ using LoopVectorization: @avx
 export satisfies, satisfies_all, pass_down_flows, satisfies_flows
 
 #####################
-# Circuit evaluation
+# Circuit logical evaluation
 #####################
   
 # evaluate a circuit as a function
@@ -13,15 +13,15 @@ function (root::LogicCircuit)(data...)
     satisfies(root, data...)
 end
 
-"Evaluate the circuit bottom-up for a given input"
+"Evaluate satisfaction of the circuit bottom-up for a given input"
 satisfies(root::LogicCircuit, data::Real...) =
     satisfies(root, collect(data))
 
 satisfies(root::LogicCircuit, data::AbstractVector{Bool}) =
-    satisfies(root, DataFrame(reshape(BitVector(data), 1, length(data))))[1]
+    satisfies(root, DataFrame(reshape(BitVector(data), 1, :)))[1]
 
 satisfies(root::LogicCircuit, data::AbstractVector{<:AbstractFloat}) =
-    satisfies(root, DataFrame(reshape(data, 1, length(data))))[1]
+    satisfies(root, DataFrame(reshape(data, 1, :)))[1]
 
 satisfies(circuit::LogicCircuit, data::DataFrame) =
     satisfies(same_device(BitCircuit(circuit, data), data) , data)
@@ -37,24 +37,6 @@ function satisfies(circuit::BitCircuit, data::DataFrame)::AbstractVector
 end
 
 #####################
-# Bit circuit values and flows (up and downward pass)
-#####################
-
-"Compute the value and flow of each node"
-function satisfies_flows(circuit::LogicCircuit, data, 
-    reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop) 
-    bc = same_device(BitCircuit(circuit, data), data)
-    satisfies_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge)
-end
-
-function satisfies_flows(circuit::BitCircuit, data, 
-            reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop)
-    values = satisfies_all(circuit, data, reuse_values)
-    flows = pass_down_flows(circuit, values, reuse_flows; on_node, on_edge)
-    return values, flows
-end
-
-#####################
 # Circuit evaluation of *all* nodes in circuit
 #####################
 
@@ -62,13 +44,13 @@ end
 function satisfies_all(circuit::BitCircuit, data, reuse=nothing)
     @assert num_features(data) == num_features(circuit) 
     @assert iscomplete(data)
-    values = init_values(data, reuse, num_nodes(circuit))
-    evaluate_layers(circuit, values)
+    values = init_satisfies(data, reuse, num_nodes(circuit))
+    satisfies_layers(circuit, values)
     return values
 end
 
 "Initialize values from the data (data frames)"
-function init_values(data, reuse, num_nodes)
+function init_satisfies(data, reuse, num_nodes)
     if isbinarydata(data)
         flowtype = isgpu(data) ? CuMatrix{UInt} : Matrix{UInt}
         values = similar!(reuse, flowtype, num_chunks(data), num_nodes)
@@ -99,7 +81,7 @@ end
 # upward pass helpers on CPU
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
-function evaluate_layers(circuit::BitCircuit, values::Matrix)
+function satisfies_layers(circuit::BitCircuit, values::Matrix)
     els = circuit.elements
     for layer in circuit.layers
         Threads.@threads for dec_id in layer
@@ -158,14 +140,14 @@ accum_value(v::Matrix{<:Unsigned}, i, e1p, e1s, e2p, e2s) =
 # upward pass helpers on GPU
 
 "Evaluate the layers of a bit circuit on the GPU"
-function evaluate_layers(circuit::BitCircuit, values::CuMatrix;  dec_per_thread = 8, log2_threads_per_block = 8)
+function satisfies_layers(circuit::BitCircuit, values::CuMatrix;  dec_per_thread = 8, log2_threads_per_block = 8)
     CUDA.@sync for layer in circuit.layers
         num_examples = size(values, 1)
         num_decision_sets = length(layer)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2]))
-        @cuda threads=num_threads blocks=num_blocks evaluate_layers_cuda(layer, circuit.nodes, circuit.elements, values)
+        @cuda threads=num_threads blocks=num_blocks satisfies_layers_cuda(layer, circuit.nodes, circuit.elements, values)
     end
 end
 
@@ -179,7 +161,7 @@ function balance_threads(num_examples, num_decisions, total_log2)
 end
 
 "CUDA kernel for circuit evaluation"
-function evaluate_layers_cuda(layer, nodes, elements, values)
+function satisfies_layers_cuda(layer, nodes, elements, values)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
@@ -208,6 +190,24 @@ accum_el_value(values, j, decision_id, p::AbstractFloat, s) =
     @inbounds values[j, decision_id] += el_value(p, s)
 accum_el_value(values, j, decision_id, p::Unsigned, s) =
     @inbounds values[j, decision_id] |= el_value(p, s)
+
+#####################
+# Bit circuit values and flows (up and downward pass)
+#####################
+
+"Compute the value and flow of each node"
+function satisfies_flows(circuit::LogicCircuit, data, 
+    reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop) 
+    bc = same_device(BitCircuit(circuit, data), data)
+    satisfies_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge)
+end
+
+function satisfies_flows(circuit::BitCircuit, data, 
+            reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop)
+    values = satisfies_all(circuit, data, reuse_values)
+    flows = pass_down_flows(circuit, values, reuse_flows; on_node, on_edge)
+    return values, flows
+end
 
 #####################
 # Bit circuit flows downward pass

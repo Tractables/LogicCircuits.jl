@@ -144,13 +144,24 @@ soften(data, softness=0.05; precision=Float32) =
 "Move data to the GPU"
 to_gpu(d::Union{CuBitVector,CuArray}) = d
 to_gpu(m::Array) = CuArray(m)
-to_gpu(v::BitVector) = AbstractBitVector(to_gpu(chunks(v)), length(v))
+to_gpu(v::BitVector) = 
+    AbstractBitVector(to_gpu(chunks(v)), length(v))
+to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
+    CuArray(T.(coalesce(v,typemax(T))))
+to_gpu(v::Vector{Union{Bool,Missing}}) =
+    CuArray(UInt8.(coalesce(v,typemax(UInt8))))
 to_gpu(df::DataFrame) = mapcols(to_gpu, df)
 
 "Move data to the CPU"
 to_cpu(m::Union{BitVector,Array}) = m
 to_cpu(m::CuArray) = Array(m)
-to_cpu(cv::CuBitVector) = AbstractBitVector(to_cpu(cv.chunks), length(cv))
+to_cpu(cv::CuBitVector) = 
+    AbstractBitVector(to_cpu(cv.chunks), length(cv))
+to_cpu(v::CuVector{T}) where T<:AbstractFloat =
+    replace(Array(v), typemax(T) => missing)
+to_cpu(v::CuVector{UInt8}) =
+    convert(Vector{Union{Bool,Missing}}, 
+        replace(Array(v), typemax(T) => missing))
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
 
 "Check whether data resides on the GPU"
