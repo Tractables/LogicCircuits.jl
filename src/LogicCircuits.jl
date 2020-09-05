@@ -10,7 +10,7 @@ include("Utils/Utils.jl")
 include("abstract_logic_nodes.jl")
 include("bit_circuit.jl")
 include("queries.jl")
-include("satisfies_flows.jl")
+include("satisfies_flow.jl")
 include("transformations.jl")
 include("plain_logic_nodes.jl")
 
