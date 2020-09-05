@@ -1,50 +1,67 @@
 using CUDA
 
-export NodeId, ⋁NodeId, ⋀NodeId, BitCircuit, num_decisions, num_elements
+export NodeIds, ⋁NodeIds, ⋀NodeIds, BitCircuit, num_decisions, num_elements
 
 #####################
 # Bit Circuits
 #####################
 
+"Integer identifier for a circuit node"
+const NodeId = Int32 # somehow faster than UInt32?
+
 # In a bits circuit, id
 # 1 is true, 2 is false
-const TRUE_BITS = Int32(1)
-const FALSE_BITS = Int32(2)
+const TRUE_BITS = NodeId(1)
+const FALSE_BITS = NodeId(2)
 # 3:nf+2 are nf positive literals
 # nf+3:2nf+2 are nf negative literals
 # 2nf+2:end are inner decision nodes
 
 "The BitCircuit ids associated with a node"
-abstract type NodeId end
-mutable struct ⋁NodeId <: NodeId #somehow mutable is faster
-    layer_id::UInt32
-    node_id::UInt32
+abstract type NodeIds end
+mutable struct ⋁NodeIds <: NodeIds #somehow mutable is faster
+    layer_id::NodeId
+    node_id::NodeId
 end
-mutable struct ⋀NodeId <: NodeId #somehow mutable is faster
-    layer_id::UInt32
-    prime_id::UInt32
-    sub_id::UInt32
-    ⋀NodeId(p, s) = begin
+mutable struct ⋀NodeIds <: NodeIds #somehow mutable is faster
+    layer_id::NodeId
+    prime_id::NodeId
+    sub_id::NodeId
+    ⋀NodeIds(p, s) = begin
         l = max(p.layer_id, s.layer_id)
         new(l, p.node_id, s.node_id)
     end 
 end
 
 """
-A bit circuit is a sequence of layers of decision nodes, 
-which have node ids assuming `num_features` input features in the 0th layer.
+A bit circuit is a low-level representation of a logical circuit structure.
+
 They are a "flat" representation of a circuit, essentially a bit string,
 that can be processed by lower level code (i.e., GPU kernels)
-The E elements are represented by a 3xE matrix, where 
-  * elements[1,:] are the decision node ids,
-  * elements[2,:] are the prime node ids, and 
-  * elements[3,:] are the sub node ids.
+
+The wiring of the circuit is captured by two matrices: nodes and elements.
+  * Nodes are either leafs or decision (disjunction) nodes in the circuit.
+  * Elements are conjunction nodes in the circuit.
+  * In addition, there is a vector of layers, where each layer is a list of node ids.
+    Layer 1 is the leaf/input layer. Layer end is the circuit root.
+  * And there is a vector of parents, pointing to element id parents of decision nodes.
+
+Nodes are represented as a 4xN matrix where
+  * nodes[1,:] is the first element id belonging to this decision
+  * nodes[2,:] is the last element id belonging to this decision
+  * nodes[3,:] is the first parent index belonging to this decision
+  * nodes[4,:] is the last parent index belonging to this decision
+
+Elements are represented by a 3xE matrix, where 
+  * elements[1,:] is the decision node id (parents of the element),
+  * elements[2,:] is the prime node id (child of the element) 
+  * elements[3,:] is the sub node id (child of the element)
 """
 struct BitCircuit{V,M}
     layers::Vector{V}
     nodes::M
     elements::M
-    num_features::Int
+    parents::V
 end
 
 function BitCircuit(circuit::LogicCircuit, data; reset=true, on_decision=noop)
@@ -54,40 +71,42 @@ end
 "construct a new `BitCircuit` accomodating the given number of features"
 function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_decision=noop)
     #TODO: consider not using foldup_aggregate and instead calling twice to ensure order but save allocations
+    #TODO add inbounds annotations
     
-    f_con(n) = ⋁NodeId(zero(UInt32), istrue(n) ? TRUE_BITS : FALSE_BITS)
+    f_con(n) = ⋁NodeIds(one(NodeId), istrue(n) ? TRUE_BITS : FALSE_BITS)
 
-    f_lit(n) = ⋁NodeId(zero(UInt32), 
-        ispositive(n) ? UInt32(2+variable(n)) : UInt32(2+num_features+variable(n)))
+    f_lit(n) = ⋁NodeIds(one(NodeId), 
+        ispositive(n) ? NodeId(2+variable(n)) : NodeId(2+num_features+variable(n)))
       
-
     # store data in vectors to facilitate push!
-    layers::Vector{Vector{UInt32}} = Vector{Vector{UInt32}}()
-    nodes::Vector{UInt32} = zeros(UInt32, 2*(2+2*num_features))
-    elements::Vector{UInt32} = Vector{UInt32}()
-    num_decisions::UInt32 = 2*num_features+2
-    num_elements::UInt32 = zero(UInt32)
+    num_leafs = 2+2*num_features
+    layers::Vector{Vector{NodeId}} = Vector{NodeId}[collect(1:num_leafs)]
+    nodes::Vector{NodeId} = zeros(NodeId, 4*num_leafs)
+    elements::Vector{NodeId} = NodeId[]
+    parents::Vector{Vector{NodeId}} = Vector{NodeId}[NodeId[] for i = 1:num_leafs]
+    last_dec_id::NodeId = 2*num_features+2
+    last_el_id::NodeId = zero(NodeId)
 
-    to_decision(c) = begin
-        if c isa ⋀NodeId
+    to⋁NodeIds(c::⋁NodeIds) = c
+    to⋁NodeIds(c::⋀NodeIds) = begin
             # need to add a dummy decision node in between AND nodes
-            num_decisions += one(UInt32)
-            num_elements += one(UInt32)
-            push!(elements, num_decisions, c.prime_id, c.sub_id)
-            layer_id = c.layer_id + one(UInt32)
-            length(layers) < layer_id && push!(layers, UInt32[])
-            push!(nodes, num_elements, num_elements)
-            push!(layers[layer_id], num_decisions)
-            on_decision(nothing, c, layer_id, num_decisions, num_elements, num_elements)
-            ⋁NodeId(layer_id, num_decisions)
-        else
-            c
-        end
+            last_dec_id += one(NodeId)
+            last_el_id += one(NodeId)
+            push!(elements, last_dec_id, c.prime_id, c.sub_id)
+            push!(parents[c.prime_id], last_el_id)
+            push!(parents[c.prime_id], last_el_id)
+            layer_id = c.layer_id + one(NodeId)
+            push!(nodes, last_el_id, last_el_id, zero(NodeId), zero(NodeId))
+            push!(parents, NodeId[])
+            length(layers) < layer_id && push!(layers, NodeId[])
+            push!(layers[layer_id], last_dec_id)
+            on_decision(nothing, c, layer_id, last_dec_id, last_el_id, last_el_id)
+            ⋁NodeIds(layer_id, last_dec_id)
     end
 
     f_and(n, cs) = begin
         @assert length(cs) > 1 "BitCircuits only support AND gates with at least two children"
-        a12 = ⋀NodeId(to_decision(cs[1]), to_decision(cs[2]))
+        a12 = ⋀NodeIds(to⋁NodeIds(cs[1]), to⋁NodeIds(cs[2]))
         if length(cs) == 2
             a12
         else
@@ -96,31 +115,55 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_dec
     end
     
     f_or(n, cs) = begin
-        first_element = num_elements + one(UInt32)
-        layer_id = zero(UInt32)
-        num_decisions += one(UInt32)
-        for c in cs
-            num_elements += one(UInt32)
+        first_el_id::NodeId = last_el_id + one(NodeId)
+        layer_id::NodeId = zero(NodeId)
+        last_dec_id::NodeId += one(NodeId)
+
+        f_or_child(c::⋀NodeIds) = begin
             layer_id = max(layer_id, c.layer_id)
-            if c isa ⋀NodeId
-                push!(elements, num_decisions, c.prime_id, c.sub_id)
-            else
-                @assert c isa ⋁NodeId
-                push!(elements, num_decisions, c.node_id, TRUE_BITS)
-            end
+            last_el_id += one(NodeId)
+            push!(elements, last_dec_id, c.prime_id, c.sub_id)
+            @inbounds push!(parents[c.prime_id], last_el_id)
+            @inbounds push!(parents[c.sub_id], last_el_id)
         end
-        layer_id += one(UInt32)
-        length(layers) < layer_id && push!(layers, UInt32[])
-        push!(nodes, first_element, num_elements)
-        push!(layers[layer_id], num_decisions)
-        on_decision(n, cs, layer_id, num_decisions, first_element, num_elements)
-        ⋁NodeId(layer_id, num_decisions)
+
+        f_or_child(c::⋁NodeIds) = begin
+            layer_id = max(layer_id, c.layer_id)
+            last_el_id += one(NodeId)
+            push!(elements, last_dec_id, c.node_id, TRUE_BITS)
+            @inbounds push!(parents[c.node_id], last_el_id)
+            @inbounds push!(parents[TRUE_BITS], last_el_id)
+        end
+
+        foreach(f_or_child, cs)
+
+        layer_id += one(NodeId)
+        length(layers) < layer_id && push!(layers, NodeId[])
+        push!(nodes, first_el_id, last_el_id, zero(NodeId), zero(NodeId))
+        push!(parents, NodeId[])
+        push!(layers[layer_id], last_dec_id)
+        on_decision(n, cs, layer_id, last_dec_id, first_el_id, last_el_id)
+        ⋁NodeIds(layer_id, last_dec_id)
     end
 
-    r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeId; reset)
-    to_decision(r)
+    r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeIds; reset)
+    to⋁NodeIds(r)
+
+    nodes_m = reshape(nodes, 4, :)
+    elements_m = reshape(elements, 3, :)
+    parents_m = Vector{NodeId}(undef, size(elements_m,2)*2)
+    last_parent = zero(NodeId)
+    @assert last_dec_id == size(nodes_m,2) == size(parents,1)
+    for i in 1:last_dec_id
+        if !isempty(parents[i])
+            nodes_m[3,i] = last_parent + one(NodeId)
+            parents_m[last_parent + one(NodeId):last_parent + length(parents[i])] .= parents[i] 
+            last_parent += length(parents[i])
+            nodes_m[4,i] = last_parent
+        end
+    end
     
-    return BitCircuit(layers, reshape(nodes, 2, :), reshape(elements, 3, :), num_features)
+    return BitCircuit(layers, nodes_m, elements_m, parents_m)
 end
 
 import .Utils: num_nodes # extend
@@ -133,12 +176,12 @@ num_elements(c::BitCircuit) = size(c.elements, 2)
 
 import .Utils: num_features #extend
 
-num_features(c::BitCircuit) = c.num_features
+num_features(c::BitCircuit) = (length(c.layers[1])-2) ÷ 2
 
 import .Utils: to_gpu, to_cpu #extend
 
 to_gpu(c::BitCircuit) = 
-    BitCircuit(map(to_gpu, c.layers), to_gpu(c.nodes), to_gpu(c.elements), c.num_features)
+    BitCircuit(map(to_gpu, c.layers), to_gpu(c.nodes), to_gpu(c.elements), to_gpu(c.parents))
 
 to_cpu(c::BitCircuit) = 
-    BitCircuit(map(to_cpu, c.layers), to_cpu(c.nodes), to_cpu(c.elements), c.num_features)
+    BitCircuit(map(to_cpu, c.layers), to_cpu(c.nodes), to_cpu(c.elements), to_cpu(c.parents))

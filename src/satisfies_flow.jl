@@ -2,7 +2,7 @@ using CUDA: CUDA, @cuda
 using DataFrames: DataFrame
 using LoopVectorization: @avx
 
-export satisfies, satisfies_all, pass_down_flows, satisfies_flows
+export satisfies, satisfies_all, satisfies_flows_down, satisfies_flows
 
 #####################
 # Circuit logical evaluation
@@ -83,7 +83,7 @@ end
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
 function satisfies_layers(circuit::BitCircuit, values::Matrix)
     els = circuit.elements
-    for layer in circuit.layers
+    for layer in circuit.layers[2:end]
         Threads.@threads for dec_id in layer
             j = @inbounds circuit.nodes[1,dec_id]
             els_end = @inbounds circuit.nodes[2,dec_id]
@@ -141,7 +141,7 @@ accum_value(v::Matrix{<:Unsigned}, i, e1p, e1s, e2p, e2s) =
 
 "Evaluate the layers of a bit circuit on the GPU"
 function satisfies_layers(circuit::BitCircuit, values::CuMatrix;  dec_per_thread = 8, log2_threads_per_block = 8)
-    CUDA.@sync for layer in circuit.layers
+    CUDA.@sync for layer in circuit.layers[2:end]
         num_examples = size(values, 1)
         num_decision_sets = length(layer)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
@@ -205,7 +205,7 @@ end
 function satisfies_flows(circuit::BitCircuit, data, 
             reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop)
     values = satisfies_all(circuit, data, reuse_values)
-    flows = pass_down_flows(circuit, values, reuse_flows; on_node, on_edge)
+    flows = satisfies_flows_down(circuit, values, reuse_flows; on_node, on_edge)
     return values, flows
 end
 
@@ -214,10 +214,10 @@ end
 #####################
 
 "When values of nodes have already been computed, do a downward pass computing the flows at each node"
-function pass_down_flows(circuit::BitCircuit, values, reuse=nothing; on_node=noop, on_edge=noop)
+function satisfies_flows_down(circuit::BitCircuit, values, reuse=nothing; on_node=noop, on_edge=noop)
     flows = similar!(reuse, typeof(values), size(values)...)
     set_init_flows(flows, values)
-    pass_down_flows_layers(circuit, flows, values, on_node, on_edge)
+    satisfies_flows_down_layers(circuit, flows, values, on_node, on_edge)
     return flows
 end
 
@@ -229,10 +229,10 @@ end
 # downward pass helpers on CPU
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
-function pass_down_flows_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, on_node, on_edge)
+function satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, on_node, on_edge)
     els = circuit.elements
     locks = [Threads.ReentrantLock() for i=1:num_nodes(circuit)]    
-    for layer in Iterators.reverse(circuit.layers)
+    for layer in Iterators.reverse(circuit.layers[2:end])
         Threads.@threads for dec_id in layer
             els_start = @inbounds circuit.nodes[1,dec_id]
             els_end = @inbounds circuit.nodes[2,dec_id]
@@ -277,20 +277,20 @@ end
 # downward pass helpers on GPU
 
 "Pass flows down the layers of a bit circuit on the GPU"
-function pass_down_flows_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, on_node, on_edge; 
+function satisfies_flows_down_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, on_node, on_edge; 
             dec_per_thread = 4, log2_threads_per_block = 8)
-    CUDA.@sync for layer in Iterators.reverse(circuit.layers)
+    CUDA.@sync for layer in Iterators.reverse(circuit.layers[2:end])
         num_examples = size(values, 1)
         num_decision_sets = length(layer)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2])) 
-        @cuda threads=num_threads blocks=num_blocks pass_down_flows_layers_cuda(layer, circuit.nodes, circuit.elements, flows, values, on_node, on_edge)
+        @cuda threads=num_threads blocks=num_blocks satisfies_flows_down_layers_cuda(layer, circuit.nodes, circuit.elements, flows, values, on_node, on_edge)
     end
 end
 
 "CUDA kernel for passing flows down circuit"
-function pass_down_flows_layers_cuda(layer, nodes, elements, flows, values, on_node, on_edge)
+function satisfies_flows_down_layers_cuda(layer, nodes, elements, flows, values, on_node, on_edge)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
