@@ -54,25 +54,17 @@ import Base: length, _msk_end #extend
 
 """
     num_examples(df::DataFrame)
-    num_examples(data::Matrix)
-    num_examples(data::CuMatrix)
 
 Number of examples in data
 """
-num_examples(df::DataFrame) = nrow(df)
-num_examples(data::Matrix) = size(data, 1)
-num_examples(data::CuMatrix) = size(data, 1)
+num_examples(df) = nrow(df)
 
 """
     num_features(df::DataFrame)
-    num_features(data::Matrix)
-    num_examples(data::CuMatrix)
 
 Number of features in the data
 """
-num_features(df::DataFrame) = ncol(df)
-num_features(data::Matrix) = size(data, 2)
-num_features(data::CuMatrix) = size(data, 2)
+num_features(df) = ncol(df)
 
 "Get the ith example"
 example(d,i) = d[i,:]
