@@ -96,7 +96,7 @@ iscomplete(::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) =
 
 "Is the dataset binary?"
 isbinarydata(df::DataFrame) = 
-    all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltypes(df))
+    all(t -> nonmissingtype(t) <: Bool, eltypes(df))
 
 "Is the dataset consisting of floating point data?"
 isfpdata(df::DataFrame) = 
@@ -157,7 +157,7 @@ to_gpu(v::BitVector) =
 to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
     CuArray(T.(coalesce(v,typemax(T))))
 to_gpu(v::Vector{Union{Bool,Missing}}) =
-    CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
+    CuArray(UInt8.(coalesce(v,typemax(UInt8))))
 to_gpu(df::DataFrame) = mapcols(to_gpu, df)
 
 "Move data to the CPU"
@@ -169,7 +169,7 @@ to_cpu(v::CuVector{T}) where T<:AbstractFloat =
     replace(Array(v), typemax(T) => missing)
 to_cpu(v::CuVector{UInt8}) =
     convert(Vector{Union{Bool,Missing}}, 
-        replace(Array(v), typemax(UInt8) => missing))
+        replace(Array(v), typemax(T) => missing))
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
 
 "Check whether data resides on the GPU"
