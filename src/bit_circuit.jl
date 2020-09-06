@@ -1,6 +1,7 @@
 using CUDA
 
-export NodeIds, ⋁NodeIds, ⋀NodeIds, BitCircuit, num_decisions, num_elements
+export NodeIds, ⋁NodeIds, ⋀NodeIds, BitCircuit, 
+    num_nodes, num_decisions, num_elements, num_leafs, num_features
 
 #####################
 # Bit Circuits
@@ -94,7 +95,7 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_dec
             last_el_id += one(NodeId)
             push!(elements, last_dec_id, c.prime_id, c.sub_id)
             push!(parents[c.prime_id], last_el_id)
-            push!(parents[c.prime_id], last_el_id)
+            push!(parents[c.sub_id], last_el_id)
             layer_id = c.layer_id + one(NodeId)
             push!(nodes, last_el_id, last_el_id, zero(NodeId), zero(NodeId))
             push!(parents, NodeId[])
@@ -154,12 +155,15 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_dec
     parents_m = Vector{NodeId}(undef, size(elements_m,2)*2)
     last_parent = zero(NodeId)
     @assert last_dec_id == size(nodes_m,2) == size(parents,1)
-    for i in 1:last_dec_id
+    @assert sum(length, parents) == length(parents_m)
+    for i in 1:last_dec_id-1
         if !isempty(parents[i])
             nodes_m[3,i] = last_parent + one(NodeId)
             parents_m[last_parent + one(NodeId):last_parent + length(parents[i])] .= parents[i] 
             last_parent += length(parents[i])
             nodes_m[4,i] = last_parent
+        else
+            @assert i <= num_leafs "Only root and leaf nodes can have no parents: $i"
         end
     end
     
@@ -176,12 +180,24 @@ num_elements(c::BitCircuit) = size(c.elements, 2)
 
 import .Utils: num_features #extend
 
-num_features(c::BitCircuit) = (length(c.layers[1])-2) ÷ 2
+num_leafs(c::BitCircuit) = length(c.layers[1])
+num_features(c::BitCircuit) = (num_leafs(c)-2) ÷ 2
 
-import .Utils: to_gpu, to_cpu #extend
+"Does the bitcircuit node have a single child?"
+@inline has_single_child(nodes, id) = 
+    @inbounds (nodes[1,id] == nodes[2,id])
+
+"Get the other child of a parent element"
+@inline sibling(els, par, me) = 
+    @inbounds ((els[2,par] == me) ? els[3,par] : els[2,par])
+
+import .Utils: to_gpu, to_cpu, isgpu #extend
 
 to_gpu(c::BitCircuit) = 
     BitCircuit(map(to_gpu, c.layers), to_gpu(c.nodes), to_gpu(c.elements), to_gpu(c.parents))
 
 to_cpu(c::BitCircuit) = 
     BitCircuit(map(to_cpu, c.layers), to_cpu(c.nodes), to_cpu(c.elements), to_cpu(c.parents))
+
+isgpu(c::BitCircuit{<:CuArray,<:CuArray}) = true
+isgpu(c::BitCircuit{<:Array,<:Array}) = false

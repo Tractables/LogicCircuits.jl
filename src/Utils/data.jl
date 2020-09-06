@@ -84,7 +84,7 @@ iscomplete(::Array{<:AbstractFloat}) = true
 iscomplete(x::Array{Union{Bool,Missing}}) = !any(ismissing, x)
 iscomplete(x::Array{Union{<:AbstractFloat,Missing}}) = !any(ismissing, x)
 iscomplete(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) = 
-    !any(v -> v == typemax(eltype(x)), x)
+    !any(v -> v == typemax(v), x)
 
 "Is the dataset binary?"
 isbinarydata(df::DataFrame) = 

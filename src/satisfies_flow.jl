@@ -89,23 +89,17 @@ function satisfies_layers(circuit::BitCircuit, values::Matrix)
             els_end = @inbounds circuit.nodes[2,dec_id]
             if j == els_end
                 assign_value(values, dec_id, els[2,j], els[3,j])
-                # @assert els[1,j] == dec_id
                 j += 1
             else
                 assign_value(values, dec_id, els[2,j], els[3,j], els[2,j+1], els[3,j+1])
-                # @assert els[1,j] == dec_id
-                # @assert els[1,j+1] == dec_id
                 j += 2
             end
             while j <= els_end
                 if j == els_end
                     accum_value(values, dec_id, els[2,j], els[3,j])
-                    # @assert els[1,j] == dec_id
                     j += 1
                 else
                     accum_value(values, dec_id, els[2,j], els[3,j], els[2,j+1], els[3,j+1])
-                    # @assert els[1,j] == dec_id
-                    # @assert els[1,j+1] == dec_id
                     j += 2
                 end
             end
@@ -204,6 +198,7 @@ end
 
 function satisfies_flows(circuit::BitCircuit, data, 
             reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop)
+    @assert isgpu(data) == isgpu(circuit) "BitCircuit and data need to be on the same device"
     values = satisfies_all(circuit, data, reuse_values)
     flows = satisfies_flows_down(circuit, values, reuse_flows; on_node, on_edge)
     return values, flows
@@ -216,115 +211,130 @@ end
 "When values of nodes have already been computed, do a downward pass computing the flows at each node"
 function satisfies_flows_down(circuit::BitCircuit, values, reuse=nothing; on_node=noop, on_edge=noop)
     flows = similar!(reuse, typeof(values), size(values)...)
-    set_init_flows(flows, values)
+    @views flows[:,end] .= values[:,end] # set flow at root
     satisfies_flows_down_layers(circuit, flows, values, on_node, on_edge)
     return flows
-end
-
-function set_init_flows(flows::AbstractArray{F}, values::AbstractArray{F}) where F
-    flows .= (F <: AbstractFloat) ? zero(F) : typemin(F)
-    @views flows[:,end] .= values[:,end] # set flow at root
 end
 
 # downward pass helpers on CPU
 
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
 function satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, on_node, on_edge)
-    els = circuit.elements
-    locks = [Threads.ReentrantLock() for i=1:num_nodes(circuit)]    
-    for layer in Iterators.reverse(circuit.layers[2:end])
+    els = circuit.elements   
+    for layer in Iterators.reverse(circuit.layers[1:end-1])
         Threads.@threads for dec_id in layer
-            els_start = @inbounds circuit.nodes[1,dec_id]
-            els_end = @inbounds circuit.nodes[2,dec_id]
-            on_node(flows, values, dec_id, els_start, els_end, locks)
-            #TODO do something faster when els_start == els_end?
-            for j = els_start:els_end
-                p = els[2,j]
-                s = els[3,j]
-                accum_flow(flows, values, dec_id, p, s, locks)
-                on_edge(flows, values, dec_id, j, p, s, els_start, els_end, locks)
+            par_start = @inbounds circuit.nodes[3,dec_id]
+            # on_node(flows, values, dec_id, par_start, par_end)
+            if iszero(par_start)
+                # no parents, ignore (can happen for false/true node)
+            else
+                par_end = @inbounds circuit.nodes[4,dec_id]
+                for j = par_start:par_end
+                    par = @inbounds circuit.parents[j]
+                    grandpa = @inbounds els[1,par]
+                    if has_single_child(circuit.nodes, grandpa)
+                        if j == par_start
+                            @inbounds @views @. flows[:, dec_id] = flows[:, grandpa]
+                        else
+                            accum_flow(flows, dec_id, grandpa)
+                        end
+                    else
+                        sib_id = sibling(els, par, dec_id)
+                        if j == par_start
+                            assign_flow(flows, values, dec_id, grandpa, sib_id)
+                        else
+                            accum_flow(flows, values, dec_id, grandpa, sib_id)
+                        end
+                        # on_edge(flows, values, dec_id, j, p, s, els_start, els_end, locks)
+                    end
+                end
             end
         end
     end
-end
+end 
 
-function accum_flow(f::Matrix{<:AbstractFloat}, v, d, p, s, locks)
-    # retrieve locks in index order to avoid deadlock
-    l1, l2 = order_asc(p,s)
-    lock(locks[l1]) do 
-        lock(locks[l2]) do 
-            # note: in future, if there is a need to scale to many more threads, it would be beneficial to avoid this synchronization by ordering downward pass layers by child id, not parent id, so that there is no contention when processing a single layer and no need for synchronization, as in the upward pass
-            @avx for j in 1:size(f,1)
-                edge_flow = v[j, p] * v[j, s] / v[j, d] * f[j, d]
-                edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(Float32))
-                f[j, p] += edge_flow
-                f[j, s] += edge_flow
-            end
-        end
+assign_flow(f::Matrix{<:Unsigned}, v, d, g, s) =
+    @inbounds @views @. f[:, d] = v[:, s] & v[:, d] & f[:, g]
+
+function assign_flow(f::Matrix{<:AbstractFloat}, v, d, g, s)
+    @avx for j in 1:size(f,1)
+        edge_flow = v[j, s] * v[j, d] / v[j, g] * f[j, g]
+        edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(Float32))
+        f[j, d] = edge_flow
     end
 end
 
-function accum_flow(f::Matrix{<:Unsigned}, v, d, p, s, locks)
-    lock(locks[p]) do 
-        @inbounds @views @. f[:, p] |= v[:, p] & v[:, s] & f[:, d]
-    end
-    lock(locks[s]) do 
-        @inbounds @views @. f[:, s] |= v[:, p] & v[:, s] & f[:, d]
+accum_flow(f::Matrix{<:Unsigned}, d, g) =
+    @inbounds @views @. f[:, d] |= f[:, g]
+
+accum_flow(f::Matrix{<:AbstractFloat}, d, g) =
+    @inbounds @views @. f[:, d] += f[:, g]
+
+accum_flow(f::Matrix{<:Unsigned}, v, d, g, s) =
+    @inbounds @views @. f[:, d] |= v[:, s] & v[:, d] & f[:, g]
+
+function accum_flow(f::Matrix{<:AbstractFloat}, v, d, g, s)
+    @avx for j in 1:size(f,1)
+        edge_flow = v[j, s] * v[j, d] / v[j, g] * f[j, g]
+        edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(Float32))
+        f[j, d] += edge_flow
     end
 end
 
-
-# downward pass helpers on GPU
+# # downward pass helpers on GPU
 
 "Pass flows down the layers of a bit circuit on the GPU"
 function satisfies_flows_down_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, on_node, on_edge; 
-            dec_per_thread = 4, log2_threads_per_block = 8)
-    CUDA.@sync for layer in Iterators.reverse(circuit.layers[2:end])
+            dec_per_thread = 8, log2_threads_per_block = 7)
+    CUDA.@sync for layer in Iterators.reverse(circuit.layers[1:end-1])
         num_examples = size(values, 1)
         num_decision_sets = length(layer)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2])) 
-        @cuda threads=num_threads blocks=num_blocks satisfies_flows_down_layers_cuda(layer, circuit.nodes, circuit.elements, flows, values, on_node, on_edge)
+        @cuda threads=num_threads blocks=num_blocks satisfies_flows_down_layers_cuda(layer, circuit.nodes, circuit.elements, circuit.parents, flows, values, on_node, on_edge)
     end
 end
 
 "CUDA kernel for passing flows down circuit"
-function satisfies_flows_down_layers_cuda(layer, nodes, elements, flows, values, on_node, on_edge)
+function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows, values, on_node, on_edge)
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
     stride_y = blockDim().y * gridDim().y
     for k = index_x:stride_x:size(values,1)
-        for i = index_y:stride_y:length(layer) #TODO swap loops??
+        for i = index_y:stride_y:length(layer)
             dec_id = @inbounds layer[i]
-            els_start = @inbounds nodes[1,dec_id]
-            els_end = @inbounds nodes[2,dec_id]
-            n_up = @inbounds values[k, dec_id]
-            on_node(flows, values, dec_id, els_start, els_end, k)
-            if !iszero(n_up) # on_edge will only get called when edge flows are non-zero
-                n_down = @inbounds flows[k, dec_id]
-                #TODO do something faster when els_start == els_end?
-                for j = els_start:els_end
-                    p = @inbounds elements[2,j]
-                    s = @inbounds elements[3,j]
-                    @inbounds edge_flow = compute_edge_flow(values[k, p], values[k, s], n_up, n_down)
-                    # following needs to be memory safe, hence @atomic
-                    accum_flow(flows, k, p, edge_flow)
-                    accum_flow(flows, k, s, edge_flow)
-                    on_edge(flows, values, dec_id, j, p, s, els_start, els_end, k, edge_flow)
+            par_start = @inbounds nodes[3,dec_id]
+            flow = zero(eltype(flows))
+            if !iszero(par_start)
+                par_end = @inbounds nodes[4,dec_id]
+                for j = par_start:par_end
+                    par = @inbounds parents[j]
+                    grandpa = @inbounds elements[1,par]
+                    v_gp = @inbounds values[k, grandpa]
+                    if !iszero(v_gp)
+                        f_gp = @inbounds flows[k, grandpa]
+                        if has_single_child(nodes, grandpa)
+                            flow = sum_flows(flow, f_gp)
+                        else
+                            v_e1 = @inbounds values[k, elements[2,par]]
+                            v_e2 = @inbounds values[k, elements[3,par]]
+                            edge_flow = compute_edge_flow( v_e1, v_e2, v_gp, f_gp)    
+                            flow = sum_flows(flow, edge_flow)
+                            # on_edge(flows, values, dec_id, j, p, s, els_start, els_end, k, edge_flow)
+                        end
+                    end
                 end
             end
+            @inbounds flows[k,dec_id] = flow
         end
     end
     return nothing
 end
 
-compute_edge_flow(p_up::AbstractFloat, s_up, n_up, n_down) = p_up * s_up / n_up * n_down
-compute_edge_flow(p_up::Unsigned, s_up, n_up, n_down) = p_up & s_up & n_down
+@inline sum_flows(a,b::AbstractFloat) = a + b
+@inline sum_flows(a,b::Unsigned) = a | b
 
-accum_flow(flows, j, e, edge_flow::AbstractFloat) = 
-    CUDA.@atomic flows[j, e] += edge_flow #atomic is automatically inbounds
-
-accum_flow(flows, j, e, edge_flow::Unsigned) = 
-    CUDA.@atomic flows[j, e] |= edge_flow #atomic is automatically inbounds
+@inline compute_edge_flow(p_up::AbstractFloat, s_up, n_up, n_down) = p_up * s_up / n_up * n_down
+@inline compute_edge_flow(p_up::Unsigned, s_up, n_up, n_down) = p_up & s_up & n_down
