@@ -1,7 +1,8 @@
 using CUDA
 
 export NodeIds, ⋁NodeIds, ⋀NodeIds, BitCircuit, 
-    num_nodes, num_decisions, num_elements, num_leafs, num_features
+    num_nodes, num_decisions, num_elements, num_leafs, num_features,
+    has_single_child
 
 #####################
 # Bit Circuits
@@ -177,6 +178,8 @@ num_nodes(c::BitCircuit) = size(c.nodes, 2)
 
 "Number of elements (conjunctions) in layer or bit circuit"
 num_elements(c::BitCircuit) = size(c.elements, 2)
+num_elements(nodes, id) = 
+    @inbounds (nodes[2,id] - nodes[1,id] + 1)
 
 import .Utils: num_features #extend
 

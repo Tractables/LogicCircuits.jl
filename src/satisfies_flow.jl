@@ -221,12 +221,11 @@ end
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
 function satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, on_node, on_edge)
     els = circuit.elements   
-    for layer in Iterators.reverse(circuit.layers[1:end-1])
+    for layer in Iterators.reverse(circuit.layers[1:end])
         Threads.@threads for dec_id in layer
             par_start = @inbounds circuit.nodes[3,dec_id]
-            # on_node(flows, values, dec_id, par_start, par_end)
             if iszero(par_start)
-                # no parents, ignore (can happen for false/true node)
+                # no parents, ignore (can happen for false/true node and root)
             else
                 par_end = @inbounds circuit.nodes[4,dec_id]
                 for j = par_start:par_end
@@ -238,6 +237,7 @@ function satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values:
                         else
                             accum_flow(flows, dec_id, grandpa)
                         end
+                        on_edge(flows, values, dec_id, par, grandpa)
                     else
                         sib_id = sibling(els, par, dec_id)
                         if j == par_start
@@ -245,10 +245,11 @@ function satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values:
                         else
                             accum_flow(flows, values, dec_id, grandpa, sib_id)
                         end
-                        # on_edge(flows, values, dec_id, j, p, s, els_start, els_end, locks)
+                        on_edge(flows, values, dec_id, par, grandpa, sib_id)
                     end
                 end
             end
+            on_node(flows, values, dec_id)
         end
     end
 end 
