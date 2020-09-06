@@ -236,23 +236,22 @@ function satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values:
                     grandpa = @inbounds els[1,par]
                     sib_id = sibling(els, par, dec_id)
                     # TODO: check if things would speed up if we also allowed the first parent to write flows in lower-down layers
-                    if has_single_child(circuit.nodes, grandpa)
+                    single_child = has_single_child(circuit.nodes, grandpa)
+                    if single_child
                         if j == par_start
                             @inbounds @views @. flows[:, dec_id] = flows[:, grandpa]
                         else
                             accum_flow(flows, dec_id, grandpa)
                         end
-                        # report edge flow only once:
-                        sib_id > dec_id && on_edge(flows, values, dec_id, sib_id, par, grandpa, true)
                     else
                         if j == par_start
                             assign_flow(flows, values, dec_id, grandpa, sib_id)
                         else
                             accum_flow(flows, values, dec_id, grandpa, sib_id)
                         end
-                        # report edge flow only once:
-                        sib_id > dec_id && on_edge(flows, values, dec_id, sib_id, par, grandpa, false)
                     end
+                    # report edge flow only once:
+                    sib_id > dec_id && on_edge(flows, values, dec_id, sib_id, par, grandpa, single_child)
                 end
             end
             on_node(flows, values, dec_id)
@@ -266,7 +265,7 @@ assign_flow(f::Matrix{<:Unsigned}, v, d, g, s) =
 function assign_flow(f::Matrix{<:AbstractFloat}, v, d, g, s)
     @avx for j in 1:size(f,1)
         edge_flow = v[j, s] * v[j, d] / v[j, g] * f[j, g]
-        edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(Float32))
+        edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(eltype(f)))
         f[j, d] = edge_flow
     end
 end
@@ -283,7 +282,7 @@ accum_flow(f::Matrix{<:Unsigned}, v, d, g, s) =
 function accum_flow(f::Matrix{<:AbstractFloat}, v, d, g, s)
     @avx for j in 1:size(f,1)
         edge_flow = v[j, s] * v[j, d] / v[j, g] * f[j, g]
-        edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(Float32))
+        edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(eltype(f)))
         f[j, d] += edge_flow
     end
 end
