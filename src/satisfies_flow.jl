@@ -211,7 +211,6 @@ end
 "When values of nodes have already been computed, do a downward pass computing the flows at each node"
 function satisfies_flows_down(circuit::BitCircuit, values, reuse=nothing; on_node=noop, on_edge=noop)
     flows = similar!(reuse, typeof(values), size(values)...)
-    @views flows[:,end] .= values[:,end] # set flow at root
     satisfies_flows_down_layers(circuit, flows, values, on_node, on_edge)
     return flows
 end
@@ -221,31 +220,38 @@ end
 "Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
 function satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, on_node, on_edge)
     els = circuit.elements   
-    for layer in Iterators.reverse(circuit.layers[1:end])
+    for layer in Iterators.reverse(circuit.layers)
         Threads.@threads for dec_id in layer
             par_start = @inbounds circuit.nodes[3,dec_id]
             if iszero(par_start)
+                if dec_id == num_nodes(circuit)
+                    # populate root flow from values
+                    @inbounds @views @. flows[:, dec_id] = values[:, dec_id]
+                end
                 # no parents, ignore (can happen for false/true node and root)
             else
                 par_end = @inbounds circuit.nodes[4,dec_id]
                 for j = par_start:par_end
                     par = @inbounds circuit.parents[j]
                     grandpa = @inbounds els[1,par]
+                    sib_id = sibling(els, par, dec_id)
+                    # TODO: check if things would speed up if we also allowed the first parent to write flows in lower-down layers
                     if has_single_child(circuit.nodes, grandpa)
                         if j == par_start
                             @inbounds @views @. flows[:, dec_id] = flows[:, grandpa]
                         else
                             accum_flow(flows, dec_id, grandpa)
                         end
-                        on_edge(flows, values, dec_id, par, grandpa)
+                        # report edge flow only once:
+                        sib_id > dec_id && on_edge(flows, values, dec_id, sib_id, par, grandpa, true)
                     else
-                        sib_id = sibling(els, par, dec_id)
                         if j == par_start
                             assign_flow(flows, values, dec_id, grandpa, sib_id)
                         else
                             accum_flow(flows, values, dec_id, grandpa, sib_id)
                         end
-                        on_edge(flows, values, dec_id, par, grandpa, sib_id)
+                        # report edge flow only once:
+                        sib_id > dec_id && on_edge(flows, values, dec_id, sib_id, par, grandpa, false)
                     end
                 end
             end
@@ -287,7 +293,7 @@ end
 "Pass flows down the layers of a bit circuit on the GPU"
 function satisfies_flows_down_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, on_node, on_edge; 
             dec_per_thread = 8, log2_threads_per_block = 7)
-    CUDA.@sync for layer in Iterators.reverse(circuit.layers[1:end-1])
+    CUDA.@sync for layer in Iterators.reverse(circuit.layers)
         num_examples = size(values, 1)
         num_decision_sets = length(layer)/dec_per_thread
         num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
@@ -306,29 +312,39 @@ function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows
     for k = index_x:stride_x:size(values,1)
         for i = index_y:stride_y:length(layer)
             dec_id = @inbounds layer[i]
-            par_start = @inbounds nodes[3,dec_id]
-            flow = zero(eltype(flows))
-            if !iszero(par_start)
-                par_end = @inbounds nodes[4,dec_id]
-                for j = par_start:par_end
-                    par = @inbounds parents[j]
-                    grandpa = @inbounds elements[1,par]
-                    v_gp = @inbounds values[k, grandpa]
-                    if !iszero(v_gp)
-                        f_gp = @inbounds flows[k, grandpa]
-                        if has_single_child(nodes, grandpa)
-                            flow = sum_flows(flow, f_gp)
-                        else
-                            v_e1 = @inbounds values[k, elements[2,par]]
-                            v_e2 = @inbounds values[k, elements[3,par]]
-                            edge_flow = compute_edge_flow( v_e1, v_e2, v_gp, f_gp)    
+            if dec_id == size(nodes,2)
+                # populate root flow from values
+                flow = values[k, dec_id]
+            else
+                par_start = @inbounds nodes[3,dec_id]
+                flow = zero(eltype(flows))
+                if !iszero(par_start)
+                    par_end = @inbounds nodes[4,dec_id]
+                    for j = par_start:par_end
+                        par = @inbounds parents[j]
+                        grandpa = @inbounds elements[1,par]
+                        v_gp = @inbounds values[k, grandpa]
+                        prime = elements[2,par]
+                        sub = elements[3,par]
+                        if !iszero(v_gp) # edge flow only gets reported when non-zero
+                            f_gp = @inbounds flows[k, grandpa]
+                            single_child = has_single_child(nodes, grandpa)
+                            if single_child
+                                edge_flow = f_gp
+                            else
+                                v_prime = @inbounds values[k, prime]
+                                v_sub = @inbounds values[k, sub]
+                                edge_flow = compute_edge_flow( v_prime, v_sub, v_gp, f_gp)  
+                            end
                             flow = sum_flows(flow, edge_flow)
-                            # on_edge(flows, values, dec_id, j, p, s, els_start, els_end, k, edge_flow)
+                            # report edge flow only once:
+                            dec_id == prime && on_edge(flows, values, prime, sub, par, grandpa, k, edge_flow, single_child)
                         end
                     end
                 end
             end
-            @inbounds flows[k,dec_id] = flow
+            @inbounds flows[k, dec_id] = flow
+            on_node(flows, values, dec_id, k, flow)
         end
     end
     return nothing
