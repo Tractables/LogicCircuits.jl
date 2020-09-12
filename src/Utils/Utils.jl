@@ -7,6 +7,7 @@ module Utils
 include("misc.jl")
 include("graphs.jl")
 include("trees.jl")
+include("cubitvector.jl")
 include("data.jl")
 
 end #module

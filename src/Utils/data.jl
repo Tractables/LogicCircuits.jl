@@ -3,8 +3,7 @@ import Random: shuffle
 import Statistics: mean, std
 import CUDA: CuVector, CuMatrix
 
-export CuBitVector, AbstractBitVector, chunks, _msk_end,
-    num_examples, num_features, 
+export num_examples, num_features, 
     example, feature_values,
     iscomplete, isfpdata, isbinarydata, 
     num_chunks, chunk, eltype,
@@ -28,29 +27,6 @@ export CuBitVector, AbstractBitVector, chunks, _msk_end,
 #      * `DataFrame` of `CuVector{Float}` where typmax represents missing
 
 # TODO: support weighted datasets by using a `DataFrames` weight column
-
-"Custom CUDA version of BitVector (lacking lots of functionality, just a container for now)."
-struct CuBitVector <: AbstractVector{Bool}
-    chunks::CuVector{UInt64}
-    len::Int
-end
-
-"Retro-fitted super type of all bit vectors"
-const AbstractBitVector = Union{BitVector, CuBitVector}
-
-AbstractBitVector(chunks::CuVector{UInt64}, len) = CuBitVector(chunks, len)
-AbstractBitVector(chunks::Vector{UInt64}, len) = begin
-    v = BitVector()
-    v.chunks = chunks
-    v.len = len
-    # v.dims unused by vectors
-    return v
-end
-
-import Base: length, _msk_end #extend
-@inline length(v::CuBitVector) = v.len
-@inline _msk_end(v::CuBitVector) = _msk_end(length(v))
-@inline _msk_end(df::DataFrame) = _msk_end(num_examples(df))
 
 """
     num_examples(df::DataFrame)
@@ -140,6 +116,8 @@ end
 "Turn binary data into floating point data close to 0 and 1."
 soften(data, softness=0.05; precision=Float32) =
     data .* precision(1-2*softness) .+ precision(softness) 
+
+@inline _msk_end(df::DataFrame) = _msk_end(num_examples(df))
 
 "Move data to the GPU"
 to_gpu(d::Union{CuBitVector,CuArray}) = d
