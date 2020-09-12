@@ -43,7 +43,7 @@ Number of features in the data
 num_features(df) = ncol(df)
 
 "Get the ith example"
-example(d,i) = d[i,:]
+example(d,i) = vec(convert(Array, d[i,:]))
 
 "Get the ith feature values"
 feature_values(df::DataFrame, i) = df[!,i]
