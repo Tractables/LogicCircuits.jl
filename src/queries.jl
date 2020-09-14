@@ -1,6 +1,6 @@
 using DataFrames: DataFrame
 
-export variables_by_node, issmooth, isdecomposable,
+export variables_by_node, issmooth, isdecomposable, isstruct_decomposable,
     isdeterministic, iscanonical,
     sat_prob, model_count, prob_equiv_signature
 
@@ -134,6 +134,29 @@ function isdecomposable(root::LogicCircuit)::Bool
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
     result
 end
+
+
+"""
+    isstruct_decomposable(root::LogicCircuit)::Bool
+    
+Is the circuit structured-decomposable?
+"""
+function isstruct_decomposable(root::LogicCircuit; )::Bool
+    result::Bool = true
+    f_con(_) = [BitSet()]
+    f_lit(n) = [BitSet(variable(n))]
+    f_a(_, cs) = begin
+        result = result && isdisjoint(vcat(cs...)...)
+        map(c -> reduce(union!, c), cs)
+    end 
+    f_o(_, cs) = begin
+        result = result && (length(cs) == 0 || all(==(cs[1]), cs))
+        [reduce(union, vcat(cs...))]
+    end
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Vector{BitSet})
+    result
+end
+
 
 """
     isdeterministic(root::LogicCircuit)::Bool

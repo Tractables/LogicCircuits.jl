@@ -14,6 +14,9 @@ include("helper/plain_logic_circuits.jl")
     @test isdeterministic(r1)
     @test isdeterministic(compile(PlainLogicCircuit, Lit(1)))
 
+    @test isstruct_decomposable(r1)
+    @test isstruct_decomposable(compile(PlainLogicCircuit, Lit(1)))
+
     @test variables(r1) == BitSet(1:10)
     @test variables_by_node(r1)[r1] == BitSet(1:10)
     @test variables_by_node(r1)[children(children(r1)[1])[5]] == BitSet(5)
@@ -38,6 +41,7 @@ include("helper/plain_logic_circuits.jl")
     or1 = and1 | and2
     @test !isdecomposable(or1)
     @test !isdeterministic(or1)
+    @test !isstruct_decomposable(or1)
 
     #######################
     ors = map(1:10) do v
@@ -54,6 +58,7 @@ include("helper/plain_logic_circuits.jl")
     and5 = or1 & or2
     @test !isdecomposable(and5)
     @test !isdeterministic(and5)
+    @test !isstruct_decomposable(and5)
 
     #######################
     leaf1 = compile(PlainLogicCircuit, Lit(1))
@@ -61,16 +66,35 @@ include("helper/plain_logic_circuits.jl")
     and = leaf1 & leaf2
     @test !isdecomposable(and)
     @test isdeterministic(and)
+    @test !isstruct_decomposable(and)
 
     #######################
     n0c = little_3var_constants()
     @test isdecomposable(n0c)
     @test isdeterministic(n0c)
+    @test isstruct_decomposable(n0c)
     @test !isdecomposable(n0c & little_2var())
+    @test !isstruct_decomposable(n0c & little_2var())
     @test !issmooth(n0c | little_2var())
     @test !isdeterministic(n0c | little_2var())
     @test issmooth(n0c)
     @test @suppress_out !iscanonical(n0c & little_3var_constants(), 5, verbose=true)
 
+    #######################
+    lits = map(1:3) do var
+        compile(PlainLogicCircuit, Lit(var))
+    end
+
+    or1 = lits[1] & lits[2] | lits[1] & lits[2]
+    or2 = lits[1] & lits[3] | lits[1] & lits[3]
+    and1 = or1 & lits[3]
+    and2 = or2 & lits[2]
+    circuit = and1 | and2
+    @test isstruct_decomposable(or1)
+    @test isstruct_decomposable(and2)
+    @test isdecomposable(circuit)
+    @test !isstruct_decomposable(circuit)
+    @test !isstruct_decomposable(or1 & lits[3] | lits[3] & or1)
+    @test isstruct_decomposable(or1 & lits[3] | or1 & lits[3])
 
 end
