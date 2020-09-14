@@ -68,11 +68,11 @@ function init_satisfies(data, reuse, num_nodes)
         @assert isfpdata(data) "Only floating point and binary flows are supported"
         flowtype = isgpu(data) ? CuMatrix{eltype(data)} : Matrix{eltype(data)}
         values = similar!(reuse, flowtype, num_examples(data), num_nodes)
-        @views values[:,TRUE_BITS] .= one(Float32)
-        @views values[:,FALSE_BITS] .= zero(Float32)
+        @views values[:,TRUE_BITS] .= one(eltype(values))
+        @views values[:,FALSE_BITS] .= zero(eltype(values))
         for i=1:num_features(data)
             @views values[:,2+i] .= feature_values(data,i)
-            @views values[:,2+num_features(data)+i] .= one(Float32) .- feature_values(data,i)
+            @views values[:,2+num_features(data)+i] .= one(eltype(values)) .- feature_values(data,i)
         end
     end
     return values

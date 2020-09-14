@@ -17,7 +17,7 @@ const TRUE_BITS = NodeId(1)
 const FALSE_BITS = NodeId(2)
 # 3:nf+2 are nf positive literals
 # nf+3:2nf+2 are nf negative literals
-# 2nf+2:end are inner decision nodes
+# 2nf+3:end are inner decision nodes
 
 "The BitCircuit ids associated with a node"
 abstract type NodeIds end
@@ -53,6 +53,9 @@ Nodes are represented as a 4xN matrix where
   * nodes[2,:] is the last element id belonging to this decision
   * nodes[3,:] is the first parent index belonging to this decision
   * nodes[4,:] is the last parent index belonging to this decision
+
+  Elements belonging to node `i` are `elements[:, nodes[1,i]:nodes[2,i]]`
+  Parents belonging to node `i` are `parents[nodes[3,i]:nodes[4,i]]`
 
 Elements are represented by a 3xE matrix, where 
   * elements[1,:] is the decision node id (parents of the element),

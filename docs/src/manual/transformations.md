@@ -72,8 +72,8 @@ Note that, in addition to representing the correct formula, the apply operation 
 The major binary operations are conjunction (``\land``), disjunction (``\lor``), and XOR (``\oplus``). There are `` 2^4 = 16 `` possible binary operations, `` 6 `` of which are trivial operations (such as always returning ``false`` or depending only on one of the circuits). The other ``10`` can be derived by combination of not operation (``\lnot``) with the main 3 operations mentioned. The list of all possible non-trivial binary operations are below:
 
 ```math
-    \Delta_1 \lor \Delta_2, \lnot \Delta_1 \lor \Delta_2, \lnot \Delta_1 \lor \Delta_2, \lnot \Delta_1 \lor \lnot \Delta_2 \\
-    \Delta_1 \land \Delta_2, \lnot \Delta_1 \land \Delta_2, \lnot \Delta_1 \land \Delta_2, \lnot \Delta_1 \land \lnot \Delta_2 \\
+    \Delta_1 \lor \Delta_2, \lnot \Delta_1 \lor \Delta_2, \lnot \Delta_1 \lor \lnot \Delta_2 \\
+    \Delta_1 \land \Delta_2, \lnot \Delta_1 \land \Delta_2, \lnot \Delta_1 \land \lnot \Delta_2 \\
     \Delta_1 \oplus \Delta_2, \lnot (\Delta_1 \oplus \Delta_2) \\
 ```
 

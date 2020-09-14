@@ -14,7 +14,7 @@ using DataFrames: DataFrame, DataFrameRow
     @test num_features(df) == 2
     @test num_features(dfb) == 2
     
-    @test example(df,2) isa DataFrameRow
+    @test example(df,2) isa Vector
     @test example(df,2)[1] == 3.1
     @test example(df,2)[2] == 4.1
 
