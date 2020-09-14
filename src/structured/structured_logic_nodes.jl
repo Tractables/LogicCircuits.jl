@@ -197,3 +197,5 @@ function fully_factorized_circuit(::Type{<:PlainStructLogicCircuit}, vtree::Vtre
     c = foldup_aggregate(vtree, f_leaf, f_inner, PlainStructLogicCircuit)
     disjoin([c]) # "bias term"
 end
+
+isstruct_decomposable(::PlainStructLogicCircuit) = true

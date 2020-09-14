@@ -141,7 +141,7 @@ end
     
 Is the circuit structured-decomposable?
 """
-function isstruct_decomposable(root::LogicCircuit; )::Bool
+function isstruct_decomposable(root::LogicCircuit)::Bool
     result::Bool = true
     f_con(_) = [BitSet()]
     f_lit(n) = [BitSet(variable(n))]
