@@ -14,4 +14,5 @@ include("circuit_savers.jl")
 
 include("data_loaders.jl")
 
+include("plot.jl")
 end
