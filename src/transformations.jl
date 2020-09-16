@@ -218,7 +218,7 @@ function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sani
     # sanity check
     if sanity_check
         @assert depth >= 0
-        @assert GateType(or) isa ⋁Gate && GateType(and) isa ⋀Gate && and in children(or)
+        @assert is⋁gate(or) && is⋀gate(and) && and in children(or)
         @assert or in or_nodes(root) && and in and_nodes(root)
         literals = canonical_literals(and)
         @assert haskey(literals, var2lit(var)) && haskey(literals, - var2lit(var))
@@ -295,7 +295,7 @@ function clone_candidates(circuit::Node)::Dict{Node, Vector{Node}}
     end
     f_a(n, cv) = begin
         for c in children(n)
-            if !(GateType(c) isa ⋁Gate)
+            if !is⋁gate(c)
                 continue
             end
 
@@ -368,7 +368,7 @@ Clone the `or` node and redirect one of its parents to the new copy
 function clone(root::Node, and1::Node, and2::Node, or::Node; depth=1)
     # sanity check
     @assert depth >= 1
-    @assert GateType(and1) isa ⋀Gate && GateType(and2) isa ⋀Gate && GateType(or) isa ⋁Gate
+    @assert is⋀gate(and1) && is⋀gate(and2) && is⋁gate(or)
     @assert or in children(and1) && or in children(and2)
     @assert and1 in and_nodes(root) && and2 in and_nodes(root) && or in or_nodes(root)
 
@@ -388,7 +388,7 @@ Merge two circuits.
 """
 function merge(root::Node, or1::Node, or2::Node)
     # sanity check
-    @assert GateType(or1) isa ⋁Gate && GateType(or2) isa ⋁Gate
+    @assert is⋁gate(or1) && is⋁gate(or2)
     @assert or1 in or_nodes(root) && or2 in or_nodes(root)
 
 

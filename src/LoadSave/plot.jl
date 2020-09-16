@@ -16,7 +16,7 @@ function DiGraph(vtree::Vtree)
     convert_rec(v::PlainVtreeLeafNode) = ()
     convert_rec(v::PlainVtreeInnerNode) = begin
         foreach(children(v)) do c
-            c_id = c isa PlainVtreeLeafNode ? variable(c) : dict[c] = (id += 1)
+            c_id = isleaf(c) ? variable(c) : dict[c] = (id += 1)
             add_edge!(g, dict[v], c_id)
             convert_rec(c)
         end

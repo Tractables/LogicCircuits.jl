@@ -15,9 +15,9 @@ mutable struct PlainVtreeInnerNode <: PlainVtree
     PlainVtreeInnerNode(left::PlainVtree, right::PlainVtree) = begin
         @assert isdisjoint(variables(left), variables(right))
         this = new(left, right, variables(left) ∪ variables(right), nothing)
-        @assert left.parent isa Nothing "Left child of new vtree node already has a parent."
+        @assert isnothing(left.parent) "Left child of new vtree node already has a parent."
         left.parent = this
-        @assert right.parent isa Nothing "Right child of new vtree node already has a parent."
+        @assert isnothing(right.parent) "Right child of new vtree node already has a parent."
         right.parent = this
     end
 end
