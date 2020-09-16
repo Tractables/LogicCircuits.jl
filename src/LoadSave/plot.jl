@@ -1,4 +1,6 @@
+export DiGraph, plot
 using LightGraphs
+using TikzGraphs
 
 import LightGraphs: DiGraph
 function DiGraph(vtree::Vtree)
@@ -45,7 +47,9 @@ function DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
         end
     end
 
-    on_var == noop && on_var == add_label!
+    if on_var == noop 
+        on_var = add_label!
+    end
     
     foreach_down(lc) do n
         on_var(g, dict, n)
@@ -59,3 +63,8 @@ function DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
     end
     g, label
 end
+
+import TikzGraphs: plot
+plot(vtree::Vtree) = TikzGraphs.plot(DiGraph(vtree)...)
+plot(lc::LogicCircuit) = TikzGraphs.plot(DiGraph(lc)...)
+

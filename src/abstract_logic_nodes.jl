@@ -112,7 +112,9 @@ function compile end
 @inline disjoin(xs::LogicCircuit...) = disjoin(collect(xs))
 
 @inline Base.:&(x::LogicCircuit, y::LogicCircuit) = conjoin(x,y)
+@inline Base.:&(xs::LogicCircuit...) = conjoin(xs...)
 @inline Base.:|(x::LogicCircuit, y::LogicCircuit) = disjoin(x,y)
+@inline Base.:|(xs::LogicCircuit...) = disjoin(xs...)
 
 # Get the function corresponding to the gate type
 @inline op(::⋀Gate)::Function = conjoin
@@ -127,6 +129,8 @@ function compile end
 
 compile(n::LogicCircuit, args...) = compile(typeof(n), args...)
 
+@inline variables(v::Integer, T::Type{<:LogicCircuit}) = compile(T, Lit(v)), compile(T, - Lit(v))
+@inline variables(vs::AbstractVector{<:Integer}, T::Type{<:LogicCircuit}) = map(v -> variables(v, T), vs)
 "Generate a fully factorized circuit over the given range of variables"
 function fully_factorized_circuit end
 
