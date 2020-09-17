@@ -160,11 +160,15 @@ end
 Return the circuit conditioned on given literal constrains
 `callback` is called after modifying conjunction node
 """
-function condition(root::Node, lit::Lit; callback::Function=((x, y, z) -> nothing))::Node
+function condition(root::Node, lit::Lit; callback=noop)::Node
     literals = canonical_literals(root)
     (false_node, ) = canonical_constants(root) # reuse constants when possible
     if isnothing(false_node)
-        false_node = compile(typeof(root), false)
+        try
+            false_node = compile(typeof(root), false)
+        catch e
+            false_node = nothing
+        end
     end
 
     if !haskey(literals, -lit)
@@ -202,7 +206,7 @@ function condition(root::Node, lit::Lit; callback::Function=((x, y, z) -> nothin
                 (false_node, false)
             end
         end
-        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{Node, Bool})[1]
+        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{Union{Nothing,Node}, Bool})[1]
     end
 end
 
