@@ -189,6 +189,21 @@ import .Utils: num_features #extend
 num_leafs(c::BitCircuit) = length(c.layers[1])
 num_features(c::BitCircuit) = (num_leafs(c)-2) ÷ 2
 
+isliteralgate(c::BitCircuit, nodeid) = 
+    2 < nodeid <= num_leafs(c)
+    
+isleafgate(c::BitCircuit, nodeid) = 
+    nodeid <= num_leafs(c)
+
+function literal(c::BitCircuit, nodeid)
+    @assert 2 < nodeid <= num_leafs(c)
+    if nodeid <= 2 + num_features(c)
+        Lit(nodeid-2)
+    else
+        -Lit(nodeid-2-num_features(c))
+    end
+end
+
 "Does the bitcircuit node have a single child?"
 @inline has_single_child(nodes, id) = 
     @inbounds (nodes[1,id] == nodes[2,id])

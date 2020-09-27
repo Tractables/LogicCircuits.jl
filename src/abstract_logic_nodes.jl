@@ -1,5 +1,5 @@
 export LogicCircuit, GateType, InnerGate, LeafGate, 
-    LiteralGate, ConstantGate, isinnergate, ⋁Gate, ⋀Gate,
+    LiteralGate, ConstantGate, isinnergate, isleafgate, ⋁Gate, ⋀Gate,
     isliteralgate, isconstantgate, is⋁gate, is⋀gate, literal_nodes,
     literal, constant, conjoin, disjoin, op, neutral,
     variable, ispositive, isnegative, istrue, isfalse,
@@ -76,6 +76,8 @@ function compile end
 
 "Is the node an inner gate?"
 @inline isinnergate(n) = GateType(n) isa InnerGate
+"Is the node a leaf gate?"
+@inline isleafgate(n) = GateType(n) isa LeafGate
 "Is the node an And gate?"
 @inline is⋀gate(n) = GateType(n) isa ⋀Gate
 "Is the node an Or gate?"
