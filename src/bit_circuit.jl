@@ -1,7 +1,7 @@
 using CUDA
 
 export NodeIds, ⋁NodeIds, ⋀NodeIds, BitCircuit, 
-    num_nodes, num_decisions, num_elements, num_leafs, num_features,
+    num_nodes, num_decisions, num_elements, num_leafs, num_features, nodes, elements,
     has_single_child, sibling
 
 #####################
@@ -176,6 +176,10 @@ end
 
 import .Utils: num_nodes # extend
 
+
+nodes(c::BitCircuit) = c.nodes
+elements(c::BitCircuit) = c.elements
+
 "How many nodes are indexed by a given bit circuit?"
 num_nodes(c::BitCircuit) = size(c.nodes, 2)
 
@@ -186,16 +190,24 @@ num_elements(nodes, id) =
 
 import .Utils: num_features #extend
 
-num_leafs(c::BitCircuit) = length(c.layers[1])
-num_features(c::BitCircuit) = (num_leafs(c)-2) ÷ 2
+num_leafs(c::BitCircuit) = 
+    num_leafs(length(c.layers[1]))
+num_leafs(nl::Int) = nl
 
-isliteralgate(c::BitCircuit, nodeid) = 
-    2 < nodeid <= num_leafs(c)
+num_features(c::BitCircuit) = num_features(num_leafs(c))
+num_features(nl::Int) = (nl-2) ÷ 2
+
+isliteralgate(c::BitCircuit, nodeid) =
+    isliteralgate(num_leafs(c), nodeid)
+isliteralgate(nl::Int, nodeid) = 
+    2 < nodeid <= nl
     
 isleafgate(c::BitCircuit, nodeid) = 
-    nodeid <= num_leafs(c)
+    isleafgate(num_leafs(c), nodeid) 
+isleafgate(nl::Int, nodeid) = 
+    nodeid <= nl
 
-function literal(c::BitCircuit, nodeid)
+function literal(c, nodeid)
     @assert 2 < nodeid <= num_leafs(c)
     if nodeid <= 2 + num_features(c)
         Lit(nodeid-2)
