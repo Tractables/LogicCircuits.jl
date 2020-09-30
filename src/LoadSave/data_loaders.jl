@@ -1,4 +1,7 @@
-export mnist, sampled_mnist, twenty_datasets, twenty_dataset_names, dataset 
+export mnist, 
+    sampled_mnist, 
+    twenty_datasets,
+    twenty_dataset_names 
     
 using MLDatasets
 using CSV

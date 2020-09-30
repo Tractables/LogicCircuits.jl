@@ -1,7 +1,7 @@
 export Vtree, vtree, variable, find_leaf,
-    varsubset, varsubset_left, varsubset_right, lca_vtree, depth,
-    respects_vtree,
-    top_down_vtree, bottom_up_vtree
+    varsubset, varsubset_left, varsubset_right, 
+    depth,
+    respects_vtree
 
 import Base: parent, in # extend
 import .Utils: find_leaf, find_inode, lca, depth # extend

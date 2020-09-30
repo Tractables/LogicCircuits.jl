@@ -1,7 +1,8 @@
 using CUDA
 
 export NodeIds, ⋁NodeIds, ⋀NodeIds, BitCircuit, 
-    num_nodes, num_decisions, num_elements, num_leafs, num_features, nodes, elements,
+    num_nodes, num_elements, num_leafs, num_features, 
+    nodes, elements,
     has_single_child, sibling
 
 #####################

@@ -6,7 +6,7 @@ import CUDA: CuVector, CuMatrix
 export num_examples, num_features, 
     example, feature_values,
     iscomplete, isfpdata, isbinarydata, 
-    num_chunks, chunk, eltype,
+    num_chunks, chunks, eltype,
     shuffle_examples, batch, threshold, soften,
     to_gpu, to_cpu, isgpu, same_device,
     ll_per_example, bits_per_pixel
