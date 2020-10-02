@@ -31,7 +31,7 @@
     mktempdir() do tmp
         # Save the vtree
         temp_path = "$tmp/little_4var_temp.vtree"
-        save_vtree(vtree, temp_path)
+        save_vtree(temp_path, vtree)
 
         # load it from file, and then run the same tests
         vtree2 = load_vtree(temp_path)
@@ -40,11 +40,11 @@
 
         # Save dot file
         dot_path = "$tmp/little_4var_temp.dot"
-        save_vtree(vtree, dot_path)
+        save_vtree(dot_path, vtree)
 
         # Save unsupported format 
         dot_path = "$tmp/little_4var_temp.bad_extension"
-        @test_throws String save_vtree(vtree, dot_path)
+        @test_throws String save_vtree(dot_path, vtree)
     end
 
     vtree = zoo_vtree("easy/C17_mince.min.vtree")

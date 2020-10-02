@@ -37,12 +37,12 @@ include("../helper/plain_logic_circuits.jl")
 
   mktempdir() do tmp
     circuit = fully_factorized_circuit(LogicCircuit,10)
-    @test_nowarn save_as_dot(circuit, "$tmp/temp.dot")
+    @test_nowarn save_as_dot("$tmp/temp.dot", circuit)
   end
 
   mktempdir() do tmp
     circuit = little_3var_constants()
-    @test_nowarn save_as_dot(circuit, "$tmp/temp.dot")
+    @test_nowarn save_as_dot("$tmp/temp.dot", circuit)
   end
 
   mktempdir() do tmp
@@ -59,8 +59,8 @@ include("../helper/plain_logic_circuits.jl")
     and3 = a′ & f
     and4 = na′ & nb′
     or = disjoin(and1, and2, and3, and4)
-    @test_nowarn save_as_tex(or, "$tmp/temp.tex")
-    @test_nowarn save_as_dot2tex(or, "$tmp/temp.tex")
+    @test_nowarn save_as_tex("$tmp/temp.tex", or)
+    @test_nowarn save_as_dot2tex("$tmp/temp.tex", or)
   end
 
   # TODO add a test to load and save and load an .sdd file

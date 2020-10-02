@@ -88,7 +88,7 @@ end
 
 Save a SDD circuit to file. File name should end with '.sdd'.
 """
-function save_as_sdd(name::String, circuit::LogicCircuit, vtree::PlainVtree)
+function save_as_sdd(name::String, circuit, vtree)
     @assert endswith(name, ".sdd")
     node2id = get_node2id(circuit)
     vtree2id = get_vtree2id(vtree)
@@ -106,7 +106,7 @@ end
 
 Save a circuit to file. Currently defaults to and only supports saving '.sdd' format.
 """
-save_circuit(name::String, circuit::LogicCircuit, vtree::PlainVtree) =
+save_circuit(name::String, circuit, vtree) =
     save_as_sdd(name, circuit, vtree)
 
 "Rank nodes in the same layer left to right"
