@@ -51,7 +51,7 @@ feature_values(df::DataFrame, i) = df[!,i]
 import Base: eltype # extend
 
 "Find a type that can capture all feature values"
-eltype(df::DataFrame) = reduce(typejoin, eltypes(df))
+eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
 
 "Is the data complete (no missing values)?"
 iscomplete(data::DataFrame) = all(iscomplete, eachcol(data))
@@ -64,11 +64,11 @@ iscomplete(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) =
 
 "Is the dataset binary?"
 isbinarydata(df::DataFrame) = 
-    all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltypes(df))
+    all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df)))
 
 "Is the dataset consisting of floating point data?"
 isfpdata(df::DataFrame) = 
-    all(t -> nonmissingtype(t) <: AbstractFloat, eltypes(df))
+    all(t -> nonmissingtype(t) <: AbstractFloat, eltype.(eachcol(df)))
 
 "For binary complete data, how many `UInt64` bit strings are needed to store one feature?"
 num_chunks(d::DataFrame) = num_chunks(feature_values(d,1))
