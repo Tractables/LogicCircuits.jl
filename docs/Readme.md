@@ -8,13 +8,17 @@ julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.i
 
 The build results will be stored under `docs/build`.
 
-
 Alternatively, if you have `LogicCircuits` in development mode and have already instantiated the docs environment, you can simply run the following:
 
 ```bash
-    julia --project=docs docs/make.jl
-```
-    
+julia --project=docs docs/make.jl
+``` 
 
 #### Note about Pretty URLs
-For easier navigation for local builds its probably easier to disable pretty URLs. To disable that, go to `make.jl` and set `prettyurls = false`. For more information about pretty URLs, check out  [the documentation](https://juliadocs.github.io/Documenter.jl/stable/man/guide/) for `Documenter.jl`.
+For easier navigation for local builds its easier to disable pretty URLs. To disable pretty urls run the following instead:
+
+```bash
+julia --project=docs docs/make.jl local
+```
+
+For more information about pretty URLs, check out  [the documentation](https://juliadocs.github.io/Documenter.jl/stable/man/guide/) for `Documenter.jl`.
