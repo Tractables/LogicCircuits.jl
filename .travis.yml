@@ -13,7 +13,7 @@ jobs:
     - stage: "Unit Tests"
       julia: 1.5
       script:
-        - JIVE_PROCS=2 julia --project -e 'using Pkg; Pkg.build(); Pkg.test(; coverage=true);'
+        - JIVE_PROCS=2 julia --project -e 'using Pkg; Pkg.precompile(); Pkg.test(; coverage=true);'
       after_success:
         - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
 
