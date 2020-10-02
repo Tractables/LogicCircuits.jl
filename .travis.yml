@@ -11,9 +11,7 @@ codecov: true
 jobs:
   include:
     - stage: "Unit Tests"
-      julia:
-        - 1.5
-        - nightly
+      julia: 1.5
       install:
         - julia -e 'using Pkg; Pkg.activate("."); Pkg.instantiate(); Pkg.precompile();'
         - julia -e 'using Pkg; Pkg.activate("./test"); Pkg.develop(PackageSpec(path = pwd())); Pkg.instantiate(); Pkg.precompile();'
@@ -24,9 +22,9 @@ jobs:
 
     - stage: "Documentation"
       julia: 1.5
-      os: linux
+      install: 
+        - julia -e 'using Pkg; Pkg.activate("./docs"); Pkg.develop(PackageSpec(path = pwd())); Pkg.instantiate(); Pkg.precompile();'
       script:
-        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       after_success: skip  
     
