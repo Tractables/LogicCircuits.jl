@@ -13,8 +13,7 @@ jobs:
         - julia --project=docs/ docs/make.jl
       after_success: skip
 env:
-  - DATADEPS_ALWAYS_ACCEPT=1
-  - JIVE_PROCS=2  
+  DATADEPS_ALWAYS_ACCEPT=1 JIVE_PROCS=2  
 notifications:
   slack:
     on_success: always
