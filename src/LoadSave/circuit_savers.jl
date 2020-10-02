@@ -84,11 +84,11 @@ function sdd_header()
 end
 
 """
-    save_as_sdd(name::String, circuit, vtree)
+    save_as_sdd(name::String, circuit::LogicCircuit, vtree)
 
 Save a SDD circuit to file. File name should end with '.sdd'.
 """
-function save_as_sdd(name::String, circuit, vtree)
+function save_as_sdd(name::String, circuit::LogicCircuit, vtree::PlainVtree)
     @assert endswith(name, ".sdd")
     node2id = get_node2id(circuit)
     vtree2id = get_vtree2id(vtree)
@@ -106,7 +106,7 @@ end
 
 Save a circuit to file. Currently defaults to and only supports saving '.sdd' format.
 """
-save_circuit(name::String, circuit, vtree) =
+save_circuit(name::String, circuit::LogicCircuit, vtree::PlainVtree) =
     save_as_sdd(name, circuit, vtree)
 
 "Rank nodes in the same layer left to right"
@@ -162,11 +162,11 @@ function get_level_nodes(circuit::LogicCircuit)::Tuple{Dict{LogicCircuit, Int}, 
 end
 
 """
-    save_as_dot(circuit::LogicCircuit, file::String)
+    save_as_dot(file::String, circuit::LogicCircuit)
 
 Save logic circuit in 'dot' file format.
 """
-function save_as_dot(circuit::LogicCircuit, file::String)
+function save_as_dot(file::String, circuit::LogicCircuit)
     circuit_nodes = linearize(circuit)
     node_cache = Dict{LogicCircuit, Int64}()
     for (i, n) in enumerate(circuit_nodes)
@@ -221,7 +221,7 @@ function save_as_dot(circuit::LogicCircuit, file::String)
 end
 
 """
-    save_as_dot2tex(circuit::LogicCircuit, file::String; **other_args)
+    save_as_dot2tex(file::String, circuit::LogicCircuit; **other_args)
 
 Save logic circuit as a LaTeX TikZ .tex file using the dot2tex engine.
 
@@ -233,7 +233,7 @@ terminal nodes.
 Note: `save_as_tex` does not work well on large circuits, and the resulting LaTeX file should serve
 as a first sketch in (serious) need for adjustments.
 """
-function save_as_dot2tex(circuit::LogicCircuit, file::String,
+function save_as_dot2tex(file::String, circuit::LogicCircuit,
                      V::Dict{LogicCircuit, Any} = Dict{LogicCircuit, Any}(),
                      E::Dict{Tuple{LogicCircuit, Int}, Any} = Dict{Tuple{LogicCircuit, Int}, Any}(),
                      ⋀_style::String = "and gate,fill=blue!50!red!30",
@@ -350,7 +350,7 @@ function save_as_dot2tex(circuit::LogicCircuit, file::String,
 end
 
 """
-    save_as_tex(circuit::LogicCircuit, file::String; **other_args)
+    save_as_tex(file::String, circuit::LogicCircuit; **other_args)
 
 Save logic circuit as a LaTeX TikZ .tex file.
 Argument `V` is a label map for each vertex, `E` is a label map for each edge, `⋀_style` is the
@@ -362,7 +362,7 @@ better readability.
 Note: `save_as_tex` does not work well on large circuits, and the resulting LaTeX file should serve
 as a first sketch in (serious) need for adjustments.
 """
-function save_as_tex(circuit::LogicCircuit, file::String;
+function save_as_tex(file::String, circuit::LogicCircuit;
                      V::Dict{LogicCircuit, Any} = Dict{LogicCircuit, Any}(),
                      E::Dict{Tuple{LogicCircuit, Int}, Any} = Dict{Tuple{LogicCircuit, Int}, Any}(),
                      ⋀_style::String = "and gate,fill=blue!50!red!30",

@@ -43,14 +43,14 @@ function reverse_order(dotfile::VtreeDotFile)
 end
 
 """
-    save_vtree(vtree::PlainVtree, file::AbstractString)
+    save_vtree(file::AbstractString, vtree::PlainVtree)
 
 Saves a vtree in the given file path based on file format.
 Supported formats:
 * ".vtree" for Vtree files
 * ".dot" for dot files
 """
-function save_vtree(vtree::PlainVtree, file::AbstractString)
+function save_vtree(file::AbstractString, vtree::PlainVtree)
 
     # 1. decide file type and open file
     if endswith(file,".vtree")
