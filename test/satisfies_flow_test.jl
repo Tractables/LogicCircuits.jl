@@ -3,6 +3,8 @@ using LogicCircuits
 using Random: bitrand, rand
 using DataFrames: DataFrame
 
+include("helper/gpu.jl")
+
 @testset "Binary flows test" begin
 
     r = fully_factorized_circuit(PlainLogicCircuit, 10)
@@ -24,6 +26,14 @@ using DataFrames: DataFrame
         @test v[:,id] == f[:,id] # invariant of logically valid circuits
     end
 
+    cpu_gpu_agree(input) do d
+        satisfies_flows(r, d)[1] # same value
+    end
+
+    cpu_gpu_agree(input) do d
+        satisfies_flows(r, d)[2][3:end,:] # same flows (except constants)
+    end
+
     num_vars = 7
     mgr = SddMgr(num_vars, :balanced)
     v = Dict([(i => compile(mgr, Lit(i))) for i=1:num_vars])
@@ -41,6 +51,14 @@ using DataFrames: DataFrame
         @test v[:,id] .& v[:,end] == f[:,id] # invariant of all circuits
     end
 
+    cpu_gpu_agree(input) do d
+        satisfies_flows(r, d)[1] # same value
+    end
+
+    cpu_gpu_agree(input) do d
+        satisfies_flows(r, d)[2][3:end,:] # same flows (except constants)
+    end
+
     l1 = LogicCircuit(Lit(1))
     l2 = LogicCircuit(Lit(2))
     l3 = LogicCircuit(Lit(-1))
@@ -52,6 +70,14 @@ using DataFrames: DataFrame
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] .& v[:,end] == f[:,id] # invariant of all circuits
+    end
+
+    cpu_gpu_agree(input) do d
+        satisfies_flows(r, d)[1] # same value
+    end
+
+    cpu_gpu_agree(input) do d
+        satisfies_flows(r, d)[2][3:end,:] # same flows (except constants)
     end
 
 end
@@ -72,6 +98,14 @@ end
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] ≈ f[:,id] # invariant of logically valid circuits
+    end
+
+    cpu_gpu_agree_approx(input) do d
+        satisfies_flows(r, d)[1] # same value
+    end
+
+    cpu_gpu_agree_approx(input) do d
+        satisfies_flows(r, d)[2][3:end,:] # same flows (except constants)
     end
 
     l_a = LogicCircuit(Lit(1))
@@ -102,6 +136,14 @@ end
         id = n.data.node_id
         @test v[:,id] ≈ f[:,id] # invariant of logically valid circuits
     end
+    
+    cpu_gpu_agree_approx(input) do d
+        satisfies_flows(r, d)[1] # same value
+    end
+
+    cpu_gpu_agree_approx(input) do d
+        satisfies_flows(r, d)[2][3:end,:] # same flows (except constants)
+    end
 
     o_c = (l_a & l_b & l_c) | (l_na & l_b & l_c)
     o_nc = (l_a & l_nb & l_nc) | (l_na & l_nb & l_nc)
@@ -122,4 +164,12 @@ end
     @test all(f[:,l_nb.data.node_id] .≈ (1.0 .- input[:, 2]) .* (1.0 .- input[:, 3]))
     @test all(f[:,l_nb.data.node_id] .≈ f[:,l_nc.data.node_id])
 
+    cpu_gpu_agree_approx(input) do d
+        satisfies_flows(r, d)[1] # same value
+    end
+
+    cpu_gpu_agree_approx(input) do d
+        satisfies_flows(r, d)[2][3:end,:] # same flows (except constants)
+    end
+    
 end
