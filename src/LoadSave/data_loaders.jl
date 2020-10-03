@@ -47,8 +47,8 @@ function twenty_datasets(name)
     @assert in(name, twenty_dataset_names)
     data_dir = artifact"density_estimation_datasets"
     function load(type)
-        dataframe = CSV.read(data_dir*"/Density-Estimation-Datasets-1.0.1/datasets/$name/$name.$type.data"; header=false,
-                 truestrings=["1"], falsestrings=["0"], type=Bool, strict=true)
+        dataframe = CSV.read(data_dir*"/Density-Estimation-Datasets-1.0.1/datasets/$name/$name.$type.data", DataFrame; 
+            header=false, truestrings=["1"], falsestrings=["0"], type=Bool, strict=true)
                  # make sure the data is backed by a `BitArray`
         DataFrame((BitArray(Base.convert(Matrix{Bool}, dataframe))))
     end
