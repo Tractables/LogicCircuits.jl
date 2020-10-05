@@ -2,7 +2,8 @@ using CUDA: CUDA, @cuda
 using DataFrames: DataFrame
 using LoopVectorization: @avx
 
-export satisfies, satisfies_all, satisfies_flows_down, satisfies_flows
+export satisfies, satisfies_all, satisfies_flows_down, satisfies_flows,
+count_downflow, downflow_all
 
 #####################
 # Circuit logical evaluation
@@ -354,3 +355,59 @@ end
 
 @inline compute_edge_flow(p_up::AbstractFloat, s_up, n_up, n_down) = p_up * s_up / n_up * n_down
 @inline compute_edge_flow(p_up::Unsigned, s_up, n_up, n_down) = p_up & s_up & n_down
+
+# API to get flows
+
+function count_downflow(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit)
+    dec_id = n.data.node_id
+    sum(1:size(flows,1)) do i
+        count_ones(flows[i, dec_id]) 
+    end
+end
+
+function downflow_all(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit)
+    dec_id = n.data.node_id
+    indices = map(1:size(flows,1)) do i
+        digits(Bool, flows[i, dec_id], base=2, pad=64) 
+    end
+    BitArray(vcat(indices...)[1:N])
+end
+
+function count_downflow(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit, c::LogicCircuit)
+    grandpa = n.data.node_id
+    if isleafgate(c)
+        par = c.data.node_id
+        return sum(1:size(flows,1)) do i
+            count_ones(values[i, par] & flows[i, grandpa]) 
+        end
+    else
+        ids = [x.data.node_id for x in children(c)]
+        return sum(1:size(flows,1)) do i
+            indices = flows[i, grandpa]
+            for id in ids
+                indices &= values[i, id]
+            end
+            count_ones(indices) 
+        end
+    end
+end
+
+function downflow_all(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit, c::LogicCircuit)
+    grandpa = n.data.node_id
+    if isleafgate(c)
+        par = c.data.node_id
+        edge = map(1:size(flows,1)) do i
+            digits(Bool, values[i, par] & flows[i, grandpa], base=2, pad=64)
+        end
+    else
+        ids = [x.data.node_id for x in children(c)]
+        edge = map(1:size(flows,1)) do i
+            indices = flows[i, grandpa]
+            for id in ids
+                indices = indices & values[i, id]
+            end
+            digits(Bool, indices, base=2, pad=64) 
+        end
+    end
+    BitArray(vcat(edge...)[1:N])
+end
