@@ -61,3 +61,12 @@ deepcopy
 
 
 ## Compilation
+
+
+## GPU Related
+
+```@docs
+isgpu
+to_gpu
+to_cpu
+```
