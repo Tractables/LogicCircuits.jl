@@ -3,7 +3,7 @@ export LogicCircuit, GateType, InnerGate, LeafGate,
     isliteralgate, isconstantgate, is⋁gate, is⋀gate, literal_nodes,
     literal, constant, conjoin, disjoin, op, neutral,
     variable, ispositive, isnegative, istrue, isfalse,
-    conjoin, disjoin, copy, compile, pos_literals, neg_literals, 
+    conjoin, disjoin, copy, compile, pos_literals, neg_literals, literals,
     fully_factorized_circuit, 
     ⋁_nodes, ⋀_nodes, or_nodes, and_nodes, 
     canonical_literals, canonical_constants, tree_formula_string
@@ -131,10 +131,12 @@ function compile end
 
 compile(n::LogicCircuit, args...) = compile(typeof(n), args...)
 
-@inline pos_literals(T::Type{<:LogicCircuit}, num_lits::Int) = 
+pos_literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
     map(l -> compile(T, Lit(l)), 1:num_lits)
-@inline neg_literals(T::Type{<:LogicCircuit}, num_lits::Int) = 
+neg_literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
     map(l -> compile(T, -Lit(l)), 1:num_lits)
+literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
+    zip(pos_literals(T,num_lits), neg_literals(T,num_lits))
 
 "Generate a fully factorized circuit over the given range of variables"
 function fully_factorized_circuit end
