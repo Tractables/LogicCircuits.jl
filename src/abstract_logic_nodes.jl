@@ -134,7 +134,7 @@ compile(n::LogicCircuit, args...) = compile(typeof(n), args...)
 @inline var(v::Integer, T::Type{<:LogicCircuit}) = compile(T, Lit(v)), compile(T, - Lit(v))
 @inline vars(vs::AbstractVector{<:Integer}, T::Type{<:LogicCircuit}) = map(v -> var(v, T), vs)
 @inline lit(l::Integer, T::Type{<:LogicCircuit}) = compile(T, Lit(l))
-@inline lits(ls::AbstractVector{<:Integer}, T::Type{<:LogicCircuit}) = map(v -> lit(l, T), ls)
+@inline lits(T::Type{<:LogicCircuit}, num_lits::Int) = map(l -> lit(l, T), 1:num_lits)
 
 "Generate a fully factorized circuit over the given range of variables"
 function fully_factorized_circuit end
