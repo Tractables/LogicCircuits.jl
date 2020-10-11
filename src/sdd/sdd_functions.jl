@@ -126,7 +126,7 @@ end
 
 negate(node::Sdd⋁Node) = node.negation::Sdd⋁Node
 
-@inline Base.:!(s) = negate(s)
+@inline Base.:!(c::LogicCircuit) = negate(c)
 
 """
 Get the canonical compilation of the given XY Partition
