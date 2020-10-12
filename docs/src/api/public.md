@@ -57,11 +57,12 @@ smooth
 condition
 forget
 deepcopy
+split
+clone
+propagate_constants
 ```
 
-
 ## Compilation
-
 
 ## GPU Related
 
