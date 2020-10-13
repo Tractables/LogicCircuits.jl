@@ -83,6 +83,83 @@ include("helper/gpu.jl")
 end
 
 
+@testset "Weighted binary flows test" begin
+
+    r = fully_factorized_circuit(PlainLogicCircuit, 10)
+    input = [1 0 1 0 1 0 1 0 1 0;
+            1 1 1 1 1 1 1 1 1 1;
+            0 0 0 0 0 0 0 0 0 0;
+            0 1 1 0 1 0 0 1 0 1]
+
+    input = DataFrame(BitArray(input))
+    @test r(input) == BitVector([1,1,1,1])
+    
+    weights = [0.6, 0.6, 0.6, 0.6]
+    weights = Array{Float32, 1}(weights)
+
+    vtree = PlainVtree(10, :balanced)
+    r = fully_factorized_circuit(StructLogicCircuit, vtree)
+    @test r(input) == BitVector([1,1,1,1])
+    
+    v, f = weighted_satisfies_flows(r, input, weights)
+    foreach(literal_nodes(r)) do n
+        id = n.data.node_id
+        @test v[:,id] == f[:,id] # invariant of logically valid circuits
+    end
+    
+    if CUDA.functional() 
+        @test all(weighted_satisfies_flows(r, input, weights)[1] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[1]))
+        
+        @test all(weighted_satisfies_flows(r, input, weights)[2][3:end,:] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[2][3:end,:]))
+    end
+
+    num_vars = 7
+    mgr = SddMgr(num_vars, :balanced)
+    v = Dict([(i => compile(mgr, Lit(i))) for i=1:num_vars])
+    c = (v[1] | !v[2] | v[3]) &
+        (v[2] | !v[7] | v[6]) &
+        (v[3] | !v[4] | v[5]) &
+        (v[1] | !v[4] | v[6])
+    input = DataFrame(bitrand(25,num_vars))
+    
+    weights = Array{Float32, 1}(ones(25) * 0.6)
+    
+    r = smooth(PlainLogicCircuit(c)) # flows don't make sense unless the circuit is smooth; cannot smooth trimmed SDDs
+
+    v, f = weighted_satisfies_flows(r, input, weights)
+    foreach(literal_nodes(r)) do n
+        id = n.data.node_id
+        @test v[:,id] .& v[:,end] == f[:,id] # invariant of all circuits
+    end
+
+    if CUDA.functional() 
+        @test all(weighted_satisfies_flows(r, input, weights)[1] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[1]))
+        
+        @test all(weighted_satisfies_flows(r, input, weights)[2][3:end,:] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[2][3:end,:]))
+    end
+
+    l1 = LogicCircuit(Lit(1))
+    l2 = LogicCircuit(Lit(2))
+    l3 = LogicCircuit(Lit(-1))
+    l4 = LogicCircuit(Lit(-2))
+    r = (l1 & l2) | (l3 & l4)
+    input = DataFrame(bitrand(4,2))
+
+    v, f = weighted_satisfies_flows(r, input, weights)
+    foreach(literal_nodes(r)) do n
+        id = n.data.node_id
+        @test v[:,id] .& v[:,end] == f[:,id] # invariant of all circuits
+    end
+
+    if CUDA.functional() 
+        @test all(weighted_satisfies_flows(r, input, weights)[1] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[1]))
+        
+        @test all(weighted_satisfies_flows(r, input, weights)[2][3:end,:] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[2][3:end,:]))
+    end
+
+end
+
+
 @testset "Probabilistic Flows test" begin
     
     r = fully_factorized_circuit(PlainLogicCircuit, 10)

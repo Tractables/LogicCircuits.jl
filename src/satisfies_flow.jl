@@ -2,7 +2,7 @@ using CUDA: CUDA, @cuda
 using DataFrames: DataFrame
 using LoopVectorization: @avx
 
-export satisfies, satisfies_all, satisfies_flows_down, satisfies_flows,
+export satisfies, satisfies_all, satisfies_flows_down, satisfies_flows, weighted_satisfies_flows,
 count_downflow, downflow_all
 
 #####################
@@ -205,6 +205,21 @@ function satisfies_flows(circuit::BitCircuit, data,
     return values, flows
 end
 
+"Compute the value and weighted flow of each node"
+function weighted_satisfies_flows(circuit::LogicCircuit, data, weights,
+    reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop) 
+    bc = same_device(BitCircuit(circuit, data), data)
+    weighted_satisfies_flows(bc, data, weights, reuse_values, reuse_flows; on_node, on_edge)
+end
+
+function weighted_satisfies_flows(circuit::BitCircuit, data, weights,
+            reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop)
+    @assert isgpu(data) == isgpu(circuit) "BitCircuit and data need to be on the same device"
+    values = satisfies_all(circuit, data, reuse_values)
+    flows = weighted_satisfies_flows_down(circuit, values, weights, reuse_flows; on_node, on_edge)
+    return values, flows
+end
+
 #####################
 # Bit circuit flows downward pass
 #####################
@@ -213,6 +228,13 @@ end
 function satisfies_flows_down(circuit::BitCircuit, values, reuse=nothing; on_node=noop, on_edge=noop)
     flows = similar!(reuse, typeof(values), size(values)...)
     satisfies_flows_down_layers(circuit, flows, values, on_node, on_edge)
+    return flows
+end
+
+"When values of nodes have already been computed, do a downward pass computing the weighted flows at each node"
+function weighted_satisfies_flows_down(circuit::BitCircuit, values, weights, reuse=nothing; on_node=noop, on_edge=noop)
+    flows = similar!(reuse, typeof(values), size(values)...)
+    weighted_satisfies_flows_down_layers(circuit, flows, values, weights, on_node, on_edge)
     return flows
 end
 
@@ -260,6 +282,48 @@ function satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values:
     end
 end 
 
+"Evaluate the layers of a bit circuit on the CPU (SIMD & multi-threaded)"
+function weighted_satisfies_flows_down_layers(circuit::BitCircuit, flows::Matrix, values::Matrix, weights, on_node, on_edge)
+    els = circuit.elements   
+    for layer in Iterators.reverse(circuit.layers)
+        Threads.@threads for dec_id in layer
+            par_start = @inbounds circuit.nodes[3,dec_id]
+            if iszero(par_start)
+                if dec_id == num_nodes(circuit)
+                    # populate root flow from values
+                    @inbounds @views @. flows[:, dec_id] = values[:, dec_id]
+                end
+                # no parents, ignore (can happen for false/true node and root)
+            else
+                par_end = @inbounds circuit.nodes[4,dec_id]
+                for j = par_start:par_end
+                    par = @inbounds circuit.parents[j]
+                    grandpa = @inbounds els[1,par]
+                    sib_id = sibling(els, par, dec_id)
+                    # TODO: check if things would speed up if we also allowed the first parent to write flows in lower-down layers
+                    single_child = has_single_child(circuit.nodes, grandpa)
+                    if single_child
+                        if j == par_start
+                            @inbounds @views @. flows[:, dec_id] = flows[:, grandpa]
+                        else
+                            accum_flow(flows, dec_id, grandpa)
+                        end
+                    else
+                        if j == par_start
+                            assign_flow(flows, values, dec_id, grandpa, sib_id)
+                        else
+                            accum_flow(flows, values, dec_id, grandpa, sib_id)
+                        end
+                    end
+                    # report edge flow only once:
+                    sib_id > dec_id && on_edge(flows, values, weights, dec_id, sib_id, par, grandpa, single_child)
+                end
+            end
+            on_node(flows, values, weights, dec_id)
+        end
+    end
+end 
+
 assign_flow(f::Matrix{<:Unsigned}, v, d, g, s) =
     @inbounds @views @. f[:, d] = v[:, s] & v[:, d] & f[:, g]
 
@@ -300,6 +364,19 @@ function satisfies_flows_down_layers(circuit::BitCircuit, flows::CuMatrix, value
         num_blocks = (ceil(Int, num_examples/num_threads[1]), 
                       ceil(Int, num_decision_sets/num_threads[2])) 
         @cuda threads=num_threads blocks=num_blocks satisfies_flows_down_layers_cuda(layer, circuit.nodes, circuit.elements, circuit.parents, flows, values, on_node, on_edge)
+    end
+end
+
+"Pass weighted flows down the layers of a bit circuit on the GPU"
+function weighted_satisfies_flows_down_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, weights, on_node, on_edge; 
+            dec_per_thread = 8, log2_threads_per_block = 7)
+    CUDA.@sync for layer in Iterators.reverse(circuit.layers)
+        num_examples = size(values, 1)
+        num_decision_sets = length(layer)/dec_per_thread
+        num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
+        num_blocks = (ceil(Int, num_examples/num_threads[1]), 
+                      ceil(Int, num_decision_sets/num_threads[2])) 
+        @cuda threads=num_threads blocks=num_blocks weighted_satisfies_flows_down_layers_cuda(layer, circuit.nodes, circuit.elements, circuit.parents, flows, values, weights, on_node, on_edge)
     end
 end
 
@@ -345,6 +422,54 @@ function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows
             end
             @inbounds flows[k, dec_id] = flow
             on_node(flows, values, dec_id, k, flow)
+        end
+    end
+    return nothing
+end
+
+"CUDA kernel for passing weighted flows down circuit"
+function weighted_satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows, values, weights, on_node, on_edge)
+    index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+    index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
+    stride_x = blockDim().x * gridDim().x
+    stride_y = blockDim().y * gridDim().y
+    for k = index_x:stride_x:size(values,1)
+        weight = @inbounds weights[k]
+        for i = index_y:stride_y:length(layer)
+            dec_id = @inbounds layer[i]
+            if dec_id == size(nodes,2)
+                # populate root flow from values
+                flow = values[k, dec_id]
+            else
+                par_start = @inbounds nodes[3,dec_id]
+                flow = zero(eltype(flows))
+                if !iszero(par_start)
+                    par_end = @inbounds nodes[4,dec_id]
+                    for j = par_start:par_end
+                        par = @inbounds parents[j]
+                        grandpa = @inbounds elements[1,par]
+                        v_gp = @inbounds values[k, grandpa]
+                        prime = elements[2,par]
+                        sub = elements[3,par]
+                        if !iszero(v_gp) # edge flow only gets reported when non-zero
+                            f_gp = @inbounds flows[k, grandpa]
+                            single_child = has_single_child(nodes, grandpa)
+                            if single_child
+                                edge_flow = f_gp
+                            else
+                                v_prime = @inbounds values[k, prime]
+                                v_sub = @inbounds values[k, sub]
+                                edge_flow = compute_edge_flow( v_prime, v_sub, v_gp, f_gp)  
+                            end
+                            flow = sum_flows(flow, edge_flow)
+                            # report edge flow only once:
+                            dec_id == prime && on_edge(flows, values, prime, sub, par, grandpa, k, edge_flow, single_child, weight)
+                        end
+                    end
+                end
+            end
+            @inbounds flows[k, dec_id] = flow
+            on_node(flows, values, dec_id, k, flow, weight)
         end
     end
     return nothing
