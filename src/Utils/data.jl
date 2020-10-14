@@ -5,7 +5,7 @@ import CUDA: CuVector, CuMatrix
 
 export num_examples, num_features, 
     example, feature_values,
-    iscomplete, isfpdata, isbinarydata, 
+    iscomplete, isweighted, isfpdata, isbinarydata, 
     num_chunks, chunks, eltype,
     shuffle_examples, batch, threshold, soften,
     to_gpu, to_cpu, isgpu, same_device,
@@ -65,6 +65,10 @@ iscomplete(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) =
 "Is the dataset binary?"
 isbinarydata(df::DataFrame) = 
     all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df)))
+
+"Is the dataset weighted?"
+isweighted(df::DataFrame) = 
+    cmp(names(df)[end], "weight") === 0
 
 "Is the dataset consisting of floating point data?"
 isfpdata(df::DataFrame) = 

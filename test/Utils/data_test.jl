@@ -42,6 +42,13 @@ using DataFrames: DataFrame, DataFrameRow
     @test ll_per_example(-12.3, dfb) ≈ -4.1 #not verified
 
     @test bits_per_pixel(-12.3, dfb) ≈ 2.9575248338223754 #not verified
+    
+    dfb = DataFrame(BitMatrix([true false; true true; false true]))
+    weights = DataFrame(weight = [0.6, 0.6, 0.6])
+    wdfb = hcat(dfb, weights)
+    
+    @test isweighted(wdfb)
+    @test !isweighted(dfb)
 
 end
 
