@@ -40,7 +40,7 @@ num_examples(df) = nrow(df)
 
 Number of features in the data
 """
-num_features(df) = ncol(df)
+num_features(df::DataFrame) = isweighted(df) ? ncol(df) - 1 : ncol(df)
 
 "Get the ith example"
 example(d,i) = vec(convert(Array, d[i,:]))
