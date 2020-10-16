@@ -194,14 +194,14 @@ accum_el_value(values, j, decision_id, p::Unsigned, s) =
 function satisfies_flows(circuit::LogicCircuit, data, 
     reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop, weights=nothing) 
     bc = same_device(BitCircuit(circuit, data), data)
-    satisfies_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge, weights = weights)
+    satisfies_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge, weights)
 end
 
 function satisfies_flows(circuit::BitCircuit, data, 
             reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop, weights=nothing)
     @assert isgpu(data) == isgpu(circuit) "BitCircuit and data need to be on the same device"
     values = satisfies_all(circuit, data, reuse_values)
-    flows = satisfies_flows_down(circuit, values, reuse_flows; on_node, on_edge, weights = weights)
+    flows = satisfies_flows_down(circuit, values, reuse_flows; on_node, on_edge, weights)
     return values, flows
 end
 
