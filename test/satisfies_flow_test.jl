@@ -101,16 +101,16 @@ end
     r = fully_factorized_circuit(StructLogicCircuit, vtree)
     @test r(input) == BitVector([1,1,1,1])
     
-    v, f = weighted_satisfies_flows(r, input, weights)
+    v, f = satisfies_flows(r, input; weights = weights)
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] == f[:,id] # invariant of logically valid circuits
     end
     
     if CUDA.functional() 
-        @test all(weighted_satisfies_flows(r, input, weights)[1] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[1]))
+        @test all(satisfies_flows(r, input; weights = weights)[1] .≈ to_cpu(satisfies_flows(r, to_gpu(input); weights = to_gpu(weights))[1]))
         
-        @test all(weighted_satisfies_flows(r, input, weights)[2][3:end,:] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[2][3:end,:]))
+        @test all(satisfies_flows(r, input; weights)[2][3:end,:] .≈ to_cpu(satisfies_flows(r, to_gpu(input); weights = to_gpu(weights))[2][3:end,:]))
     end
 
     num_vars = 7
@@ -126,16 +126,16 @@ end
     
     r = smooth(PlainLogicCircuit(c)) # flows don't make sense unless the circuit is smooth; cannot smooth trimmed SDDs
 
-    v, f = weighted_satisfies_flows(r, input, weights)
+    v, f = satisfies_flows(r, input; weights = weights)
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] .& v[:,end] == f[:,id] # invariant of all circuits
     end
 
     if CUDA.functional() 
-        @test all(weighted_satisfies_flows(r, input, weights)[1] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[1]))
+        @test all(satisfies_flows(r, input; weights = weights)[1] .≈ to_cpu(satisfies_flows(r, to_gpu(input); weights = to_gpu(weights))[1]))
         
-        @test all(weighted_satisfies_flows(r, input, weights)[2][3:end,:] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[2][3:end,:]))
+        @test all(satisfies_flows(r, input; weights)[2][3:end,:] .≈ to_cpu(satisfies_flows(r, to_gpu(input); weights = to_gpu(weights))[2][3:end,:]))
     end
 
     l1 = LogicCircuit(Lit(1))
@@ -145,16 +145,16 @@ end
     r = (l1 & l2) | (l3 & l4)
     input = DataFrame(bitrand(4,2))
 
-    v, f = weighted_satisfies_flows(r, input, weights)
+    v, f = satisfies_flows(r, input; weights = weights)
     foreach(literal_nodes(r)) do n
         id = n.data.node_id
         @test v[:,id] .& v[:,end] == f[:,id] # invariant of all circuits
     end
 
     if CUDA.functional() 
-        @test all(weighted_satisfies_flows(r, input, weights)[1] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[1]))
+        @test all(satisfies_flows(r, input; weights = weights)[1] .≈ to_cpu(satisfies_flows(r, to_gpu(input); weights = to_gpu(weights))[1]))
         
-        @test all(weighted_satisfies_flows(r, input, weights)[2][3:end,:] .≈ to_cpu(weighted_satisfies_flows(r, to_gpu(input), to_gpu(weights))[2][3:end,:]))
+        @test all(satisfies_flows(r, input; weights = weights)[2][3:end,:] .≈ to_cpu(satisfies_flows(r, to_gpu(input); weights = to_gpu(weights))[2][3:end,:]))
     end
 
 end
