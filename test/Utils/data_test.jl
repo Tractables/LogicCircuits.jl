@@ -8,11 +8,18 @@ using DataFrames: DataFrame, DataFrameRow
     df = DataFrame(m)
     dfb = DataFrame(BitMatrix([true false; true true; false true]))
     
+    batched_df = batch(df, 1)
+    batched_dfb = batch(dfb, 1)
+    
     @test num_examples(df) == 3
     @test num_examples(dfb) == 3
+    @test num_examples(batched_df) == 3
+    @test num_examples(batched_dfb) == 3
 
     @test num_features(df) == 2
     @test num_features(dfb) == 2
+    @test num_features(batched_df) == 2
+    @test num_features(batched_dfb) == 2
     
     @test example(df,2) isa Vector
     @test example(df,2)[1] == 3.1
@@ -24,10 +31,14 @@ using DataFrames: DataFrame, DataFrameRow
 
     @test isfpdata(df)
     @test !isfpdata(dfb)
+    @test isfpdata(batched_df)
+    @test !isfpdata(batched_dfb)
     @test !isfpdata(DataFrame([1 "2"; 3 "4"]))
 
     @test !isbinarydata(df)
     @test isbinarydata(dfb)
+    @test !isbinarydata(batched_df)
+    @test isbinarydata(batched_dfb)
 
     @test num_examples(shuffle_examples(df)) == 3
     @test 1.1 in feature_values(shuffle_examples(df), 1) 

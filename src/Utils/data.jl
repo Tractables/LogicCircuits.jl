@@ -33,7 +33,8 @@ export num_examples, num_features,
 
 Number of examples in data
 """
-num_examples(df) = nrow(df)
+num_examples(df::DataFrame) = nrow(df)
+num_examples(df::Array{DataFrame}) = mapreduce(d -> num_examples(d), +, df)
 
 """
     num_features(df::DataFrame)
@@ -41,6 +42,7 @@ num_examples(df) = nrow(df)
 Number of features in the data
 """
 num_features(df::DataFrame) = isweighted(df) ? ncol(df) - 1 : ncol(df)
+num_features(df::Array{DataFrame}) = num_features(df[1])
 
 "Get the ith example"
 example(d,i) = vec(convert(Array, d[i,:]))
@@ -61,18 +63,25 @@ iscomplete(x::Array{Union{Bool,Missing}}) = !any(ismissing, x)
 iscomplete(x::Array{Union{<:AbstractFloat,Missing}}) = !any(ismissing, x)
 iscomplete(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) = 
     !any(v -> v == typemax(v), x)
+iscomplete(data::Array{DataFrame}) = all(d -> iscomplete(d), data)
 
 "Is the dataset binary?"
 isbinarydata(df::DataFrame) = 
     all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df)))
+isbinarydata(df::Array{DataFrame}) = 
+    all(d -> isbinarydata(d), df)
 
 "Is the dataset weighted?"
 isweighted(df::DataFrame) = 
     cmp(names(df)[end], "weight") === 0
+isweighted(df::Array{DataFrame}) = 
+    all(d -> isweighted(d), df)
 
 "Is the dataset consisting of floating point data?"
 isfpdata(df::DataFrame) = 
     all(t -> nonmissingtype(t) <: AbstractFloat, eltype.(eachcol(df)))
+isfpdata(df::Array{DataFrame}) = 
+    all(d -> isfpdata(d), df)
 
 "For binary complete data, how many `UInt64` bit strings are needed to store one feature?"
 num_chunks(d::DataFrame) = num_chunks(feature_values(d,1))
@@ -99,6 +108,10 @@ function batch(data, batchsize=1024)
         data[start_index:stop_index, :]
     end
 end
+
+"Is the dataset batched?"
+isbatched(data::DataFrame) = false
+isbatched(data::Array{DataFrame}) = true    
 
 "Threshold a numeric dataset making it binary"
 threshold(train, valid, test) = threshold(train, valid, test, 0.05) # default threshold offset (used for MNIST)
