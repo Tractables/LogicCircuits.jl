@@ -8,7 +8,8 @@ export num_examples, num_features,
     iscomplete, isweighted, isfpdata, isbinarydata, 
     num_chunks, chunks, eltype,
     add_sample_weights, split_sample_weights,
-    shuffle_examples, batch, batch_size, threshold, soften,
+    shuffle_examples, batch, batch_size, isbatched,
+    threshold, soften,
     to_gpu, to_cpu, isgpu, same_device,
     ll_per_example, bits_per_pixel
 

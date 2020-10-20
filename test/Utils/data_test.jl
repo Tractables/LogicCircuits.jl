@@ -87,6 +87,9 @@ using DataFrames: DataFrame, DataFrameRow
     batched_weights1 = batch(weights1, 1)
     batched_weights2 = batch(weights2, 1)
     
+    @test isbatched(batched_dfb)
+    @test !isbatched(dfb)
+    
     @test isweighted(add_sample_weights(batched_dfb, weights1))
     @test isweighted(add_sample_weights(batched_dfb, weights2))
     @test isweighted(add_sample_weights(batched_dfb, batched_weights1))
