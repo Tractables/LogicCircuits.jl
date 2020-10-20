@@ -8,7 +8,7 @@ export num_examples, num_features,
     iscomplete, isweighted, isfpdata, isbinarydata, 
     num_chunks, chunks, eltype,
     add_sample_weights, split_sample_weights,
-    shuffle_examples, batch, threshold, soften,
+    shuffle_examples, batch, batch_size, threshold, soften,
     to_gpu, to_cpu, isgpu, same_device,
     ll_per_example, bits_per_pixel
 
@@ -36,6 +36,7 @@ Number of examples in data
 """
 num_examples(df::DataFrame) = nrow(df)
 num_examples(df::Array{DataFrame}) = mapreduce(d -> num_examples(d), +, df)
+num_examples(df::AbstractArray) = length(df)
 
 """
     num_features(df::DataFrame)
@@ -102,9 +103,18 @@ add_sample_weights(df::DataFrame, weights::AbstractArray) = begin
     if isweighted(df)
         df = split_sample_weights(df)[1]
     end
-    df.weight = weights
+    df.weight = collect(Iterators.flatten(weights))
     
     df
+end
+add_sample_weights(df::Array{DataFrame}, weights) = begin
+    if (weights isa DataFrame) || (weights isa AbstractArray{F} where F <: AbstractFloat)
+        weights = batch(weights, batch_size(df))
+    end
+    
+    map(zip(df, weights)) do (d, dw)
+        add_sample_weights(d, dw)
+    end
 end
     
 "Split a weighted dataset into unweighted dataset
@@ -113,6 +123,17 @@ split_sample_weights(df::DataFrame) = begin
     @assert isweighted(df) "`df` is not weighted."
     weights = df[!, end]
     df = df[!, 1:end-1]
+    
+    df, weights
+end
+split_sample_weights(df::Array{DataFrame}) = begin
+    weights = map(df) do d
+        d[!, end]
+    end
+    
+    df = map(df) do d
+        d[!, 1:end-1]
+    end
     
     df, weights
 end
@@ -143,7 +164,10 @@ end
 
 "Is the dataset batched?"
 isbatched(data::DataFrame) = false
-isbatched(data::Array{DataFrame}) = true    
+isbatched(data::Array{DataFrame}) = true  
+    
+"Batch size of the dataset"
+batch_size(data::Array{DataFrame}) = num_examples(data[1])
 
 "Threshold a numeric dataset making it binary"
 threshold(train, valid, test) = threshold(train, valid, test, 0.05) # default threshold offset (used for MNIST)
@@ -178,6 +202,9 @@ to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
 to_gpu(v::Vector{Union{Bool,Missing}}) =
     CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
 to_gpu(df::DataFrame) = mapcols(to_gpu, df)
+to_gpu(df::AbstractArray{DataFrame}) = map(df) do d
+    to_gpu(d)
+end
 
 "Move data to the CPU"
 to_cpu(m::Union{BitVector,Array}) = m
@@ -190,6 +217,9 @@ to_cpu(v::CuVector{UInt8}) =
     convert(Vector{Union{Bool,Missing}}, 
         replace(Array(v), typemax(UInt8) => missing))
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
+to_cpu(df::AbstractArray{DataFrame}) = map(df) do d
+    to_gpu(d)
+end
 
 "Check whether data resides on the GPU"
 isgpu(::Union{Array, BitArray}) = false

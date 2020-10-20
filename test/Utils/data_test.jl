@@ -79,6 +79,22 @@ using DataFrames: DataFrame, DataFrameRow
     @test isgpu(wdfb2_gpu)
     @test isgpu(dfb_split1_gpu)
     @test isgpu(dfb_gpu_split1)
+    
+    dfb = DataFrame(BitMatrix([true false; true true; false true]))
+    weights1 = DataFrame(weight = [0.6, 0.6, 0.6])
+    weights2 = [0.6, 0.6, 0.6]
+    batched_dfb = batch(dfb, 1)
+    batched_weights1 = batch(weights1, 1)
+    batched_weights2 = batch(weights2, 1)
+    
+    @test isweighted(add_sample_weights(batched_dfb, weights1))
+    @test isweighted(add_sample_weights(batched_dfb, weights2))
+    @test isweighted(add_sample_weights(batched_dfb, batched_weights1))
+    @test isweighted(add_sample_weights(batched_dfb, batched_weights2))
+    
+    batched_wdfb = add_sample_weights(batched_dfb, weights1)
+    
+    @test !isweighted(split_sample_weights(batched_wdfb)[1])
 
 end
 
