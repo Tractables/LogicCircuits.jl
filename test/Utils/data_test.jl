@@ -55,11 +55,30 @@ using DataFrames: DataFrame, DataFrameRow
     @test bits_per_pixel(-12.3, dfb) ≈ 2.9575248338223754 #not verified
     
     dfb = DataFrame(BitMatrix([true false; true true; false true]))
-    weights = DataFrame(weight = [0.6, 0.6, 0.6])
-    wdfb = hcat(dfb, weights)
     
-    @test isweighted(wdfb)
     @test !isweighted(dfb)
+    
+    weights1 = DataFrame(weight = [0.6, 0.6, 0.6])
+    weights2 = [0.6, 0.6, 0.6]
+    wdfb1 = add_sample_weights(dfb, weights1)
+    wdfb2 = add_sample_weights(dfb, weights2)
+    
+    dfb_split1 = split_sample_weights(wdfb1)[1]
+    
+    @test isweighted(wdfb1)
+    @test isweighted(wdfb2)
+    @test !isweighted(dfb_split1)
+    
+    wdfb1_gpu = to_gpu(wdfb1)
+    wdfb2_gpu = to_gpu(wdfb2)
+    dfb_split1_gpu = to_gpu(dfb_split1)
+    
+    dfb_gpu_split1 = split_sample_weights(wdfb1_gpu)[1]
+    
+    @test isgpu(wdfb1_gpu)
+    @test isgpu(wdfb2_gpu)
+    @test isgpu(dfb_split1_gpu)
+    @test isgpu(dfb_gpu_split1)
 
 end
 

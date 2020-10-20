@@ -7,6 +7,7 @@ export num_examples, num_features,
     example, feature_values,
     iscomplete, isweighted, isfpdata, isbinarydata, 
     num_chunks, chunks, eltype,
+    add_sample_weights, split_sample_weights,
     shuffle_examples, batch, threshold, soften,
     to_gpu, to_cpu, isgpu, same_device,
     ll_per_example, bits_per_pixel
@@ -71,12 +72,6 @@ isbinarydata(df::DataFrame) =
 isbinarydata(df::Array{DataFrame}) = 
     all(d -> isbinarydata(d), df)
 
-"Is the dataset weighted?"
-isweighted(df::DataFrame) = 
-    cmp(names(df)[end], "weight") === 0
-isweighted(df::Array{DataFrame}) = 
-    all(d -> isweighted(d), df)
-
 "Is the dataset consisting of floating point data?"
 isfpdata(df::DataFrame) = 
     all(t -> nonmissingtype(t) <: AbstractFloat, eltype.(eachcol(df)))
@@ -90,6 +85,43 @@ num_chunks(v::AbstractBitVector) = length(v.chunks)
 "Retrieve chunks of bit vector"
 chunks(v::AbstractBitVector) = v.chunks
 chunks(df::DataFrame, i) = chunks(feature_values(df, i))
+
+# WEIGHTED DATASETS
+
+"Add sample weights by adding a named column `weight`
+ at the end of the DataFrame."
+add_sample_weights(df::DataFrame, weights::DataFrame) = begin
+    if isweighted(df)
+        df = split_sample_weights(df)[1]
+    end
+    df.weight = weights[!,1]
+    
+    df
+end
+add_sample_weights(df::DataFrame, weights::AbstractArray) = begin
+    if isweighted(df)
+        df = split_sample_weights(df)[1]
+    end
+    df.weight = weights
+    
+    df
+end
+    
+"Split a weighted dataset into unweighted dataset
+ and its corresponding weights."
+split_sample_weights(df::DataFrame) = begin
+    @assert isweighted(df) "`df` is not weighted."
+    weights = df[!, end]
+    df = df[!, 1:end-1]
+    
+    df, weights
+end
+
+"Is the dataset weighted?"
+isweighted(df::DataFrame) = 
+    cmp(names(df)[end], "weight") === 0
+isweighted(df::Array{DataFrame}) = 
+    all(d -> isweighted(d), df)
 
 # DATA TRANSFORMATIONS
 
