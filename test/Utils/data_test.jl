@@ -98,6 +98,8 @@ using DataFrames: DataFrame, DataFrameRow
     batched_wdfb = add_sample_weights(batched_dfb, weights1)
     
     @test !isweighted(split_sample_weights(batched_wdfb)[1])
+    
+    @test isgpu(to_gpu(batched_wdfb))
 
 end
 

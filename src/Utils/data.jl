@@ -156,11 +156,23 @@ shuffle_examples(data) = data[shuffle(axes(data, 1)), :]
 
 "Create mini-batches"
 function batch(data, batchsize=1024)
+    to_gpu_flag = false
+    if isgpu(data)
+        to_gpu_flag = true
+        data = to_cpu(data)
+    end
+    
     data = shuffle_examples(data)
-    map(1:batchsize:num_examples(data)) do start_index 
+    data = map(1:batchsize:num_examples(data)) do start_index 
         stop_index = min(start_index + batchsize - 1, num_examples(data))
         data[start_index:stop_index, :]
     end
+    
+    if to_gpu_flag
+        data = to_cpu(data)
+    end
+    
+    data
 end
 
 "Is the dataset batched?"
@@ -203,7 +215,7 @@ to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
 to_gpu(v::Vector{Union{Bool,Missing}}) =
     CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
 to_gpu(df::DataFrame) = mapcols(to_gpu, df)
-to_gpu(df::AbstractArray{DataFrame}) = map(df) do d
+to_gpu(df::Array{DataFrame}) = map(df) do d
     to_gpu(d)
 end
 
@@ -218,7 +230,7 @@ to_cpu(v::CuVector{UInt8}) =
     convert(Vector{Union{Bool,Missing}}, 
         replace(Array(v), typemax(UInt8) => missing))
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
-to_cpu(df::AbstractArray{DataFrame}) = map(df) do d
+to_cpu(df::Array{DataFrame}) = map(df) do d
     to_gpu(d)
 end
 
@@ -226,6 +238,7 @@ end
 isgpu(::Union{Array, BitArray}) = false
 isgpu(::Union{CuArray, CuBitVector}) = true
 isgpu(df::DataFrame) = all(isgpu, eachcol(df))
+isgpu(df::Array{DataFrame}) = all(isgpu, df)
 
 "Ensure that `x` resides on the same device as `data`"
 same_device(x, data) = isgpu(data) ? to_gpu(x) : to_cpu(x)
