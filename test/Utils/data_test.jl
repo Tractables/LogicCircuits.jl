@@ -65,6 +65,8 @@ using DataFrames: DataFrame, DataFrameRow
     
     dfb_split1 = split_sample_weights(wdfb1)[1]
     
+    @test get_weights(wdfb1)[1] ≈ 0.6
+    
     @test isweighted(wdfb1)
     @test isweighted(wdfb2)
     @test !isweighted(dfb_split1)
@@ -100,6 +102,8 @@ using DataFrames: DataFrame, DataFrameRow
     @test !isweighted(split_sample_weights(batched_wdfb)[1])
     
     @test isgpu(to_gpu(batched_wdfb))
+    
+    @test get_weights(batched_wdfb)[1][1] ≈ 0.6
 
 end
 

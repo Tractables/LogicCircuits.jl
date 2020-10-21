@@ -7,7 +7,7 @@ export num_examples, num_features,
     example, feature_values,
     iscomplete, isweighted, isfpdata, isbinarydata, 
     num_chunks, chunks, eltype,
-    add_sample_weights, split_sample_weights,
+    add_sample_weights, split_sample_weights, get_weights,
     shuffle_examples, batch, batch_size, isbatched,
     threshold, soften,
     to_gpu, to_cpu, isgpu, same_device,
@@ -128,6 +128,7 @@ split_sample_weights(df::DataFrame) = begin
     df, weights
 end
 split_sample_weights(df::Array{DataFrame}) = begin
+    @assert isweighted(df) "`df` is not weighted."
     weights = map(df) do d
         d[!, end]
     end
@@ -137,6 +138,18 @@ split_sample_weights(df::Array{DataFrame}) = begin
     end
     
     df, weights
+end
+
+"Get the weights from a weighted dataset."
+get_weights(df::DataFrame) = begin
+    @assert isweighted(df) "`df` is not weighted."
+    df[!, end]
+end
+get_weights(df::Array{DataFrame}) = begin
+    @assert isweighted(df) "`df` is not weighted."
+    map(df) do d
+        d[!, end]
+    end
 end
 
 "Is the dataset weighted?"
