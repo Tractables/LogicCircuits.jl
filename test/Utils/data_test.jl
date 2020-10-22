@@ -1,6 +1,7 @@
 using Test
 using LogicCircuits
 using DataFrames: DataFrame, DataFrameRow
+using CUDA: CUDA
 
 @testset "Data utils" begin
 
