@@ -31,9 +31,9 @@ To run all the tests:
 
     julia --project=test --color=yes test/runtests.jl
 
-You can also run a specific test:
+You can also run any specific test:
 
-    julia --project=test --color=yes test/aqua_test.jl
+    julia --project=test --color=yes test/_manual_/aqua_test.jl
     
 ## Releasing New Versions
 
