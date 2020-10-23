@@ -10,7 +10,7 @@ on:
       master
 
   schedule:
-    - cron: '* 7 * * *'
+    - cron: '0 0 * * *'
 
 
 env:
