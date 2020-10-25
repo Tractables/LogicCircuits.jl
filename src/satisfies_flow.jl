@@ -55,25 +55,28 @@ function init_satisfies(data, reuse, num_nodes)
     if isbinarydata(data)
         flowtype = isgpu(data) ? CuMatrix{UInt} : Matrix{UInt}
         values = similar!(reuse, flowtype, num_chunks(data), num_nodes)
+
         @views values[:,TRUE_BITS] .= typemax(UInt)
         @views values[:,FALSE_BITS] .= typemin(UInt)
-        for i=1:num_features(data)
+        nfeatures = num_features(data)
+        for i=1:nfeatures
             @views values[:,2+i] .= chunks(data,i)
-            @views values[:,2+num_features(data)+i] .= .~ chunks(data,i)
+            @views values[:,2+nfeatures+i] .= .~ chunks(data,i)
         end
         # warning: there are now some 1 bits beyond the BitVector mask.
         # therefore, reset those to 0
         @views values[end,1:2+2*num_features(data)] .&= _msk_end(data)
-        
+
     else
         @assert isfpdata(data) "Only floating point and binary flows are supported"
         flowtype = isgpu(data) ? CuMatrix{eltype(data)} : Matrix{eltype(data)}
         values = similar!(reuse, flowtype, num_examples(data), num_nodes)
         @views values[:,TRUE_BITS] .= one(eltype(values))
         @views values[:,FALSE_BITS] .= zero(eltype(values))
-        for i=1:num_features(data)
+        nfeatures = num_features(data)
+        for i=1:nfeatures
             @views values[:,2+i] .= feature_values(data,i)
-            @views values[:,2+num_features(data)+i] .= one(eltype(values)) .- feature_values(data,i)
+            @views values[:,2+nfeatures+i] .= one(eltype(values)) .- feature_values(data,i)
         end
     end
     return values
