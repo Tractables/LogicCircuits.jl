@@ -100,7 +100,7 @@ include("helper/plain_logic_circuits.jl")
 end
 
 
-@testset "Infer Vtrees Test"
+@testset "Infer Vtrees Test" begin
 
 #infer_vtree
     little = zoo_psdd("little_4var.psdd") 
