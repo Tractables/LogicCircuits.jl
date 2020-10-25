@@ -1,8 +1,15 @@
 using DataFrames: DataFrame
 
-export variables_by_node, issmooth, isdecomposable, isstruct_decomposable,
-    isdeterministic, iscanonical,
-    sat_prob, model_count, prob_equiv_signature
+export variables_by_node, 
+    issmooth, 
+    isdecomposable, 
+    isstruct_decomposable,
+    isdeterministic, 
+    iscanonical,
+    sat_prob, 
+    model_count, 
+    prob_equiv_signature,
+    infer_vtree
 
 #####################
 # circuit evaluation infrastructure
@@ -157,6 +164,35 @@ function isstruct_decomposable(root::LogicCircuit)::Bool
     result
 end
 
+"""
+    infer_vtree(root::LogicCircuit)::Vtree
+
+Infer circuits vtree if the circuit is struct-decomposable it.
+Otherwise return `nothing`.
+"""
+function infer_vtree(root::LogicCircuit)::Union{Vtree, Nothing}
+    # TODO uncomment after the `isstruct_decomposable` bug is fixed
+    # if !isstruct_decomposable(root)
+    #     return nothing # or should we throw error?
+    # end
+
+    f_con(_) = nothing # can we have constants when there is a vtree?
+    f_lit(n) = begin 
+        PlainVtree(variable(n))
+    end
+    f_a(n, call) = begin
+        @assert  num_children(n) == 2 "And node had $num_children(n) childern. Should be 2"
+        left = call(children(n)[1])::Vtree
+        right = call(children(n)[2])::Vtree
+        PlainVtreeInnerNode(left, right)
+    end
+    f_o(n, call) = begin 
+        # Already checked struct-decomposable so just expand on first child
+        @assert num_children(n) > 0 "Or node has no children"
+        call(children(n)[1])        
+    end
+    foldup(root, f_con, f_lit, f_a, f_o, Vtree)
+end
 
 """
     isdeterministic(root::LogicCircuit)::Bool

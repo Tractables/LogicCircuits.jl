@@ -98,3 +98,25 @@ include("helper/plain_logic_circuits.jl")
     @test isstruct_decomposable(or1 & lits[3] | or1 & lits[3])
 
 end
+
+
+@testset "Infer Vtrees Test"
+
+#infer_vtree
+    little = zoo_psdd("little_4var.psdd") 
+    little_vtree = zoo_vtree("little_4var.vtree")
+
+    inferred = infer_vtree(little)::Vtree
+
+    @test respects_vtree(little, little_vtree)
+    @test respects_vtree(little, inferred)
+
+    
+    random = zoo_sdd("random.sdd")
+    random_vtree = zoo_vtree("random.vtree")
+    random_inferred = infer_vtree(random)::Vtree
+    
+    @test respects_vtree(random, random_vtree)
+    @test respects_vtree(random, random_inferred)
+
+end

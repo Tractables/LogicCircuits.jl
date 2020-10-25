@@ -58,7 +58,7 @@ function save_vtree(file::AbstractString, vtree::PlainVtree)
     elseif endswith(file, ".dot")
         f = VtreeDotFile(file)
     else
-        throw("Invalid file type")
+        throw("Unsupported file type. For example, for vtree format file name should end with .vtree")
     end
 
     #2. map from PlainVtree to index for output
