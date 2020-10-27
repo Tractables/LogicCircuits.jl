@@ -71,7 +71,7 @@ iscomplete(data::Array{DataFrame}) = all(d -> iscomplete(d), data)
 "Is the dataset binary?"
 isbinarydata(df::DataFrame) = begin
     if isweighted(df)
-        all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df))[:end-1])
+        all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df))[1:end-1])
     else
         all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df)))
     end
