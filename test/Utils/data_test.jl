@@ -1,6 +1,7 @@
 using Test
 using LogicCircuits
 using DataFrames: DataFrame, DataFrameRow
+using CUDA: CUDA
 
 @testset "Data utils" begin
 
@@ -71,39 +72,40 @@ using DataFrames: DataFrame, DataFrameRow
     @test isweighted(wdfb2)
     @test !isweighted(dfb_split1)
     
-    wdfb1_gpu = to_gpu(wdfb1)
-    wdfb2_gpu = to_gpu(wdfb2)
-    dfb_split1_gpu = to_gpu(dfb_split1)
-    
-    dfb_gpu_split1 = split_sample_weights(wdfb1_gpu)[1]
-    
-    @test isgpu(wdfb1_gpu)
-    @test isgpu(wdfb2_gpu)
-    @test isgpu(dfb_split1_gpu)
-    @test isgpu(dfb_gpu_split1)
-    
-    dfb = DataFrame(BitMatrix([true false; true true; false true]))
-    weights1 = DataFrame(weight = [0.6, 0.6, 0.6])
-    weights2 = [0.6, 0.6, 0.6]
-    batched_dfb = batch(dfb, 1)
-    batched_weights1 = batch(weights1, 1)
-    batched_weights2 = batch(weights2, 1)
-    
-    @test isbatched(batched_dfb)
-    @test !isbatched(dfb)
-    
-    @test isweighted(add_sample_weights(batched_dfb, weights1))
-    @test isweighted(add_sample_weights(batched_dfb, weights2))
-    @test isweighted(add_sample_weights(batched_dfb, batched_weights1))
-    @test isweighted(add_sample_weights(batched_dfb, batched_weights2))
-    
-    batched_wdfb = add_sample_weights(batched_dfb, weights1)
-    
-    @test !isweighted(split_sample_weights(batched_wdfb)[1])
-    
-    @test isgpu(to_gpu(batched_wdfb))
-    
-    @test get_weights(batched_wdfb)[1][1] ≈ 0.6
-
+    if CUDA.functional()
+        wdfb1_gpu = to_gpu(wdfb1)
+        wdfb2_gpu = to_gpu(wdfb2)
+        dfb_split1_gpu = to_gpu(dfb_split1)
+        
+        dfb_gpu_split1 = split_sample_weights(wdfb1_gpu)[1]
+        
+        @test isgpu(wdfb1_gpu)
+        @test isgpu(wdfb2_gpu)
+        @test isgpu(dfb_split1_gpu)
+        @test isgpu(dfb_gpu_split1)
+        
+        dfb = DataFrame(BitMatrix([true false; true true; false true]))
+        weights1 = DataFrame(weight = [0.6, 0.6, 0.6])
+        weights2 = [0.6, 0.6, 0.6]
+        batched_dfb = batch(dfb, 1)
+        batched_weights1 = batch(weights1, 1)
+        batched_weights2 = batch(weights2, 1)
+        
+        @test isbatched(batched_dfb)
+        @test !isbatched(dfb)
+        
+        @test isweighted(add_sample_weights(batched_dfb, weights1))
+        @test isweighted(add_sample_weights(batched_dfb, weights2))
+        @test isweighted(add_sample_weights(batched_dfb, batched_weights1))
+        @test isweighted(add_sample_weights(batched_dfb, batched_weights2))
+        
+        batched_wdfb = add_sample_weights(batched_dfb, weights1)
+        
+        @test !isweighted(split_sample_weights(batched_wdfb)[1])
+        
+        @test isgpu(to_gpu(batched_wdfb))
+        
+        @test get_weights(batched_wdfb)[1][1] ≈ 0.6
+    end
 end
 

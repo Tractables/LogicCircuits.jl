@@ -354,9 +354,9 @@ function struct_learn(circuit::Node;
     maxiter=typemax(Int), stop::Function=x->false)
 
     for iter in 1 : maxiter
-        primiteve_step = rand(primitives)
-        kwarg = kwargs[primiteve_step]
-        c2, _ = primiteve_step(circuit; kwarg...)
+        primitive_step = rand(primitives)
+        kwarg = kwargs[primitive_step]
+        c2, _ = primitive_step(circuit; kwarg...)
         if stop(c2)
             return c2
         end
