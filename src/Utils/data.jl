@@ -69,8 +69,13 @@ iscomplete(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) =
 iscomplete(data::Array{DataFrame}) = all(d -> iscomplete(d), data)
 
 "Is the dataset binary?"
-isbinarydata(df::DataFrame) = 
-    all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df)))
+isbinarydata(df::DataFrame) = begin
+    if isweighted(df)
+        all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df))[:end-1])
+    else
+        all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df)))
+    end
+end
 isbinarydata(df::Array{DataFrame}) = 
     all(d -> isbinarydata(d), df)
 
