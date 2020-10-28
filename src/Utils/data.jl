@@ -1,4 +1,4 @@
-import DataFrames: DataFrame, nrow, ncol, eltypes, mapcols
+import DataFrames: DataFrame, DataFrameRow, nrow, ncol, eltypes, mapcols
 import Random: shuffle
 import Statistics: mean, std
 import CUDA: CuVector, CuMatrix
@@ -59,7 +59,20 @@ import Base: eltype # extend
 eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
 
 "Is the data complete (no missing values)?"
-iscomplete(data::DataFrame) = all(iscomplete, eachcol(data))
+iscomplete(data::DataFrame) = begin
+    if isweighted(data)
+        all(iscomplete, eachcol(data)[1:end-1])
+    else
+        all(iscomplete, eachcol(data))
+    end
+end
+iscomplete(data::DataFrameRow) = begin
+    if isweighted(data)
+        all(v -> (v isa Bool), data[1:end-1])
+    else
+        all(v -> (v isa Bool), data)
+    end
+end
 iscomplete(::AbstractArray{Bool}) = true
 iscomplete(::Array{<:AbstractFloat}) = true
 iscomplete(x::Array{Union{Bool,Missing}}) = !any(ismissing, x)
@@ -158,7 +171,7 @@ get_weights(df::Array{DataFrame}) = begin
 end
 
 "Is the dataset weighted?"
-isweighted(df::DataFrame) = 
+isweighted(df::Union{DataFrame, DataFrameRow}) = 
     cmp(names(df)[end], "weight") === 0
 isweighted(df::Array{DataFrame}) = 
     all(d -> isweighted(d), df)
