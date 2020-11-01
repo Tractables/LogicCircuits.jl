@@ -215,6 +215,9 @@ end
 "When values of nodes have already been computed, do a downward pass computing the flows at each node"
 function satisfies_flows_down(circuit::BitCircuit, values, reuse=nothing; on_node=noop, on_edge=noop, weights=nothing)
     flows = similar!(reuse, typeof(values), size(values)...)
+    if !(weights isa Nothing) && values isa CuMatrix
+        weights = convert(CuVector{Float32}, weights)
+    end
     satisfies_flows_down_layers(circuit, flows, values, on_node, on_edge; weights = weights)
     return flows
 end
@@ -352,13 +355,14 @@ function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows
     end
     return nothing
 end
-function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows, values, on_node, on_edge, weights::Any)
+function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows, values, on_node, on_edge, weights::CUDA.CuDeviceArray{Float32,1,1})
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
     stride_y = blockDim().y * gridDim().y
     for k = index_x:stride_x:size(values,1)
-        weight = @inbounds weights[k]
+        start_idx = 64 * k - 63
+        end_idx = CUDA.min(64 * k, CUDA.length(weights))
         for i = index_y:stride_y:length(layer)
             dec_id = @inbounds layer[i]
             if dec_id == size(nodes,2)
@@ -387,13 +391,23 @@ function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows
                             end
                             flow = sum_flows(flow, edge_flow)
                             # report edge flow only once:
-                            dec_id == prime && on_edge(flows, values, prime, sub, par, grandpa, k, edge_flow, single_child, weight)
+                            # dec_id == prime && on_edge(flows, values, prime, sub, par, grandpa, k, edge_flow, single_child, nothing)
+                            if dec_id == prime
+                                for bit_idx::UInt32 = 0 : (end_idx - start_idx)
+                                    weight::Float32 = @inbounds weights[start_idx + bit_idx]
+                                    on_edge(flows, values, prime, sub, par, grandpa, bit_idx, edge_flow, single_child, weight)
+                                end
+                            end
                         end
                     end
                 end
             end
             @inbounds flows[k, dec_id] = flow
-            on_node(flows, values, dec_id, k, flow, weight)
+            # on_node(flows, values, dec_id, k, flow, nothing)
+            for bit_idx::UInt32 = 0 : (end_idx - start_idx)
+                weight::Float32 = @inbounds weights[start_idx + bit_idx]
+                on_node(flows, values, dec_id, bit_idx, flow, weight)
+            end
         end
     end
     return nothing
