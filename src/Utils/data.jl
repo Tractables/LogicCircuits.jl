@@ -245,7 +245,7 @@ to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
     CuArray(T.(coalesce(v,typemax(T))))
 to_gpu(v::Vector{Union{Bool,Missing}}) =
     CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
-to_gpu(df::DataFrame) = mapcols(to_gpu, df)
+to_gpu(df::DataFrame) = isgpu(df) ? df : mapcols(to_gpu, df)
 to_gpu(df::Array{DataFrame}) = map(df) do d
     to_gpu(d)
 end
