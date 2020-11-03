@@ -83,6 +83,7 @@ using CUDA: CUDA
         @test isgpu(wdfb2_gpu)
         @test isgpu(dfb_split1_gpu)
         @test isgpu(dfb_gpu_split1)
+        @test isgpu(to_gpu(wdfb1_gpu))
         
         dfb = DataFrame(BitMatrix([true false; true true; false true]))
         weights1 = DataFrame(weight = [0.6, 0.6, 0.6])
