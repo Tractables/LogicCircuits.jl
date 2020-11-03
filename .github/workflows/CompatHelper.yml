@@ -2,7 +2,8 @@ name: CompatHelper
 on:
   schedule:
     - cron: '* * * * *'
-    
+  workflow_dispatch:
+  
 jobs:
   CompatHelper:
     runs-on: ubuntu-latest
