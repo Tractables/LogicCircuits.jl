@@ -115,6 +115,12 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_dec
         a12 = ⋀NodeIds(to⋁NodeIds(cs[1]), to⋁NodeIds(cs[2]))
         if length(cs) == 2
             a12
+        elseif length(cs) > 1000 # Avoid using recursion here since it will cause StackOverflowError
+            ⋀node_idx = cs[end]
+            for idx = length(cs) - 1 : -1 : 1
+                ⋀node_idx = ⋀NodeIds(to⋁NodeIds(cs[idx]), to⋁NodeIds(⋀node_idx))
+            end
+            ⋀node_idx
         else
             f_and(n, [a12, cs[3:end]...])
         end
@@ -151,10 +157,10 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_dec
         on_decision(n, cs, layer_id, last_dec_id, first_el_id, last_el_id)
         ⋁NodeIds(layer_id, last_dec_id)
     end
-
+    
     r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeIds; reset)
     to⋁NodeIds(r)
-
+    
     nodes_m = reshape(nodes, 4, :)
     elements_m = reshape(elements, 3, :)
     parents_m = Vector{NodeId}(undef, size(elements_m,2)*2)
