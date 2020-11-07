@@ -212,7 +212,8 @@ isbatched(data::Array{DataFrame}) = true
 batch_size(data::Array{DataFrame}) = num_examples(data[1])
 
 "Dataset bagging"
-function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0)
+function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0,
+                         batch_size::Integer = 0)
     if isweighted(data)
         data, weights = split_sample_weights(data)
     else
@@ -248,7 +249,7 @@ function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::
     # original dataset `data`.
     map(1:num_bags) do dataset_idx
         example_idxs = random_sample(weights, convert(UInt32, floor(num_examples(data) * frac_examples)))
-        data[example_idxs, :]
+        batch_size == 0 ? data[example_idxs, :] : batch(data[example_idxs, :], batch_size)
     end
 end
 

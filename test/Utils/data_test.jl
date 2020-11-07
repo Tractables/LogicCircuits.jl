@@ -80,6 +80,10 @@ using CUDA: CUDA
     @test nrow(bag_datasets[1]) == 4
     @test ncol(bag_datasets[1]) == ncol(dataset) - 1
     
+    bag_datasets = bagging_dataset(dataset; num_bags = 5, frac_examples = 1.0, batch_size = 1);
+    @test length(bag_datasets[1]) == 4
+    @test ncol(bag_datasets[1][1]) == ncol(dataset) - 1
+    
     if CUDA.functional()
         wdfb1_gpu = to_gpu(wdfb1)
         wdfb2_gpu = to_gpu(wdfb2)
