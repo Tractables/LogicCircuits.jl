@@ -171,10 +171,9 @@ Infer circuits vtree if the circuit is struct-decomposable it.
 Otherwise return `nothing`.
 """
 function infer_vtree(root::LogicCircuit)::Union{Vtree, Nothing}
-    # TODO uncomment after the `isstruct_decomposable` bug is fixed
-    # if !isstruct_decomposable(root)
-    #     return nothing # or should we throw error?
-    # end
+    if !isstruct_decomposable(root)
+        return nothing # or should we throw error?
+    end
 
     f_con(_) = nothing # can we have constants when there is a vtree?
     f_lit(n) = begin 
