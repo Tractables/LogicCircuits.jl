@@ -9,7 +9,7 @@ export num_examples, num_features,
     num_chunks, chunks, eltype,
     add_sample_weights, split_sample_weights, get_weights,
     shuffle_examples, batch, batch_size, isbatched,
-    threshold, soften,
+    threshold, soften, bagging_dataset,
     to_gpu, to_cpu, isgpu, same_device,
     ll_per_example, bits_per_pixel
 
@@ -27,8 +27,6 @@ export num_examples, num_features,
 #  - `Float` data:
 #      * `DataFrame` of `Vector{Union{Float,Missing}}`
 #      * `DataFrame` of `CuVector{Float}` where typmax represents missing
-
-# TODO: support weighted datasets by using a `DataFrames` weight column
 
 """
     num_examples(df::DataFrame)
@@ -212,6 +210,47 @@ isbatched(data::Array{DataFrame}) = true
     
 "Batch size of the dataset"
 batch_size(data::Array{DataFrame}) = num_examples(data[1])
+
+"Dataset bagging"
+function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0)
+    if isweighted(data)
+        data, weights = split_sample_weights(data)
+    else
+        weights = num_examples(data)
+    end
+    
+    # Randomly draw samples with replacement
+    function random_sample(weights::AbstractArray, num_examples::Integer)
+        weights = cumsum(weights)
+        cum_weights = weights[end]
+        len = length(weights)
+        map(1:num_examples) do idx
+            randval = rand() * cum_weights
+            i, j, k = 1, len, 0
+            while i < j - 1
+                k = (i + j) ÷ 2
+                if randval < weights[k]
+                    j = k
+                else
+                    i = k
+                end
+            end
+            i == j ? i : (randval >= weights[i] ? j : i)
+        end
+    end
+    function random_sample(weights::Integer, num_examples::Integer)
+        map(1:num_examples) do idx
+            rand(1:weights)
+        end
+    end
+    
+    # Returns an array of DataFrames where each DataFrame is randomly sampled from the 
+    # original dataset `data`.
+    map(1:num_bags) do dataset_idx
+        example_idxs = random_sample(weights, convert(UInt32, floor(num_examples(data) * frac_examples)))
+        data[example_idxs, :]
+    end
+end
 
 "Threshold a numeric dataset making it binary"
 threshold(train, valid, test) = threshold(train, valid, test, 0.05) # default threshold offset (used for MNIST)
