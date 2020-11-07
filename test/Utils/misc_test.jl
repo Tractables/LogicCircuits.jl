@@ -64,3 +64,84 @@ using DataFrames: DataFrame
 
 end
 
+@testset "Imputations and make_missing" begin
+
+    m = [1.1 2.1; 
+         3.1 4.1; 
+         5.1 6.1;
+         1.0 2.0;
+         3.0 4.0;
+         2.0 1.0;
+         5.0 10.0;
+         ]
+    df = DataFrame(m)
+    dfb = DataFrame(BitMatrix([true false true; 
+                               true true true; 
+                               false true true;
+                               true false true;
+                               false false false;
+                               true false true;
+                               false false true;
+                            ]))
+
+    all_missing = make_missing_mcar(df; keep_prob=0.0)
+    @test all(ismissing.(Matrix(all_missing)))
+
+    no_missing = make_missing_mcar(df; keep_prob=1.0)
+    @test all(.!(ismissing.(Matrix(no_missing))))
+
+    # Imputations Test
+    ms_df = make_missing_mcar(df)
+    ms_dfb = make_missing_mcar(dfb)
+
+    function test_no_missing()
+        @test all(.!(ismissing.(Matrix(imp1))))
+        @test all(.!(ismissing.(Matrix(imp2))))
+        @test all(.!(ismissing.(Matrix(imp3))))
+        @test all(.!(ismissing.(Matrix(imp4))))
+        @test all(.!(ismissing.(Matrix(imp5))))
+    end
+
+
+    ## Median Imputation
+    imp1 = impute(ms_df)
+    imp2 = impute(ms_df, ms_df)
+    imp3 = impute(ms_df, df)
+    imp4 = impute(ms_dfb, dfb)
+    imp5 = impute(ms_dfb)
+    
+    test_no_missing()
+
+    ## Mean Imputation
+    imp1 = impute(ms_df; method=:mean)
+    imp2 = impute(ms_df, ms_df; method=:mean)
+    imp3 = impute(ms_df, df; method=:mean)
+    imp4 = impute(ms_dfb, dfb; method=:mean)
+    imp5 = impute(ms_dfb; method=:mean)
+    
+    test_no_missing()
+
+    ## One imputation
+    imp1 = impute(ms_df; method=:one)
+    imp2 = impute(ms_df, ms_df; method=:one)
+    imp3 = impute(ms_df, df; method=:one)
+    imp4 = impute(ms_dfb, dfb; method=:one)
+    imp5 = impute(ms_dfb; method=:one)
+
+    test_no_missing()
+    mask1 = ismissing.(ms_df[:,:])
+    @test all(Matrix(imp3)[Matrix(mask1)] .== 1.0)
+        
+    ## Zero imputation
+    imp1 = impute(ms_df; method=:zero)
+    imp2 = impute(ms_df, ms_df; method=:zero)
+    imp3 = impute(ms_df, df; method=:zero)
+    imp4 = impute(ms_dfb, dfb; method=:zero)
+    imp5 = impute(ms_dfb; method=:zero)
+
+    test_no_missing()
+    
+    mask1 = ismissing.(ms_df[:,:])
+    @test all(Matrix(imp3)[Matrix(mask1)] .== 0.0)
+
+end
