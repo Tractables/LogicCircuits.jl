@@ -1,6 +1,6 @@
 using Test
 using LogicCircuits
-using DataFrames: DataFrame, DataFrameRow
+using DataFrames: DataFrame, DataFrameRow, nrow, ncol
 using CUDA: CUDA
 
 @testset "Data utils" begin
@@ -71,6 +71,14 @@ using CUDA: CUDA
     @test isweighted(wdfb1)
     @test isweighted(wdfb2)
     @test !isweighted(dfb_split1)
+    
+    dataset = DataFrame([true false false; true true true; false false true; false true false])
+    weights = DataFrame(weight = [0.6, 0.6, 0.6, 0.8])
+    dataset = add_sample_weights(dataset, weights)
+    bag_datasets = bagging_dataset(dataset; num_bags = 5, frac_examples = 1.0);
+    @test bag_datasets isa Array{DataFrame}
+    @test nrow(bag_datasets[1]) == 4
+    @test ncol(bag_datasets[1]) == ncol(dataset) - 1
     
     if CUDA.functional()
         wdfb1_gpu = to_gpu(wdfb1)
