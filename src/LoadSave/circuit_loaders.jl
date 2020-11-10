@@ -1,8 +1,16 @@
-export zoo_cnf, zoo_dnf,
-    load_logic_circuit, load_smooth_logic_circuit, 
+export zoo_cnf, 
+    zoo_dnf,
+    zoo_sdd,
+    load_logic_circuit, 
+    load_smooth_logic_circuit, 
     load_struct_smooth_logic_circuit, 
-    load_cnf, load_dnf,
-    zoo_cnf_file, zoo_dnf_file, zoo_lc_file, zoo_psdd_file, zoo_sdd_file
+    load_cnf, 
+    load_dnf,
+    zoo_cnf_file, 
+    zoo_dnf_file, 
+    zoo_lc_file, 
+    zoo_psdd_file, 
+    zoo_sdd_file
 
 
 #####################
@@ -33,6 +41,9 @@ zoo_psdd_file(name) =
 
 zoo_sdd_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
+
+zoo_sdd(name) =
+    load_logic_circuit(zoo_sdd_file(name))
 
 #####################
 # general parser infrastructure for circuits
