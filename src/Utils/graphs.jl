@@ -92,7 +92,7 @@ import Base.foreach #extend
 
 "Apply a function to each node in a graph, bottom up"
 function foreach(f::Function, node::Dag; reset=true)
-    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field"
+    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field. You can use `reset_counter` to reset the counter. "
     foreach_rec(f, node)
     reset && reset_counter(node)
     nothing # returning nothing helps save some allocations and time
@@ -175,7 +175,7 @@ Values of type `T` are passed up the circuit and given to `f_inner` as a functio
 """
 function foldup(node::Dag, f_leaf::Function, f_inner::Function, 
                ::Type{T}; nload = nload, nsave = nsave, reset=true)::T where {T}
-    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field"
+    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field. You can use `reset_counter` to reset the counter. "
     v = foldup_rec(node, f_leaf, f_inner, T; nload, nsave)
     reset && reset_counter(node)
     v
@@ -211,7 +211,7 @@ as a vector from the children.
 # TODO: see whether we could standardize on `foldup` and remove this version?
 function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
                           nload = nload, nsave = nsave, reset=true)::T where {T}
-    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field"
+    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field. You can use `reset_counter` to reset the counter. "
     v = foldup_aggregate_rec(node, f_leaf, f_inner, T; nload, nsave)
     reset && reset_counter(node)
     return v
