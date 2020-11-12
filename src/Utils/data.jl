@@ -35,7 +35,6 @@ Number of examples in data
 """
 num_examples(df::DataFrame) = nrow(df)
 num_examples(df::Array{DataFrame}) = mapreduce(d -> num_examples(d), +, df)
-num_examples(df::AbstractArray) = length(df)
 
 """
     num_features(df::DataFrame)
@@ -191,9 +190,15 @@ function batch(data, batchsize=1024)
         data = to_cpu(data)
     end
     
+    if data isa Array{T} where T <: AbstractFloat
+        n_examples = length(data)
+    else
+        n_examples = num_examples(data)
+    end
+    
     data = shuffle_examples(data)
-    data = map(1:batchsize:num_examples(data)) do start_index 
-        stop_index = min(start_index + batchsize - 1, num_examples(data))
+    data = map(1:batchsize:n_examples) do start_index 
+        stop_index = min(start_index + batchsize - 1, n_examples)
         data[start_index:stop_index, :]
     end
     
