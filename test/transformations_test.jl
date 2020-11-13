@@ -212,3 +212,26 @@ end
     @test issmooth(c1)
     @test isdecomposable(c1)
 end
+
+
+@testset "Circuit standardize test" begin
+    a = compile(PlainLogicCircuit, Lit(1))
+    b = compile(PlainLogicCircuit, Lit(2))
+    c = compile(PlainLogicCircuit, Lit(3))
+    d = compile(PlainLogicCircuit, Lit(4))
+    
+    e = conjoin(a, b, c)
+    circuit = standardize_circuit(e)
+    @test circuit.children[1].literal == Lit(1)
+    @test circuit.children[2].children[1].children[1].literal == Lit(2)
+    @test circuit.children[2].children[1].children[2].literal == Lit(3)
+    
+    e = disjoin(a, b)
+    f = disjoin(c, d)
+    g = disjoin(e, f)
+    circuit = standardize_circuit(g)
+    @test circuit.children[1].literal == Lit(1)
+    @test circuit.children[2].literal == Lit(2)
+    @test circuit.children[3].literal == Lit(3)
+    @test circuit.children[4].literal == Lit(4)
+end

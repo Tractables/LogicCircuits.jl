@@ -1,6 +1,6 @@
 export smooth, forget, propagate_constants, deepcopy, condition, replace_node, 
     split, clone, merge, split_candidates, random_split, split_step, struct_learn,
-    clone_candidates 
+    clone_candidates, standardize_circuit
 
 """
     smooth(root::Node)::Node
@@ -425,3 +425,70 @@ function replace_node(root::Node, old::Node, new::Node; callback::Function=(x, y
 end
 
 
+"""
+Standardize the circuit:
+
+1. Children of or nodes are and nodes.
+2. Children of and nodes are or nodes.
+3. Each and node has exactly two children.
+
+Note: for circuits with parameters this function will not keep the
+      parameters equavalent.
+"""
+function standardize_circuit(circuit::LogicCircuit)
+    compile_and_node(left_child::LogicCircuit, right_child::LogicCircuit) = begin
+        if is⋀gate(left_child)
+            left_child = disjoin(left_child)
+        end
+        if is⋀gate(right_child)
+            right_child = disjoin(right_child)
+        end
+        disjoin(conjoin(left_child, right_child))
+    end
+    
+    f_con(node) = compile(node, constant(node))
+    f_lit(node) = compile(node, literal(node))
+    f_a(node, cs) = begin
+        node_children::Array{LogicCircuit} = Array{LogicCircuit}(undef, 0)
+        
+        @assert length(cs) > 1 "⋀gate $(node) should contain at least two children, but only has one."
+            
+        # Flatten the children by ensuring all children of `node` are ⋁gate or leaf gate.
+        for child_node in cs
+            if is⋀gate(child_node)
+                for n in children(child_node)
+                    push!(node_children, n)
+                end
+            else
+                push!(node_children, child_node)
+            end
+        end
+        
+        if num_children(node) > 2
+            n = compile_and_node(node_children[end - 1], node_children[end])
+            for idx = length(node_children) - 2 : -1 : 2
+                n = compile_and_node(node_children[idx], n)
+            end
+            node_children = [first(node_children), n]
+        end
+        
+        conjoin(node_children...)
+    end
+    f_o(node, cs) = begin
+        node_children::Array{LogicCircuit} = Array{LogicCircuit}(undef, 0)
+        
+        for child_node in cs
+            if is⋁gate(child_node)
+                for n in children(child_node)
+                    push!(node_children, n)
+                end
+            else # is⋀gate(child_node) || isleafgate(child_node)
+                push!(node_children, child_node)
+            end
+        end
+        
+        disjoin(node_children...)
+    end
+    
+    foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, LogicCircuit)
+end
