@@ -214,6 +214,24 @@ end
 end
 
 
+@testset "Split candidate test" begin
+    a = compile(PlainLogicCircuit, Lit(1))
+    b = compile(PlainLogicCircuit, Lit(2))
+    c = compile(PlainLogicCircuit, Lit(3))
+    d = compile(PlainLogicCircuit, Lit(4))
+    e = compile(PlainLogicCircuit, -Lit(4))
+    
+    f = disjoin(conjoin(a, b), conjoin(c, d))
+    candidates, variable_scope = split_candidates(f)
+    @test length(candidates) == 0
+    
+    g = disjoin(conjoin(disjoin(conjoin(d, b), conjoin(e, b)), a))
+    candidates, variable_scope = split_candidates(g)
+    @test length(candidates) == 1
+    @test candidates[1][1] == g
+end
+
+
 @testset "Circuit standardize test" begin
     a = compile(PlainLogicCircuit, Lit(1))
     b = compile(PlainLogicCircuit, Lit(2))
