@@ -251,6 +251,46 @@ end
 Return the edges and variables which can be splited on
 """
 function split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{Node, BitSet}}
+    candidates::Vector{Tuple{Node, Node}} = Vector{Tuple{Node, Node}}(undef, 0)
+    variable_scope::Dict{Node, BitSet} = Dict{Node, BitSet}()
+    
+    f_con(n) = begin
+        variable_scope[n] = BitSet()
+        (false, BitSet(), BitSet())
+    end
+    f_lit(n) = begin
+        lit = literal(n)
+        var = variable(n)
+        variable_scope[n] = BitSet(var)
+        
+        lit > 0 ? (false, variable_scope[n], BitSet()) : (false, BitSet(), variable_scope[n])
+    end
+    f_a(n, cv) = begin
+        pos_scope = reduce(union, [item[2] for item in cv])
+        neg_scope = reduce(union, [item[3] for item in cv])
+        variable_scope[n] = intersect(pos_scope, neg_scope)
+        
+        (!isdisjoint(pos_scope, neg_scope), pos_scope, neg_scope)
+    end
+    f_o(n, cv) = begin
+        pos_scope = reduce(union, [item[2] for item in cv])
+        neg_scope = reduce(union, [item[3] for item in cv])
+        variable_scope[n] = intersect(pos_scope, neg_scope)
+        
+        map(zip(first.(cv), children(n))) do (splitable, c)
+            if splitable
+                push!(candidates, (n, c))
+            end
+        end
+        
+        (any(first.(cv)), pos_scope, neg_scope)
+    end
+    
+    foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, Tuple{Bool, BitSet, BitSet})
+    
+    candidates, variable_scope
+end
+#=function split_candidates2(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{Node, BitSet}}
     candidates = Vector{Tuple{Node, Node}}()
     scope = Dict{Node, BitSet}() # cache the literal scopes
     f_con(n) = begin
@@ -285,7 +325,7 @@ function split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{
     foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, Tuple{Bool, BitSet})
 
     candidates, scope
-end
+end=#
 
 function clone_candidates(circuit::Node)::Dict{Node, Vector{Node}}
     candidates = Dict{Node, Vector{Node}}()
@@ -329,10 +369,9 @@ end
 Randomly picking egde and variable from candidates
 """
 function random_split(circuit::Node)
-    candidates, scope = split_candidates(circuit)
+    candidates, variable_scope = split_candidates(circuit)
     or, and = rand(candidates)
-    lits = collect(Set{Lit}(scope[and]))
-    vars =  Var.(intersect(filter(l -> l > 0, lits), - filter(l -> l < 0, lits)))
+    vars = Var.(collect(variable_scope[and]))
     var = rand(vars)
     (or, and), var
 end
