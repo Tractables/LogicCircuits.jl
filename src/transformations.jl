@@ -290,42 +290,6 @@ function split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{
     
     candidates, variable_scope
 end
-#=function split_candidates2(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{Node, BitSet}}
-    candidates = Vector{Tuple{Node, Node}}()
-    scope = Dict{Node, BitSet}() # cache the literal scopes
-    f_con(n) = begin
-        scope[n] = BitSet()
-        (false, scope[n])
-    end
-    f_lit(n) = begin
-        scope[n] = BitSet(literal(n))
-        (false, scope[n])
-    end
-    f_a(n, cv) = begin
-        literals = last.(cv)
-        scope[n] = union(literals...)
-        variable = union(lit2var.(Int32.(scope[n]))...)
-        for v in variable
-            if var2lit(v) in scope[n] && - var2lit(v) in scope[n]
-                return (true, scope[n])
-            end
-        end
-        (false, scope[n])
-    end
-    f_o(n, cv) = begin
-        literals = last.(cv)
-        scope[n] = union(literals...)
-        map(zip(first.(cv), children(n))) do (splitable, c)
-            if splitable
-                push!(candidates, (n, c))
-            end
-        end
-        (any(first.(cv)), scope[n])
-    end
-    foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, Tuple{Bool, BitSet})
-
-    candidates, scope
-end=#
 
 function clone_candidates(circuit::Node)::Dict{Node, Vector{Node}}
     candidates = Dict{Node, Vector{Node}}()
