@@ -467,7 +467,7 @@ function standardize_circuit(circuit::LogicCircuit)
             end
         end
         
-        if num_children(node) > 2
+        if length(node_children) > 2
             n = compile_and_node(node_children[end - 1], node_children[end])
             for idx = length(node_children) - 2 : -1 : 2
                 n = compile_and_node(node_children[idx], n)
