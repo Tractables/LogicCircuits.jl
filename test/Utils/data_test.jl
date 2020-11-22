@@ -84,6 +84,25 @@ using CUDA: CUDA
     @test length(bag_datasets[1]) == 4
     @test ncol(bag_datasets[1][1]) == ncol(dataset) - 1
     
+    df = DataFrame(BitMatrix([true true; false true; false false]))
+    mar = marginal_prob(df)
+    @test mar[1] ≈ 0.333333333 atol = 1e-6
+    @test mar[2] ≈ 0.666666666 atol = 1e-6
+    sdf = soften(df, 0.001; scale_by_marginal = false)
+    @test sdf[1,1] ≈ 0.999 atol = 1e-6
+    @test sdf[2,1] ≈ 0.001 atol = 1e-6
+    @test sdf[3,1] ≈ 0.001 atol = 1e-6
+    @test sdf[1,2] ≈ 0.999 atol = 1e-6
+    @test sdf[2,2] ≈ 0.999 atol = 1e-6
+    @test sdf[3,2] ≈ 0.001 atol = 1e-6
+    sdf = soften(df, 0.001; scale_by_marginal = true)
+    @test sdf[1,1] ≈ 0.999 + 0.001 * 0.3333333 atol = 1e-6
+    @test sdf[2,1] ≈ 0.001 * 0.3333333 atol = 1e-6
+    @test sdf[3,1] ≈ 0.001 * 0.3333333 atol = 1e-6
+    @test sdf[1,2] ≈ 0.999 + 0.001 * 0.6666666 atol = 1e-6
+    @test sdf[2,2] ≈ 0.999 + 0.001 * 0.6666666 atol = 1e-6
+    @test sdf[3,2] ≈ 0.001 * 0.6666666 atol = 1e-6
+    
     if CUDA.functional()
         wdfb1_gpu = to_gpu(wdfb1)
         wdfb2_gpu = to_gpu(wdfb2)

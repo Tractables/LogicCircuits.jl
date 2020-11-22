@@ -9,7 +9,7 @@ export num_examples, num_features,
     num_chunks, chunks, eltype,
     add_sample_weights, split_sample_weights, get_weights,
     shuffle_examples, batch, batch_size, isbatched,
-    threshold, soften, bagging_dataset,
+    threshold, soften, marginal_prob, bagging_dataset,
     to_gpu, to_cpu, isgpu, same_device,
     ll_per_example, bits_per_pixel
 
@@ -276,8 +276,30 @@ function threshold(train::DataFrame, valid, test, offset)
 end
 
 "Turn binary data into floating point data close to 0 and 1."
-soften(data, softness=0.05; precision=Float32) =
-    data .* precision(1-2*softness) .+ precision(softness) 
+soften(data, softness=0.05; scale_by_marginal=true, precision=Float32) = begin
+    if scale_by_marginal
+        marginals = marginal_prob(data; precision = precision)
+        vs = AbstractVector[]
+        col_idx = 1
+        for v in eachcol(data)
+            fv = v .* precision(1.0 - softness) .+ (precision(softness) * marginals[col_idx])
+            push!(vs, fv === v ? copy(fv) : fv)
+            
+            col_idx += 1
+        end
+        DataFrame(vs, names(data), copycols = false)
+    else
+        data .* precision(1-2*softness) .+ precision(softness)
+    end
+end
+
+marginal_prob(data; precision=Float32) = begin
+    @assert isbinarydata(data) "marginal_prob only support binary data."
+    n_examples = num_examples(data)
+    map(1:num_features(data)) do idx
+        precision(sum(feature_values(data, idx))) / n_examples
+    end
+end
 
 @inline _msk_end(df::DataFrame) = _msk_end(num_examples(df))
 
