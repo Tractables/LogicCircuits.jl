@@ -271,9 +271,9 @@ function threshold(train::DataFrame, valid, test, offset)
     means = mean(train, dims=1)
     stds = std(train, dims=1)
     threshold_value = means .+ offset .* stds
-    train = DataFrame(BitArray(train .> threshold_value))
-    valid = issomething(valid) ? DataFrame(BitArray(valid .> threshold_value)) : nothing
-    test = issomething(test) ? DataFrame(BitArray(test .> threshold_value)) : nothing
+    train = DataFrame(BitArray(train .> threshold_value), :auto)
+    valid = issomething(valid) ? DataFrame(BitArray(valid .> threshold_value), :auto) : nothing
+    test = issomething(test) ? DataFrame(BitArray(test .> threshold_value), :auto) : nothing
     return train, valid, test
 end
 

@@ -189,7 +189,7 @@ function make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
     m = missings(eltype(d), num_examples(d), num_features(d))
     flag = rand(num_examples(d), num_features(d)) .<= keep_prob
     m[flag] .= Matrix(d)[flag]
-    DataFrame(m)
+    DataFrame(m, :auto)
 end;
 
 
@@ -249,7 +249,7 @@ function impute(X::DataFrame, train::DataFrame; method::Symbol=:median)
 
     # For Bool return BitArray instead
     if type == Bool
-        return DataFrame(BitArray(convert(Matrix, X_impute)))
+        return DataFrame(BitArray(convert(Matrix, X_impute)), :auto)
     else
         return X_impute
     end

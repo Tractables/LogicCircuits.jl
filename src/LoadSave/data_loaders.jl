@@ -29,9 +29,9 @@ function mnist(labeled = false)
     train_x = collect(Float32, transpose(reshape(MNIST.traintensor(), 28*28, :)))
     test_x  = collect(Float32, transpose(reshape(MNIST.testtensor(), 28*28, :)))
     
-    train = DataFrame(train_x)
+    train = DataFrame(train_x, :auto)
     valid = nothing # why is there no validation set in `MLDataSets`??
-    test = DataFrame(test_x)
+    test = DataFrame(test_x, :auto)
     if (labeled)
         train_y::Vector{UInt8} = MNIST.trainlabels()
         test_y::Vector{UInt8}  = MNIST.testlabels()
@@ -50,7 +50,7 @@ function twenty_datasets(name)
         dataframe = CSV.read(data_dir*"/Density-Estimation-Datasets-1.0.1/datasets/$name/$name.$type.data", DataFrame; 
             header=false, truestrings=["1"], falsestrings=["0"], type=Bool, strict=true)
                  # make sure the data is backed by a `BitArray`
-        DataFrame((BitArray(Base.convert(Matrix{Bool}, dataframe))))
+        DataFrame((BitArray(Base.convert(Matrix{Bool}, dataframe))), :auto)
     end
     train = load("train")
     valid = load("valid")
