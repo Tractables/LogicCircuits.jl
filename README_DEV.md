@@ -52,5 +52,5 @@ Only do this for when the repo is in stable position, and we have decent amount 
 When running tests locally sometimes DataDeps prompts the user for downloading new data and could cause the tests to fail, add the environment variable to avoid the user prompt
 
 ```
-    export DATADEPS_ALWAYS_ACCEPT=1
+export DATADEPS_ALWAYS_ACCEPT=1
 ```
