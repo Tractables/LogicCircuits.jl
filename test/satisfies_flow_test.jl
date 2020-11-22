@@ -160,6 +160,40 @@ end
 end
 
 
+@testset "Soft Flows test" begin
+    l_a = LogicCircuit(Lit(1))
+    l_na = LogicCircuit(Lit(-1))
+    l_b = LogicCircuit(Lit(2))
+    l_nb = LogicCircuit(Lit(-2))
+    
+    o_c = (l_a & l_b) | (l_na & l_b)
+    o_d = (l_a & l_b) | (l_a & l_nb)
+    r = o_c | o_d
+    
+    weights = [0.6, 0.6, 0.6]
+    weights = Array{Float32, 1}(weights)
+    
+    df = DataFrame(BitMatrix([true true; false true; false false]))
+    sdf = soften(df, 0.001; scale_by_marginal = false)
+    
+    v, f = satisfies_flows(r, sdf)
+    @test all(v[:,o_c.data.node_id] .≈ sdf[:, 2])
+    @test all(v[:,o_c.data.node_id] .≈ f[:,o_c.data.node_id])
+    @test all(v[:,o_d.data.node_id] .≈ sdf[:, 1])
+    @test all(v[:,o_d.data.node_id] .≈ f[:,o_d.data.node_id])
+    
+    v, f = satisfies_flows(r, sdf; weights = weights)
+    @test all(v[:,o_c.data.node_id] .≈ sdf[:, 2])
+    @test all(v[:,o_c.data.node_id] .≈ f[:,o_c.data.node_id])
+    @test all(v[:,o_d.data.node_id] .≈ sdf[:, 1])
+    @test all(v[:,o_d.data.node_id] .≈ f[:,o_d.data.node_id])
+    
+    if CUDA.functional()
+        @test all(satisfies_flows(r, sdf; weights = weights)[1] .≈ to_cpu(satisfies_flows(r, to_gpu(sdf); weights = to_gpu(weights))[1]))
+    end
+end
+
+
 @testset "Probabilistic Flows test" begin
     
     r = fully_factorized_circuit(PlainLogicCircuit, 10)
