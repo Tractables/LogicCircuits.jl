@@ -276,21 +276,26 @@ function threshold(train::DataFrame, valid, test, offset)
 end
 
 "Turn binary data into floating point data close to 0 and 1."
-soften(data, softness=0.05; scale_by_marginal=true, precision=Float32) = begin
-    if scale_by_marginal
-        marginals = marginal_prob(data; precision = precision)
-        vs = AbstractVector[]
-        col_idx = 1
-        for v in eachcol(data)
+soften(data::DataFrame, softness=0.05; scale_by_marginal=true, precision=Float32) = begin
+    n_col = ncol(data)
+    data_weighted = isweighted(data)
+    
+    marginals = marginal_prob(data; precision = precision)
+    vs = AbstractVector[]
+    col_idx = 1
+    for v in eachcol(data)
+        if data_weighted && col_idx == n_col
+            fv = v
+        elseif scale_by_marginal
             fv = v .* precision(1.0 - softness) .+ (precision(softness) * marginals[col_idx])
-            push!(vs, fv === v ? copy(fv) : fv)
-            
-            col_idx += 1
+        else
+            fv = v .* precision(1.0 - 2.0 * softness) .+ precision(softness)
         end
-        DataFrame(vs, names(data), copycols = false)
-    else
-        data .* precision(1-2*softness) .+ precision(softness)
+        push!(vs, fv === v ? copy(fv) : fv)
+
+        col_idx += 1
     end
+    DataFrame(vs, names(data), copycols = false)
 end
 
 marginal_prob(data; precision=Float32) = begin
