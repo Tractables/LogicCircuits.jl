@@ -4,9 +4,7 @@ name: Unit Tests
 # events but only for the master branch
 on: 
   pull_request:
-    branches:
-      master
-
+  push:
   workflow_dispatch:
 
 
