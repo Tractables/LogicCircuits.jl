@@ -298,6 +298,7 @@ soften(data::DataFrame, softness=0.05; scale_by_marginal=true, precision=Float32
     DataFrame(vs, names(data), copycols = false)
 end
 
+"Compute the marginal prob of each feature in a binary dataset."
 marginal_prob(data; precision=Float32) = begin
     @assert isbinarydata(data) "marginal_prob only support binary data."
     n_examples = num_examples(data)
