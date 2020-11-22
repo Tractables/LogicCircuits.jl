@@ -394,7 +394,6 @@ function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows
                             end
                             flow = sum_flows(flow, edge_flow)
                             # report edge flow only once:
-                            # dec_id == prime && on_edge(flows, values, prime, sub, par, grandpa, k, edge_flow, single_child, nothing)
                             if dec_id == prime
                                 for bit_idx::UInt32 = 0 : (end_idx - start_idx)
                                     weight::Float32 = @inbounds weights[start_idx + bit_idx]
@@ -406,7 +405,6 @@ function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows
                 end
             end
             @inbounds flows[k, dec_id] = flow
-            # on_node(flows, values, dec_id, k, flow, nothing)
             for bit_idx::UInt32 = 0 : (end_idx - start_idx)
                 weight::Float32 = @inbounds weights[start_idx + bit_idx]
                 on_node(flows, values, dec_id, bit_idx, flow, weight)
@@ -415,7 +413,7 @@ function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows
     end
     return nothing
 end
-function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows, values::CUDA.CuDeviceArray{<:AbstractFloat,1,1}, on_node, on_edge, weights::CUDA.CuDeviceArray{<:AbstractFloat,1,1})
+function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows, values::CUDA.CuDeviceArray{<:AbstractFloat,2,1}, on_node, on_edge, weights::CUDA.CuDeviceArray{<:AbstractFloat,1,1})
     index_x = (blockIdx().x - 1) * blockDim().x + threadIdx().x
     index_y = (blockIdx().y - 1) * blockDim().y + threadIdx().y
     stride_x = blockDim().x * gridDim().x
@@ -449,7 +447,7 @@ function satisfies_flows_down_layers_cuda(layer, nodes, elements, parents, flows
                             end
                             flow = sum_flows(flow, edge_flow)
                             # report edge flow only once:
-                            dec_id == prime && on_edge(flows, values, prime, sub, par, grandpa, bit_idx, edge_flow, single_child, weights[k])
+                            dec_id == prime && on_edge(flows, values, prime, sub, par, grandpa, k, edge_flow, single_child, weights[k])
                         end
                     end
                 end
