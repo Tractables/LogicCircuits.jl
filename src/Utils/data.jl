@@ -183,7 +183,7 @@ Shuffle the examples in the data
 shuffle_examples(data) = data[shuffle(axes(data, 1)), :]
 
 "Create mini-batches"
-function batch(data, batchsize=1024)
+function batch(data, batchsize=1024; shuffle::Bool = true)
     to_gpu_flag = false
     if isgpu(data)
         to_gpu_flag = true
@@ -196,7 +196,9 @@ function batch(data, batchsize=1024)
         n_examples = num_examples(data)
     end
     
-    data = shuffle_examples(data)
+    if shuffle
+        data = shuffle_examples(data)
+    end
     data = map(1:batchsize:n_examples) do start_index 
         stop_index = min(start_index + batchsize - 1, n_examples)
         data[start_index:stop_index, :]
