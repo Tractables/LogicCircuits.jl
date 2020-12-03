@@ -85,6 +85,9 @@ end
 function similar!(reuse, ::Type{A}, desired_size...) where A<:AbstractArray
     if reuse isa A && size(reuse) == (desired_size...,)
         reuse
+    elseif reuse isa A && length(size(reuse)) == 1 && length((desired_size...,)) == 1
+        # Use resize! to save some effort when the desired array is 1-dimentional
+        resize!(reuse, desired_size...)
     else
         A(undef, desired_size...)
     end
