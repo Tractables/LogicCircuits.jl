@@ -47,6 +47,20 @@ Only do this for when the repo is in stable position, and we have decent amount 
 4. As much as possible, make sure to also release a new version for `ProbabilisticCircuits.jl`.
 
 
+## Updating Artifacts
+
+The example is for Circuit Model Zoo, but should work for others:
+
+1. Push new updates to [UCLA-StarAI/Circuit-Model-Zoo](https://github.com/UCLA-StarAI/Circuit-Model-Zoo)
+2. Do a [new release](https://github.com/UCLA-StarAI/Circuit-Model-Zoo/releases).
+3. Update the `LogicCircuits.jl`'s `Artifact.toml` file with new git tag and hash. Example commit can be found [here](https://github.com/Juice-jl/LogicCircuits.jl/commit/1cd3fda02fa7bd82d1fa02898ee404edce0d7b14).
+4. Do the same for `ProbabilisticCircuits.jl`'s `Artifact.toml` file. Example commit [here](https://github.com/Juice-jl/ProbabilisticCircuits.jl/commit/da7d3678b5f2254e60229632f74cc619505e2b2d).
+
+### Question: How to get the hashes:
+1. `git-tree-sha1`. I thought it was the commit hash but that did not work. Instead can run the tests and then it gives you error with correct hash and you can update the hash based on that.
+2. `sha256`. Download the release file '*.tar.gz' and compute its SHA256 with any method you like and the replace the value.
+
+
 ## Troubleshooting
 
 When running tests locally sometimes DataDeps prompts the user for downloading new data and could cause the tests to fail, add the environment variable to avoid the user prompt
