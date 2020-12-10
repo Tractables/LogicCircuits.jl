@@ -1,7 +1,7 @@
 name = "LogicCircuits"
 uuid = "a7847b3b-b7f1-4dd5-83c3-60e0aa0f8599"
 authors = ["Guy Van den Broeck <guyvdb@cs.ucla.edu>"]
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
