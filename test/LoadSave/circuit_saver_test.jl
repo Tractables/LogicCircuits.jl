@@ -67,3 +67,16 @@ include("../helper/plain_logic_circuits.jl")
   # currently we have no sdd+vtree in the model zoo to do this
 
 end
+
+@testset "CNF Saver tests" begin
+  mktempdir() do tmp
+    # Small CNF test, load from zoo, save and then load again and assert equivalence
+    cnf_orig = zoo_cnf("easy/C17_mince.cnf")
+    @test_nowarn save_as_cnf("$tmp/temp.cnf", cnf_orig)
+    cnf_new = load_cnf("$tmp/temp.cnf")
+    @test num_variables(cnf_orig) == num_variables(cnf_new)
+    @test all(x isa Plain⋁Node || x isa PlainLiteralNode for x in cnf_new.children)
+    @test all(all(x isa PlainLiteralNode for x in or_node.children) for or_node in or_nodes(cnf_new))
+    @test tree_formula_string(cnf_orig) == tree_formula_string(cnf_new)
+  end
+end
