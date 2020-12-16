@@ -23,6 +23,7 @@ save_circuit
 save_vtree
 save_as_sdd
 save_as_dot
+save_as_cnf
 save_as_tex
 save_as_dot2tex
 ```
