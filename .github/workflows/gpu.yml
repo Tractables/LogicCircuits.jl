@@ -1,11 +1,7 @@
 name: Unit Tests 
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
 on: 
   workflow_dispatch:
-
-runs-on: [self-hosted, gpu]
 
 env:
   DATADEPS_ALWAYS_ACCEPT: 1
@@ -13,7 +9,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, gpu]
 
     steps:
       
