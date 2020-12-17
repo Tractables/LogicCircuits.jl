@@ -1,4 +1,4 @@
-name: Unit Tests 
+name: Unit Tests GPU
 
 on: 
   push:
@@ -20,7 +20,7 @@ jobs:
           version: 1.5
 
       # Runs a single command using the runners shell
-      - name: Unit Tests
+      - name: Unit Tests GPU
         run: |
           julia --project --check-bounds=yes --depwarn=error -e 'import Pkg; Pkg.test(; coverage=true)'
           
