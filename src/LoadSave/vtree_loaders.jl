@@ -5,7 +5,7 @@ export load_vtree, zoo_vtree, zoo_vtree_file
 
 Load a vtree file from file. Currently only supports ".vtree" format.
 """
-function load_vtree(file::String, ::Type{V}=PlainVtree)::V where V<:Vtree
+function load_vtree(file::Union{String, IO}, ::Type{V}=PlainVtree)::V where V<:Vtree
     return compile_vtree_format_lines(parse_vtree_file(file), V)
 end
 
@@ -41,22 +41,22 @@ function parse_vtree_header_line(ln::String)
     VtreeHeaderLine()
 end
 
-function parse_vtree_file(file::String)::VtreeFormatLines
+function parse_vtree_file(file::Union{String, IO})::VtreeFormatLines
     q = Vector{VtreeFormatLine}()
-    open(file) do file
-        for ln in eachline(file)
-            if ln[1] == 'c'
-                push!(q, parse_vtree_comment_line(ln))
-            elseif ln[1] == 'L'
-                push!(q, parse_vtree_leaf_line(ln))
-            elseif ln[1] == 'I'
-                push!(q, parse_vtree_inner_line(ln))
-            elseif startswith(ln, "vtree")
-                push!(q, parse_vtree_header_line(ln))
-            else
-                error("Don't know how to parse vtree file format line $ln")
-            end
+    if file isa String file = open(file) end
+    for ln in eachline(file)
+        if ln[1] == 'c'
+            push!(q, parse_vtree_comment_line(ln))
+        elseif ln[1] == 'L'
+            push!(q, parse_vtree_leaf_line(ln))
+        elseif ln[1] == 'I'
+            push!(q, parse_vtree_inner_line(ln))
+        elseif startswith(ln, "vtree")
+            push!(q, parse_vtree_header_line(ln))
+        else
+            error("Don't know how to parse vtree file format line $ln")
         end
     end
+    close(file)
     q
 end

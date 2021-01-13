@@ -4,11 +4,15 @@ export save_as_dot, save_circuit, save_as_sdd, save_as_tex, save_as_dot2tex, sav
 # Save lines
 #####################
 
-function save_lines(name::String, lines::CircuitFormatLines)
-    open(name, "w") do f
-        for line in lines
-            println(f, line)
+function save_lines(file::Union{String, IO}, lines::CircuitFormatLines)
+    if file isa String
+        open(file, "w") do f
+            for line in lines
+                println(f, line)
+            end
         end
+    else
+        for line in lines println(file, line) end
     end
 end
 
