@@ -50,16 +50,18 @@ Supported formats:
 * ".vtree" for Vtree files
 * ".dot" for dot files
 """
-function save_vtree(file::AbstractString, vtree::PlainVtree)
+function save_vtree(file::Union{AbstractString, IO}, vtree::PlainVtree)
 
     # 1. decide file type and open file
-    if endswith(file,".vtree")
-        f = VtreeConfigFile(file)
-    elseif endswith(file, ".dot")
-        f = VtreeDotFile(file)
-    else
-        throw("Unsupported file type. For example, for vtree format file name should end with .vtree")
-    end
+    if file isa AbstractString
+        if endswith(file,".vtree")
+            f = VtreeConfigFile(file)
+        elseif endswith(file, ".dot")
+            f = VtreeDotFile(file)
+        else
+            throw("Unsupported file type. For example, for vtree format file name should end with .vtree")
+        end
+    else f = (file = file,) end
 
     #2. map from PlainVtree to index for output
     index_cache = Dict{PlainVtree, UInt32}()
@@ -70,7 +72,7 @@ function save_vtree(file::AbstractString, vtree::PlainVtree)
         end
 
     #3. saving methods for header, nodes, tailer
-    function save_vtree_header(vtree::PlainVtree, f::VtreeConfigFile)
+    function save_vtree_header(vtree::PlainVtree, f::Union{VtreeConfigFile, NamedTuple})
         write(f.file, VTREE_FORMAT)
         write(f.file, "vtree $(num_nodes(vtree))\n")
     end
@@ -83,7 +85,7 @@ function save_vtree(file::AbstractString, vtree::PlainVtree)
         node_index = node2index(n)
         node_variable = n.var
 
-        if f isa VtreeConfigFile
+        if f isa VtreeConfigFile || f isa NamedTuple
             write(f.file, "L $node_index $node_variable\n")
         elseif f isa VtreeDotFile
             write(f.file, "$node_index [label=$(node_variable), shape=\"plaintext\"]\n")
@@ -97,7 +99,7 @@ function save_vtree(file::AbstractString, vtree::PlainVtree)
         left = node2index(n.left)
         right = node2index(n.right)
 
-        if f isa VtreeConfigFile
+        if f isa VtreeConfigFile || f isa NamedTuple
             write(f.file, "I $node_index $left $right\n")
         elseif f isa VtreeDotFile
             write(f.file, "$node_index -- $right\n")
@@ -107,7 +109,7 @@ function save_vtree(file::AbstractString, vtree::PlainVtree)
         end
     end
 
-    function save_vtree_footer(f::VtreeConfigFile)
+    function save_vtree_footer(f::Union{VtreeConfigFile, NamedTuple})
     end #do nothing
 
     function save_vtree_footer(f::VtreeDotFile)
