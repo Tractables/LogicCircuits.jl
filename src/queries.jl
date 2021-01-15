@@ -246,14 +246,14 @@ function implied_literals_rec(root::LogicCircuit, lcache::Dict{LogicCircuit, Uni
         end
         if is⋀gate(root)
             # If there's a false in here then this is false too
-            if any(x -> x === nothing, root.children)
+            if any(x -> lcache[x] === nothing, root.children)
                 lcache[root] = nothing
             else
                 lcache[root] = mapreduce(c -> lcache[c], union, root.children)
             end
         else
             # Just filter out any falses, they don't do anything here
-            lcache[root] = mapreduce(c -> lcache[c], intersect, filter(x -> lcache !== nothing, root.children))
+            lcache[root] = mapreduce(c -> lcache[c], intersect, filter(x -> lcache[x] !== nothing, root.children))
         end
     end
     lcache
