@@ -17,7 +17,7 @@ export zoo_cnf,
 # loaders from model zoo
 #####################
 
-const zoo_version = "/Circuit-Model-Zoo-0.1.3"
+const zoo_version = "/Circuit-Model-Zoo-0.1.4"
 
 zoo_cnf(name) = 
     load_cnf(zoo_cnf_file(name))
