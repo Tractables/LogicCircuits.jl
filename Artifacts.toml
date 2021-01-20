@@ -7,7 +7,7 @@ lazy = true
     sha256 = "5d66a95037e44010502ad28ec8d6dc26f46947dc88e962633b7de54e614b1a47"
 
 [circuit_model_zoo]
-git-tree-sha1 = "49e3a134c68acbcd87075dee811aff997c29cad2"
+git-tree-sha1 = "af581f4a7ca5e29685f8d67843e0120302ead3ab"
 lazy = true
 
  [[circuit_model_zoo.download]]
