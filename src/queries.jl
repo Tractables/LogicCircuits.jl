@@ -6,6 +6,7 @@ export variables_by_node,
     isstruct_decomposable,
     isdeterministic, 
     iscanonical,
+    implied_literals,
     sat_prob, 
     model_count, 
     prob_equiv_signature,
@@ -223,6 +224,48 @@ function isdeterministic(root::LogicCircuit)::Bool
     result
 end
 
+
+"""
+    implied_literals(root::LogicCircuit)::Dict{LogicCircuit, Union{BitSet, Nothing}}
+
+Compute at each node literals that are implied by the formula. 
+nothing at a node means all literals are implied (i.e. the node's formula is false)
+
+This algorithm is sound but not complete - all literals returned are correct, but some true implied literals may be missing. 
+"""
+implied_literals(root::LogicCircuit)::Dict{LogicCircuit, Union{BitSet, Nothing}} =
+    implied_literals_rec(root, Dict{LogicCircuit, Union{BitSet, Nothing}}())
+    
+
+function implied_literals_rec(root::LogicCircuit, lcache::Dict{LogicCircuit, Union{BitSet, Nothing}})
+    if isconstantgate(root)
+        if constant(root)
+            # True implies no literals
+            lcache[root] = BitSet()
+        else
+            # False implies any literal, so "full" bitset represented by Nothing
+            lcache[root] = nothing
+        end
+    elseif isliteralgate(root)
+        lcache[root] = BitSet([literal(root)])
+    elseif isinnergate(root)
+        for c in root.children
+            implied_literals_rec(c, lcache)
+        end
+        if is⋀gate(root)
+            # If there's a false in here then this is false too
+            if any(x -> lcache[x] === nothing, root.children)
+                lcache[root] = nothing
+            else
+                lcache[root] = mapreduce(c -> lcache[c], union, root.children)
+            end
+        else
+            # Just filter out any falses, they don't do anything here
+            lcache[root] = mapreduce(c -> lcache[c], intersect, filter(x -> lcache[x] !== nothing, root.children))
+        end
+    end
+    lcache
+end
 #####################
 # structural properties
 #####################

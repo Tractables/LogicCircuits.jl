@@ -4,6 +4,7 @@ using LogicCircuits
 
 include("helper/plain_logic_circuits.jl")
 
+
 @testset "Queries test" begin
     
     r1 = fully_factorized_circuit(PlainLogicCircuit,10)
@@ -117,4 +118,29 @@ end
     @test respects_vtree(random, random_vtree)
     # @test respects_vtree(random, random_inferred) # "issues/#47"
 
-end 
+end
+
+
+@testset "Implied Literals Test" begin
+
+    # Load and compile as a bdd
+    c17 = zoo_cnf("easy/C17_mince.cnf")
+    vtr = PlainVtree(num_variables(c17), :rightlinear)
+    mgr = SddMgr(vtr)
+    circuit = compile(mgr, c17)
+    plc = PlainLogicCircuit(circuit)
+
+    il = implied_literals(plc)
+
+    for ornode in or_nodes(plc)
+        @test num_children(ornode) == 2
+        # If there's a nothing just continue, it'll always work
+        if il[ornode.children[1]] === nothing || il[ornode.children[2]] === nothing
+            continue
+        end
+        implied1 = il[ornode.children[1]]
+        implied2 = il[ornode.children[2]]
+        neg_implied2 = BitSet(map(x -> -x, collect(implied2)))
+        @test !isempty(intersect(implied1, neg_implied2))
+    end
+end
