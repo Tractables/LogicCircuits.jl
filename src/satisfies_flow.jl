@@ -520,3 +520,42 @@ function downflow_all(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::Logic
     end
     BitArray(vcat(edge...)[1:N])
 end
+
+function count_downflow(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit)
+    return sum(downflow_all(values, flows, N, n))
+end
+
+function downflow_all(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit)
+    dec_id = n.data.node_id
+    map(1:size(flows, 1)) do i
+        flows[i, dec_id]
+    end
+end
+
+function count_downflow(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit, c::LogicCircuit)
+    sum(downflow_all(values, flows, N, n, c))
+end
+
+function downflow_all(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit, c::LogicCircuit)
+    grandpa = n.data.node_id
+    if isleafgate(c)
+        par = c.data.node_id
+        edge_flows = map(1:size(flows,1)) do i
+            values[i, par] * flows[i, grandpa] / values[i, grandpa]
+        end
+        return edge_flows
+    else
+        ids = [x.data.node_id for x in children(c)]
+        edge_flows = map(1:size(flows,1)) do i
+            n_down = flows[i, grandpa]
+            n_up = values[i, grandpa]
+            edge_flow = 1.0
+            for id in ids
+                edge_flow = edge_flow * values[i, id]
+            end
+            edge_flow * n_down / n_up
+        end
+        return edge_flows
+    end
+end
+

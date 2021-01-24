@@ -284,3 +284,68 @@ end
     end
     
 end
+
+@testset "Downflow API test" begin
+    r = fully_factorized_circuit(PlainLogicCircuit, 10)
+
+    input_b = DataFrame(BitArray([1 0 1 0 1 0 1 0 1 0;
+                    1 1 1 1 1 1 1 1 1 1;
+                    0 0 0 0 0 0 0 0 0 0;
+                    0 1 1 0 1 0 0 1 0 1]))
+    
+    input_f = DataFrame(Float64.(Matrix(input_b)))
+
+    f_b, v_b = satisfies_flows(r, input_b)
+    f_f, v_f = satisfies_flows(r, input_f)
+
+    N = num_examples(input_b)
+    foreach(r) do n
+        if is⋁gate(n)
+            @test all(Float64.(downflow_all(f_b, v_b, N, n)) .≈ downflow_all(f_f, v_f, N, n))
+            @test Float64.(count_downflow(f_b, v_b, N, n)) ≈ count_downflow(f_f, v_f, N, n)
+            for c in children(n)
+                @test all(Float64.(downflow_all(f_b, v_b, N, n, c)) .≈ downflow_all(f_f, v_f, N, n, c))
+                @test Float64.(count_downflow(f_b, v_b, N, n, c)) ≈ count_downflow(f_f, v_f, N, n, c)
+            end
+        end
+    end
+
+    input1 = DataFrame(BitArray([1 0 1 0 1 0 1 0 1 0;
+                                1 1 1 1 1 1 1 1 1 1;
+                                0 0 0 0 0 0 0 0 0 0;
+                                0 1 1 0 1 0 0 1 0 1]))
+
+    input2 = DataFrame(BitArray([0 1 1 1 0 1 1 1 0 0;
+                                1 1 0 0 1 1 0 1 0 1;
+                                1 0 0 0 1 0 1 0 1 0;
+                                0 0 1 1 0 1 1 0 0 1]))
+
+    input3 = DataFrame(BitArray([1 0 1 0 1 0 1 0 1 0;
+                                0 1 0 1 0 1 1 1 0 1;
+                                0 1 0 1 0 1 1 0 1 0;
+                                0 0 1 1 1 0 1 0 0 1]))
+    
+    input4 = DataFrame(0.3 .* Float64.(Matrix(input1)) .+ 
+                        0.1 .* Float64.(Matrix(input2)) .+ 
+                        0.6 .* Float64.(Matrix(input3)))
+
+    inputs = [input1, input2, input3, input4]
+    vfs = [satisfies_flows(r, input) for input in inputs]
+
+    N = num_examples(input_b)
+    foreach(r) do n
+        if is⋁gate(n)
+            df = [count_downflow(v, f, N, n) for (v, f) in vfs]
+            @test 0.3 * df[1] + 0.1 * df[2] + 0.6 * df[3] ≈ df[4]
+
+            df_all = [downflow_all(v, f, N, n) for (v, f) in vfs]
+            @test all(0.3 * Float64.(df_all[1]) + 0.1 * Float64.(df_all[2]) + 0.6 * Float64.(df_all[3]) .≈ df_all[4])
+            for c in children(n)
+                df = [count_downflow(v, f, N, n, c) for (v, f) in vfs]
+                @test 0.3 * df[1] + 0.1 * df[2] + 0.6 * df[3] ≈ df[4]
+                df_all = [downflow_all(v, f, N, n, c) for (v, f) in vfs]
+                @test all(0.3 * Float64.(df_all[1]) + 0.1 * Float64.(df_all[2]) + 0.6 * Float64.(df_all[3]) .≈ df_all[4])
+            end
+        end
+    end
+end
