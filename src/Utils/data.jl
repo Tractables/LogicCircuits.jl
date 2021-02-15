@@ -317,7 +317,7 @@ to_gpu(m::Array) = CuArray(m)
 to_gpu(v::BitVector) = 
     AbstractBitVector(to_gpu(chunks(v)), length(v))
 to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
-    CuArray(T.(coalesce(v,typemax(T))))
+    CuArray(F.(coalesce(v,typemax(F))))
 to_gpu(v::Vector{Union{Bool,Missing}}) =
     CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
 to_gpu(df::DataFrame) = isgpu(df) ? df : mapcols(to_gpu, df)
