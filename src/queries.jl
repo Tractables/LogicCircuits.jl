@@ -250,7 +250,9 @@ function implied_literals_rec(root::LogicCircuit, lcache::Dict{LogicCircuit, Uni
         lcache[root] = BitSet([literal(root)])
     elseif isinnergate(root)
         for c in root.children
-            implied_literals_rec(c, lcache)
+            if !haskey(lcache, c)
+                implied_literals_rec(c, lcache)
+            end
         end
         if is⋀gate(root)
             # If there's a false in here then this is false too
