@@ -24,7 +24,10 @@ function smooth(root::StructLogicCircuit)::StructLogicCircuit
             union!(parent_scope, scope)
             smooth_child
         end
-        (conjoin([smooth_children...]; reuse=n), parent_scope)
+        smoothed = conjoin([smooth_children...]; reuse=n)
+        # We should now be at the "correct" lowest possible vtree node
+        @assert variables(vtree(smoothed)) == parent_scope
+        (smoothed, parent_scope)
     end
     f_o(n, call) = begin
         parent_scope = mapreduce(c -> call(c)[2], union, children(n))
@@ -76,10 +79,9 @@ Return a smooth version of the node where
 the `missing_scope` variables are added to the scope, using literals from `lit_nodes`
 """
 function smooth_node(node::StructLogicCircuit, missing_scope, parent_scope, lit_nodes)
-    @show vtr = vtree(node)
-    @show missing_scope
+    vtr = vtree(node)
     # Compute the node we're actually at based on variables used
-    @show actual_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
+    actual_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
     if vtr == actual_vtr
         @assert isempty(missing_scope)
         node # If the node is where it should be on the vtree, we're done
@@ -105,7 +107,7 @@ function fill_missing_vtree(node::StructLogicCircuit, start_vtr, end_vtr, lit_no
         # We're at an inner node, so recurse and conjoin the results?
         left = fill_missing_vtree(node, start_vtr.left, end_vtr, lit_nodes)
         right = fill_missing_vtree(node, start_vtr.right, end_vtr, lit_nodes)
-        conjoin(right, left, use_vtree=start_vtr)
+        conjoin(left, right, use_vtree=start_vtr)
     end
 end
 
