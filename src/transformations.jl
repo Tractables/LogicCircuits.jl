@@ -15,7 +15,7 @@ Create an equivalent smooth circuit from the given circuit.
 function smooth(root::StructLogicCircuit)::StructLogicCircuit
     (false_node, true_node) = canonical_constants(root)
     if !(false_node === nothing && true_node === nothing)
-        @throw("You should propagate constants before smoothing a structured circuit!")
+        throw("You should propagate constants before smoothing a structured circuit!")
     end
 
     lit_nodes = canonical_literals(root)
