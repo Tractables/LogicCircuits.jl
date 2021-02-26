@@ -13,6 +13,11 @@ export smooth, forget, propagate_constants, deepcopy, condition, replace_node,
 Create an equivalent smooth circuit from the given circuit.
 """
 function smooth(root::StructLogicCircuit)::StructLogicCircuit
+    (false_node, true_node) = canonical_constants(root)
+    if !(false_node === nothing && true_node === nothing)
+        @throw("You should propagate constants before smoothing a structured circuit!")
+    end
+
     lit_nodes = canonical_literals(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
@@ -73,7 +78,7 @@ end
 
 
 """
-    smooth_node(node::Node, missing_scope, lit_nodes)
+    smooth_node(node::StructLogicCircuit, missing_scope, lit_nodes)
 
 Return a smooth version of the node where 
 the `missing_scope` variables are added to the scope, using literals from `lit_nodes`
