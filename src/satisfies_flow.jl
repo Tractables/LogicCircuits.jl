@@ -273,9 +273,9 @@ assign_flow(f::Matrix{<:Unsigned}, v, d, g, s) =
     @inbounds @views @. f[:, d] = v[:, s] & v[:, d] & f[:, g]
 
 function assign_flow(f::Matrix{<:AbstractFloat}, v, d, g, s)
-    @avx for j in 1:size(f,1)
+    @simd for j in 1:size(f,1) # adding @avx here gives incorrect results
         edge_flow = v[j, s] * v[j, d] / v[j, g] * f[j, g]
-        edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(eltype(f)))
+        edge_flow = ifelse(isfinite(edge_flow), edge_flow, zero(eltype(f)))
         f[j, d] = edge_flow
     end
 end
@@ -290,9 +290,9 @@ accum_flow(f::Matrix{<:Unsigned}, v, d, g, s) =
     @inbounds @views @. f[:, d] |= v[:, s] & v[:, d] & f[:, g]
 
 function accum_flow(f::Matrix{<:AbstractFloat}, v, d, g, s)
-    @avx for j in 1:size(f,1)
+    @simd for j in 1:size(f,1) # adding @avx here gives incorrect results
         edge_flow = v[j, s] * v[j, d] / v[j, g] * f[j, g]
-        edge_flow = vifelse(isfinite(edge_flow), edge_flow, zero(eltype(f)))
+        edge_flow = ifelse(isfinite(edge_flow), edge_flow, zero(eltype(f)))
         f[j, d] += edge_flow
     end
 end
