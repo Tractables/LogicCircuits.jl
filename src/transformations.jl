@@ -334,6 +334,7 @@ Randomly picking egde and variable from candidates
 """
 function random_split(circuit::Node)
     candidates, variable_scope = split_candidates(circuit)
+    if isempty(candidates) return nothing end
     or, and = rand(candidates)
     vars = Var.(collect(variable_scope[and]))
     var = rand(vars)
@@ -344,6 +345,8 @@ end
 Split step
 """
 function split_step(circuit::Node; loss=random_split, depth=0, sanity_check=true)
+    res = loss(circuit)
+    if isnothing(res) return nothing end
     edge, var = loss(circuit)
     split(circuit, edge, var; depth=depth, sanity_check=sanity_check)
 end
@@ -354,12 +357,26 @@ Structure learning manager
 function struct_learn(circuit::Node; 
     primitives=[split_step], 
     kwargs=Dict(split_step=>(loss=random_split, depth=0)),
-    maxiter=typemax(Int), stop::Function=x->false)
+    maxiter=typemax(Int), stop::Function=x->false, verbose = true)
+
+    valid_prims = copy(primitives)
+    m = length(valid_prims)
 
     for iter in 1 : maxiter
-        primitive_step = rand(primitives)
+        which_primitive = rand(1:m)
+        primitive_step = valid_prims[which_primitive]
         kwarg = kwargs[primitive_step]
-        c2, _ = primitive_step(circuit; kwarg...)
+        r = primitive_step(circuit; kwarg...)
+        if isnothing(r)
+            verbose && println("No more candidates to ", primitive_step, ". Skipping...")
+            deleteat!(valid_prims, which_primitive)
+            m -= 1
+            if m == 0
+                verbose && println("No more transformations available.")
+                return circuit
+            end
+        end
+        c2, _ = r
         if stop(c2)
             return c2
         end

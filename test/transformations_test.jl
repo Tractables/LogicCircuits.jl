@@ -186,6 +186,11 @@ end
     # TODO
     # @test isstructdecomposable(c1)
     # @test isdeterministic(c1)
+
+    # Test when there are no candidates to transform.
+    c2 = (compile(PlainLogicCircuit, -Lit(2)) & compile(PlainLogicCircuit, Lit(1))) |
+         (compile(PlainLogicCircuit, -Lit(1)) & compile(PlainLogicCircuit, Lit(2)))
+    @test_nowarn struct_learn(c2; maxiter = 10, verbose = false)
 end
 
 @testset "Clone Candidates" begin
