@@ -49,19 +49,15 @@ lc = smooth(load_logic_circuit(zoo_sdd_file("random.sdd")));
 model_count(lc)
 ```
 
-Lets see how forgetting a variable affects the model count. Note that to get the correct model count need to give the number of vairables in the original circuit.
-```@example mc
-f2 = forget(lc, (i) -> (i == 2));
-model_count(f2, num_variables(lc))
-```
-
-Lets see how conditioning affects the model count. Observe that model count of ``\Delta`` should equal to adding model counts of ``\Delta \mid x_2`` and ``\Delta \mid \lnot x_2``.
+Let's see how conditioning affects the model count. Observe that model count of ``\Delta`` should equal to adding model counts of ``\Delta \mid x_2`` and ``\Delta \mid \lnot x_2``.
 
 ```@example mc
 c2 = condition(lc, Lit(2));
 c2not = condition(lc, Lit(-2));
 model_count(c2, num_variables(lc)), model_count(c2not, num_variables(lc))
 ```
+
+Note that some transformations lead to losing required properties needed for tractable model count. For example, after forgetting variables we lose determinism and hence cannot use [`model_count`](@ref) anymore.
 
 
 ## Equivalence Checking
