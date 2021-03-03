@@ -1,6 +1,6 @@
 export smooth, forget, propagate_constants, deepcopy, condition, replace_node, 
     split, clone, merge, split_candidates, random_split, split_step, struct_learn,
-    clone_candidates, standardize_circuit
+    clone_candidates, standardize_circuit, collapse_ands
 
 
 # include("structured/abstract_vtrees.jl") # and these
@@ -13,24 +13,57 @@ export smooth, forget, propagate_constants, deepcopy, condition, replace_node,
 Create an equivalent smooth circuit from the given circuit.
 """
 function smooth(root::StructLogicCircuit)::StructLogicCircuit
-    (false_node, true_node) = canonical_constants(root)
-    if !(false_node === nothing && true_node === nothing)
-        throw("You should propagate constants before smoothing a structured circuit!")
-    end
+    # (false_node, true_node) = canonical_constants(root)
+    # if !(false_node === nothing && true_node === nothing)
+    #     throw("You should propagate constants before smoothing a structured circuit!")
+    # end
 
     lit_nodes = canonical_literals(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
     f_a(n, call) = begin
-        parent_scope = BitSet()
-        smooth_children = Vector{Node}(undef, num_children(n))
-        map!(smooth_children, children(n)) do child
-            (smooth_child, scope) = call(child)
-            union!(parent_scope, scope)
-            smooth_child
-        end
-        smoothed = conjoin([smooth_children...]; reuse=n)
+        # parent_scope = BitSet()
+        # smooth_children = Vector{Node}(undef, num_children(n))
+        # child_vtrs = []
+        # child_actual_vtrs = []
+        # child_types = []
+        (prime, pscope) = call(n.prime)
+        # Edge case for leaves
+        # if isliteralgate(prime)
+            @show prime = fill_missing_vtree(prime, vtree(n).left, vtree(prime), lit_nodes)
+            pscope = variables(vtree(n).left)
+        # end
+        @show pscope
+        @show vtree(prime)
+        @show vtree(n).left
+        (sub, sscope) = call(n.sub)
+        # if isliteralgate(sub)
+            @show sub = fill_missing_vtree(sub, vtree(n).right, vtree(sub), lit_nodes)
+            sscope = variables(vtree(n).right)
+        # end
+        @show sscope
+        @show vtree(sub)
+        @show vtree(n).right
+        parent_scope = pscope ∪ sscope
+        smoothed = conjoin([prime, sub])
+        # map!(smooth_children, children(n)) do child
+        #     (smooth_child, scope) = call(child)
+        #     push!(child_vtrs, lca(map(x -> vtree(lit_nodes[x]), collect(scope))...))
+        #     push!(child_actual_vtrs, variables(vtree(smooth_child)))
+        #     push!(child_types, typeof(smooth_child))
+        #     union!(parent_scope, scope)
+        #     smooth_child
+        # end
+        # vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
+        # smoothed = conjoin([smooth_children...]; use_vtree=vtr)
         # We should now be at the "correct" lowest possible vtree node
+        @show curr_vtr = vtree(n)
+        # @show child_vtrs
+        # @show child_actual_vtrs
+        # @show child_types
+        @show vtree(smoothed)
+        @show parent_scope
+        @show lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
         @assert variables(vtree(smoothed)) == parent_scope
         (smoothed, parent_scope)
     end
@@ -39,7 +72,7 @@ function smooth(root::StructLogicCircuit)::StructLogicCircuit
         smooth_children = Vector{Node}(undef, num_children(n))
         map!(smooth_children, children(n)) do child
             (smooth_child, scope) = call(child)
-            smooth_node(smooth_child, setdiff(parent_scope, scope), scope, lit_nodes)
+            smooth_node(smooth_child, parent_scope, scope, lit_nodes)
         end
         return (disjoin([smooth_children...]; reuse=n), parent_scope)
     end
@@ -69,7 +102,7 @@ function smooth(root::Node)::Node
         smooth_children = Vector{Node}(undef, num_children(n))
         map!(smooth_children, children(n)) do child
             (smooth_child, scope) = call(child)
-            smooth_node(smooth_child, setdiff(parent_scope, scope), lit_nodes)
+            smooth_node(smooth_child, setdiff(parent_scope, scope), scope, lit_nodes)
         end
         return (disjoin([smooth_children...]; reuse=n), parent_scope)
     end
@@ -83,15 +116,17 @@ end
 Return a smooth version of the node where 
 the `missing_scope` variables are added to the scope, using literals from `lit_nodes`
 """
-function smooth_node(node::StructLogicCircuit, missing_scope, parent_scope, lit_nodes)
+function smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes)
     vtr = vtree(node)
     # Compute the node we're actually at based on variables used
-    actual_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
-    if vtr == actual_vtr
-        @assert isempty(missing_scope)
+    @show target_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
+    @show curr_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(scope))...)
+    @show vtr
+    if curr_vtr == target_vtr
+        @assert isempty(setdiff(parent_scope, scope))
         node # If the node is where it should be on the vtree, we're done
     else
-        fill_missing_vtree(node, vtr, actual_vtr, lit_nodes)
+        fill_missing_vtree(node, target_vtr, curr_vtr, lit_nodes)
     end
 end
 
