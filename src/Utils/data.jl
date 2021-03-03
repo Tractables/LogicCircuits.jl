@@ -1,4 +1,4 @@
-import DataFrames: DataFrame, DataFrameRow, nrow, ncol, eltypes, mapcols
+import DataFrames: DataFrame, DataFrameRow, nrow, ncol, mapcols
 import Random: shuffle
 import Statistics: mean, std
 import CUDA: CuVector, CuMatrix
@@ -264,7 +264,7 @@ end
 threshold(train, valid, test) = threshold(train, valid, test, 0.05) # default threshold offset (used for MNIST)
 
 function threshold(train::DataFrame, valid, test, offset)
-    @assert isfpdata(train) "DataFrame to be thresholded contains non-numeric columns: $(eltypes(x))"
+    @assert isfpdata(train) "DataFrame to be thresholded contains non-numeric columns."
     train = convert(Matrix, train)
     valid = issomething(valid) ? convert(Matrix, valid) : nothing
     test = issomething(test) ? convert(Matrix, test) : nothing
