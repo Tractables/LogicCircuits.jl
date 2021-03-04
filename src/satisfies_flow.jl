@@ -2,7 +2,7 @@ using CUDA: CUDA, @cuda
 using DataFrames: DataFrame
 using LoopVectorization: @avx
 
-export satisfies, satisfies_all, satisfies_flows_down, satisfies_flows,
+export satisfies, satisfies_all, model_var_prob, satisfies_flows_down, satisfies_flows,
 count_downflow, downflow_all
 
 #####################
@@ -193,6 +193,14 @@ accum_el_value(values, j, decision_id, p::Unsigned, s) =
 #####################
 # Bit circuit values and flows (up and downward pass)
 #####################
+
+"Compute the probability of each variable for a random satisfying assignment of the logical circuit"
+function model_var_prob(root::LogicCircuit)
+    nvars = num_variables(root)
+    v, f = satisfies_flows(root, DataFrame(fill(0.5, 1, nvars)))
+    f[3:2+nvars]./v[end]
+end
+
 
 "Compute the value and flow of each node"
 function satisfies_flows(circuit::LogicCircuit, data, 

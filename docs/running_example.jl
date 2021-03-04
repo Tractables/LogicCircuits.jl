@@ -7,21 +7,34 @@ sun, rain, rainbow = pos_literals(LogicCircuit, 3)
 
 circuit =  (rainbow & sun & rain) | (-rainbow) 
 
-num_nodes(circuit)
-num_edges(circuit)
+(num_nodes(circuit), num_edges(circuit))
 
-# sat example -- vectorized
+circuit([false, true, true])
+circuit([true, true, true])
 
-# what about counting solutions
+isdecomposable(circuit)
 
-isdecomposable(circuit) && isdeterministic(circuit)
+# issatisfiable(circuit) TODO
+
+isdeterministic(circuit)
+
+model_count(circuit)
+
+# what if I don't know how to make the circuit decomposable and deterministic?
+
+# SDD compilation
+
+# downward pass conditional probability?
+
 issmooth(circuit)
 
 smooth_circuit = smooth(circuit)
 
-isdecomposable(smooth_circuit) && isdeterministic(smooth_circuit)
+(num_nodes(smooth_circuit), num_edges(smooth_circuit))
+
+isdecomposable(smooth_circuit) && isdeterministic(smooth_circuit) 
 issmooth(smooth_circuit)
 
-# model counting
+model_var_prob(smooth_circuit)
 
-# what if I don't know how to make the circuit decomposable and deterministic?
+# vectorized inference
