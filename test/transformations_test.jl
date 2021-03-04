@@ -15,6 +15,24 @@ include("helper/plain_logic_circuits.jl")
     end
 end
 
+@testset "Structured smooth test" begin
+    sdd = zoo_sdd("random.sdd")
+    vtr = zoo_vtree("random.vtree")
+    slc = smooth(sdd)
+    plc = propagate_constants(sdd, remove_unary=true)
+    structplc = compile(StructLogicCircuit, vtr, plc) 
+    sstructplc = smooth(structplc)
+
+    @test !issmooth(sdd)
+    @test issmooth(slc)
+    @test issmooth(sstructplc)
+    @test respects_vtree(sstructplc, vtr)
+
+    e1 = prob_equiv_signature(slc, 3)
+    e2 = prob_equiv_signature(sstructplc, 3, e1)
+    @test e1[slc] == e2[sstructplc]
+end
+
 @testset "Forget test" begin
     for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"),
         c1 = load_logic_circuit(file)
