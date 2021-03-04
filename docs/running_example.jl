@@ -14,9 +14,13 @@ circuit([true, true, true])
 
 isdecomposable(circuit)
 
-# issatisfiable(circuit) TODO
+issatisfiable(circuit)
+
+# harder logical inference
 
 isdeterministic(circuit)
+
+istautology(circuit)
 
 model_count(circuit)
 
