@@ -27,8 +27,23 @@ model_count(circuit)
 
 # what if I don't know how to make the circuit decomposable and deterministic?
 
-mgr = SddMgr(3)
-sun, rain, rainbow = pos_literals(Sdd, 3)
+my_mgr = SddMgr(5, :balanced)
+sun, rain, rainbow, belgium, los_angeles = pos_literals(Sdd, my_mgr, 5)
+
+my_sdd = compile(my_mgr, circuit)
+
+model_count(my_sdd) # TODO use mgr scope to set num vars
+(num_nodes(my_sdd), num_edges(my_sdd))
+
+#TODO add implication syntax
+my_sdd &= (-belgium | rain)
+my_sdd &= (-los_angeles | sun)
+my_sdd &= (-los_angeles | -belgium)
+
+model_count(my_sdd) # TODO use mgr scope to set num vars
+(num_nodes(my_sdd), num_edges(my_sdd))
+
+isdecomposable(my_sdd) && isdeterministic(my_sdd)
 
 # downward pass conditional probability?
 
