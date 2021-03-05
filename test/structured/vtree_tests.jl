@@ -6,7 +6,7 @@ using LogicCircuits
     v1 = PlainVtree(Var(1))
     v2 = PlainVtree(Var(2))
     v3 = PlainVtree(Var(3))
-    @test_throws Exception PlainVtree(3)
+    @test_throws Exception PlainVtree(3) # note: we want to avoid confusing 3 meaning 3 variables vs the literal 3
     i1 = PlainVtree(v1,v2)
     r = PlainVtree(i1,v3)
 

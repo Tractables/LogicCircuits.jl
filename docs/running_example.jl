@@ -5,6 +5,7 @@ using LogicCircuits
 
 sun, rain, rainbow = pos_literals(LogicCircuit, 3)
 
+# rainbow implies sun and rain
 circuit =  (rainbow & sun & rain) | (-rainbow) 
 
 (num_nodes(circuit), num_edges(circuit))
@@ -26,7 +27,8 @@ model_count(circuit)
 
 # what if I don't know how to make the circuit decomposable and deterministic?
 
-# SDD compilation
+mgr = SddMgr(3)
+sun, rain, rainbow = pos_literals(Sdd, 3)
 
 # downward pass conditional probability?
 
