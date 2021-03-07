@@ -206,3 +206,7 @@ function unique⋁(xy::XYPartition, mgr::SddMgrInnerNode)
         node
     end::Sdd⋁Node
 end
+
+model_count(root::StructLogicCircuit)::BigInt =
+    model_count(root, length(global_scope(vtree(root))))
+
