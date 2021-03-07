@@ -15,7 +15,7 @@ export issomething,
         lit2var, 
         variables,
         num_variables, 
-        (¬), (∨), (∧), (⇒), (⇐), (⇔), (⊕),
+        (¬), (∨), (∧), (⇒), (⇐), (⇔),
         always, 
         never, 
         uniform, 
@@ -125,20 +125,17 @@ function variables end
 # logical syntactic sugar
 
 "Logical negation"
-(¬)(x) = !x
+const ¬ = !
 "Logical disjunction"
-(∨)(x,y) = x | y
+const ∨ = |
 "Logical conjunction"
-(∧)(x,y) = x & y
+const ∧ = &
 "Material logical implication"
-(⇒)(x,y) = x ∨ ¬y
+(⇒)(x,y) = ¬x ∨ y
 "Material logical implication (reverse)"
-(⇐)(x,y) = (x ⇒ y)
+(⇐)(x,y) = (y ⇒ x)
 "Bidirectional logical implication"
 (⇔)(x,y) = (x ⇒ y) ∧ (y ⇒ x)
-"Exclusive logical disjunction (XOR)"
-(⊕)(x,y) = (x ∧ ¬y) ∨ (y ∧ ¬x) 
-
 
 #####################
 # probability semantics
@@ -214,7 +211,7 @@ end;
 
 
 """
-Return a copy of Imputed values of X  (potentiallyl statistics from another DataFrame)
+Return a copy of Imputed values of X  (potentially statistics from another DataFrame)
 
 For example, to impute using same DataFrame:
 
