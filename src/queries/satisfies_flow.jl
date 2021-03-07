@@ -6,10 +6,6 @@ export model_var_prob, satisfies_flows_down, satisfies_flows,
 count_downflow, downflow_all
 
 
-#####################
-# Bit circuit values and flows (up and downward pass)
-#####################
-
 "Compute the probability of each variable for a random satisfying assignment of the logical circuit"
 function model_var_prob(root::LogicCircuit)
     nvars = num_variables(root)
@@ -17,6 +13,9 @@ function model_var_prob(root::LogicCircuit)
     f[3:2+nvars]./v[end]
 end
 
+#####################
+# Bit circuit values and flows (up and downward pass)
+#####################
 
 "Compute the value and flow of each node"
 function satisfies_flows(circuit::LogicCircuit, data, 

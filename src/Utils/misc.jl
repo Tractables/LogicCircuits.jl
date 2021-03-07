@@ -13,8 +13,9 @@ export issomething,
         Lit, 
         var2lit, 
         lit2var, 
-        variables, 
+        variables,
         num_variables, 
+        (¬), (∨), (∧), (⇒), (⇐), (⇔), (⊕),
         always, 
         never, 
         uniform, 
@@ -24,6 +25,7 @@ export issomething,
         groupby,
         make_missing_mcar,
         impute
+
 
 using CUDA: CuArray, CuVector, CuMatrix, CUDA
 using DataFrames: DataFrame, missings
@@ -119,6 +121,24 @@ function variables end
 
 "Number of variables in the data structure"
 @inline num_variables(x)::Int = length(variables(x))
+
+# logical syntactic sugar
+
+"Logical negation"
+(¬)(x) = !x
+"Logical disjunction"
+(∨)(x,y) = x | y
+"Logical conjunction"
+(∧)(x,y) = x & y
+"Material logical implication"
+(⇒)(x,y) = x ∨ ¬y
+"Material logical implication (reverse)"
+(⇐)(x,y) = (x ⇒ y)
+"Bidirectional logical implication"
+(⇔)(x,y) = (x ⇒ y) ∧ (y ⇒ x)
+"Exclusive logical disjunction (XOR)"
+(⊕)(x,y) = (x ∧ ¬y) ∨ (y ∧ ¬x) 
+
 
 #####################
 # probability semantics
