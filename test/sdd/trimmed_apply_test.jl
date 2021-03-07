@@ -121,7 +121,7 @@ using LogicCircuits
     @test f4c isa PlainLogicCircuit
     @test num_edges(f4c) == num_edges(f4)
     @test num_nodes(f4c) == num_nodes(f4)
-    @test model_count(f4c) == model_count(f4)
+    @test model_count(f4c, num_vars) == model_count(f4)
     @test isdeterministic(f4c)
 
     f4c = StructLogicCircuit(mgr, f4)
