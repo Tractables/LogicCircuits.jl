@@ -23,9 +23,9 @@ sun, rain, rainbow = pos_literals(LogicCircuit, 3)
 circuit = (rainbow & sun & rain) | (-rainbow); # rainbow implies sun and rain
 
 # Just like any logical circuit or Boolean function, we can evaluate ours on various inputs.
-circuit([false, true, true]) # sun is false, rain is true, rainbow is true
+circuit(false, true, true) # sun is false, rain is true, rainbow is true
 #-
-circuit([true, true, true]) # sun is true, rain is true, rainbow is true
+circuit(true, true, true) # sun is true, rain is true, rainbow is true
 
 #src TODO: specific for ipython, visualize circuit using plot(circuit)?
 
@@ -33,7 +33,7 @@ circuit([true, true, true]) # sun is true, rain is true, rainbow is true
 # Our current circuit happens to already be decomposable and deterministic by construction:
 isdecomposable(circuit) && isdeterministic(circuit)
 
-# The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently. Of course, from the input `[true, true, true]` tried above, we know the answer to be true.
+# The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently. Of course, from the input `true, true, true` tried above, we know the answer to be true.
 issatisfiable(circuit) # does there exist an input that outputs true?
 # In addition, the determinism property allows us to efficiently decide whether the circuit is a tautology (always true), or compute its model count, that is, the number of satisfying assignments.
 istautology(circuit) # do all inputs give the circuit output true?

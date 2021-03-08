@@ -28,7 +28,7 @@ circuit = (rainbow & sun & rain) | (-rainbow); # rainbow implies sun and rain
 Just like any logical circuit or Boolean function, we can evaluate ours on various inputs.
 
 ```julia
-circuit([false, true, true]) # sun is false, rain is true, rainbow is true
+circuit(false, true, true) # sun is false, rain is true, rainbow is true
 ```
 
 ```
@@ -36,7 +36,7 @@ false
 ```
 
 ```julia
-circuit([true, true, true]) # sun is true, rain is true, rainbow is true
+circuit(true, true, true) # sun is true, rain is true, rainbow is true
 ```
 
 ```
@@ -54,7 +54,7 @@ isdecomposable(circuit) && isdeterministic(circuit)
 true
 ```
 
-The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently. Of course, from the input `[true, true, true]` tried above, we know the answer to be true.
+The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently. Of course, from the input `true, true, true` tried above, we know the answer to be true.
 
 ```julia
 issatisfiable(circuit) # does there exist an input that outputs true?
