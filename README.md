@@ -99,7 +99,7 @@ Now we are able to incorporate many more logical sentences into the same circuit
 sun, rain, rainbow, cloud, snow, belgium, los_angeles = pos_literals(Sdd, manager, 7)
 circuit &= (-los_angeles | -belgium) # cannot be in LA and Belgium at the same time
 circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical syntax
-circuit &= (¬(rain ∨ snow) ⇐ ¬cloud);
+circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no snow or rain without clouds
 ```
 
 Incorporating these constraints has increased the size of our circuit, but crucially, the circuit is still decomposable and deterministic.
