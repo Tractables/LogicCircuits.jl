@@ -1,10 +1,8 @@
 <!-- DO NOT EDIT README.md directly, instead edit README.jl and generate the markdown-->
 
-| Build Status                                                                                                                                                                                                                                                                       	|                                              Documentation                                             	|
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	|:------------------------------------------------------------------------------------------------------:	|
-| [![Unit Tests](https://github.com/Juice-jl/LogicCircuits.jl/workflows/Unit%20Tests/badge.svg)](https://github.com/Juice-jl/LogicCircuits.jl/actions?query=workflow%3A%22Unit+Tests%22+branch%3Amaster) [![codecov](https://codecov.io/gh/Juice-jl/LogicCircuits.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Juice-jl/LogicCircuits.jl) 	| [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev) 	|
-
 # LogicCircuits.jl
+
+[![Unit Tests](https://github.com/Juice-jl/LogicCircuits.jl/workflows/Unit%20Tests/badge.svg)](https://github.com/Juice-jl/LogicCircuits.jl/actions?query=workflow%3A%22Unit+Tests%22+branch%3Amaster) [![codecov](https://codecov.io/gh/Juice-jl/LogicCircuits.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Juice-jl/LogicCircuits.jl) [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev)
 
 This package provides basic functionality for doing logical reasoning using logical circuits. It serves to enable logical functionality in other [Juice](https://github.com/Juice-jl) (Julia Circuit Empanada) packages, as well as the stand-alone functionality illustrated below.
 
@@ -179,7 +177,7 @@ Please see [![](https://img.shields.io/badge/docs-stable-green.svg)](https://jui
 
 ## Development
 
-If you are interested in modifying the package please see the [development Readme](README_DEV.md).
+If you are interested in modifying the package please see the [development readme](docs/README_DEV.md).
 
 ### Acknowledgements
 
