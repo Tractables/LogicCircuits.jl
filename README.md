@@ -175,7 +175,7 @@ circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf"))
  * Algorithms that transform circuits in non-trivial ways (split, clone, smooth, condition, etc.), verify and enforce structural properties.
  * Functionality to load and save circuits in various file formats
 
-Please see the documentation for further details.
+Please see [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) or [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev) for further details.
 
 ## Development
 
