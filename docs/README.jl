@@ -6,7 +6,7 @@
 
 # [![Unit Tests](https://github.com/Juice-jl/LogicCircuits.jl/workflows/Unit%20Tests/badge.svg)](https://github.com/Juice-jl/LogicCircuits.jl/actions?query=workflow%3A%22Unit+Tests%22+branch%3Amaster) [![codecov](https://codecov.io/gh/Juice-jl/LogicCircuits.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Juice-jl/LogicCircuits.jl) [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev)
 
-# This package provides basic functionality for doing logical reasoning using logical circuits. It serves to enable logical functionality in other [Juice](https://github.com/Juice-jl) (Julia Circuit Empanada) packages, as well as the stand-alone functionality illustrated below.
+# This package provides basic functionality for doing logical reasoning using logical circuits. It has the stand-alone functionality illustrated below, and it serves as the logical foundations for other [Juice packages](https://github.com/Juice-jl) (Julia Circuit Empanada).
 
 # ## Example usage
 
@@ -50,7 +50,7 @@ circuit = compile(manager, circuit);
 sun, rain, rainbow, cloud, snow, belgium, los_angeles = pos_literals(Sdd, manager, 7)
 circuit &= (-los_angeles | -belgium) # cannot be in LA and Belgium at the same time
 circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical syntax
-circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no snow or rain without clouds
+circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 
 # Incorporating these constraints has increased the size of our circuit, but crucially, the circuit is still decomposable and deterministic.
 "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
@@ -71,7 +71,7 @@ manager = SddMgr(zoo_vtree("iscas89/s208.1.scan.min.vtree"))
 circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 clauses
 "This CNF has $(model_count(circuit)) satisfying assignments. Its circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges."
 
-# ### Advanced usage
+# ### Advanced functionality
 
 # `LogicCircuits` further provides
 #  * CPU (SIMD) and GPU (CUDA) kernels to efficiently compute satisfiability, model counts, etc., for large numbers of inputs, parallelizing over both circuit nodes and data inputs.
@@ -93,7 +93,7 @@ circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 cla
 
 # If you are interested in modifying the package please see the [development readme](docs/README_DEV.md).
 
-# ### Acknowledgements
+# ## Acknowledgements
 
 # To acknowledge this package, please cite:
 # ```
