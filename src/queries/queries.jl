@@ -252,7 +252,9 @@ function implied_literals_rec(root::LogicCircuit, lcache::Dict{LogicCircuit, Uni
         lcache[root] = BitSet([literal(root)])
     elseif isinnergate(root)
         for c in root.children
-            implied_literals_rec(c, lcache)
+            if !haskey(lcache, c)
+                implied_literals_rec(c, lcache)
+            end
         end
         if is⋀gate(root)
             # If there's a false in here then this is false too
@@ -349,9 +351,11 @@ const Signature = Vector{Rational{BigInt}}
 Get a signature for each node using probabilistic equivalence checking.
 Note that this implentation may not have any formal guarantees as such.
 """
-function prob_equiv_signature(circuit::LogicCircuit, k::Int)::Dict{Union{Var,Node},Signature}
+function prob_equiv_signature(circuit::LogicCircuit, k::Int, signs=Dict{Union{Var,Node},Signature}())::Dict{Union{Var,Node},Signature}
     # uses probability instead of integers to circumvent smoothing, no mod though
-    signs::Dict{Union{Var,Node},Signature} = Dict{Union{Var,Node},Signature}()
+    if signs === nothing
+        signs = Dict{Union{Var,Node},Signature}()
+    end
     prime::Int = 7919 #TODO set as smallest prime larger than num_variables
     randprob() = BigInt(1) .// rand(1:prime,k)
     do_signs(v::Var) = get!(randprob, signs, v)

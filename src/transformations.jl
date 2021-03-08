@@ -2,6 +2,43 @@ export smooth, forget, propagate_constants, deepcopy, condition, replace_node,
     split, clone, merge, split_candidates, random_split, split_step, struct_learn,
     clone_candidates, standardize_circuit
 
+
+"""
+    smooth(root::StructLogicCircuit)::StructLogicCircuit
+    
+Create an equivalent smooth circuit from the given circuit.
+"""
+function smooth(root::StructLogicCircuit)::StructLogicCircuit
+    (false_node, true_node) = canonical_constants(root)
+    @assert (false_node === nothing && true_node === nothing) "You should propagate constants before smoothing a structured circuit!"
+
+    lit_nodes = canonical_literals(root)
+    f_con(n) = (n, BitSet())
+    f_lit(n) = (n, BitSet(variable(n)))
+    f_a(n, call) = begin
+        (prime, pscope) = call(n.prime)
+        prime = fill_missing_vtree(prime, vtree(n).left, vtree(prime), lit_nodes)
+        pscope = variables(vtree(n).left)
+        (sub, sscope) = call(n.sub)
+        sub = fill_missing_vtree(sub, vtree(n).right, vtree(sub), lit_nodes)
+        sscope = variables(vtree(n).right)
+
+        parent_scope = pscope ∪ sscope
+        smoothed = conjoin([prime, sub])
+        @assert variables(vtree(smoothed)) == parent_scope
+        (smoothed, parent_scope)
+    end
+    f_o(n, call) = begin
+        parent_scope = mapreduce(c -> call(c)[2], union, children(n))
+        smooth_children = Vector{Node}(undef, num_children(n))
+        map!(smooth_children, children(n)) do child
+            (smooth_child, scope) = call(child)
+            smooth_node(smooth_child, parent_scope, scope, lit_nodes)
+        end
+        return (disjoin([smooth_children...]; reuse=n), parent_scope)
+    end
+    foldup(root, f_con, f_lit, f_a, f_o, Tuple{Node, BitSet})[1]
+end
 """
     smooth(root::Node)::Node
     
@@ -31,6 +68,46 @@ function smooth(root::Node)::Node
         return (disjoin([smooth_children...]; reuse=n), parent_scope)
     end
     foldup(root, f_con, f_lit, f_a, f_o, Tuple{Node, BitSet})[1]
+end
+
+
+"""
+    smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes)
+
+Return a smooth version of the node where 
+the are added to the scope by filling the gap in vtrees, using literals from `lit_nodes`
+"""
+function smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes)
+    # Compute the vtrees based on variables used
+    target_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
+    curr_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(scope))...)
+    if curr_vtr == target_vtr
+        @assert isempty(setdiff(parent_scope, scope))
+        node # If the node is where it should be on the vtree, we're done
+    else
+        fill_missing_vtree(node, target_vtr, curr_vtr, lit_nodes)
+    end
+end
+
+
+"Construct a smoothed node from start_vtr, when you get to end_vtr insert the original node"
+function fill_missing_vtree(node::StructLogicCircuit, start_vtr, end_vtr, lit_nodes)
+    # If we're at the end just return
+    if start_vtr == end_vtr
+        node
+    elseif isleaf(start_vtr)
+        # If we're at a leaf node, just return the disjunction of literals
+        get_lit(l,vtr) = get!(() -> compile(StructLogicCircuit, vtr, l), lit_nodes, l)
+        lit = var2lit(start_vtr.var)
+        lit_node = get_lit(lit, start_vtr)
+        not_lit_node = get_lit(-lit, start_vtr)
+        disjoin([lit_node, not_lit_node]; use_vtree=start_vtr)
+    else
+        # We're at an inner node, so recurse and conjoin the results?
+        left = fill_missing_vtree(node, start_vtr.left, end_vtr, lit_nodes)
+        right = fill_missing_vtree(node, start_vtr.right, end_vtr, lit_nodes)
+        conjoin(left, right, use_vtree=start_vtr)
+    end
 end
 
 """
