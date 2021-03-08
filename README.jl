@@ -29,7 +29,7 @@ circuit(true, true, true) # sun is true, rain is true, rainbow is true
 
 #src TODO: specific for ipython, visualize circuit using plot(circuit)?
 
-# The purpose of this package, however, is to enable more interesting inference scenarios. This is possible by ensuring that the circuit has certain [properties](https://juice-jl.github.io/LogicCircuits.jl/dev/manual/properties/), such as *decomposability*, *determinism*, *smoothness*, and more.
+# The purpose of this package, however, is to enable more interesting inference scenarios. This is possible by ensuring that the circuit has certain [properties](https://juice-jl.github.io/LogicCircuits.jl/dev/manual/properties/), such as *decomposability*, *determinism*, and more.
 # Our current circuit happens to already be decomposable and deterministic by construction:
 isdecomposable(circuit) && isdeterministic(circuit)
 
