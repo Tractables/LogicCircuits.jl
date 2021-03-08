@@ -64,7 +64,7 @@ issatisfiable(circuit) # does there exist an input that outputs true?
 true
 ```
 
-In addition, the determinism property allows us to efficiently whether the circuit is a tautology (always true), or compute its model count, that is, the number of satisfying assignments.
+In addition, the determinism property allows us to efficiently decide whether the circuit is a tautology (always true), or compute its model count, that is, the number of satisfying assignments.
 
 ```julia
 istautology(circuit) # do all inputs give the circuit output true?
