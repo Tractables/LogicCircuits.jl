@@ -8,7 +8,7 @@ end
 
 @testset "Readme example usage" begin
 
-    include("../docs/README.jl")
+    include("build/README.jl")
 
 end
 
