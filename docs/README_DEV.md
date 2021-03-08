@@ -4,6 +4,15 @@
 
 Follow these instructions to install and use LogicCircuits.jl as a developer of the package.
 
+## Updating main README.md
+
+Run the following instructions in julia and commit the generated changes to README.md:
+
+```julia
+using Literate; Literate.markdown("docs/README.jl", "."; documenter=false, credit=false, execute=true)
+```
+
+
 ## Installation
 
 Install the Julia package in development mode by running
