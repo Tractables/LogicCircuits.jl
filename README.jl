@@ -42,7 +42,7 @@ model_count(circuit) # how many possible inputs give the output true?
 
 # ### Reasoning with compiled circuits
 
-# As logical sentences become more complicated, it becomes impossible to write down circuits that have the requisite properties that guarantee tractable inference.
+# As logical sentences become more complicated, it becomes infeasible to manually write down circuits that have the requisite properties that guarantee tractable inference.
 
 # A process called *compilation* can solve this problem. Concretely, `LogicCircuits` supports compilation into a particular type of circuit called SDD. We construct a SDD manager with seven variables, and then ask to compile our precious circuit into an SDD:
 manager = SddMgr(7, :balanced)
