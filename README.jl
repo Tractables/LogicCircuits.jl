@@ -58,7 +58,7 @@ circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no snow or rain without clouds
 "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
 #-
 isdecomposable(circuit) && isdeterministic(circuit)
-# Therefore, we can still decide satisfiability, validity, count models, or compute the fraction of inputs that gives and output of true:
+# This means that we can still decide satisfiability, count models, and solve various inference tasks efficiently. For example, we can compute the fraction of inputs that gives the output true:
 sat_prob(circuit)
 
 # Moreover, compiled SDD circuits allow for efficiently checking whether one circuit logically entails another circuit, and whether two circuits are logically equivalent.

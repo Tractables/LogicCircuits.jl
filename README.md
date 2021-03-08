@@ -120,7 +120,7 @@ isdecomposable(circuit) && isdeterministic(circuit)
 true
 ```
 
-Therefore, we can still decide satisfiability, validity, count models, or compute the fraction of inputs that gives and output of true:
+This means that we can still decide satisfiability, count models, and solve various inference tasks efficiently. For example, we can compute the fraction of inputs that gives the output true:
 
 ```julia
 sat_prob(circuit)
