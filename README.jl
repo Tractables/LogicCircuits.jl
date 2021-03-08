@@ -33,9 +33,9 @@ circuit([true, true, true]) # sun is true, rain is true, rainbow is true
 # Our current circuit happens to already be decomposable and deterministic by construction:
 isdecomposable(circuit) && isdeterministic(circuit)
 
-# The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently.
+# The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently. Of course, from the input `[true, true, true]` tried above, we know the answer to be true.
 issatisfiable(circuit) # does there exist an input that outputs true?
-# In addition, the determinism property allows us to efficiently determine the validity of the circuit, and compute its model count, that is, the number of satisfying assignments.
+# In addition, the determinism property allows us to efficiently whether the circuit is a tautology (always true), or compute its model count, that is, the number of satisfying assignments.
 istautology(circuit) # do all inputs output true?
 #-
 model_count(circuit) # how many possible inputs output true?
