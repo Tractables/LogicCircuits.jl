@@ -1,4 +1,4 @@
-#src Generate README.md by running `using Literate; Literate.markdown("test.jl", "."; documenter=false, credit=false, execute=true)` 
+#src Generate README.md by running `using Literate; Literate.markdown("docs/README.jl", "."; documenter=false, credit=false, execute=true)` 
 
 # <!-- DO NOT EDIT README.md directly, instead edit README.jl and generate the markdown-->
 
