@@ -160,7 +160,7 @@ Logical constraints are often written in conjunctive normal form (CNF). These ca
 
 ```julia
 manager = SddMgr(zoo_vtree("iscas89/s208.1.scan.min.vtree"))
-circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf"))
+circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 clauses
 "This CNF has $(model_count(circuit)) satisfying assignments. Its circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges."
 ```
 
