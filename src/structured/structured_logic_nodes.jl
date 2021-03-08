@@ -152,6 +152,15 @@ function disjoin(arguments::Vector{<:PlainStructLogicCircuit};
     return PlainStruct⋁Node(arguments, use_vtree)
 end
 
+pos_literals(::Type{T}, vtree::Vtree, num_lits::Int) where {T<:StructLogicCircuit} = 
+    map(l -> compile(T, vtree, Lit(l)), 1:num_lits)
+
+neg_literals(::Type{T}, vtree::Vtree, num_lits::Int) where {T<:StructLogicCircuit} = 
+    map(l -> compile(T, vtree, -Lit(l)), 1:num_lits)
+
+literals(::Type{T}, vtree::Vtree, num_lits::Int) where {T<:StructLogicCircuit} = 
+    zip(pos_literals(T,vtree,num_lits), neg_literals(T,vtree,num_lits))
+
 # Syntactic sugar for compile with a vtree
 (t::Tuple{<:Type,<:Vtree})(arg) = compile(t[1], t[2], arg)
 (t::Tuple{<:Vtree,<:Type})(arg) = compile(t[2], t[1], arg)

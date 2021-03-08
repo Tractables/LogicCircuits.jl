@@ -1,5 +1,6 @@
 export prime, sub, sdd_size, sdd_num_nodes, mgr, 
-       compress, unique⋁, canonicalize, negate
+       compress, unique⋁, canonicalize, negate,
+       entails, equivalent, (≡)
 
 
 #####################
@@ -206,3 +207,23 @@ function unique⋁(xy::XYPartition, mgr::SddMgrInnerNode)
         node
     end::Sdd⋁Node
 end
+
+# specialize mode count to extract number of variables from vtree global scope
+model_count(root::StructLogicCircuit)::BigInt =
+    model_count(root, length(global_scope(vtree(root))))
+
+"Decide whether one sentence logically entails another"
+entails(x::Sdd, y::Sdd) = isfalse(x & !y)
+
+"Decide whether two sentences are logically equivalent"
+equivalent(x::Sdd, y::Sdd) = begin
+    # note that ≡ has the wrong operator prescedence for use in logic
+    @assert root(vtree(x)) === root(vtree(y))
+    return (x === y)
+end
+
+import Base: xor
+
+"Exclusive logical disjunction (XOR)"
+xor(x::Sdd,y::Sdd) = (x ∧ ¬y) ∨ (y ∧ ¬x)
+

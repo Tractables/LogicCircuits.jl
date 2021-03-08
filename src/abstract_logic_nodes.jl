@@ -118,6 +118,11 @@ function compile end
 @inline Base.:|(x::LogicCircuit, y::LogicCircuit) = disjoin(x,y)
 @inline Base.:|(xs::LogicCircuit...) = disjoin(xs...)
 
+@inline Base.:-(x::LogicCircuit) = begin
+    @assert isliteralgate(x) "Negation is only supported for literal gates, not arbitrary circuits."
+    compile(x, -literal(x))
+end
+
 # Get the function corresponding to the gate type
 @inline op(::⋀Gate)::Function = conjoin
 @inline op(::⋁Gate)::Function = disjoin
@@ -131,10 +136,15 @@ function compile end
 
 compile(n::LogicCircuit, args...) = compile(typeof(n), args...)
 
+"Get a sequence of positive literals"
 pos_literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
     map(l -> compile(T, Lit(l)), 1:num_lits)
+
+"Get a sequence of negative literals"
 neg_literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
     map(l -> compile(T, -Lit(l)), 1:num_lits)
+
+"Get a sequence of positive and negative literals"
 literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
     zip(pos_literals(T,num_lits), neg_literals(T,num_lits))
 

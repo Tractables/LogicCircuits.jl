@@ -8,6 +8,8 @@ export variables_by_node,
     iscanonical,
     implied_literals,
     sat_prob, 
+    issatisfiable,
+    istautology,
     model_count, 
     prob_equiv_signature,
     infer_vtree
@@ -312,6 +314,22 @@ function sat_prob(root::LogicCircuit;
     f_o(n, call) = mapreduce(call, +, children(n))
     foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt})
 end
+
+"""
+    issatisfiable(root::LogicCircuit)::Bool    
+
+Determine whether the logical circuit is satisfiable (has a satisfying assignment).
+Requires decomposability of the circuit."""
+issatisfiable(root::LogicCircuit)::Bool =
+    !iszero(sat_prob(root)) 
+
+"""
+istautology(root::LogicCircuit)::Bool    
+
+Determine whether the logical circuit is a tautology (every assignment satisfies it; the sentence is valid). 
+Requires decomposability and determinism of the circuit."""
+istautology(root::LogicCircuit)::Bool = 
+    isone(sat_prob(root)) 
 
 """
     model_count(root::LogicCircuit, num_vars_in_scope::Int = num_variables(root))::BigInt    

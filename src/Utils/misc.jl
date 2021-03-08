@@ -13,8 +13,9 @@ export issomething,
         Lit, 
         var2lit, 
         lit2var, 
-        variables, 
+        variables,
         num_variables, 
+        (¬), (∨), (∧), (⇒), (⇐), (⇔),
         always, 
         never, 
         uniform, 
@@ -24,6 +25,7 @@ export issomething,
         groupby,
         make_missing_mcar,
         impute
+
 
 using CUDA: CuArray, CuVector, CuMatrix, CUDA
 using DataFrames: DataFrame, missings
@@ -120,6 +122,21 @@ function variables end
 "Number of variables in the data structure"
 @inline num_variables(x)::Int = length(variables(x))
 
+# logical syntactic sugar
+
+"Logical negation"
+const ¬ = !
+"Logical disjunction"
+const ∨ = |
+"Logical conjunction"
+const ∧ = &
+"Material logical implication"
+(⇒)(x,y) = ¬x ∨ y
+"Material logical implication (reverse)"
+(⇐)(x,y) = (y ⇒ x)
+"Bidirectional logical implication"
+(⇔)(x,y) = (x ⇒ y) ∧ (y ⇒ x)
+
 #####################
 # probability semantics
 #####################
@@ -194,7 +211,7 @@ end;
 
 
 """
-Return a copy of Imputed values of X  (potentiallyl statistics from another DataFrame)
+Return a copy of Imputed values of X  (potentially statistics from another DataFrame)
 
 For example, to impute using same DataFrame:
 
