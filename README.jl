@@ -36,9 +36,9 @@ isdecomposable(circuit) && isdeterministic(circuit)
 # The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently. Of course, from the input `[true, true, true]` tried above, we know the answer to be true.
 issatisfiable(circuit) # does there exist an input that outputs true?
 # In addition, the determinism property allows us to efficiently whether the circuit is a tautology (always true), or compute its model count, that is, the number of satisfying assignments.
-istautology(circuit) # do all inputs output true?
+istautology(circuit) # do all inputs give the circuit output true?
 #-
-model_count(circuit) # how many possible inputs output true?
+model_count(circuit) # how many possible inputs give the output true?
 
 # ### Reasoning with compiled circuits
 

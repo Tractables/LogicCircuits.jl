@@ -67,7 +67,7 @@ true
 In addition, the determinism property allows us to efficiently whether the circuit is a tautology (always true), or compute its model count, that is, the number of satisfying assignments.
 
 ```julia
-istautology(circuit) # do all inputs output true?
+istautology(circuit) # do all inputs give the circuit output true?
 ```
 
 ```
@@ -75,7 +75,7 @@ false
 ```
 
 ```julia
-model_count(circuit) # how many possible inputs output true?
+model_count(circuit) # how many possible inputs give the output true?
 ```
 
 ```
