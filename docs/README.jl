@@ -1,4 +1,4 @@
-#src Generate README.md by running `using Literate; Literate.markdown("docs/README.jl", "."; documenter=false, credit=false, execute=true)` 
+#src Generate README.md by running `using Literate; Literate.markdown("docs/readme.jl", "."; documenter=false, credit=false, execute=true)` 
 
 # <!-- DO NOT EDIT README.md directly, instead edit README.jl and generate the markdown-->
 
@@ -22,21 +22,27 @@ circuit = (rainbow & sun & rain) | (-rainbow); # rainbow implies sun and rain
 
 # Just like any logical circuit or Boolean function, we can evaluate ours on various inputs.
 circuit(false, true, true) # sun is false, rain is true, rainbow is true
+@test false == circuit(false, true, true) #jl
 #-
 circuit(true, true, true) # sun is true, rain is true, rainbow is true
+@test true == circuit(true, true, true) #jl
 
 #src TODO: specific for ipython, visualize circuit using plot(circuit)?
 
 # The purpose of this package, however, is to enable more interesting inference scenarios. This is possible by ensuring that the circuit has certain [properties](https://juice-jl.github.io/LogicCircuits.jl/dev/manual/properties/), such as *decomposability*, *determinism*, and more.
 # Our current circuit happens to already be decomposable and deterministic by construction:
 isdecomposable(circuit) && isdeterministic(circuit)
+@test true == isdecomposable(circuit) && isdeterministic(circuit) #jl
 
 # The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently. Of course, from the input `true, true, true` tried above, we know the answer to be true.
 issatisfiable(circuit) # does there exist an input that outputs true?
+@test true == issatisfiable(circuit) #jl
 # In addition, the determinism property allows us to efficiently decide whether the circuit is a tautology (always true), or compute its model count, that is, the number of satisfying assignments.
 istautology(circuit) # do all inputs give the circuit output true?
+@test false == istautology(circuit) #jl
 #-
 model_count(circuit) # how many possible inputs give the output true?
+@test 5 == model_count(circuit) #jl
 
 # ### Reasoning with compiled circuits
 
@@ -53,22 +59,32 @@ circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical synta
 circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 
 # Incorporating these constraints has increased the size of our circuit, but crucially, the circuit is still decomposable and deterministic.
+@test 71 == num_nodes(circuit) #jl
+@test 117 == num_edges(circuit) #jl
 "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
 #-
 isdecomposable(circuit) && isdeterministic(circuit)
+@test true == isdecomposable(circuit) && isdeterministic(circuit) #jl
 # This means that we can still decide satisfiability, count models, and solve various inference tasks efficiently. For example, we can compute the fraction of inputs that gives the output true:
 sat_prob(circuit)
+@test 29//128 == sat_prob(circuit) #jl
 
 # Moreover, compiled SDD circuits allow for efficiently checking whether one circuit logically entails another circuit, and whether two circuits are logically equivalent.
 entails(circuit, (rainbow ⇒ cloud))
+@test true == entails(circuit, (rainbow ⇒ cloud)) #jl
 #-
 entails(circuit, (rainbow ⇒ belgium))
+@test false == entails(circuit, (rainbow ⇒ belgium)) #jl
 #- 
 equivalent((rainbow ⇒ belgium), (¬belgium ⇒ ¬rainbow))
+@test true == equivalent((rainbow ⇒ belgium), (¬belgium ⇒ ¬rainbow)) #jl
 
 # Logical constraints are often written in conjunctive normal form (CNF). These can be loaded from file and compiled into circuits, using a SDD manager whose decomposition structure is specified by a *vtree* file.
 manager = SddMgr(zoo_vtree("iscas89/s208.1.scan.min.vtree"))
 circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 clauses
+@test 262144 == model_count(circuit) #jl
+@test 3115 == num_nodes(circuit) #jl
+@test 5826 == num_edges(circuit) #jl
 "This CNF has $(model_count(circuit)) satisfying assignments. Its circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges."
 
 # ### Advanced functionality
