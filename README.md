@@ -1,4 +1,4 @@
-<!-- DO NOT EDIT README.md directly, instead edit README.jl and generate the markdown-->
+<!-- DO NOT EDIT README.md directly, instead edit docs/README.jl and generate the markdown-->
 
 # LogicCircuits.jl
 
@@ -84,7 +84,7 @@ model_count(circuit) # how many possible inputs give the output true?
 
 As logical sentences become more complicated, it becomes infeasible to manually write down circuits that have the requisite properties that guarantee tractable inference.
 
-A process called *compilation* can solve this problem. Concretely, `LogicCircuits` supports compilation into a particular type of circuit called SDD. We construct a SDD manager with seven variables, and then ask to compile our running example circuit into an SDD:
+A process called *compilation* can solve this problem. Concretely, `LogicCircuits` supports compilation into a particular type of circuit called SDD. We construct an SDD manager with four additional variables, and then ask to compile our running example circuit into an SDD:
 
 ```julia
 manager = SddMgr(7, :balanced)
@@ -154,7 +154,7 @@ equivalent((rainbow ⇒ belgium), (¬belgium ⇒ ¬rainbow))
 true
 ```
 
-Logical constraints are often written in conjunctive normal form (CNF). These can be loaded from file and compiled into circuits, using a SDD manager whose decomposition structure is specified by a *vtree* file.
+Logical constraints are often written in conjunctive normal form (CNF). These can be loaded from file and compiled into circuits, using an SDD manager whose decomposition structure is specified by a *vtree* file.
 
 ```julia
 manager = SddMgr(zoo_vtree("iscas89/s208.1.scan.min.vtree"))

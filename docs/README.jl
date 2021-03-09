@@ -1,6 +1,6 @@
-#src Generate README.md by running `using Literate; Literate.markdown("docs/readme.jl", "."; documenter=false, credit=false, execute=true)` 
+#src Generate README.md by running `using Literate; Literate.markdown("docs/README.jl", "."; documenter=false, credit=false, execute=true)` 
 
-# <!-- DO NOT EDIT README.md directly, instead edit README.jl and generate the markdown-->
+# <!-- DO NOT EDIT README.md directly, instead edit docs/README.jl and generate the markdown-->
 
 # # LogicCircuits.jl
 
@@ -48,7 +48,7 @@ model_count(circuit) # how many possible inputs give the output true?
 
 # As logical sentences become more complicated, it becomes infeasible to manually write down circuits that have the requisite properties that guarantee tractable inference.
 
-# A process called *compilation* can solve this problem. Concretely, `LogicCircuits` supports compilation into a particular type of circuit called SDD. We construct a SDD manager with seven variables, and then ask to compile our running example circuit into an SDD:
+# A process called *compilation* can solve this problem. Concretely, `LogicCircuits` supports compilation into a particular type of circuit called SDD. We construct an SDD manager with four additional variables, and then ask to compile our running example circuit into an SDD:
 manager = SddMgr(7, :balanced)
 circuit = compile(manager, circuit);
 
@@ -79,7 +79,7 @@ entails(circuit, (rainbow ⇒ belgium))
 equivalent((rainbow ⇒ belgium), (¬belgium ⇒ ¬rainbow))
 @test true == equivalent((rainbow ⇒ belgium), (¬belgium ⇒ ¬rainbow)) #jl
 
-# Logical constraints are often written in conjunctive normal form (CNF). These can be loaded from file and compiled into circuits, using a SDD manager whose decomposition structure is specified by a *vtree* file.
+# Logical constraints are often written in conjunctive normal form (CNF). These can be loaded from file and compiled into circuits, using an SDD manager whose decomposition structure is specified by a *vtree* file.
 manager = SddMgr(zoo_vtree("iscas89/s208.1.scan.min.vtree"))
 circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 clauses
 @test 262144 == model_count(circuit) #jl
