@@ -11,7 +11,6 @@ if haskey(ENV, "DOCSARGS")
     end
 end
 
-
 const pages = [
     "Home" => "index.md",
     "Installation" => "installation.md",
@@ -29,6 +28,7 @@ const pages = [
             sort(readdir(joinpath(@__DIR__, "src/api/internals")))
         ),
     ],
+    "Development" => "development.md",
 ]
 
 const format = if ("pdf" in ARGS)
