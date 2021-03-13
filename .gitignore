@@ -11,5 +11,6 @@
 **checkpoint.ipynb
 *Manifest.toml
 docs/build/
+docs/src/generated
 test/build/
 scratch/

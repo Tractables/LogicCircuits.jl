@@ -1,6 +1,8 @@
+<img align="right" width="180px" src="https://avatars.githubusercontent.com/u/58918144?s=200&v=4">
+
 <!-- DO NOT EDIT README.md directly, instead edit docs/README.jl and generate the markdown-->
 
-# LogicCircuits.jl
+# Logic<wbr>Circuits<wbr>.jl
 
 [![Unit Tests](https://github.com/Juice-jl/LogicCircuits.jl/workflows/Unit%20Tests/badge.svg)](https://github.com/Juice-jl/LogicCircuits.jl/actions?query=workflow%3A%22Unit+Tests%22+branch%3Amaster) [![codecov](https://codecov.io/gh/Juice-jl/LogicCircuits.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Juice-jl/LogicCircuits.jl) [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev)
 
@@ -94,7 +96,7 @@ circuit = compile(manager, circuit);
 Now we are able to incorporate many more logical sentences into the same circuit.
 
 ```julia
-sun, rain, rainbow, cloud, snow, belgium, los_angeles = pos_literals(Sdd, manager, 7)
+sun, rain, rainbow, cloud, snow, los_angeles, belgium = pos_literals(Sdd, manager, 7)
 circuit &= (-los_angeles | -belgium) # cannot be in LA and Belgium at the same time
 circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical syntax
 circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds

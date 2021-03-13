@@ -1,8 +1,14 @@
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev)
-
 # LogicCircuits.jl for Developers
 
 Follow these instructions to install and use LogicCircuits.jl as a developer of the package.
+
+## Installation
+
+Install the Julia package in development mode by running
+
+    julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/Juice-jl/LogicCircuits.jl.git"))'
+
+By default this will install the package at `~/.julia/dev` and allow you to change the code there. See the [Pkg manual](https://julialang.github.io/Pkg.jl/v1/managing-packages/#Developing-packages-1) for more details. One can adjust the development directory using environment variables or simply create a symbolic link to/from your favorite development directory.
 
 ## Updating main README.md
 
@@ -12,14 +18,30 @@ Run the following instructions in julia and commit the generated changes to READ
 using Literate; Literate.markdown("docs/README.jl", "."; documenter=false, credit=false, execute=true)
 ```
 
+## Building Docs
 
-## Installation
+To locally build the docs, first run the following command from root of the repository to instantiate the docs environment and run the build script:
 
-Install the Julia package in development mode by running
+```
+julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(); include("./docs/make.jl");'
+```
 
-    julia -e 'using Pkg; Pkg.develop(PackageSpec(url="https://github.com/Juice-jl/LogicCircuits.jl.git"))'
+The build results will be stored under `docs/build`.
 
-By default this will install the package at `~/.julia/dev` and allow you to change the code there. See the [Pkg manual](https://julialang.github.io/Pkg.jl/v1/managing-packages/#Developing-packages-1) for more details. One can adjust the development directory using environment variables or simply create a symbolic link to/from your favorite development directory.
+Alternatively, if you have `LogicCircuits` in development mode and have already instantiated the docs environment, you can simply run the following:
+
+```bash
+julia --project=docs docs/make.jl
+``` 
+
+#### Note about Pretty URLs
+For easier navigation for local builds its easier to disable pretty URLs. To disable pretty urls run the following instead:
+
+```bash
+julia --project=docs docs/make.jl local
+```
+
+For more information about pretty URLs, check out  [the documentation](https://juliadocs.github.io/Documenter.jl/stable/man/guide/) for `Documenter.jl`.
 
 ## Testing
 

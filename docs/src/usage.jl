@@ -1,13 +1,3 @@
-#src Generate README.md by running `using Literate; Literate.markdown("docs/README.jl", "."; documenter=false, credit=false, execute=true)` 
-
-# <!-- DO NOT EDIT README.md directly, instead edit docs/README.jl and generate the markdown-->
-
-# # LogicCircuits.jl
-
-# [![Unit Tests](https://github.com/Juice-jl/LogicCircuits.jl/workflows/Unit%20Tests/badge.svg)](https://github.com/Juice-jl/LogicCircuits.jl/actions?query=workflow%3A%22Unit+Tests%22+branch%3Amaster) [![codecov](https://codecov.io/gh/Juice-jl/LogicCircuits.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Juice-jl/LogicCircuits.jl) [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev)
-
-# This package provides basic functionality for doing logical reasoning using logical circuits. It has the stand-alone functionality illustrated below, and it serves as the logical foundations for other [Juice packages](https://github.com/Juice-jl) (Julia Circuit Empanada).
-
 # ## Example usage
 
 # Assuming that the LogicCircuits Julia package has been installed with `julia -e 'using Pkg; Pkg.add("LogicCircuits")'`, we can start using it as follows.
@@ -53,7 +43,7 @@ manager = SddMgr(7, :balanced)
 circuit = compile(manager, circuit);
 
 # Now we are able to incorporate many more logical sentences into the same circuit.
-sun, rain, rainbow, cloud, snow, belgium, los_angeles = pos_literals(Sdd, manager, 7)
+sun, rain, rainbow, cloud, snow, los_angeles, belgium = pos_literals(Sdd, manager, 7)
 circuit &= (-los_angeles | -belgium) # cannot be in LA and Belgium at the same time
 circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical syntax
 circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
@@ -62,6 +52,9 @@ circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 @test 71 == num_nodes(circuit) #jl
 @test 117 == num_edges(circuit) #jl
 "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
+#-
+#plot # The circuit looks as follows.
+#plot plot(circuit)
 #-
 isdecomposable(circuit) && isdeterministic(circuit)
 @test true == isdecomposable(circuit) && isdeterministic(circuit) #jl
@@ -104,19 +97,3 @@ circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 cla
 #src model_var_prob(smooth_circuit)
 
 #src TODO example of vectorized inference?
-
-# ## Development
-
-# If you are interested in modifying the package please see the [development readme](docs/README_DEV.md).
-
-# ## Acknowledgements
-
-# To acknowledge this package, please cite:
-# ```
-# @inproceedings{DangAAAI21,
-#     title   = {Juice: A Julia Package for Logic and Probabilistic Circuits},
-#     author = {Dang, Meihua and Khosravi, Pasha and Liang, Yitao and Vergari, Antonio and Van den Broeck, Guy},
-#     booktitle = {Proceedings of the 35th AAAI Conference on Artificial Intelligence (Demo Track)},
-#     year    = {2021}
-# }
-# ```
