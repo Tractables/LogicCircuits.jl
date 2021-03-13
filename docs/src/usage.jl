@@ -1,3 +1,5 @@
+# ## Example usage
+
 # Assuming that the LogicCircuits Julia package has been installed with `julia -e 'using Pkg; Pkg.add("LogicCircuits")'`, we can start using it as follows.
 
 using LogicCircuits
@@ -51,7 +53,7 @@ circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 @test 117 == num_edges(circuit) #jl
 "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
 #-
-#plot The circuit looks as follows.
+#plot # The circuit looks as follows.
 #plot plot(circuit)
 #-
 isdecomposable(circuit) && isdeterministic(circuit)

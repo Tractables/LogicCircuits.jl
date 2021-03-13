@@ -3,7 +3,9 @@ using DocumenterLaTeX
 using LogicCircuits
 using Literate
 
-# first generate the top-level README.md
+#######################################
+# 1/ generate the top-level README.md
+#######################################
 
 source_dir = "$(@__DIR__)/src"
 
@@ -22,19 +24,28 @@ end
 "hide `#plot` lines in Literate code"
 function hide_plots(str)
     str = replace(str, r"#plot (.)*[\n\r]" => "")
-    replace(str, r"#!plot (.)*[\n\r]" => s"\g<1>\n")
+    replace(str, r"#!plot (.*)[\n\r]" => s"\g<1>\n")
 end
 
 "show `#plot` lines in Literate code"
 function show_plots(str)
     str = replace(str, r"#!plot (.)*[\n\r]" => "")
-    replace(str, r"#plot (.)*[\n\r]" => s"\g<1>\n")
+    replace(str, r"#plot (.*)[\n\r]" => s"\g<1>\n")
 end
 
 Literate.markdown("$source_dir/README.jl", "$(@__DIR__)/../"; documenter=false, credit=false, execute=true, 
     preprocess = hide_plots ∘ replace_includes)
 
-# second generate the documentation HTML
+#######################################
+# 2/ generate notebooks
+#######################################
+
+Literate.notebook("$source_dir/usage.jl", "$source_dir/generated"; credit=false, execute=true,
+    preprocess = show_plots ∘ replace_includes)
+
+#######################################
+# 3/ generate the documentation HTML
+#######################################
 
 pages = [
     "Home" => "index.md",
@@ -66,7 +77,7 @@ format = Documenter.HTML(
     collapselevel = 1,
 )
 
-Literate.markdown("docs/src/usage.jl", "docs/src/generated"; documenter=true, credit=false,
+Literate.markdown("$source_dir/usage.jl", "$source_dir/generated"; documenter=true, credit=false,
     preprocess = show_plots)
 
 makedocs(

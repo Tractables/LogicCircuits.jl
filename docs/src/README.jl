@@ -10,8 +10,6 @@
 
 # This package provides basic functionality for doing logical reasoning using logical circuits. It has the stand-alone functionality illustrated below, and it serves as the logical foundations for other [Juice packages](https://github.com/Juice-jl) (Julia Circuit Empanada).
 
-# ## Example usage
-
 include("usage.jl")
 
 # ## Development
