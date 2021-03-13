@@ -51,10 +51,8 @@ circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 # Incorporating these constraints has increased the size of our circuit, but crucially, the circuit is still decomposable and deterministic.
 @test 71 == num_nodes(circuit) #jl
 @test 117 == num_edges(circuit) #jl
-"Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
-#-
-#plot # The circuit looks as follows.
-#plot plot(circuit)
+#!plot "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
+#plot plot(circuit; simplify=true)
 #-
 isdecomposable(circuit) && isdeterministic(circuit)
 @test true == isdecomposable(circuit) && isdeterministic(circuit) #jl
