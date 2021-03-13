@@ -41,7 +41,7 @@ manager = SddMgr(7, :balanced)
 circuit = compile(manager, circuit);
 
 # Now we are able to incorporate many more logical sentences into the same circuit.
-sun, rain, rainbow, cloud, snow, belgium, los_angeles = pos_literals(Sdd, manager, 7)
+sun, rain, rainbow, cloud, snow, los_angeles, belgium = pos_literals(Sdd, manager, 7)
 circuit &= (-los_angeles | -belgium) # cannot be in LA and Belgium at the same time
 circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical syntax
 circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
@@ -50,6 +50,9 @@ circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 @test 71 == num_nodes(circuit) #jl
 @test 117 == num_edges(circuit) #jl
 "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
+#-
+#plots The circuit looks as follows.
+#plots plot(circuit)
 #-
 isdecomposable(circuit) && isdeterministic(circuit)
 @test true == isdecomposable(circuit) && isdeterministic(circuit) #jl

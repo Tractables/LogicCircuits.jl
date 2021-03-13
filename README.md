@@ -1,3 +1,5 @@
+<img align="right" src="https://avatars.githubusercontent.com/u/58918144?s=200&v=4">
+
 <!-- DO NOT EDIT README.md directly, instead edit docs/README.jl and generate the markdown-->
 
 # LogicCircuits.jl
@@ -94,7 +96,7 @@ circuit = compile(manager, circuit);
 Now we are able to incorporate many more logical sentences into the same circuit.
 
 ```julia
-sun, rain, rainbow, cloud, snow, belgium, los_angeles = pos_literals(Sdd, manager, 7)
+sun, rain, rainbow, cloud, snow, los_angeles, belgium = pos_literals(Sdd, manager, 7)
 circuit &= (-los_angeles | -belgium) # cannot be in LA and Belgium at the same time
 circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical syntax
 circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
@@ -108,6 +110,11 @@ Incorporating these constraints has increased the size of our circuit, but cruci
 
 ```
 "Our circuit has 71 nodes and 117 edges"
+```
+
+```julia
+#plots The circuit looks as follows.
+#plots plot(circuit)
 ```
 
 ```julia
