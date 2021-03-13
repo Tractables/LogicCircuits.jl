@@ -113,11 +113,6 @@ Incorporating these constraints has increased the size of our circuit, but cruci
 ```
 
 ```julia
-#plots The circuit looks as follows.
-#plots plot(circuit)
-```
-
-```julia
 isdecomposable(circuit) && isdeterministic(circuit)
 ```
 

@@ -51,8 +51,8 @@ circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 @test 117 == num_edges(circuit) #jl
 "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
 #-
-#plots The circuit looks as follows.
-#plots plot(circuit)
+#plot The circuit looks as follows.
+#plot plot(circuit)
 #-
 isdecomposable(circuit) && isdeterministic(circuit)
 @test true == isdecomposable(circuit) && isdeterministic(circuit) #jl
