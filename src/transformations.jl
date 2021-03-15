@@ -3,12 +3,16 @@ export smooth, forget, propagate_constants, deepcopy, condition, replace_node,
     clone_candidates, standardize_circuit
 
 
+smooth(root::LogicCircuit) = smooth(root, DecomposabilityType(root))
+smooth(root, ::Unstructured) = smooth_unstruct(root)
+smooth(root, ::Structured) = smooth_struct(root)
+
 """
-    smooth(root::StructLogicCircuit)::StructLogicCircuit
+    smooth(root)
     
 Create an equivalent smooth circuit from the given circuit.
 """
-function smooth(root::StructLogicCircuit)::StructLogicCircuit
+function smooth_struct(root)
     (false_node, true_node) = canonical_constants(root)
     @assert (false_node === nothing && true_node === nothing) "You should propagate constants before smoothing a structured circuit!"
 
@@ -44,7 +48,7 @@ end
     
 Create an equivalent smooth circuit from the given circuit.
 """
-function smooth(root::Node)::Node
+function smooth_unstruct(root)
     lit_nodes = canonical_literals(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
@@ -77,7 +81,7 @@ end
 Return a smooth version of the node where 
 the are added to the scope by filling the gap in vtrees, using literals from `lit_nodes`
 """
-function smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes)
+function smooth_node(node, parent_scope, scope, lit_nodes)
     # Compute the vtrees based on variables used
     target_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
     curr_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(scope))...)
@@ -91,13 +95,13 @@ end
 
 
 "Construct a smoothed node from start_vtr, when you get to end_vtr insert the original node"
-function fill_missing_vtree(node::StructLogicCircuit, start_vtr, end_vtr, lit_nodes)
+function fill_missing_vtree(node, start_vtr, end_vtr, lit_nodes)
     # If we're at the end just return
     if start_vtr == end_vtr
         node
     elseif isleaf(start_vtr)
         # If we're at a leaf node, just return the disjunction of literals
-        get_lit(l,vtr) = get!(() -> compile(StructLogicCircuit, vtr, l), lit_nodes, l)
+        get_lit(l,vtr) = get!(() -> compile(CircuitType(node), vtr, l), lit_nodes, l)
         lit = var2lit(start_vtr.var)
         lit_node = get_lit(lit, start_vtr)
         not_lit_node = get_lit(-lit, start_vtr)
@@ -116,7 +120,7 @@ end
 Return a smooth version of the node where 
 the `missing_scope` variables are added to the scope, using literals from `lit_nodes`
 """
-function smooth_node(node::Node, missing_scope, lit_nodes)
+function smooth_node(node, missing_scope, lit_nodes)
     if isempty(missing_scope)
         return node # avoid adding unnecessary nodes
     else

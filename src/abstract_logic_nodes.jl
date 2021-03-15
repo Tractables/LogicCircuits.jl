@@ -43,6 +43,24 @@ struct ⋁Gate <: InnerGate end
 "Get the gate type trait of the given `LogicCircuit`"
 @inline GateType(instance::LogicCircuit) = GateType(typeof(instance))
 
+"""
+Traits for type of decomposability possible at a node.
+"""
+abstract type DecomposabilityType end
+
+"A gate that cannot support structured decomposability"
+struct Unstructured <: DecomposabilityType end
+
+"A gate that supports structured decomposability"
+struct Structured <: DecomposabilityType end
+
+"Get the the decomposability type"
+@inline DecomposabilityType(instance::LogicCircuit) = DecomposabilityType(typeof(instance))
+
+"Get the circuit type"
+@inline CircuitType(instance) = CircuitType(typeof(instance))
+@inline CircuitType(::LogicCircuit) = LogicCircuit
+
 # map gate type traits to graph node traits
 import ..Utils.NodeType # make available for extension
 @inline NodeType(::Type{N}) where {N<:LogicCircuit} = NodeType(GateType(N))

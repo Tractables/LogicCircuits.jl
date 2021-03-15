@@ -82,6 +82,9 @@ end
 @inline GateType(::Type{<:PlainConstantNode}) = ConstantGate()
 @inline GateType(::Type{<:Plain⋀Node}) = ⋀Gate()
 @inline GateType(::Type{<:Plain⋁Node}) = ⋁Gate()
+@inline DecomposabilityType(::Type{<:PlainLogicCircuit}) = Unstructured()
+@inline CircuitType(::Type{<:PlainLogicCircuit}) = PlainLogicCircuit
+
 
 #####################
 # methods

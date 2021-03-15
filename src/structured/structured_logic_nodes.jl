@@ -89,6 +89,8 @@ const structfalse = PlainStructFalseNode(nothing, 0)
 @inline GateType(::Type{<:PlainStructConstantNode}) = ConstantGate()
 @inline GateType(::Type{<:PlainStruct⋀Node}) = ⋀Gate()
 @inline GateType(::Type{<:PlainStruct⋁Node}) = ⋁Gate()
+@inline DecomposabilityType(::Type{<:PlainStructLogicCircuit}) = Structured()
+@inline CircuitType(::Type{<:PlainStructLogicCircuit}) = StructLogicCircuit
 
 #####################
 # methods
