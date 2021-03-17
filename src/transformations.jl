@@ -509,7 +509,7 @@ end
 Replace node `old` with node `new` in circuit `root`
 """
 function replace_node(root::Node, old::Node, new::Node; callback::Function=(x, y, z) -> nothing)::Node
-    @assert GateType(old) == GateType(new)
+    # @assert GateType(old) == GateType(new) # this assertion was removed because it seems unnecessary?
     f_con(n) = old == n ? new : n
     f_lit = f_con
     f_a(n, cns) = old == n ? new : conjoin([cns...]; reuse=n)
