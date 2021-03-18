@@ -1,4 +1,4 @@
-# ## Example usage
+# ### Quick Tutorial
 
 # Assuming that the LogicCircuits Julia package has been installed with `julia -e 'using Pkg; Pkg.add("LogicCircuits")'`, we can start using it as follows.
 
@@ -84,8 +84,6 @@ circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 cla
 #  * CPU (SIMD) and GPU (CUDA) kernels to efficiently compute satisfiability, model counts, etc., for large numbers of inputs, parallelizing over both circuit nodes and data inputs.
 #  * Algorithms that transform circuits in non-trivial ways (split, clone, smooth, condition, etc.), verify and enforce structural properties. 
 #  * Functionality to load and save circuits in various file formats
-
-# Please see [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) or [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev) for further details.
 
 #src TODO: example of downward pass conditional probability or conditional SAT?
 #src issmooth(circuit)
