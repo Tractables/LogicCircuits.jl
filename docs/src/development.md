@@ -10,13 +10,6 @@ Install the Julia package in development mode by running
 
 By default this will install the package at `~/.julia/dev` and allow you to change the code there. See the [Pkg manual](https://julialang.github.io/Pkg.jl/v1/managing-packages/#Developing-packages-1) for more details. One can adjust the development directory using environment variables or simply create a symbolic link to/from your favorite development directory.
 
-## Updating main README.md
-
-Run the following instructions in julia and commit the generated changes to README.md:
-
-```julia
-using Literate; Literate.markdown("docs/README.jl", "."; documenter=false, credit=false, execute=true)
-```
 
 ## Building Docs
 
@@ -34,20 +27,14 @@ Alternatively, if you have `LogicCircuits` in development mode and have already 
 julia --project=docs docs/make.jl
 ``` 
 
-#### Note about Pretty URLs
-For easier navigation for local builds its easier to disable pretty URLs. To disable pretty urls run the following instead:
+## Updating main README.md
 
-```bash
-julia --project=docs docs/make.jl local
-```
-
-For more information about pretty URLs, check out  [the documentation](https://juliadocs.github.io/Documenter.jl/stable/man/guide/) for `Documenter.jl`.
+After running the build script for docs the README.md file gets updated automatically, check the diff and commit the desired changes to README.md:
 
 ## Testing
 
-
 ### Prerequisite
-Set the following environment variable, to automatically download data artifacts needed during tests without user input. Otherwise the tests would fail if the artifact is not already downloaded.
+Set the following environment variable, to automatically download data artifacts needed during tests without user input. Otherwise the tests would fail or timeout waiting for user input if the artifact is not already downloaded.
 
     export DATADEPS_ALWAYS_ACCEPT=1
 
@@ -97,13 +84,4 @@ using Tar, Inflate, SHA
 filename = "socrates.tar.gz"
 println("sha256: ", bytes2hex(open(sha256, filename)))
 println("git-tree-sha1: ", Tar.tree_hash(IOBuffer(inflate_gzip(filename))))
-```
-
-
-## Troubleshooting
-
-When running tests locally sometimes DataDeps prompts the user for downloading new data and could cause the tests to fail, add the environment variable to avoid the user prompt
-
-```
-export DATADEPS_ALWAYS_ACCEPT=1
 ```
