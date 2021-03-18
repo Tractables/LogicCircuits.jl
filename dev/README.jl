@@ -12,6 +12,8 @@
 
 include("usage.jl")
 
+# Please see [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) or [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev) for further details.
+
 # ## Development
 
 # If you are interested in modifying the package please see the [development readme](docs/README_DEV.md).
