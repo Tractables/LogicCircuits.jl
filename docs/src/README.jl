@@ -16,7 +16,7 @@ include("usage.jl")
 
 # ## Development
 
-# If you are interested in modifying the package please see the [development readme](docs/README_DEV.md).
+# If you are interested in modifying the package please see the [development readme](https://juice-jl.github.io/LogicCircuits.jl/dev/development/).
 
 # ## Acknowledgements
 

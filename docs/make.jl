@@ -8,6 +8,8 @@ using Literate
 #######################################
 
 source_dir = "$(@__DIR__)/src"
+# also make it available to Literate.jl scripts through an environment variable
+ENV["JUICE_MAKE_DOC_SRC"] = source_dir
 
 "replace script includes with file content in Literate code"
 function replace_includes(str)

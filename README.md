@@ -102,15 +102,16 @@ circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical synta
 circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 ```
 
-Incorporating these constraints has increased the size of our circuit, but crucially, the circuit is still decomposable and deterministic.
+Incorporating these constraints has increased the size of our circuit.
+
 
 ```julia
-"Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
+plot(circuit; simplify=true)
 ```
 
-```
-"Our circuit has 71 nodes and 117 edges"
-```
+<img src="https://juice-jl.github.io/LogicCircuits.jl/dev/generated/example-circuit.svg" alt="Example Logic Circuit">
+
+Crucially, the circuit is still decomposable and deterministic.
 
 ```julia
 isdecomposable(circuit) && isdeterministic(circuit)
@@ -179,7 +180,7 @@ Please see [![](https://img.shields.io/badge/docs-stable-green.svg)](https://jui
 
 ## Development
 
-If you are interested in modifying the package please see the [development readme](docs/README_DEV.md).
+If you are interested in modifying the package please see the [development readme](https://juice-jl.github.io/LogicCircuits.jl/dev/development/).
 
 ## Acknowledgements
 
