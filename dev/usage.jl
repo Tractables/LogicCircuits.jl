@@ -48,12 +48,23 @@ circuit &= (-los_angeles | -belgium) # cannot be in LA and Belgium at the same t
 circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical syntax
 circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 
-# Incorporating these constraints has increased the size of our circuit, but crucially, the circuit is still decomposable and deterministic.
-@test 71 == num_nodes(circuit) #jl
-@test 117 == num_edges(circuit) #jl
-#!plot "Our circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges"
+# Incorporating these constraints has increased the size of our circuit.
+
+#src when plotting is enabled, just show circuit
 #plot plot(circuit; simplify=true)
-#-
+
+#src when plotting is not enabled, generate image manually and pretend
+#!plot using TikzPictures #hide
+#!plot file = ENV["JUICE_MAKE_DOC_SRC"]*"/generated/example-circuit.svg" #hide
+#!plot rm(file, force=true) #hide
+#!plot save(SVG(file), plot(circuit; simplify=true)) #hide
+#!plot # ```julia
+#!plot # plot(circuit; simplify=true)
+#!plot # ```
+
+#!plot # <img src="https://juice-jl.github.io/LogicCircuits.jl/dev/generated/example-circuit.svg" alt="Example Logic Circuit">
+
+# Crucially, the circuit is still decomposable and deterministic.
 isdecomposable(circuit) && isdeterministic(circuit)
 @test true == isdecomposable(circuit) && isdeterministic(circuit) #jl
 # This means that we can still decide satisfiability, count models, and solve various inference tasks efficiently. For example, we can compute the fraction of inputs that gives the output true:
