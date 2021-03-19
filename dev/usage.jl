@@ -55,7 +55,7 @@ circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 
 #src when plotting is not enabled, generate image manually and pretend
 #!plot using TikzPictures #hide
-#!plot file = ENV["JUICE_MAKE_DOC_SRC"]*"/generated/example-circuit.svg" #hide
+#!plot file = ENV["JUICE_MAKE_DOC_SRC_GENERATED"]*"/example-circuit.svg" #hide
 #!plot rm(file, force=true) #hide
 #!plot save(SVG(file), plot(circuit; simplify=true)) #hide
 #!plot # ```julia
