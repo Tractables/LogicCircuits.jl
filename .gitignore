@@ -14,3 +14,4 @@ test/build/
 scratch/
 docs/build/
 docs/site/
+docs/src/generated
