@@ -52,7 +52,7 @@ Literate.notebook("$source_dir/usage.jl", "$source_dir/generated"; credit=false,
 
 pages = [
     "Home" => "index.md",
-    "Usage" => "generated/usage.md",
+    "Quick Tutorial" => "generated/usage.md",
     "Installation" => "installation.md",
     "Manual" => [
         "manual/properties.md",

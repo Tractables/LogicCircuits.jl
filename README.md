@@ -8,7 +8,7 @@
 
 This package provides basic functionality for doing logical reasoning using logical circuits. It has the stand-alone functionality illustrated below, and it serves as the logical foundations for other [Juice packages](https://github.com/Juice-jl) (Julia Circuit Empanada).
 
-### Quick Tutorial [<img align="right" src="https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg">](https://nbviewer.jupyter.org/github/Juice-jl/LogicCircuits.jl/blob/gh-pages/dev/generated/usage.ipynb)
+## Quick Tutorial [![Open Notebook](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/Juice-jl/LogicCircuits.jl/blob/gh-pages/dev/generated/usage.ipynb)
 
 Assuming that the LogicCircuits Julia package has been installed with `julia -e 'using Pkg; Pkg.add("LogicCircuits")'`, we can start using it as follows.
 
