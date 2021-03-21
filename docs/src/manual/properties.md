@@ -61,5 +61,3 @@ vtree = load_vtree(zoo_vtree_file("random.vtree"));
 respects_vtree(lc, vtree)
 ```
 
-
-

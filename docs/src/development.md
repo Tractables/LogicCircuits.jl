@@ -29,7 +29,7 @@ julia --project=docs docs/make.jl
 
 ## Updating main README.md
 
-After running the build script for docs the README.md file gets updated automatically, check the diff and commit the desired changes to README.md:
+After running the build script for docs the README.md file gets updated automatically, check the diff and commit the desired changes to README.md.
 
 ## Testing
 

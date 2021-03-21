@@ -58,7 +58,9 @@ pages = [
         "manual/properties.md",
         "manual/transformations.md",
         "manual/queries.md",            
-        "manual/compilation.md"
+        "manual/compilation.md",
+        "manual/sdd.md",
+        "manual/internals.md"
     ],
     "API" => [
         "api/public.md",
