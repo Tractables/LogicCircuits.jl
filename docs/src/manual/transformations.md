@@ -128,15 +128,6 @@ plot(c1)
 plot(c2)
 ```
 
-## Deep Copy
-
-Recursively create a copy circuit rooted at `n` to a certain depth `depth`. See [`deepcopy`] for more details.
-
-## Replace Node
-
-Replaces node `old` with node `new` in circuit `root`. See [`replace_node`](@ref) for more details. 
-
-
 ## Standardize Circuit
 
 Standraizes a given circuit to make sure the following properties hold:
@@ -167,8 +158,10 @@ The major binary operations are conjunction (``\land``), disjunction (``\lor``),
 
 ## Misc
 
-The following are also useful for circuit transformation:
+The following are also useful circuit transformation:
 
-1. [`split_candidates`](@ref): Return a list of possible split candidates
-2. `clone_candidates`: Returns a list of possible clone candidates
-2. [`random_split`](@ref): Randomly picking egde and variable from split candidates 
+- [`deepcopy`](@ref): Recursively create a copy circuit rooted at `n` to a certain depth `depth`.
+- [`replace_node`](@ref): Replaces node `old` with node `new` in the circuit.
+- [`split_candidates`](@ref): Return a list of possible split candidates
+- `clone_candidates`: Returns a list of possible clone candidates
+- [`random_split`](@ref): Randomly picking egde and variable from split candidates 
