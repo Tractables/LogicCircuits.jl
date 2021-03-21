@@ -1,6 +1,6 @@
-import DataFrames: DataFrame, DataFrameRow, nrow, ncol, mapcols
+import DataFrames: DataFrame, DataFrameRow, nrow, ncol, mapcols, missings
 import Random: shuffle
-import Statistics: mean, std
+import Statistics: mean, median, std
 import CUDA: CuVector, CuMatrix
 
 export num_examples, num_features, 
@@ -11,7 +11,21 @@ export num_examples, num_features,
     shuffle_examples, batch, batch_size, isbatched,
     threshold, soften, marginal_prob, bagging_dataset,
     to_gpu, to_cpu, isgpu, same_device,
-    ll_per_example, bits_per_pixel
+    ll_per_example, bits_per_pixel,
+    make_missing_mcar, impute
+
+##############################
+# Generic DataFrame Extensions
+##############################
+
+import Base: eltype # extend
+
+"Find a type that can capture all feature values"
+eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
+
+##############################
+# Dataset Utilities
+##############################
 
 # Basic data-related utilities.
 # These methods assume the following possible representations.
@@ -49,11 +63,6 @@ example(d,i) = vec(convert(Array, d[i,:]))
 
 "Get the ith feature values"
 feature_values(df::DataFrame, i) = df[!,i]
-
-import Base: eltype # extend
-
-"Find a type that can capture all feature values"
-eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
 
 "Is the data complete (no missing values)?"
 iscomplete(data::DataFrame) = begin
@@ -367,4 +376,84 @@ function fully_factorized_log_likelihood(data; pseudocount=0)
     ll = sum(log_estimates .* counts)
     ll += sum(log.(1 .- exp.(log_estimates)) .* (num_examples(data) .- counts))
     ll_per_example(ll, data)
+end
+
+##############################
+# Imputations & Missing value generation
+##############################
+
+"""
+    make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
+
+Returns a copy of dataframe with making some features missing as MCAR, with
+`keep_prob` as probability of keeping each feature.
+"""
+function make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
+    m = missings(eltype(d), num_examples(d), num_features(d))
+    flag = rand(num_examples(d), num_features(d)) .<= keep_prob
+    m[flag] .= Matrix(d)[flag]
+    DataFrame(m)
+end;
+
+
+"""
+Return a copy of Imputed values of X  (potentially statistics from another DataFrame)
+
+For example, to impute using same DataFrame:
+
+    impute(X; method=:median)
+
+If you want to use another DataFrame to provide imputation statistics:
+
+    impute(test_x, train_x; method=:mean)
+
+
+Supported methods are `:median`, `:mean`, `:one`, `:zero`
+"""
+function impute(X::DataFrame; method=:median)
+    impute(X, X; method=method)
+end
+function impute(X::DataFrame, train::DataFrame; method::Symbol=:median)
+    type = typeintersect(eltype(X), eltype(train))
+    @assert type !== Union{}
+
+    if typeintersect(type, Bool) == Bool
+        type = Bool
+    elseif typeintersect(type, AbstractFloat) <: AbstractFloat
+        type = typeintersect(type, AbstractFloat)
+    end
+    @assert type !== Union
+
+    if method == :median
+        impute_function = median
+    elseif method == :mean
+        impute_function = mean
+    elseif method == :one
+        impute_function = (x -> one(type))
+    elseif method == :zero    
+        impute_function = (x -> zero(type))
+    else
+        throw("Unsupported imputation type $(method)")
+    end
+
+    X_impute = deepcopy(X)
+    for feature = 1:size(X)[2]
+        mask_train = ismissing.(train[:, feature])
+        mask_x     = ismissing.(X[:, feature])
+
+        cur_impute = impute_function(train[:, feature][.!(mask_train)] )
+
+        if type == Bool
+            X_impute[mask_x, feature] .= Bool(cur_impute .>= 0.5)
+        else 
+            X_impute[mask_x, feature] .= type(cur_impute)
+        end
+    end
+
+    # For Bool return BitArray instead
+    if type == Bool
+        return DataFrame(BitArray(convert(Matrix, X_impute)))
+    else
+        return X_impute
+    end
 end

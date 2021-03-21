@@ -22,14 +22,10 @@ export issomething,
         logsumexp, 
         noop, 
         map_values, 
-        groupby,
-        make_missing_mcar,
-        impute
+        groupby
 
 
 using CUDA: CuArray, CuVector, CuMatrix, CUDA
-using DataFrames: DataFrame, missings
-using Statistics: mean, median
 
 "Is the argument not `nothing`?"
 @inline issomething(x) = !isnothing(x)
@@ -189,85 +185,4 @@ function groupby(f::Function, list::Union{Vector{E},Set{E}})::Dict{Any,Vector{E}
         push!(get!(groups, f(v), []), v)
     end
     groups
-end
-
-
-##############################
-# Imputations & Missing value generation
-##############################
-
-"""
-    make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
-
-Returns a copy of dataframe with making some features missing as MCAR, with
-`keep_prob` as probability of keeping each feature.
-"""
-function make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
-    m = missings(eltype(d), num_examples(d), num_features(d))
-    flag = rand(num_examples(d), num_features(d)) .<= keep_prob
-    m[flag] .= Matrix(d)[flag]
-    DataFrame(m)
-end;
-
-
-"""
-Return a copy of Imputed values of X  (potentially statistics from another DataFrame)
-
-For example, to impute using same DataFrame:
-
-    impute(X; method=:median)
-
-If you want to use another DataFrame to provide imputation statistics:
-
-    impute(test_x, train_x; method=:mean)
-
-
-Supported methods are `:median`, `:mean`, `:one`, `:zero`
-"""
-function impute(X::DataFrame; method=:median)
-    impute(X, X; method=method)
-end
-function impute(X::DataFrame, train::DataFrame; method::Symbol=:median)
-    type = typeintersect(eltype(X), eltype(train))
-    @assert type !== Union{}
-
-    if typeintersect(type, Bool) == Bool
-        type = Bool
-    elseif typeintersect(type, AbstractFloat) <: AbstractFloat
-        type = typeintersect(type, AbstractFloat)
-    end
-    @assert type !== Union
-
-    if method == :median
-        impute_function = median
-    elseif method == :mean
-        impute_function = mean
-    elseif method == :one
-        impute_function = (x -> one(type))
-    elseif method == :zero    
-        impute_function = (x -> zero(type))
-    else
-        throw("Unsupported imputation type $(method)")
-    end
-
-    X_impute = deepcopy(X)
-    for feature = 1:size(X)[2]
-        mask_train = ismissing.(train[:, feature])
-        mask_x     = ismissing.(X[:, feature])
-
-        cur_impute = impute_function(train[:, feature][.!(mask_train)] )
-
-        if type == Bool
-            X_impute[mask_x, feature] .= Bool(cur_impute .>= 0.5)
-        else 
-            X_impute[mask_x, feature] .= type(cur_impute)
-        end
-    end
-
-    # For Bool return BitArray instead
-    if type == Bool
-        return DataFrame(BitArray(convert(Matrix, X_impute)))
-    else
-        return X_impute
-    end
 end
