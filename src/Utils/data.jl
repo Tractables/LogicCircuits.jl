@@ -7,7 +7,7 @@ export num_examples, num_features,
     example, feature_values,
     iscomplete, isweighted, isfpdata, isbinarydata, 
     num_chunks, chunks, eltype,
-    add_sample_weights, split_sample_weights, get_weights,
+    weigh_samples, split_sample_weights, get_weights,
     shuffle_examples, batch, batch_size, isbatched,
     threshold, soften, marginal_prob, bagging_dataset,
     to_gpu, to_cpu, isgpu, same_device,
@@ -20,7 +20,7 @@ export num_examples, num_features,
 
 import Base: eltype # extend
 
-"Find a type that can capture all feature values"
+"Find a type that can capture all column values"
 eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
 
 ##############################
@@ -48,7 +48,7 @@ eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
 Number of examples in data
 """
 num_examples(df::DataFrame) = nrow(df)
-num_examples(df::Array{DataFrame}) = mapreduce(d -> num_examples(d), +, df)
+num_examples(df::Vector{DataFrame}) = mapreduce(num_examples, +, df)
 
 """
     num_features(df::DataFrame)
@@ -56,53 +56,40 @@ num_examples(df::Array{DataFrame}) = mapreduce(d -> num_examples(d), +, df)
 Number of features in the data
 """
 num_features(df::DataFrame) = isweighted(df) ? ncol(df) - 1 : ncol(df)
-num_features(df::Array{DataFrame}) = num_features(df[1])
+num_features(df::Vector{DataFrame}) = num_features(df[1])
 
 "Get the ith example"
-example(d,i) = vec(convert(Array, d[i,:]))
+example(d::DataFrame,i) = vec(convert(Array, d[i,:]))
 
 "Get the ith feature values"
 feature_values(df::DataFrame, i) = df[!,i]
 
 "Is the data complete (no missing values)?"
-iscomplete(data::DataFrame) = begin
-    if isweighted(data)
-        all(iscomplete, eachcol(data)[1:end-1])
-    else
-        all(iscomplete, eachcol(data))
-    end
-end
-iscomplete(data::DataFrameRow) = begin
-    if isweighted(data)
-        all(v -> (v isa Bool), data[1:end-1])
-    else
-        all(v -> (v isa Bool), data)
-    end
-end
-iscomplete(::AbstractArray{Bool}) = true
-iscomplete(::Array{<:AbstractFloat}) = true
-iscomplete(x::Array{Union{Bool,Missing}}) = !any(ismissing, x)
-iscomplete(x::Array{Union{<:AbstractFloat,Missing}}) = !any(ismissing, x)
-iscomplete(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) = 
+iscomplete(data::DataFrame) = 
+    all(iscomplete_col, eachcol_unweighted(data))
+iscomplete(data::Vector{DataFrame}) = all(iscomplete, data)
+
+"Is the data column complete (no missing values)?"
+iscomplete_col(::AbstractVector{Bool}) = true
+iscomplete_col(::AbstractVector{<:AbstractFloat}) = true
+iscomplete_col(x::AbstractVector{Union{Bool,Missing}}) = !any(ismissing, x)
+iscomplete_col(x::AbstractVector{Union{<:AbstractFloat,Missing}}) = !any(ismissing, x)
+iscomplete_col(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) = 
     !any(v -> v == typemax(v), x)
-iscomplete(data::Array{DataFrame}) = all(d -> iscomplete(d), data)
 
 "Is the dataset binary?"
-isbinarydata(df::DataFrame) = begin
-    if isweighted(df)
-        all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df))[1:end-1])
-    else
-        all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df)))
-    end
+isbinarydata(df::DataFrame) = all(eachcol_unweighted(df)) do col
+    nonmissingtype(eltype(col)) <: Union{Bool,UInt8}
 end
-isbinarydata(df::Array{DataFrame}) = 
-    all(d -> isbinarydata(d), df)
+isbinarydata(df::Vector{DataFrame}) = 
+    all(isbinarydata, df)
 
 "Is the dataset consisting of floating point data?"
-isfpdata(df::DataFrame) = 
-    all(t -> nonmissingtype(t) <: AbstractFloat, eltype.(eachcol(df)))
-isfpdata(df::Array{DataFrame}) = 
-    all(d -> isfpdata(d), df)
+isfpdata(df::DataFrame) = all(eachcol_unweighted(df)) do col
+    nonmissingtype(eltype(col)) <: AbstractFloat
+end
+isfpdata(df::Vector{DataFrame}) = 
+    all(isfpdata, df)
 
 "For binary complete data, how many `UInt64` bit strings are needed to store one feature?"
 num_chunks(d::DataFrame) = num_chunks(feature_values(d,1))
@@ -114,54 +101,29 @@ chunks(df::DataFrame, i) = chunks(feature_values(df, i))
 
 # WEIGHTED DATASETS
 
-"Add sample weights by adding a named column `weight`
- at the end of the DataFrame."
-add_sample_weights(df::DataFrame, weights::DataFrame) = begin
-    if isweighted(df)
-        df = split_sample_weights(df)[1]
-    end
-    df.weight = weights[!,1]
-    
-    df
-end
-add_sample_weights(df::DataFrame, weights::AbstractArray) = begin
-    if isweighted(df)
-        df = split_sample_weights(df)[1]
-    end
-    df.weight = collect(Iterators.flatten(weights))
-    
-    df
-end
-add_sample_weights(df::Array{DataFrame}, weights) = begin
-    if (weights isa DataFrame) || (weights isa AbstractArray{F} where F <: AbstractFloat)
-        weights = batch(weights, batch_size(df))
-    end
-    
-    map(zip(df, weights)) do (d, dw)
-        add_sample_weights(d, dw)
-    end
+"Iterate over columns, excluding the sample weight column"
+eachcol_unweighted(data::DataFrame) = 
+    isweighted(data) ? eachcol(data)[1:end-1] : eachcol(data)
+
+"Create a weighted copy of the data set"
+weigh_samples(df::DataFrame, weights) = begin
+    df2 = copy(df)
+    df2.weight = weights
+    df2
 end
     
 "Split a weighted dataset into unweighted dataset
  and its corresponding weights."
 split_sample_weights(df::DataFrame) = begin
     @assert isweighted(df) "`df` is not weighted."
-    weights = df[!, end]
-    df = df[!, 1:end-1]
-    
-    df, weights
+    df[!, 1:end-1], df[!, end]
 end
-split_sample_weights(df::Array{DataFrame}) = begin
-    @assert isweighted(df) "`df` is not weighted."
-    weights = map(df) do d
-        d[!, end]
-    end
-    
-    df = map(df) do d
-        d[!, 1:end-1]
-    end
-    
-    df, weights
+
+split_sample_weights(batches::Vector{DataFrame}) = begin
+    @assert isweighted(batches) "`batches` is not weighted."
+    samples = map(b -> b[!, 1:end-1], batches)
+    weights = get_weights(batches)
+    (samples, weights)
 end
 
 "Get the weights from a weighted dataset."
@@ -169,17 +131,14 @@ get_weights(df::DataFrame) = begin
     @assert isweighted(df) "`df` is not weighted."
     df[!, end]
 end
-get_weights(df::Array{DataFrame}) = begin
-    @assert isweighted(df) "`df` is not weighted."
-    map(df) do d
-        d[!, end]
-    end
+get_weights(df::Vector{DataFrame}) = begin
+    map(get_weights, df)
 end
 
 "Is the dataset weighted?"
-isweighted(df::Union{DataFrame, DataFrameRow}) = 
-    cmp(names(df)[end], "weight") === 0
-isweighted(df::Array{DataFrame}) = 
+isweighted(df::DataFrame) = 
+    names(df)[end] == "weight"
+isweighted(df::Vector{DataFrame}) = 
     all(d -> isweighted(d), df)
 
 # DATA TRANSFORMATIONS
@@ -222,10 +181,10 @@ end
 
 "Is the dataset batched?"
 isbatched(data::DataFrame) = false
-isbatched(data::Array{DataFrame}) = true  
+isbatched(data::Vector{DataFrame}) = true  
     
 "Batch size of the dataset"
-batch_size(data::Array{DataFrame}) = num_examples(data[1])
+batch_size(data::Vector{DataFrame}) = num_examples(data[1])
 
 "Dataset bagging"
 function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0,
@@ -330,7 +289,7 @@ to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
 to_gpu(v::Vector{Union{Bool,Missing}}) =
     CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
 to_gpu(df::DataFrame) = isgpu(df) ? df : mapcols(to_gpu, df)
-to_gpu(df::Array{DataFrame}) = map(df) do d
+to_gpu(df::Vector{DataFrame}) = map(df) do d
     to_gpu(d)
 end
 
@@ -345,7 +304,7 @@ to_cpu(v::CuVector{UInt8}) =
     convert(Vector{Union{Bool,Missing}}, 
         replace(Array(v), typemax(UInt8) => missing))
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
-to_cpu(df::Array{DataFrame}) = map(df) do d
+to_cpu(df::Vector{DataFrame}) = map(df) do d
     to_gpu(d)
 end
 
@@ -353,7 +312,7 @@ end
 isgpu(::Union{Array, BitArray}) = false
 isgpu(::Union{CuArray, CuBitVector}) = true
 isgpu(df::DataFrame) = all(isgpu, eachcol(df))
-isgpu(df::Array{DataFrame}) = all(isgpu, df)
+isgpu(df::Vector{DataFrame}) = all(isgpu, df)
 
 "Ensure that `x` resides on the same device as `data`"
 same_device(x, data) = isgpu(data) ? to_gpu(x) : to_cpu(x)
