@@ -10,6 +10,7 @@ export num_examples, num_features,
     weigh_samples, split_sample_weights, get_weights,
     shuffle_examples, batch, batch_size, isbatched,
     threshold, soften, marginal_prob, bagging_dataset,
+    random_sample,
     to_gpu, to_cpu, isgpu, same_device,
     ll_per_example, bits_per_pixel,
     make_missing_mcar, impute
@@ -22,6 +23,53 @@ import Base: eltype # extend
 
 "Find a type that can capture all column values"
 eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
+
+import Base: _msk_end
+
+# lift BitVector function to DataFrame of BitVectors
+@inline _msk_end(df::DataFrame) = _msk_end(nrow(df))
+
+##############################
+# GPU-CPU memory helper function
+##############################
+
+"Move data to the GPU"
+to_gpu(d::Union{CuBitVector,CuArray}) = d
+to_gpu(m::Array) = CuArray(m)
+to_gpu(v::BitVector) = 
+    AbstractBitVector(to_gpu(chunks(v)), length(v))
+to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
+    CuArray(F.(coalesce(v,typemax(F))))
+to_gpu(v::Vector{Union{Bool,Missing}}) =
+    CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
+to_gpu(df::DataFrame) = isgpu(df) ? df : mapcols(to_gpu, df)
+to_gpu(df::Vector{DataFrame}) = map(df) do d
+    to_gpu(d)
+end
+
+"Move data to the CPU"
+to_cpu(m::Union{BitVector,Array}) = m
+to_cpu(m::CuArray) = Array(m)
+to_cpu(cv::CuBitVector) = 
+    AbstractBitVector(to_cpu(cv.chunks), length(cv))
+to_cpu(v::CuVector{T}) where T<:AbstractFloat =
+    replace(Array(v), typemax(T) => missing)
+to_cpu(v::CuVector{UInt8}) =
+    convert(Vector{Union{Bool,Missing}}, 
+        replace(Array(v), typemax(UInt8) => missing))
+to_cpu(df::DataFrame) = mapcols(to_cpu, df)
+to_cpu(df::Vector{DataFrame}) = map(df) do d
+    to_gpu(d)
+end
+
+"Check whether data resides on the GPU"
+isgpu(::Union{Array, BitArray}) = false
+isgpu(::Union{CuArray, CuBitVector}) = true
+isgpu(df::DataFrame) = all(isgpu, eachcol(df))
+isgpu(df::Vector{DataFrame}) = all(isgpu, df)
+
+"Ensure that `x` resides on the same device as `data`"
+same_device(x, data) = isgpu(data) ? to_gpu(x) : to_cpu(x)
 
 ##############################
 # Dataset Utilities
@@ -206,7 +254,6 @@ function random_sample(data::DataFrame, num_samples=1, weighted=isweighted(data)
     end
     data[example_idxs, :]
 end
-    
 
 "Returns an array of DataFrames where each DataFrame is randomly sampled from the original dataset `data`"
 function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0,
@@ -266,46 +313,6 @@ marginal_prob(data; precision=Float32) = begin
     end
 end
 
-@inline _msk_end(df::DataFrame) = _msk_end(num_examples(df))
-
-"Move data to the GPU"
-to_gpu(d::Union{CuBitVector,CuArray}) = d
-to_gpu(m::Array) = CuArray(m)
-to_gpu(v::BitVector) = 
-    AbstractBitVector(to_gpu(chunks(v)), length(v))
-to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
-    CuArray(F.(coalesce(v,typemax(F))))
-to_gpu(v::Vector{Union{Bool,Missing}}) =
-    CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
-to_gpu(df::DataFrame) = isgpu(df) ? df : mapcols(to_gpu, df)
-to_gpu(df::Vector{DataFrame}) = map(df) do d
-    to_gpu(d)
-end
-
-"Move data to the CPU"
-to_cpu(m::Union{BitVector,Array}) = m
-to_cpu(m::CuArray) = Array(m)
-to_cpu(cv::CuBitVector) = 
-    AbstractBitVector(to_cpu(cv.chunks), length(cv))
-to_cpu(v::CuVector{T}) where T<:AbstractFloat =
-    replace(Array(v), typemax(T) => missing)
-to_cpu(v::CuVector{UInt8}) =
-    convert(Vector{Union{Bool,Missing}}, 
-        replace(Array(v), typemax(UInt8) => missing))
-to_cpu(df::DataFrame) = mapcols(to_cpu, df)
-to_cpu(df::Vector{DataFrame}) = map(df) do d
-    to_gpu(d)
-end
-
-"Check whether data resides on the GPU"
-isgpu(::Union{Array, BitArray}) = false
-isgpu(::Union{CuArray, CuBitVector}) = true
-isgpu(df::DataFrame) = all(isgpu, eachcol(df))
-isgpu(df::Vector{DataFrame}) = all(isgpu, df)
-
-"Ensure that `x` resides on the same device as `data`"
-same_device(x, data) = isgpu(data) ? to_gpu(x) : to_cpu(x)
-
 # LIKELIHOOD HELPERS
 
 "Normalize the given log-likelihood by the number of examples in `data`"
@@ -361,7 +368,7 @@ Supported methods are `:median`, `:mean`, `:one`, `:zero`
 function impute(X::DataFrame; method=:median)
     impute(X, X; method=method)
 end
-function impute(X::DataFrame, train::DataFrame; method::Symbol=:median)
+function impute(X::DataFrame, train::DataFrame; method=:median)
     type = typeintersect(eltype(X), eltype(train))
     @assert type !== Union{}
 
@@ -402,6 +409,6 @@ function impute(X::DataFrame, train::DataFrame; method::Symbol=:median)
     if type == Bool
         return DataFrame(BitArray(convert(Matrix, X_impute)))
     else
-        return X_impute
+        return X_impute::DataFrame
     end
 end
