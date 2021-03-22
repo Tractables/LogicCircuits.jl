@@ -108,6 +108,7 @@ eachcol_unweighted(data::DataFrame) =
 
 "Create a weighted copy of the data set"
 weigh_samples(df::DataFrame, weights) = begin
+    @assert length(weights) == num_examples(df) 
     df2 = copy(df)
     df2.weight = weights
     df2
@@ -165,57 +166,54 @@ function batch(data::DataFrame, batchsize=1024; shuffle::Bool = true)
         stop_index = min(start_index + batchsize - 1, n_examples)
         data[start_index:stop_index, :]
     end
-    
+
     # move data back to GPU if that's where it came from
     from_gpu ? to_gpu(data) : data
 end
 
 "Is the dataset batched?"
-isbatched(data::DataFrame) = false
-isbatched(data::Vector{DataFrame}) = true  
+isbatched(::DataFrame) = false
+isbatched(::Vector{DataFrame}) = true  
     
 "Batch size of the dataset"
 batch_size(data::Vector{DataFrame}) = num_examples(data[1])
 
-"Dataset bagging"
-function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0,
-                         batch_size::Integer = 0)
-    if isweighted(data)
+"Randomly draw samples from the dataset with replacement"
+function random_sample(data::DataFrame, num_samples=1, weighted=isweighted(data))
+    # TODO add keyword to fix the random seed
+    example_idxs = if weighted
         data, weights = split_sample_weights(data)
-    else
-        weights = num_examples(data)
-    end
-    
-    # Randomly draw samples with replacement
-    function random_sample(weights::AbstractArray, num_examples::Integer)
-        weights = cumsum(weights)
-        cum_weights = weights[end]
-        len = length(weights)
-        map(1:num_examples) do idx
-            randval = rand() * cum_weights
-            i, j, k = 1, len, 0
+        cum_weights = cumsum(weights)
+        total_weight = cum_weights[end]
+        map(1:num_samples) do idx
+            randval = rand() * total_weight
+            i, j, k = 1, num_examples(data), 0
+            #  do binary search for sample
             while i < j - 1
                 k = (i + j) ÷ 2
-                if randval < weights[k]
+                if randval < cum_weights[k]
                     j = k
                 else
                     i = k
                 end
             end
-            i == j ? i : (randval >= weights[i] ? j : i)
+            i == j ? i : (randval >= cum_weights[i] ? j : i)
+        end
+    else
+        map(1:num_samples) do idx
+            rand(1:num_examples(data))
         end
     end
-    function random_sample(weights::Integer, num_examples::Integer)
-        map(1:num_examples) do idx
-            rand(1:weights)
-        end
-    end
+    data[example_idxs, :]
+end
     
-    # Returns an array of DataFrames where each DataFrame is randomly sampled from the 
-    # original dataset `data`.
+
+"Returns an array of DataFrames where each DataFrame is randomly sampled from the original dataset `data`"
+function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0,
+                         batch_size::Integer = 0)
     map(1:num_bags) do dataset_idx
-        example_idxs = random_sample(weights, convert(UInt32, floor(num_examples(data) * frac_examples)))
-        batch_size == 0 ? data[example_idxs, :] : batch(data[example_idxs, :], batch_size)
+        sample = random_sample(data, floor(UInt32, num_examples(data) * frac_examples))
+        batch_size == 0 ? sample : batch(sample, batch_size)
     end
 end
 

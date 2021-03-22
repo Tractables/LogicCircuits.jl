@@ -79,6 +79,8 @@ using CUDA: CUDA
     @test bag_datasets isa Vector{DataFrame}
     @test nrow(bag_datasets[1]) == 4
     @test ncol(bag_datasets[1]) == ncol(dataset) - 1
+    @test num_features(bag_datasets) == num_features(dataset)
+    @test !isweighted(bag_datasets)
     
     bag_datasets = bagging_dataset(dataset; num_bags = 5, frac_examples = 1.0, batch_size = 1);
     @test length(bag_datasets[1]) == 4
