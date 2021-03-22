@@ -16,7 +16,7 @@ abstract type Tree <: Dag end
 import Base: parent
 
 "Get the parent of a given tree node (or nothing if the node is root)"
-parent(n::Tree) = n.parent
+@inline parent(n::Tree) = n.parent
 
 "Does the node have a parent?"
 @inline has_parent(n::Tree)::Bool = issomething(parent(n))

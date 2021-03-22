@@ -1,7 +1,6 @@
 # Miscellaneous utilities.
 
 export issomething, 
-        issingle, 
         order_asc, 
         isdisjoint, 
         pushrand!, 
@@ -29,9 +28,6 @@ using CUDA: CuArray, CuVector, CuMatrix, CUDA
 
 "Is the argument not `nothing`?"
 @inline issomething(x) = !isnothing(x)
-
-"Is the argument of length 1; a singleton?"
-@inline issingle(x) = (length(x) == 1)
 
 "Order the arguments in a tuple in ascending order"
 @inline order_asc(x, y) = x > y ? (y, x) : (x , y)
@@ -72,6 +68,7 @@ get_bit(chunk, j) = chunk & (UInt64(1) << Base._mod64(j-1)) != 0
 
 "Replacement for BitSet.⊆ that does not allocate a new BitSet"
 function subseteq_fast(s::BitSet,t::BitSet) # see https://discourse.julialang.org/t/issubset-bitset-bitset-is-slow-and-allocates-unnecessarily/43828
+    # TODO see if https://github.com/JuliaLang/julia/pull/36882/files has fixed this issue in 1.6
     s === t && return true
     s.offset < t.offset && return false
     length(s.bits) > length(t.bits) && return false
@@ -83,7 +80,7 @@ end
 function similar!(reuse, ::Type{A}, desired_size...) where A<:AbstractArray
     if reuse isa A && size(reuse) == (desired_size...,)
         reuse
-    elseif reuse isa A && length(size(reuse)) == 1 && length((desired_size...,)) == 1
+    elseif reuse isa A && ndims(reuse) == 1 && length(desired_size) == 1
         # Use resize! to save some effort when the desired array is 1-dimentional
         resize!(reuse, desired_size...)
     else

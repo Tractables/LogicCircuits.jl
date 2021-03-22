@@ -174,7 +174,7 @@ function propagate_constants(root::Node; remove_unary=false)
             proped_children = convert(Vector{T}, filter(c -> !istrue(c), cn))
             if isempty(proped_children)
                 return true_node
-            elseif remove_unary && issingle(proped_children)
+            elseif remove_unary && (length(proped_children) == 1)
                 return proped_children[1]
             else
                 return conjoin(proped_children; reuse=n)
@@ -189,7 +189,7 @@ function propagate_constants(root::Node; remove_unary=false)
             proped_children = convert(Vector{T}, filter(c -> !isfalse(c), cn))
             if isempty(proped_children)
                 return false_node
-            elseif remove_unary && issingle(proped_children)
+            elseif remove_unary && (length(proped_children) == 1)
                 return proped_children[1]
             else
                 return disjoin(proped_children; reuse=n)
