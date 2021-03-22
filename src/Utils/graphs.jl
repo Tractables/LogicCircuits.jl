@@ -1,6 +1,6 @@
 export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
-       reset_counter, foreach, foreach_reset, clear_data, filter, 
+       reset_counter, reset_counter_hard, foreach, foreach_reset, clear_data, filter, 
        nload, nsave,
        foldup, foldup_aggregate, 
        count_parents, foreach_down,
@@ -88,6 +88,22 @@ function reset_counter(node::Dag, v::Int=0)
     end
     nothing # returning nothing helps save some allocations and time
 end
+
+"Set the counter field throughout this graph. Is slower but works even when the node fields are in an arbitrary state."
+function reset_counter_hard(node::Dag, v::Int=0, seen::Set{Dag}=Set{Dag}())
+    if node ∉ seen
+        push!(seen, node)
+        node.counter = v
+        if isinner(node)
+            for c in children(node)
+                reset_counter_hard(c, v, seen)
+            end
+        end
+    end
+    nothing
+end
+
+
 import Base.foreach #extend
 
 "Apply a function to each node in a graph, bottom up"

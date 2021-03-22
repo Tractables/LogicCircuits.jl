@@ -64,6 +64,18 @@ module TestNodes
         @test l1.counter == 0
         @test i12.counter == 0
 
+        i12.counter = 5 # break counters
+        reset_counter_hard(r,5)
+        @test r.counter == 5
+        @test l1.counter == 5
+        @test i12.counter == 5
+
+        i12.counter = 42 # break counters
+        reset_counter_hard(r)
+        @test r.counter == 0
+        @test l1.counter == 0
+        @test i12.counter == 0
+
         foreach(r) do n
             n.id += 1
         end
