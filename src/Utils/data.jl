@@ -99,6 +99,7 @@ num_chunks(v::AbstractBitVector) = length(v.chunks)
 chunks(v::AbstractBitVector) = v.chunks
 chunks(df::DataFrame, i) = chunks(feature_values(df, i))
 
+
 # WEIGHTED DATASETS
 
 "Iterate over columns, excluding the sample weight column"
@@ -141,6 +142,7 @@ isweighted(df::DataFrame) =
 isweighted(df::Vector{DataFrame}) = 
     all(d -> isweighted(d), df)
 
+    
 # DATA TRANSFORMATIONS
 
 """
@@ -151,32 +153,21 @@ Shuffle the examples in the data
 shuffle_examples(data) = data[shuffle(axes(data, 1)), :]
 
 "Create mini-batches"
-function batch(data, batchsize=1024; shuffle::Bool = true)
-    to_gpu_flag = false
-    if isgpu(data)
-        to_gpu_flag = true
-        data = to_cpu(data)
-    end
+function batch(data::DataFrame, batchsize=1024; shuffle::Bool = true)
+    from_gpu = isgpu(data)
+    # move data to CPU to do minibatching
+    from_gpu && (data = to_cpu(data))
     
-    if data isa Array{T} where T <: AbstractFloat
-        n_examples = length(data)
-    else
-        n_examples = num_examples(data)
-    end
-    
-    if shuffle
-        data = shuffle_examples(data)
-    end
+    shuffle && (data = shuffle_examples(data))
+
+    n_examples = num_examples(data)
     data = map(1:batchsize:n_examples) do start_index 
         stop_index = min(start_index + batchsize - 1, n_examples)
         data[start_index:stop_index, :]
     end
     
-    if to_gpu_flag
-        data = to_cpu(data)
-    end
-    
-    data
+    # move data back to GPU if that's where it came from
+    from_gpu ? to_gpu(data) : data
 end
 
 "Is the dataset batched?"
