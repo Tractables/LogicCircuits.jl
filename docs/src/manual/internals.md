@@ -1,4 +1,4 @@
-# [Interals](@id man-internals)
+# [Internals](@id man-internals)
 
 !!! note
 
