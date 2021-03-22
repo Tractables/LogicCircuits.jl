@@ -227,3 +227,11 @@ import Base: xor
 "Exclusive logical disjunction (XOR)"
 xor(x::Sdd,y::Sdd) = (x ∧ ¬y) ∨ (y ∧ ¬x)
 
+"Smooth an sdd to a StructLogicCircuit"
+function smooth(root::Sdd)::StructLogicCircuit
+    lc = LogicCircuit(root)
+    plc = propagate_constants(lc, remove_unary=true)
+    slc = StructLogicCircuit(root.vtree, plc)
+    smooth(slc)
+end
+
