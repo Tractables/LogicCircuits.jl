@@ -6,7 +6,7 @@ m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
 
 ga('create', 'UA-136089579-2', 'auto');
 ga('send', 'pageview', {'page': location.pathname + location.search + location.hash});
-</script><link rel="canonical" href="https://juice-jl.github.io/LogicCircuits.jl/stable/manual/transformations/"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="LogicCircuits.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">LogicCircuits.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../generated/usage/">Quick Tutorial</a></li><li><a class="tocitem" href="../../installation/">Installation</a></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox" checked/><label class="tocitem" for="menuitem-4"><span class="docs-label">Manual</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../properties/">Structural Properties</a></li><li class="is-active"><a class="tocitem" href>Tranformations</a><ul class="internal"><li><a class="tocitem" href="#Forgetting"><span>Forgetting</span></a></li><li><a class="tocitem" href="#Propagate-Constants"><span>Propagate Constants</span></a></li><li><a class="tocitem" href="#Smoothing"><span>Smoothing</span></a></li><li><a class="tocitem" href="#Conditioning"><span>Conditioning</span></a></li><li><a class="tocitem" href="#Split"><span>Split</span></a></li><li><a class="tocitem" href="#Clone"><span>Clone</span></a></li><li><a class="tocitem" href="#Merge"><span>Merge</span></a></li><li><a class="tocitem" href="#Standardize-Circuit"><span>Standardize Circuit</span></a></li><li><a class="tocitem" href="#Apply"><span>Apply</span></a></li><li><a class="tocitem" href="#Misc"><span>Misc</span></a></li></ul></li><li><a class="tocitem" href="../queries/">Queries</a></li><li><a class="tocitem" href="../compilation/">Compilation</a></li><li><a class="tocitem" href="../sdd/">Sentential Decision Diagrams</a></li><li><a class="tocitem" href="../internals/">Internals</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-5" type="checkbox"/><label class="tocitem" for="menuitem-5"><span class="docs-label">API</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../api/public/">Public APIs</a></li><li><a class="tocitem" href="../../api/types/">Type Trees</a></li><li><input class="collapse-toggle" id="menuitem-5-3" type="checkbox"/><label class="tocitem" for="menuitem-5-3"><span class="docs-label">Internals</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../api/internals/loadsave/">LoadSave</a></li><li><a class="tocitem" href="../../api/internals/logiccircuits/">LogicCircuits</a></li><li><a class="tocitem" href="../../api/internals/utils/">Utils</a></li></ul></li></ul></li><li><a class="tocitem" href="../../development/">Development</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>Tranformations</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tranformations</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/Juice-jl/LogicCircuits.jl/blob/master/docs/src/manual/transformations.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="man-tranformations"><a class="docs-heading-anchor" href="#man-tranformations">Tranformations</a><a id="man-tranformations-1"></a><a class="docs-heading-anchor-permalink" href="#man-tranformations" title="Permalink"></a></h1><p>In this section, we go over definition of possible transformations and code snippets to use them <code>LogicCircuits.jl</code>. We will use the following circuit(s) in our examples.</p><pre><code class="language-julia">using LogicCircuits
+</script><link rel="canonical" href="https://juice-jl.github.io/LogicCircuits.jl/stable/manual/transformations/"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="LogicCircuits.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">LogicCircuits.jl</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><a class="tocitem" href="../../generated/usage/">Quick Tutorial</a></li><li><a class="tocitem" href="../../installation/">Installation</a></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox" checked/><label class="tocitem" for="menuitem-4"><span class="docs-label">Manual</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../properties/">Structural Properties</a></li><li class="is-active"><a class="tocitem" href>Tranformations</a><ul class="internal"><li><a class="tocitem" href="#Forgetting"><span>Forgetting</span></a></li><li><a class="tocitem" href="#Propagate-Constants"><span>Propagate Constants</span></a></li><li><a class="tocitem" href="#Smoothing"><span>Smoothing</span></a></li><li><a class="tocitem" href="#Split"><span>Split</span></a></li><li><a class="tocitem" href="#Clone"><span>Clone</span></a></li><li><a class="tocitem" href="#Merge"><span>Merge</span></a></li><li><a class="tocitem" href="#Standardize-Circuit"><span>Standardize Circuit</span></a></li><li><a class="tocitem" href="#Apply"><span>Apply</span></a></li><li><a class="tocitem" href="#Misc"><span>Misc</span></a></li></ul></li><li><a class="tocitem" href="../queries/">Queries</a></li><li><a class="tocitem" href="../compilation/">Compilation</a></li><li><a class="tocitem" href="../sdd/">Sentential Decision Diagrams</a></li><li><a class="tocitem" href="../internals/">Internals</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-5" type="checkbox"/><label class="tocitem" for="menuitem-5"><span class="docs-label">API</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../api/public/">Public APIs</a></li><li><a class="tocitem" href="../../api/types/">Type Trees</a></li><li><input class="collapse-toggle" id="menuitem-5-3" type="checkbox"/><label class="tocitem" for="menuitem-5-3"><span class="docs-label">Internals</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../api/internals/loadsave/">LoadSave</a></li><li><a class="tocitem" href="../../api/internals/logiccircuits/">LogicCircuits</a></li><li><a class="tocitem" href="../../api/internals/utils/">Utils</a></li></ul></li></ul></li><li><a class="tocitem" href="../../development/">Development</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>Tranformations</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tranformations</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/Juice-jl/LogicCircuits.jl/blob/master/docs/src/manual/transformations.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="man-tranformations"><a class="docs-heading-anchor" href="#man-tranformations">Tranformations</a><a id="man-tranformations-1"></a><a class="docs-heading-anchor-permalink" href="#man-tranformations" title="Permalink"></a></h1><p>In this section, we go over definition of possible transformations and code snippets to use them <code>LogicCircuits.jl</code>. We will use the following circuit(s) in our examples.</p><pre><code class="language-julia">using LogicCircuits
 X1, X2, X3 = pos_literals(LogicCircuit, 3)
 circuit = (X1 &amp; (X2 | -X3)) | (-X1 &amp; (-X2 | X3));
 
@@ -16,30 +16,28 @@ tree_formula_string(f1)</code></pre><pre class="documenter-example-output">&quot
 
 tree_formula_string(f1_prop)</code></pre><pre class="documenter-example-output">&quot;(((2 ⋁ -3)) ⋁ ((-2 ⋁ 3)))&quot;</pre><h2 id="Smoothing"><a class="docs-heading-anchor" href="#Smoothing">Smoothing</a><a id="Smoothing-1"></a><a class="docs-heading-anchor-permalink" href="#Smoothing" title="Permalink"></a></h2><p>Smoothing is the act of converting a non-smooth circuit to a circuit representing the same formula that is smooth. A logic circuit is smooth if each of its OR nodes are smooth.  An OR node is smooth if all of its children mention the same variables.</p><p>Given a non-smooth circuit we can <a href="../../api/public/#LogicCircuits.smooth"><code>smooth</code></a> it, for example:</p><pre><code class="language-julia">nonsmooth_circuit = X1 | -X2
 tree_formula_string(nonsmooth_circuit)</code></pre><pre class="documenter-example-output">&quot;(1 ⋁ -2)&quot;</pre><pre><code class="language-julia">smooth_circuit = smooth(nonsmooth_circuit)
-tree_formula_string(smooth_circuit)</code></pre><pre class="documenter-example-output">&quot;((1 ⋀ (2 ⋁ -2)) ⋁ (-2 ⋀ (1 ⋁ -1)))&quot;</pre><h2 id="Conditioning"><a class="docs-heading-anchor" href="#Conditioning">Conditioning</a><a id="Conditioning-1"></a><a class="docs-heading-anchor-permalink" href="#Conditioning" title="Permalink"></a></h2><p>Given the logical formula of the circuit <span>$\Delta$</span>, conditioning on the literal <span>$x$</span> (resp. <span>$\lnot x$</span>) is equivalent to replacing every occurance of <span>$X$</span> with <code>true</code> (resp. <code>false</code>). </p><p class="math-container">\[(\Delta \mid x)\]</p><p>We can use can use <a href="../../api/public/#LogicCircuits.condition"><code>condition</code></a> for conditioning. For example, to condition on <span>$\lnot x_1$</span>:</p><pre><code class="language-julia">c2not = condition(circuit, Lit(-1));
-
-tree_formula_string(c2not)</code></pre><pre class="documenter-example-output">&quot;((-1 ⋀ (-2 ⋁ 3)))&quot;</pre><h2 id="Split"><a class="docs-heading-anchor" href="#Split">Split</a><a id="Split-1"></a><a class="docs-heading-anchor-permalink" href="#Split" title="Permalink"></a></h2><p>Given the logical formula of the circuit <span>$\Delta$</span> and a variable <span>$x$</span>, splitting would give us the following logical circuit:</p><p class="math-container">\[(\Delta \land x) \lor (\Delta \land \lnot x)\]</p><pre><code class="language-julia">c1 = |((X1 | -X1) &amp; (X2 | -X2));
+tree_formula_string(smooth_circuit)</code></pre><pre class="documenter-example-output">&quot;((1 ⋀ (2 ⋁ -2)) ⋁ (-2 ⋀ (1 ⋁ -1)))&quot;</pre><h2 id="Split"><a class="docs-heading-anchor" href="#Split">Split</a><a id="Split-1"></a><a class="docs-heading-anchor-permalink" href="#Split" title="Permalink"></a></h2><p>Given the logical formula of the circuit <span>$\Delta$</span> and a variable <span>$x$</span>, splitting would give us the following logical circuit:</p><p class="math-container">\[(\Delta \land x) \lor (\Delta \land \lnot x)\]</p><pre><code class="language-julia">c1 = |((X1 | -X1) &amp; (X2 | -X2));
 c2, _ = split(c1, (c1, c1.children[1]), Var(1); depth = 2);
 plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="98.32pt" height="100.308pt" viewBox="0 0 98.32 100.308" version="1.1">
 <defs>
 <g>
-<symbol overflow="visible" id="glyph-1616454565406649-0-0">
+<symbol overflow="visible" id="glyph-1616482754874109-0-0">
 <path style="stroke:none;" d=""/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406649-0-1">
+<symbol overflow="visible" id="glyph-1616482754874109-0-1">
 <path style="stroke:none;" d="M 7.78125 -7.234375 C 7.90625 -7.59375 7.359375 -7.78125 7.234375 -7.421875 L 4.140625 1.46875 L 1.0625 -7.421875 C 0.953125 -7.78125 0.40625 -7.59375 0.53125 -7.234375 L 3.953125 2.65625 C 4.015625 2.84375 4.28125 2.84375 4.34375 2.65625 Z M 7.78125 -7.234375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406649-0-2">
+<symbol overflow="visible" id="glyph-1616482754874109-0-2">
 <path style="stroke:none;" d="M 7.78125 2.25 L 4.34375 -7.640625 C 4.28125 -7.828125 4.015625 -7.828125 3.953125 -7.640625 L 0.53125 2.25 C 0.40625 2.609375 0.953125 2.796875 1.0625 2.4375 L 4.140625 -6.453125 L 7.234375 2.4375 C 7.359375 2.796875 7.90625 2.609375 7.78125 2.25 Z M 7.78125 2.25 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406649-0-3">
+<symbol overflow="visible" id="glyph-1616482754874109-0-3">
 <path style="stroke:none;" d="M 4.171875 0 L 4.171875 -0.3125 L 3.859375 -0.3125 C 2.953125 -0.3125 2.9375 -0.421875 2.9375 -0.78125 L 2.9375 -6.375 C 2.9375 -6.625 2.9375 -6.640625 2.703125 -6.640625 C 2.078125 -6 1.203125 -6 0.890625 -6 L 0.890625 -5.6875 C 1.09375 -5.6875 1.671875 -5.6875 2.1875 -5.953125 L 2.1875 -0.78125 C 2.1875 -0.421875 2.15625 -0.3125 1.265625 -0.3125 L 0.953125 -0.3125 L 0.953125 0 C 1.296875 -0.03125 2.15625 -0.03125 2.5625 -0.03125 C 2.953125 -0.03125 3.828125 -0.03125 4.171875 0 Z M 4.171875 0 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406649-0-4">
+<symbol overflow="visible" id="glyph-1616482754874109-0-4">
 <path style="stroke:none;" d="M 2.75 -1.859375 L 2.75 -2.4375 L 0.109375 -2.4375 L 0.109375 -1.859375 Z M 2.75 -1.859375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406649-0-5">
+<symbol overflow="visible" id="glyph-1616482754874109-0-5">
 <path style="stroke:none;" d="M 4.46875 -1.734375 L 4.234375 -1.734375 C 4.171875 -1.4375 4.109375 -1 4 -0.84375 C 3.9375 -0.765625 3.28125 -0.765625 3.0625 -0.765625 L 1.265625 -0.765625 L 2.328125 -1.796875 C 3.875 -3.171875 4.46875 -3.703125 4.46875 -4.703125 C 4.46875 -5.84375 3.578125 -6.640625 2.359375 -6.640625 C 1.234375 -6.640625 0.5 -5.71875 0.5 -4.828125 C 0.5 -4.28125 1 -4.28125 1.03125 -4.28125 C 1.203125 -4.28125 1.546875 -4.390625 1.546875 -4.8125 C 1.546875 -5.0625 1.359375 -5.328125 1.015625 -5.328125 C 0.9375 -5.328125 0.921875 -5.328125 0.890625 -5.3125 C 1.109375 -5.96875 1.65625 -6.328125 2.234375 -6.328125 C 3.140625 -6.328125 3.5625 -5.515625 3.5625 -4.703125 C 3.5625 -3.90625 3.078125 -3.125 2.515625 -2.5 L 0.609375 -0.375 C 0.5 -0.265625 0.5 -0.234375 0.5 0 L 4.203125 0 Z M 4.46875 -1.734375 "/>
 </symbol>
 </g>
@@ -60,30 +58,30 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <path style="fill:none;stroke-width:0.3985;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 21.840875 -64.361187 L 35.360406 -77.880719 " transform="matrix(1,0,0,-1,48.331,8.631)"/>
 <path style="fill:none;stroke-width:0.31879;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M -1.193573 1.593695 C -1.094135 0.997068 0.00244308 0.0993654 0.300757 -0.0000724791 C 0.00244308 -0.0995103 -1.094135 -0.997213 -1.193573 -1.59384 " transform="matrix(0.7071,0.7071,0.7071,-0.7071,83.68973,86.50994)"/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406649-0-1" x="44.181" y="11.101"/>
+  <use xlink:href="#glyph-1616482754874109-0-1" x="44.181" y="11.101"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406649-0-2" x="44.181" y="39.488"/>
+  <use xlink:href="#glyph-1616482754874109-0-2" x="44.181" y="39.488"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406649-0-1" x="30.008" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874109-0-1" x="30.008" y="67.794"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406649-0-1" x="58.355" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874109-0-1" x="58.355" y="67.794"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406649-0-3" x="3.321" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874109-0-3" x="3.321" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406649-0-4" x="30.008" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406649-0-3" x="33.325559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874109-0-4" x="30.008" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874109-0-3" x="33.325559" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406649-0-5" x="60.013" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874109-0-5" x="60.013" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406649-0-4" x="86.701" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406649-0-5" x="90.018559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874109-0-4" x="86.701" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874109-0-5" x="90.018559" y="96.987"/>
 </g>
 </g>
 </svg>
@@ -92,22 +90,22 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="98.32pt" height="100.308pt" viewBox="0 0 98.32 100.308" version="1.1">
 <defs>
 <g>
-<symbol overflow="visible" id="glyph-1616454565406650-0-0">
+<symbol overflow="visible" id="glyph-1616482754874110-0-0">
 <path style="stroke:none;" d=""/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406650-0-1">
+<symbol overflow="visible" id="glyph-1616482754874110-0-1">
 <path style="stroke:none;" d="M 7.78125 -7.234375 C 7.90625 -7.59375 7.359375 -7.78125 7.234375 -7.421875 L 4.140625 1.46875 L 1.0625 -7.421875 C 0.953125 -7.78125 0.40625 -7.59375 0.53125 -7.234375 L 3.953125 2.65625 C 4.015625 2.84375 4.28125 2.84375 4.34375 2.65625 Z M 7.78125 -7.234375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406650-0-2">
+<symbol overflow="visible" id="glyph-1616482754874110-0-2">
 <path style="stroke:none;" d="M 7.78125 2.25 L 4.34375 -7.640625 C 4.28125 -7.828125 4.015625 -7.828125 3.953125 -7.640625 L 0.53125 2.25 C 0.40625 2.609375 0.953125 2.796875 1.0625 2.4375 L 4.140625 -6.453125 L 7.234375 2.4375 C 7.359375 2.796875 7.90625 2.609375 7.78125 2.25 Z M 7.78125 2.25 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406650-0-3">
+<symbol overflow="visible" id="glyph-1616482754874110-0-3">
 <path style="stroke:none;" d="M 4.171875 0 L 4.171875 -0.3125 L 3.859375 -0.3125 C 2.953125 -0.3125 2.9375 -0.421875 2.9375 -0.78125 L 2.9375 -6.375 C 2.9375 -6.625 2.9375 -6.640625 2.703125 -6.640625 C 2.078125 -6 1.203125 -6 0.890625 -6 L 0.890625 -5.6875 C 1.09375 -5.6875 1.671875 -5.6875 2.1875 -5.953125 L 2.1875 -0.78125 C 2.1875 -0.421875 2.15625 -0.3125 1.265625 -0.3125 L 0.953125 -0.3125 L 0.953125 0 C 1.296875 -0.03125 2.15625 -0.03125 2.5625 -0.03125 C 2.953125 -0.03125 3.828125 -0.03125 4.171875 0 Z M 4.171875 0 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406650-0-4">
+<symbol overflow="visible" id="glyph-1616482754874110-0-4">
 <path style="stroke:none;" d="M 4.46875 -1.734375 L 4.234375 -1.734375 C 4.171875 -1.4375 4.109375 -1 4 -0.84375 C 3.9375 -0.765625 3.28125 -0.765625 3.0625 -0.765625 L 1.265625 -0.765625 L 2.328125 -1.796875 C 3.875 -3.171875 4.46875 -3.703125 4.46875 -4.703125 C 4.46875 -5.84375 3.578125 -6.640625 2.359375 -6.640625 C 1.234375 -6.640625 0.5 -5.71875 0.5 -4.828125 C 0.5 -4.28125 1 -4.28125 1.03125 -4.28125 C 1.203125 -4.28125 1.546875 -4.390625 1.546875 -4.8125 C 1.546875 -5.0625 1.359375 -5.328125 1.015625 -5.328125 C 0.9375 -5.328125 0.921875 -5.328125 0.890625 -5.3125 C 1.109375 -5.96875 1.65625 -6.328125 2.234375 -6.328125 C 3.140625 -6.328125 3.5625 -5.515625 3.5625 -4.703125 C 3.5625 -3.90625 3.078125 -3.125 2.515625 -2.5 L 0.609375 -0.375 C 0.5 -0.265625 0.5 -0.234375 0.5 0 L 4.203125 0 Z M 4.46875 -1.734375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406650-0-5">
+<symbol overflow="visible" id="glyph-1616482754874110-0-5">
 <path style="stroke:none;" d="M 2.75 -1.859375 L 2.75 -2.4375 L 0.109375 -2.4375 L 0.109375 -1.859375 Z M 2.75 -1.859375 "/>
 </symbol>
 </g>
@@ -134,33 +132,33 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <path style="fill:none;stroke-width:0.3985;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 14.172906 -65.52525 L 14.172906 -77.744 " transform="matrix(1,0,0,-1,48.331,8.631)"/>
 <path style="fill:none;stroke-width:0.31879;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M -1.196013 1.593266 C -1.09445 0.99561 -0.0007 0.101079 0.300081 -0.00048375 C -0.0007 -0.09814 -1.09445 -0.996577 -1.196013 -1.594234 " transform="matrix(0,1,1,0,62.50439,86.3757)"/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-1" x="44.181" y="11.101"/>
+  <use xlink:href="#glyph-1616482754874110-0-1" x="44.181" y="11.101"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-2" x="30.008" y="39.488"/>
+  <use xlink:href="#glyph-1616482754874110-0-2" x="30.008" y="39.488"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-2" x="58.355" y="39.488"/>
+  <use xlink:href="#glyph-1616482754874110-0-2" x="58.355" y="39.488"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-3" x="3.321" y="68.641"/>
+  <use xlink:href="#glyph-1616482754874110-0-3" x="3.321" y="68.641"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-1" x="30.008" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874110-0-1" x="30.008" y="67.794"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-4" x="31.667" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874110-0-4" x="31.667" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-5" x="58.355" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406650-0-4" x="61.672559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874110-0-5" x="58.355" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874110-0-4" x="61.672559" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-5" x="86.701" y="68.641"/>
-  <use xlink:href="#glyph-1616454565406650-0-3" x="90.018559" y="68.641"/>
+  <use xlink:href="#glyph-1616482754874110-0-5" x="86.701" y="68.641"/>
+  <use xlink:href="#glyph-1616482754874110-0-3" x="90.018559" y="68.641"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406650-0-1" x="58.355" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874110-0-1" x="58.355" y="67.794"/>
 </g>
 </g>
 </svg>
@@ -173,19 +171,19 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="43.286pt" height="100.308pt" viewBox="0 0 43.286 100.308" version="1.1">
 <defs>
 <g>
-<symbol overflow="visible" id="glyph-1616454565406651-0-0">
+<symbol overflow="visible" id="glyph-1616482754874111-0-0">
 <path style="stroke:none;" d=""/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406651-0-1">
+<symbol overflow="visible" id="glyph-1616482754874111-0-1">
 <path style="stroke:none;" d="M 7.78125 -7.234375 C 7.90625 -7.59375 7.359375 -7.78125 7.234375 -7.421875 L 4.140625 1.46875 L 1.0625 -7.421875 C 0.953125 -7.78125 0.40625 -7.59375 0.53125 -7.234375 L 3.953125 2.65625 C 4.015625 2.84375 4.28125 2.84375 4.34375 2.65625 Z M 7.78125 -7.234375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406651-0-2">
+<symbol overflow="visible" id="glyph-1616482754874111-0-2">
 <path style="stroke:none;" d="M 7.78125 2.25 L 4.34375 -7.640625 C 4.28125 -7.828125 4.015625 -7.828125 3.953125 -7.640625 L 0.53125 2.25 C 0.40625 2.609375 0.953125 2.796875 1.0625 2.4375 L 4.140625 -6.453125 L 7.234375 2.4375 C 7.359375 2.796875 7.90625 2.609375 7.78125 2.25 Z M 7.78125 2.25 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406651-0-3">
+<symbol overflow="visible" id="glyph-1616482754874111-0-3">
 <path style="stroke:none;" d="M 4.171875 0 L 4.171875 -0.3125 L 3.859375 -0.3125 C 2.953125 -0.3125 2.9375 -0.421875 2.9375 -0.78125 L 2.9375 -6.375 C 2.9375 -6.625 2.9375 -6.640625 2.703125 -6.640625 C 2.078125 -6 1.203125 -6 0.890625 -6 L 0.890625 -5.6875 C 1.09375 -5.6875 1.671875 -5.6875 2.1875 -5.953125 L 2.1875 -0.78125 C 2.1875 -0.421875 2.15625 -0.3125 1.265625 -0.3125 L 0.953125 -0.3125 L 0.953125 0 C 1.296875 -0.03125 2.15625 -0.03125 2.5625 -0.03125 C 2.953125 -0.03125 3.828125 -0.03125 4.171875 0 Z M 4.171875 0 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406651-0-4">
+<symbol overflow="visible" id="glyph-1616482754874111-0-4">
 <path style="stroke:none;" d="M 2.75 -1.859375 L 2.75 -2.4375 L 0.109375 -2.4375 L 0.109375 -1.859375 Z M 2.75 -1.859375 "/>
 </symbol>
 </g>
@@ -204,23 +202,23 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <path style="fill:none;stroke-width:0.3985;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 4.415594 -65.52525 L 10.548406 -77.794781 " transform="matrix(1,0,0,-1,21.643,8.631)"/>
 <path style="fill:none;stroke-width:0.31879;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M -1.197595 1.593117 C -1.094513 0.995621 -0.000840599 0.0993849 0.299656 0.00155184 C 0.000908234 -0.0980337 -1.094495 -0.996036 -1.195819 -1.591787 " transform="matrix(0.44717,0.89436,0.89436,-0.44717,32.19274,86.4241)"/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406651-0-1" x="17.494" y="11.101"/>
+  <use xlink:href="#glyph-1616482754874111-0-1" x="17.494" y="11.101"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406651-0-2" x="3.321" y="39.488"/>
+  <use xlink:href="#glyph-1616482754874111-0-2" x="3.321" y="39.488"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406651-0-2" x="31.667" y="39.488"/>
+  <use xlink:href="#glyph-1616482754874111-0-2" x="31.667" y="39.488"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406651-0-1" x="17.494" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874111-0-1" x="17.494" y="67.794"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406651-0-3" x="4.979" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874111-0-3" x="4.979" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406651-0-4" x="31.667" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406651-0-3" x="34.984559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874111-0-4" x="31.667" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874111-0-3" x="34.984559" y="96.987"/>
 </g>
 </g>
 </svg>
@@ -229,19 +227,19 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="43.286pt" height="100.308pt" viewBox="0 0 43.286 100.308" version="1.1">
 <defs>
 <g>
-<symbol overflow="visible" id="glyph-1616454565406652-0-0">
+<symbol overflow="visible" id="glyph-1616482754874112-0-0">
 <path style="stroke:none;" d=""/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406652-0-1">
+<symbol overflow="visible" id="glyph-1616482754874112-0-1">
 <path style="stroke:none;" d="M 7.78125 -7.234375 C 7.90625 -7.59375 7.359375 -7.78125 7.234375 -7.421875 L 4.140625 1.46875 L 1.0625 -7.421875 C 0.953125 -7.78125 0.40625 -7.59375 0.53125 -7.234375 L 3.953125 2.65625 C 4.015625 2.84375 4.28125 2.84375 4.34375 2.65625 Z M 7.78125 -7.234375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406652-0-2">
+<symbol overflow="visible" id="glyph-1616482754874112-0-2">
 <path style="stroke:none;" d="M 7.78125 2.25 L 4.34375 -7.640625 C 4.28125 -7.828125 4.015625 -7.828125 3.953125 -7.640625 L 0.53125 2.25 C 0.40625 2.609375 0.953125 2.796875 1.0625 2.4375 L 4.140625 -6.453125 L 7.234375 2.4375 C 7.359375 2.796875 7.90625 2.609375 7.78125 2.25 Z M 7.78125 2.25 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406652-0-3">
+<symbol overflow="visible" id="glyph-1616482754874112-0-3">
 <path style="stroke:none;" d="M 4.171875 0 L 4.171875 -0.3125 L 3.859375 -0.3125 C 2.953125 -0.3125 2.9375 -0.421875 2.9375 -0.78125 L 2.9375 -6.375 C 2.9375 -6.625 2.9375 -6.640625 2.703125 -6.640625 C 2.078125 -6 1.203125 -6 0.890625 -6 L 0.890625 -5.6875 C 1.09375 -5.6875 1.671875 -5.6875 2.1875 -5.953125 L 2.1875 -0.78125 C 2.1875 -0.421875 2.15625 -0.3125 1.265625 -0.3125 L 0.953125 -0.3125 L 0.953125 0 C 1.296875 -0.03125 2.15625 -0.03125 2.5625 -0.03125 C 2.953125 -0.03125 3.828125 -0.03125 4.171875 0 Z M 4.171875 0 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406652-0-4">
+<symbol overflow="visible" id="glyph-1616482754874112-0-4">
 <path style="stroke:none;" d="M 2.75 -1.859375 L 2.75 -2.4375 L 0.109375 -2.4375 L 0.109375 -1.859375 Z M 2.75 -1.859375 "/>
 </symbol>
 </g>
@@ -264,26 +262,26 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <path style="fill:none;stroke-width:0.3985;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 14.173406 -65.52525 L 14.173406 -77.744 " transform="matrix(1,0,0,-1,21.643,8.631)"/>
 <path style="fill:none;stroke-width:0.31879;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M -1.196013 1.593766 C -1.09445 0.99611 -0.0007 0.0976725 0.300081 0.00001625 C -0.0007 -0.101546 -1.09445 -0.996077 -1.196013 -1.593734 " transform="matrix(0,1,1,0,35.81639,86.3757)"/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406652-0-1" x="17.494" y="11.101"/>
+  <use xlink:href="#glyph-1616482754874112-0-1" x="17.494" y="11.101"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406652-0-2" x="3.321" y="39.488"/>
+  <use xlink:href="#glyph-1616482754874112-0-2" x="3.321" y="39.488"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406652-0-2" x="31.667" y="39.488"/>
+  <use xlink:href="#glyph-1616482754874112-0-2" x="31.667" y="39.488"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406652-0-1" x="3.321" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874112-0-1" x="3.321" y="67.794"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406652-0-3" x="4.979" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874112-0-3" x="4.979" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406652-0-4" x="31.667" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406652-0-3" x="34.984559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874112-0-4" x="31.667" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874112-0-3" x="34.984559" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406652-0-1" x="31.667" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874112-0-1" x="31.667" y="67.794"/>
 </g>
 </g>
 </svg>
@@ -296,22 +294,22 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="98.32pt" height="128.654pt" viewBox="0 0 98.32 128.654" version="1.1">
 <defs>
 <g>
-<symbol overflow="visible" id="glyph-1616454565406653-0-0">
+<symbol overflow="visible" id="glyph-1616482754874113-0-0">
 <path style="stroke:none;" d=""/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406653-0-1">
+<symbol overflow="visible" id="glyph-1616482754874113-0-1">
 <path style="stroke:none;" d="M 7.78125 -7.234375 C 7.90625 -7.59375 7.359375 -7.78125 7.234375 -7.421875 L 4.140625 1.46875 L 1.0625 -7.421875 C 0.953125 -7.78125 0.40625 -7.59375 0.53125 -7.234375 L 3.953125 2.65625 C 4.015625 2.84375 4.28125 2.84375 4.34375 2.65625 Z M 7.78125 -7.234375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406653-0-2">
+<symbol overflow="visible" id="glyph-1616482754874113-0-2">
 <path style="stroke:none;" d="M 7.78125 2.25 L 4.34375 -7.640625 C 4.28125 -7.828125 4.015625 -7.828125 3.953125 -7.640625 L 0.53125 2.25 C 0.40625 2.609375 0.953125 2.796875 1.0625 2.4375 L 4.140625 -6.453125 L 7.234375 2.4375 C 7.359375 2.796875 7.90625 2.609375 7.78125 2.25 Z M 7.78125 2.25 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406653-0-3">
+<symbol overflow="visible" id="glyph-1616482754874113-0-3">
 <path style="stroke:none;" d="M 4.171875 0 L 4.171875 -0.3125 L 3.859375 -0.3125 C 2.953125 -0.3125 2.9375 -0.421875 2.9375 -0.78125 L 2.9375 -6.375 C 2.9375 -6.625 2.9375 -6.640625 2.703125 -6.640625 C 2.078125 -6 1.203125 -6 0.890625 -6 L 0.890625 -5.6875 C 1.09375 -5.6875 1.671875 -5.6875 2.1875 -5.953125 L 2.1875 -0.78125 C 2.1875 -0.421875 2.15625 -0.3125 1.265625 -0.3125 L 0.953125 -0.3125 L 0.953125 0 C 1.296875 -0.03125 2.15625 -0.03125 2.5625 -0.03125 C 2.953125 -0.03125 3.828125 -0.03125 4.171875 0 Z M 4.171875 0 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406653-0-4">
+<symbol overflow="visible" id="glyph-1616482754874113-0-4">
 <path style="stroke:none;" d="M 2.75 -1.859375 L 2.75 -2.4375 L 0.109375 -2.4375 L 0.109375 -1.859375 Z M 2.75 -1.859375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406653-0-5">
+<symbol overflow="visible" id="glyph-1616482754874113-0-5">
 <path style="stroke:none;" d="M 4.46875 -1.734375 L 4.234375 -1.734375 C 4.171875 -1.4375 4.109375 -1 4 -0.84375 C 3.9375 -0.765625 3.28125 -0.765625 3.0625 -0.765625 L 1.265625 -0.765625 L 2.328125 -1.796875 C 3.875 -3.171875 4.46875 -3.703125 4.46875 -4.703125 C 4.46875 -5.84375 3.578125 -6.640625 2.359375 -6.640625 C 1.234375 -6.640625 0.5 -5.71875 0.5 -4.828125 C 0.5 -4.28125 1 -4.28125 1.03125 -4.28125 C 1.203125 -4.28125 1.546875 -4.390625 1.546875 -4.8125 C 1.546875 -5.0625 1.359375 -5.328125 1.015625 -5.328125 C 0.9375 -5.328125 0.921875 -5.328125 0.890625 -5.3125 C 1.109375 -5.96875 1.65625 -6.328125 2.234375 -6.328125 C 3.140625 -6.328125 3.5625 -5.515625 3.5625 -4.703125 C 3.5625 -3.90625 3.078125 -3.125 2.515625 -2.5 L 0.609375 -0.375 C 0.5 -0.265625 0.5 -0.234375 0.5 0 L 4.203125 0 Z M 4.46875 -1.734375 "/>
 </symbol>
 </g>
@@ -336,38 +334,38 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <path style="fill:none;stroke-width:0.3985;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M -9.756781 -93.87 L -3.623969 -106.139531 " transform="matrix(1,0,0,-1,48.331,8.63)"/>
 <path style="fill:none;stroke-width:0.31879;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M -1.195503 1.593194 C -1.095915 0.997445 0.00125141 0.0994626 0.300001 -0.00186458 C 0.00125321 -0.10145 -1.095897 -0.994211 -1.195474 -1.595203 " transform="matrix(0.44717,0.89436,0.89436,-0.44717,44.70736,114.76992)"/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-1" x="44.181" y="11.101"/>
+  <use xlink:href="#glyph-1616482754874113-0-1" x="44.181" y="11.101"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-2" x="44.181" y="39.487"/>
+  <use xlink:href="#glyph-1616482754874113-0-2" x="44.181" y="39.487"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-1" x="30.008" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874113-0-1" x="30.008" y="67.794"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-1" x="58.355" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874113-0-1" x="58.355" y="67.794"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-3" x="3.321" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874113-0-3" x="3.321" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-2" x="30.008" y="96.18"/>
+  <use xlink:href="#glyph-1616482754874113-0-2" x="30.008" y="96.18"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-4" x="15.835" y="125.333"/>
-  <use xlink:href="#glyph-1616454565406653-0-3" x="19.152559" y="125.333"/>
+  <use xlink:href="#glyph-1616482754874113-0-4" x="15.835" y="125.333"/>
+  <use xlink:href="#glyph-1616482754874113-0-3" x="19.152559" y="125.333"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-4" x="44.181" y="125.333"/>
-  <use xlink:href="#glyph-1616454565406653-0-5" x="47.498559" y="125.333"/>
+  <use xlink:href="#glyph-1616482754874113-0-4" x="44.181" y="125.333"/>
+  <use xlink:href="#glyph-1616482754874113-0-5" x="47.498559" y="125.333"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-4" x="58.355" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406653-0-3" x="61.672559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874113-0-4" x="58.355" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874113-0-3" x="61.672559" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406653-0-4" x="86.701" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406653-0-5" x="90.018559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874113-0-4" x="86.701" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874113-0-5" x="90.018559" y="96.987"/>
 </g>
 </g>
 </svg>
@@ -376,22 +374,22 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="43.286pt" height="100.308pt" viewBox="0 0 43.286 100.308" version="1.1">
 <defs>
 <g>
-<symbol overflow="visible" id="glyph-1616454565406654-0-0">
+<symbol overflow="visible" id="glyph-1616482754874114-0-0">
 <path style="stroke:none;" d=""/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406654-0-1">
+<symbol overflow="visible" id="glyph-1616482754874114-0-1">
 <path style="stroke:none;" d="M 7.78125 -7.234375 C 7.90625 -7.59375 7.359375 -7.78125 7.234375 -7.421875 L 4.140625 1.46875 L 1.0625 -7.421875 C 0.953125 -7.78125 0.40625 -7.59375 0.53125 -7.234375 L 3.953125 2.65625 C 4.015625 2.84375 4.28125 2.84375 4.34375 2.65625 Z M 7.78125 -7.234375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406654-0-2">
+<symbol overflow="visible" id="glyph-1616482754874114-0-2">
 <path style="stroke:none;" d="M 7.78125 2.25 L 4.34375 -7.640625 C 4.28125 -7.828125 4.015625 -7.828125 3.953125 -7.640625 L 0.53125 2.25 C 0.40625 2.609375 0.953125 2.796875 1.0625 2.4375 L 4.140625 -6.453125 L 7.234375 2.4375 C 7.359375 2.796875 7.90625 2.609375 7.78125 2.25 Z M 7.78125 2.25 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406654-0-3">
+<symbol overflow="visible" id="glyph-1616482754874114-0-3">
 <path style="stroke:none;" d="M 2.75 -1.859375 L 2.75 -2.4375 L 0.109375 -2.4375 L 0.109375 -1.859375 Z M 2.75 -1.859375 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406654-0-4">
+<symbol overflow="visible" id="glyph-1616482754874114-0-4">
 <path style="stroke:none;" d="M 4.171875 0 L 4.171875 -0.3125 L 3.859375 -0.3125 C 2.953125 -0.3125 2.9375 -0.421875 2.9375 -0.78125 L 2.9375 -6.375 C 2.9375 -6.625 2.9375 -6.640625 2.703125 -6.640625 C 2.078125 -6 1.203125 -6 0.890625 -6 L 0.890625 -5.6875 C 1.09375 -5.6875 1.671875 -5.6875 2.1875 -5.953125 L 2.1875 -0.78125 C 2.1875 -0.421875 2.15625 -0.3125 1.265625 -0.3125 L 0.953125 -0.3125 L 0.953125 0 C 1.296875 -0.03125 2.15625 -0.03125 2.5625 -0.03125 C 2.953125 -0.03125 3.828125 -0.03125 4.171875 0 Z M 4.171875 0 "/>
 </symbol>
-<symbol overflow="visible" id="glyph-1616454565406654-0-5">
+<symbol overflow="visible" id="glyph-1616482754874114-0-5">
 <path style="stroke:none;" d="M 4.46875 -1.734375 L 4.234375 -1.734375 C 4.171875 -1.4375 4.109375 -1 4 -0.84375 C 3.9375 -0.765625 3.28125 -0.765625 3.0625 -0.765625 L 1.265625 -0.765625 L 2.328125 -1.796875 C 3.875 -3.171875 4.46875 -3.703125 4.46875 -4.703125 C 4.46875 -5.84375 3.578125 -6.640625 2.359375 -6.640625 C 1.234375 -6.640625 0.5 -5.71875 0.5 -4.828125 C 0.5 -4.28125 1 -4.28125 1.03125 -4.28125 C 1.203125 -4.28125 1.546875 -4.390625 1.546875 -4.8125 C 1.546875 -5.0625 1.359375 -5.328125 1.015625 -5.328125 C 0.9375 -5.328125 0.921875 -5.328125 0.890625 -5.3125 C 1.109375 -5.96875 1.65625 -6.328125 2.234375 -6.328125 C 3.140625 -6.328125 3.5625 -5.515625 3.5625 -4.703125 C 3.5625 -3.90625 3.078125 -3.125 2.515625 -2.5 L 0.609375 -0.375 C 0.5 -0.265625 0.5 -0.234375 0.5 0 L 4.203125 0 Z M 4.46875 -1.734375 "/>
 </symbol>
 </g>
@@ -406,25 +404,25 @@ plot(c1)</code></pre><?xml version="1.0" encoding="UTF-8"?>
 <path style="fill:none;stroke-width:0.3985;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 4.415594 -65.52525 L 10.548406 -77.794781 " transform="matrix(1,0,0,-1,21.643,8.631)"/>
 <path style="fill:none;stroke-width:0.31879;stroke-linecap:round;stroke-linejoin:round;stroke:rgb(0%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M -1.197595 1.593117 C -1.094513 0.995621 -0.000840599 0.0993849 0.299656 0.00155184 C 0.000908234 -0.0980337 -1.094495 -0.996036 -1.195819 -1.591787 " transform="matrix(0.44717,0.89436,0.89436,-0.44717,32.19274,86.4241)"/>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406654-0-1" x="17.494" y="11.101"/>
+  <use xlink:href="#glyph-1616482754874114-0-1" x="17.494" y="11.101"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406654-0-2" x="17.494" y="39.488"/>
+  <use xlink:href="#glyph-1616482754874114-0-2" x="17.494" y="39.488"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406654-0-1" x="17.494" y="67.794"/>
+  <use xlink:href="#glyph-1616482754874114-0-1" x="17.494" y="67.794"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406654-0-3" x="3.321" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406654-0-4" x="6.638559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874114-0-3" x="3.321" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874114-0-4" x="6.638559" y="96.987"/>
 </g>
 <g style="fill:rgb(0%,0%,0%);fill-opacity:1;">
-  <use xlink:href="#glyph-1616454565406654-0-3" x="31.667" y="96.987"/>
-  <use xlink:href="#glyph-1616454565406654-0-5" x="34.984559" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874114-0-3" x="31.667" y="96.987"/>
+  <use xlink:href="#glyph-1616482754874114-0-5" x="34.984559" y="96.987"/>
 </g>
 </g>
 </svg>
 
 <h2 id="Standardize-Circuit"><a class="docs-heading-anchor" href="#Standardize-Circuit">Standardize Circuit</a><a id="Standardize-Circuit-1"></a><a class="docs-heading-anchor-permalink" href="#Standardize-Circuit" title="Permalink"></a></h2><p>Standraizes a given circuit to make sure the following properties hold:</p><ol><li>Children of or nodes are and nodes.</li><li>Children of and nodes are or nodes.</li><li>Each and node has exactly two children.</li></ol><p>See <a href="../../api/internals/logiccircuits/#LogicCircuits.standardize_circuit-Tuple{LogicCircuit}"><code>standardize_circuit</code></a> for more details. </p><h2 id="Apply"><a class="docs-heading-anchor" href="#Apply">Apply</a><a id="Apply-1"></a><a class="docs-heading-anchor-permalink" href="#Apply" title="Permalink"></a></h2><p>Given two logic circuits <span>$\Delta_1$</span>, <span>$\Delta_2$</span>, and a binary operation <span>$o$</span> the apply operation outputs a logic circuit representing:</p><p class="math-container">\[    \Delta_1\ o\ \Delta_2\]</p><p>Note that, in addition to representing the correct formula, the apply operation also wants to preserve the structural properites of the circuits such as  determinism and decomposability.</p><p>The major binary operations are conjunction (<span>$\land$</span>), disjunction (<span>$\lor$</span>), and XOR (<span>$\oplus$</span>). There are <span>$2^4 = 16$</span> possible binary operations, <span>$6$</span> of which are trivial operations (such as always returning <span>$false$</span> or depending only on one of the circuits). The other <span>$10$</span> can be derived by combination of not operation (<span>$\lnot$</span>) with the main 3 operations mentioned. The list of all possible non-trivial binary operations are below:</p><p class="math-container">\[    \Delta_1 \lor \Delta_2, \lnot \Delta_1 \lor \Delta_2, \lnot \Delta_1 \lor \lnot \Delta_2 \\
     \Delta_1 \land \Delta_2, \lnot \Delta_1 \land \Delta_2, \lnot \Delta_1 \land \lnot \Delta_2 \\
-    \Delta_1 \oplus \Delta_2, \lnot (\Delta_1 \oplus \Delta_2) \\\]</p><h2 id="Misc"><a class="docs-heading-anchor" href="#Misc">Misc</a><a id="Misc-1"></a><a class="docs-heading-anchor-permalink" href="#Misc" title="Permalink"></a></h2><p>The following are also useful circuit transformation:</p><ul><li><a href="../../api/public/#Base.deepcopy"><code>deepcopy</code></a>: Recursively create a copy circuit rooted at <code>n</code> to a certain depth <code>depth</code>.</li><li><a href="../../api/internals/logiccircuits/#LogicCircuits.replace_node-Tuple{Node,Node,Node}"><code>replace_node</code></a>: Replaces node <code>old</code> with node <code>new</code> in the circuit.</li><li><a href="../../api/internals/logiccircuits/#LogicCircuits.split_candidates-Tuple{Node}"><code>split_candidates</code></a>: Return a list of possible split candidates</li><li><code>clone_candidates</code>: Returns a list of possible clone candidates</li><li><a href="../../api/internals/logiccircuits/#LogicCircuits.random_split-Tuple{Node}"><code>random_split</code></a>: Randomly picking egde and variable from split candidates </li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../properties/">« Structural Properties</a><a class="docs-footer-nextpage" href="../queries/">Queries »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Monday 22 March 2021 23:11">Monday 22 March 2021</span>. Using Julia version 1.5.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+    \Delta_1 \oplus \Delta_2, \lnot (\Delta_1 \oplus \Delta_2) \\\]</p><h2 id="Misc"><a class="docs-heading-anchor" href="#Misc">Misc</a><a id="Misc-1"></a><a class="docs-heading-anchor-permalink" href="#Misc" title="Permalink"></a></h2><p>The following are also useful circuit transformation:</p><ul><li><a href="../../api/public/#Base.deepcopy"><code>deepcopy</code></a>: Recursively create a copy circuit rooted at <code>n</code> to a certain depth <code>depth</code>.</li><li><a href="../../api/internals/logiccircuits/#LogicCircuits.replace_node-Tuple{Node,Node,Node}"><code>replace_node</code></a>: Replaces node <code>old</code> with node <code>new</code> in the circuit.</li><li><a href="../../api/internals/logiccircuits/#LogicCircuits.split_candidates-Tuple{Node}"><code>split_candidates</code></a>: Return a list of possible split candidates</li><li><code>clone_candidates</code>: Returns a list of possible clone candidates</li><li><a href="../../api/internals/logiccircuits/#LogicCircuits.random_split-Tuple{Node}"><code>random_split</code></a>: Randomly picking egde and variable from split candidates </li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../properties/">« Structural Properties</a><a class="docs-footer-nextpage" href="../queries/">Queries »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 23 March 2021 07:01">Tuesday 23 March 2021</span>. Using Julia version 1.5.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
