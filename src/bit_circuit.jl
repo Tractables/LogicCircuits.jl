@@ -40,7 +40,7 @@ end
 A bit circuit is a low-level representation of a logical circuit structure.
 
 They are a "flat" representation of a circuit, essentially a bit string,
-that can be processed by lower level code (i.e., GPU kernels)
+that can be processed by lower level code (e.g., GPU kernels)
 
 The wiring of the circuit is captured by two matrices: nodes and elements.
   * Nodes are either leafs or decision (disjunction) nodes in the circuit.

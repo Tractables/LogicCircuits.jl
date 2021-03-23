@@ -84,33 +84,33 @@ end
     end
 end
 
-@testset "Condition test" begin
+@testset "conjoin test" begin
     c1 = load_logic_circuit(zoo_sdd_file("random.sdd"))
     
     lit = Lit(num_variables(c1) + 1)
-    @test c1 === condition(c1, lit)
+    @test c1 === conjoin(c1, lit)
 
     lit1 = Lit(1)
-    c2 = condition(c1, lit1)
+    c2 = conjoin(c1, lit1)
     dict = canonical_literals(c2)
     @test haskey(dict, lit1)
     @test !haskey(dict, -lit1) 
-    c3 = condition(c2, -lit1)
+    c3 = conjoin(c2, -lit1)
     @test isfalse(c3)
-    c4 = condition(c2, lit1)
+    c4 = conjoin(c2, lit1)
     @test c4 == c2
 
     c1 = little_2var()
-    c2 = condition(c1, lit1)
+    c2 = conjoin(c1, lit1)
     @test num_nodes(c2) == 6
     @test num_edges(c2) == 5
 
     lit2 = Lit(2)
-    c3 = condition(c1, lit2)
+    c3 = conjoin(c1, lit2)
     @test num_nodes(c3) == 6
     @test num_edges(c3) == 6
 
-    c4 = condition(c2, lit2)
+    c4 = conjoin(c2, lit2)
     @test num_nodes(c4) == 4
     @test num_edges(c4) == 3
 
@@ -119,7 +119,7 @@ end
     lit2 = compile(PlainLogicCircuit, Lit(2))
     or = Plain⋁Node([lit1])
     c5 = or & lit2 & litn1
-    @test isfalse(condition(c5, - Lit(1)))
+    @test isfalse(conjoin(c5, - Lit(1)))
 end
 
 @testset "Split test" begin

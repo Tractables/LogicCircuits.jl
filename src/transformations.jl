@@ -232,12 +232,12 @@ end
 
 
 """
-    condition(root::Node, lit::Lit; callback::Function)::Node
+    conjoin(root::Node, lit::Lit; callback::Function)::Node
 
-Return the circuit conditioned on given literal constrains
+Return the circuit conjoined with th given literal constrains
 `callback` is called after modifying conjunction node
 """
-function condition(root::Node, lit::Lit; callback=noop)::Node
+function conjoin(root::Node, lit::Lit; callback=noop)::Node
     literals = canonical_literals(root)
     (false_node, ) = canonical_constants(root) # reuse constants when possible
     if isnothing(false_node)
@@ -307,11 +307,11 @@ function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sani
 
     # split
     new_children1 = map(children(and)) do c
-        condition(c, var2lit(var))
+        conjoin(c, var2lit(var))
     end
 
     new_children2 = map(children(and)) do c
-        condition(c, - var2lit(var))
+        conjoin(c, - var2lit(var))
     end
 
     new_and1 = deepcopy(conjoin(new_children1), depth; cache=false)

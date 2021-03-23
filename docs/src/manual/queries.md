@@ -49,11 +49,11 @@ lc = smooth(load_logic_circuit(zoo_sdd_file("random.sdd")));
 model_count(lc)
 ```
 
-Let's see how conditioning affects the model count. Observe that model count of ``\Delta`` should equal to adding model counts of ``\Delta \mid x_2`` and ``\Delta \mid \lnot x_2``.
+Let's see how conjoining affects the model count. Observe that model count of ``\Delta`` should equal to adding model counts of ``\Delta \mid x_2`` and ``\Delta \mid \lnot x_2``.
 
 ```@example mc
-c2 = condition(lc, Lit(2));
-c2not = condition(lc, Lit(-2));
+c2 = conjoin(lc, Lit(2));
+c2not = conjoin(lc, Lit(-2));
 model_count(c2, num_variables(lc)), model_count(c2not, num_variables(lc))
 ```
 

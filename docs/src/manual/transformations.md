@@ -60,23 +60,6 @@ smooth_circuit = smooth(nonsmooth_circuit)
 tree_formula_string(smooth_circuit)
 ```
 
-## Conditioning 
-
-Given the logical formula of the circuit ``\Delta``, conditioning on the literal ``x`` (resp. ``\lnot x``) is equivalent to replacing every occurance of ``X`` with `true` (resp. `false`). 
-
-```math
-(\Delta \mid x)
-```
-
-We can use can use [`condition`](@ref) for conditioning. For example, to condition on ``\lnot x_1``:
-
-```@example transform
-c2not = condition(circuit, Lit(-1));
-
-tree_formula_string(c2not)
-```
-
-
 ## Split
 
 Given the logical formula of the circuit ``\Delta`` and a variable ``x``, splitting would give us the following logical circuit:
