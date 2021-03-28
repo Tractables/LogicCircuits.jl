@@ -152,6 +152,7 @@ end
 Is the circuit structured-decomposable?
 """
 function isstruct_decomposable(root::LogicCircuit)::Bool
+    # WARNING: this function is known to have bugs; https://github.com/Juice-jl/LogicCircuits.jl/issues/82
     result::Bool = true
     f_con(_) = [BitSet()]
     f_lit(n) = [BitSet(variable(n))]
@@ -174,6 +175,7 @@ Infer circuits vtree if the circuit is struct-decomposable it.
 Otherwise return `nothing`.
 """
 function infer_vtree(root::LogicCircuit)::Union{Vtree, Nothing}
+    # WARNING: this function is known to have bugs; https://github.com/Juice-jl/LogicCircuits.jl/issues/82
     # TODO remove after the `isstruct_decomposable` bug is fixed
     if !issmooth(root)
         throw("Circuit not smooth. Inferring vtree not supported yet!")
