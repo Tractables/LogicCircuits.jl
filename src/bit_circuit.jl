@@ -68,6 +68,7 @@ struct BitCircuit{V,M}
     nodes::M
     elements::M
     parents::V
+    node2id
 end
 
 function BitCircuit(circuit::LogicCircuit, data; on_decision=noop)
@@ -158,7 +159,8 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; on_decision=noop)
         ⋁NodeIds(layer_id, last_dec_id)
     end
     
-    r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeIds)
+    node2id = Dict{LogicCircuit,NodeIds}()
+    r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeIds, node2id)
     to⋁NodeIds(r)
     
     nodes_m = reshape(nodes, 4, :)
@@ -178,7 +180,7 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; on_decision=noop)
         end
     end
     
-    return BitCircuit(layers, nodes_m, elements_m, parents_m)
+    return BitCircuit(layers, nodes_m, elements_m, parents_m, node2id)
 end
 
 import .Utils: num_nodes # extend
@@ -234,10 +236,10 @@ end
 import .Utils: to_gpu, to_cpu, isgpu #extend
 
 to_gpu(c::BitCircuit) = 
-    BitCircuit(map(to_gpu, c.layers), to_gpu(c.nodes), to_gpu(c.elements), to_gpu(c.parents))
+    BitCircuit(map(to_gpu, c.layers), to_gpu(c.nodes), to_gpu(c.elements), to_gpu(c.parents), c.node2id)
 
 to_cpu(c::BitCircuit) = 
-    BitCircuit(map(to_cpu, c.layers), to_cpu(c.nodes), to_cpu(c.elements), to_cpu(c.parents))
+    BitCircuit(map(to_cpu, c.layers), to_cpu(c.nodes), to_cpu(c.elements), to_cpu(c.parents), c.node2id)
 
 isgpu(c::BitCircuit{<:CuArray,<:CuArray}) = true
 isgpu(c::BitCircuit{<:Array,<:Array}) = false

@@ -65,14 +65,14 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an aggregate vector from the children.
 """
 function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                          f_a::Function, f_o::Function, ::Type{T}) where T
+                          f_a::Function, f_o::Function, ::Type{T}, cache=nothing) where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     end
     function f_inner(n, cs) 
         is⋀gate(n) ? f_a(n, cs)::T : f_o(n, cs)::T
     end
-    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T)::T
+    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T, cache)::T
 end
 
 #####################
@@ -269,7 +269,7 @@ Compute at each node literals that are implied by the formula.
 
 This algorithm is sound but not complete - all literals returned are correct, but some true implied literals may be missing. 
 """
-function implied_literals(root::LogicCircuit)
+function implied_literals(root::LogicCircuit, cache=nothing)
     f_con(c) = constant(c) ? BitSet() : nothing
     f_lit(n) = BitSet([literal(n)])
     f_a(_, cs) = if any(isnothing, cs)
@@ -280,7 +280,7 @@ function implied_literals(root::LogicCircuit)
     f_o(_, cs) = begin
         reduce(intersect, filter(issomething, cs))
     end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Union{BitSet, Nothing})
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Union{BitSet, Nothing}, cache)
 end
 
 

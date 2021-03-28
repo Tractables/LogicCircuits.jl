@@ -2,14 +2,13 @@ using CUDA: CUDA, @cuda
 using DataFrames: DataFrame
 using LoopVectorization: @avx
 
-export model_var_prob, satisfies_flows_down, satisfies_flows,
-count_downflow, downflow_all
+export model_var_prob, satisfies_flows_down, satisfies_flows, count_downflow, downflow_all
 
 
 "Compute the probability of each variable for a random satisfying assignment of the logical circuit"
 function model_var_prob(root::LogicCircuit)
     nvars = num_variables(root)
-    v, f = satisfies_flows(root, DataFrame(fill(0.5, 1, nvars)))
+    v, f, _ = satisfies_flows(root, DataFrame(fill(0.5, 1, nvars)))
     f[3:2+nvars]./v[end]
 end
 
@@ -22,7 +21,8 @@ function satisfies_flows(circuit::LogicCircuit, data,
                          reuse_values=nothing, reuse_flows=nothing; on_node=noop, on_edge=noop,
                          weights=nothing) 
     bc = same_device(BitCircuit(circuit, data), data)
-    satisfies_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge, weights)
+    v, f = satisfies_flows(bc, data, reuse_values, reuse_flows; on_node, on_edge, weights)
+    v,f, bc.node2id
 end
 
 function satisfies_flows(circuit::BitCircuit, data, 
@@ -290,30 +290,32 @@ end
 
 # API to get flows
 
-function count_downflow(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit)
-    dec_id = n.data.node_id
+#TODO: these functions need documentation! 
+
+function count_downflow(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit, node2id)
+    dec_id = node2id[n].node_id
     sum(1:size(flows,1)) do i
         count_ones(flows[i, dec_id]) 
     end
 end
 
-function downflow_all(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit)
-    dec_id = n.data.node_id
+function downflow_all(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit, node2id)
+    dec_id = node2id[n].node_id
     indices = map(1:size(flows,1)) do i
         digits(Bool, flows[i, dec_id], base=2, pad=64) 
     end
     BitArray(vcat(indices...)[1:N])
 end
 
-function count_downflow(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit, c::LogicCircuit)
-    grandpa = n.data.node_id
+function count_downflow(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit, c::LogicCircuit, node2id)
+    grandpa = node2id[n].node_id
     if isleafgate(c)
-        par = c.data.node_id
+        par = node2id[c].node_id
         return sum(1:size(flows,1)) do i
             count_ones(values[i, par] & flows[i, grandpa]) 
         end
     else
-        ids = [x.data.node_id for x in children(c)]
+        ids = [node2id[x].node_id for x in children(c)]
         return sum(1:size(flows,1)) do i
             indices = flows[i, grandpa]
             for id in ids
@@ -324,15 +326,15 @@ function count_downflow(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::Log
     end
 end
 
-function downflow_all(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit, c::LogicCircuit)
-    grandpa = n.data.node_id
+function downflow_all(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::LogicCircuit, c::LogicCircuit, node2id)
+    grandpa = node2id[n].node_id
     if isleafgate(c)
-        par = c.data.node_id
+        par = node2id[c].node_id
         edge = map(1:size(flows,1)) do i
             digits(Bool, values[i, par] & flows[i, grandpa], base=2, pad=64)
         end
     else
-        ids = [x.data.node_id for x in children(c)]
+        ids = [node2id[x].node_id for x in children(c)]
         edge = map(1:size(flows,1)) do i
             indices = flows[i, grandpa]
             for id in ids
@@ -344,31 +346,31 @@ function downflow_all(values::Matrix{UInt64}, flows::Matrix{UInt64}, N, n::Logic
     BitArray(vcat(edge...)[1:N])
 end
 
-function count_downflow(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit)
-    return sum(downflow_all(values, flows, N, n))
+function count_downflow(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit, node2id)
+    return sum(downflow_all(values, flows, N, n, node2id))
 end
 
-function downflow_all(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit)
-    dec_id = n.data.node_id
+function downflow_all(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit, node2id)
+    dec_id = node2id[n].node_id
     map(1:size(flows, 1)) do i
         flows[i, dec_id]
     end
 end
 
-function count_downflow(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit, c::LogicCircuit)
-    sum(downflow_all(values, flows, N, n, c))
+function count_downflow(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit, c::LogicCircuit, node2id)
+    sum(downflow_all(values, flows, N, n, c, node2id))
 end
 
-function downflow_all(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit, c::LogicCircuit)
-    grandpa = n.data.node_id
+function downflow_all(values::Matrix{<:AbstractFloat}, flows::Matrix{<:AbstractFloat}, N, n::LogicCircuit, c::LogicCircuit, node2id)
+    grandpa = node2id[n].node_id
     if isleafgate(c)
-        par = c.data.node_id
+        par = node2id[c].node_id
         edge_flows = map(1:size(flows,1)) do i
             values[i, par] * flows[i, grandpa] / values[i, grandpa]
         end
         return edge_flows
     else
-        ids = [x.data.node_id for x in children(c)]
+        ids = [node2id[x].node_id for x in children(c)]
         edge_flows = map(1:size(flows,1)) do i
             n_down = flows[i, grandpa]
             n_up = values[i, grandpa]
