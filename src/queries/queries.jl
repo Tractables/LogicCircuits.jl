@@ -35,8 +35,7 @@ import ..Utils: foldup # extend
         f_con::Function, 
         f_lit::Function, 
         f_a::Function, 
-        f_o::Function, 
-        ::Type{T}; nload = nload, nsave = nsave, reset=true)::T where {T}
+        f_o::Function)::T where {T}
 
 Compute a function bottom-up on the circuit. 
 `f_con` is called on constant gates, `f_lit` is called on literal gates, 
@@ -44,11 +43,10 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
 function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                f_a::Function, f_o::Function, ::Type{T};
-                nload = nload, nsave = nsave, reset=true)::T where {T}
+                f_a::Function, f_o::Function, ::Type{T})::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)
-    foldup(node, f_leaf, f_inner, T; nload, nsave, reset)::T
+    foldup(node, f_leaf, f_inner, T)::T
 end
 
 import ..Utils: foldup_aggregate # extend
@@ -59,7 +57,7 @@ import ..Utils: foldup_aggregate # extend
         f_lit::Function, 
         f_a::Function, 
         f_o::Function, 
-        ::Type{T};  nload = nload, nsave = nsave, reset=true)::T where T
+        ::Type{T})::T where T
 
 Compute a function bottom-up on the circuit. 
 `f_con` is called on constant gates, `f_lit` is called on literal gates, 
@@ -67,15 +65,14 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an aggregate vector from the children.
 """
 function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                          f_a::Function, f_o::Function, ::Type{T};
-                          nload = nload, nsave = nsave, reset=true) where T
+                          f_a::Function, f_o::Function, ::Type{T}) where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     end
     function f_inner(n, cs) 
         is⋀gate(n) ? f_a(n, cs)::T : f_o(n, cs)::T
     end
-    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; nload, nsave, reset)::T
+    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T)::T
 end
 
 #####################
@@ -108,11 +105,11 @@ function variables_by_node(root::LogicCircuit)::Dict{LogicCircuit,BitSet}
 end
 
 "Get the variable in the circuit with the largest index"
-function max_variable(root::LogicCircuit; reset=true)::Var
+function max_variable(root::LogicCircuit)::Var
     f_con(n) = Var(0)
     f_lit(n) = variable(n)
     f_inner(n, call) = mapreduce(call, max, children(n))
-    foldup(root, f_con, f_lit, f_inner, f_inner, Var; reset)
+    foldup(root, f_con, f_lit, f_inner, f_inner, Var)
 end
 
 """
@@ -212,6 +209,33 @@ function infer_vtree(root::LogicCircuit)::Union{Vtree, Nothing}
 end
 
 
+#####################
+# structural properties
+#####################
+
+"""
+    iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
+
+Does the given circuit have canonical Or gates, as determined by a probabilistic equivalence check?
+"""
+function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
+   signatures = prob_equiv_signature(circuit, k)
+   decision_nodes_by_signature = groupby(n -> signatures[n], ⋁_nodes(circuit))
+   for (signature, nodes) in decision_nodes_by_signature
+      if length(nodes) > 1
+         if verbose
+            println("Equivalent Nodes:")
+            for node in nodes
+               println("  - Node: $node MC: $(model_count(node))")
+            end
+         end
+         return false
+      end
+   end
+   return true
+end
+
+
 """
     isdeterministic(root::LogicCircuit)::Bool
     
@@ -259,32 +283,6 @@ function implied_literals(root::LogicCircuit)
     foldup_aggregate(root, f_con, f_lit, f_a, f_o, Union{BitSet, Nothing})
 end
 
-
-#####################
-# structural properties
-#####################
-
-"""
-    iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
-
-Does the given circuit have canonical Or gates, as determined by a probabilistic equivalence check?
-"""
-function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
-   signatures = prob_equiv_signature(circuit, k)
-   decision_nodes_by_signature = groupby(n -> signatures[n], ⋁_nodes(circuit))
-   for (signature, nodes) in decision_nodes_by_signature
-      if length(nodes) > 1
-         if verbose
-            println("Equivalent Nodes:")
-            for node in nodes
-               println("  - Node: $node MC: $(model_count(node))")
-            end
-         end
-         return false
-      end
-   end
-   return true
-end
 
 #####################
 # algebraic model counting queries

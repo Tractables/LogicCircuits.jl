@@ -1,9 +1,6 @@
 export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
-       reset_counter, reset_counter_hard, foreach, foreach_reset, clear_data, filter, 
-       nload, nsave,
-       foldup, foldup_aggregate, 
-       count_parents, foreach_down,
+       foreach, foreach_down, filter, foldup, foldup_aggregate, 
        num_nodes, num_edges, tree_num_nodes, tree_num_edges, in,
        inodes, innernodes, leafnodes, linearize,
        left_most_descendent, right_most_descendent,
@@ -76,93 +73,45 @@ function children end
 # traversal
 #####################
 
-"Set the counter field throughout this graph (assumes no node in the graph already has the value)"
-function reset_counter(node::Dag, v::Int=0)
-    if node.counter != v
-        node.counter = v
-        if isinner(node)
-            for c in children(node)
-                reset_counter(c, v)
-            end
-        end
-    end
-    nothing # returning nothing helps save some allocations and time
-end
+import Base.foreach #extend
 
-"Set the counter field throughout this graph. Is slower but works even when the node fields are in an arbitrary state."
-function reset_counter_hard(node::Dag, v::Int=0, seen::Set{Dag}=Set{Dag}())
-    if node ∉ seen
-        push!(seen, node)
-        node.counter = v
+"Apply a function to each node in a graph, bottom up"
+foreach(f::Function, node::Dag, seen::Nothing=nothing) =
+    foreach_dict(f, node, Dict{Dag,Nothing}())
+
+function foreach_dict(f::Function, node::Dag, seen)
+    get!(seen, node) do
         if isinner(node)
             for c in children(node)
-                reset_counter_hard(c, v, seen)
+                foreach_dict(f, c, seen)
             end
         end
+        f(node)
+        nothing
     end
     nothing
 end
 
-
-import Base.foreach #extend
-
-"Apply a function to each node in a graph, bottom up"
-function foreach(f::Function, node::Dag; reset=true)
-    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field. You can use `reset_counter` to reset the counter. "
-    foreach_rec(f, node)
-    reset && reset_counter(node)
-    nothing # returning nothing helps save some allocations and time
-end
-
-function foreach(node::Dag, f_leaf::Function, f_inner::Function)
-    foreach(node) do n
+function foreach(node::Dag, f_leaf::Function, f_inner::Function, seen=nothing)
+    foreach(node, seen) do n
         isinner(n) ? f_inner(n) : f_leaf(n)
     end
-    nothing # returning nothing helps save some allocations and time
+    nothing
 end
 
-"Apply a function to each node in a graph, bottom up, without resetting the counter"
-function foreach_rec(f::Function, node::Dag)
-    if (node.counter += 1) == 1
-        if isinner(node)
-            for c in children(node)
-                foreach_rec(f, c)
-            end
-        end
-        f(node)
-    end
-    nothing # returning nothing helps save some allocations and time
+"Apply a function to each node in a graph, top down"
+function foreach_down(f::Function, node::Dag)
+    # naive implementation
+    lin = linearize(node)
+    foreach(f, Iterators.reverse(lin))
 end
-
-"Apply a function to each node in a graph, bottom up, while resetting the counter"
-function foreach_reset(f::Function, node::Dag)
-    if node.counter != 0
-        node.counter = 0
-        if isinner(node)
-            for c in children(node)
-                foreach_reset(f, c)
-            end
-        end
-        f(node)
-    end
-    nothing # returning nothing helps save some allocations and time
-end
-
-"Set all the data fields in a circuit to `nothing`"
-function clear_data(node::Dag)
-    foreach(x -> x.data = nothing, node)
-end
-
-
-# TODO: consider adding a top-down version of foreach, by either linearizing into a List, 
-# or by keeping a visit counter to identify processing of the last parent.
 
 import Base.filter #extend
 
 """Retrieve list of nodes in graph matching predicate `p`"""
-function filter(p::Function, root::Dag, ::Type{T} = Union{})::Vector where T
+function filter(p::Function, root::Dag, ::Type{T} = Union{}, seen=nothing)::Vector where T
     results = Vector{T}()
-    foreach(root) do n
+    foreach(root, seen) do n
         if p(n)
             if !(n isa eltype(results))
                 results = collect(typejoin(eltype(results), typeof(n)), results)
@@ -173,48 +122,28 @@ function filter(p::Function, root::Dag, ::Type{T} = Union{})::Vector where T
     results
 end
 
-"Default getter to obtain data associated with a node"
-@inline nload(n) = n.data
-
-"Default setter to assign data associated with a node"
-@inline nsave(n,v) = n.data = v
-
 """
     foldup(node::Dag, 
         f_leaf::Function, 
         f_inner::Function, 
-        ::Type{T}; nload = nload, nsave = nsave, reset=true)::T where {T}
+        ::Type{T})::T where {T}
 
 Compute a function bottom-up on the graph. 
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
-function foldup(node::Dag, f_leaf::Function, f_inner::Function, 
-               ::Type{T}; nload = nload, nsave = nsave, reset=true) where {T}
-    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field. You can use `reset_counter` to reset the counter. "
-    v = foldup_rec(node, f_leaf, f_inner, T; nload, nsave)::T
-    reset && reset_counter(node)
-    v
+function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, cache::Nothing=nothing) where {T}
+    foldup(node, f_leaf, f_inner, T, Dict{Dag,T}())
 end
 
-
-"""
-Compute a function bottom-up on the graph, without resetting the counter. 
-`f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
-Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
-"""
-function foldup_rec(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
-                    nload = nload, nsave = nsave) where {T}
-    if (node.counter += 1) != 1
-        return nload(node)::T
-    else
-        v = if isinner(node)
-                callback(c) = (foldup_rec(c, f_leaf, f_inner, T; nload, nsave)::T)
-                f_inner(node, callback)::T
-            else
-                f_leaf(node)::T
-            end
-        return nsave(node, v)::T
+function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, seen::Dict) where {T}
+    get!(seen, node) do 
+        if isinner(node)
+            callback(c) = foldup(c, f_leaf, f_inner, T, seen)::T
+            f_inner(node, callback)::T
+        else
+            f_leaf(node)::T
+        end
     end
 end
 
@@ -224,64 +153,22 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_inner` in aggregate 
 as a vector from the children.
 """
-# TODO: see whether we could standardize on `foldup` and remove this version?
-function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
-                          nload = nload, nsave = nsave, reset=true) where {T}
-    @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field. You can use `reset_counter` to reset the counter. "
-    v = foldup_aggregate_rec(node, f_leaf, f_inner, T; nload, nsave)::T
-    reset && reset_counter(node)
-    return v
+function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, cache::Nothing=nothing) where {T}
+    foldup_aggregate(node, f_leaf, f_inner, T, Dict{Dag,T}())
 end
 
-"""
-Compute a function bottom-up on the circuit, without resetting the counter. 
-`f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
-Values of type `T` are passed up the circuit and given to `f_inner` in aggregate 
-as a vector from the children.
-"""
-# TODO: see whether we could standardize on `foldup` and remove this version?
-function foldup_aggregate_rec(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
-                              nload = nload, nsave = nsave) where {T}
-    if (node.counter += 1) != 1
-        return nload(node)::T
-    else
-        v = if isinner(node)
+function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, seen::Dict) where {T}
+    get!(seen, node) do 
+        if isinner(node)
             child_values = Vector{T}(undef, num_children(node))
-            map!(c -> foldup_aggregate_rec(c, f_leaf, f_inner, T; nload, nsave)::T, 
-                                           child_values, children(node))
+            map!(c -> foldup_aggregate(c, f_leaf, f_inner, T, seen)::T, 
+                                        child_values, children(node))
             f_inner(node, child_values)::T
         else
             f_leaf(node)::T
         end
-        return nsave(node, v)::T
     end
 end
-
-"Set the `counter` field of each node to its number of parents"
-function count_parents(node::Dag)
-    foreach(noop,node;reset=false)
-end
-
-"Apply a function to each node in a graph, top down"
-function foreach_down(f::Function, node::Dag; setcounter=true)
-    setcounter && count_parents(node)
-    foreach_down_rec(f, node)
-    nothing
-end
-
-"Apply a function to each node in a graph, top down, without setting the counter first"
-function foreach_down_rec(f::Function, n::Node)
-    if ((n.counter -= 1) == 0) 
-        f(n)
-        if isinner(n)
-            for c in children(n)
-                foreach_down_rec(f, c)
-            end
-        end
-    end
-    nothing
-end
-
 
 #####################
 # methods using circuit traversal
@@ -307,7 +194,7 @@ Compute the number of nodes in of a tree-unfolding of the `Dag`.
 """
 function tree_num_nodes(node::Dag)::BigInt
     @inline f_leaf(n) = one(BigInt)
-    @inline f_inner(n, call) = (1 + mapreduce(c -> call(c), +, children(n)))
+    @inline f_inner(n, call) = (1 + mapreduce(call, +, children(n)))
     foldup(node, f_leaf, f_inner, BigInt)
 end
 
@@ -340,7 +227,6 @@ function Base.in(needle::Dag, circuit::Dag)
     contained
 end
 
-
 "Get the list of inner nodes in a given graph"
 inodes(c::Dag) = filter(isinner, c)
 
@@ -372,7 +258,6 @@ function right_most_descendent(root::Dag)::Dag
     end
     root
 end
-
 
 #####################
 # debugging methods (not performance critical)

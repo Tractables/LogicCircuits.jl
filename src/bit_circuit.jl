@@ -70,12 +70,12 @@ struct BitCircuit{V,M}
     parents::V
 end
 
-function BitCircuit(circuit::LogicCircuit, data; reset=true, on_decision=noop)
-    BitCircuit(circuit, num_features(data); reset, on_decision)
+function BitCircuit(circuit::LogicCircuit, data; on_decision=noop)
+    BitCircuit(circuit, num_features(data); on_decision)
 end
 
 "construct a new `BitCircuit` accomodating the given number of features"
-function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_decision=noop)
+function BitCircuit(circuit::LogicCircuit, num_features::Int; on_decision=noop)
     #TODO: consider not using foldup_aggregate and instead calling twice to ensure order but save allocations
     #TODO add inbounds annotations
     
@@ -158,7 +158,7 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; reset=true, on_dec
         ⋁NodeIds(layer_id, last_dec_id)
     end
     
-    r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeIds; reset)
+    r = foldup_aggregate(circuit, f_con, f_lit, f_and, f_or, NodeIds)
     to⋁NodeIds(r)
     
     nodes_m = reshape(nodes, 4, :)
