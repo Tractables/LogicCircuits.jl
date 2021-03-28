@@ -190,9 +190,9 @@ Compute a function bottom-up on the graph.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
 function foldup(node::Dag, f_leaf::Function, f_inner::Function, 
-               ::Type{T}; nload = nload, nsave = nsave, reset=true)::T where {T}
+               ::Type{T}; nload = nload, nsave = nsave, reset=true) where {T}
     @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field. You can use `reset_counter` to reset the counter. "
-    v = foldup_rec(node, f_leaf, f_inner, T; nload, nsave)
+    v = foldup_rec(node, f_leaf, f_inner, T; nload, nsave)::T
     reset && reset_counter(node)
     v
 end
@@ -204,7 +204,7 @@ Compute a function bottom-up on the graph, without resetting the counter.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
 function foldup_rec(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
-                    nload = nload, nsave = nsave)::T where {T}
+                    nload = nload, nsave = nsave) where {T}
     if (node.counter += 1) != 1
         return nload(node)::T
     else
@@ -226,9 +226,9 @@ as a vector from the children.
 """
 # TODO: see whether we could standardize on `foldup` and remove this version?
 function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
-                          nload = nload, nsave = nsave, reset=true)::T where {T}
+                          nload = nload, nsave = nsave, reset=true) where {T}
     @assert node.counter == 0 "Another algorithm is already traversing this circuit and using the `counter` field. You can use `reset_counter` to reset the counter. "
-    v = foldup_aggregate_rec(node, f_leaf, f_inner, T; nload, nsave)
+    v = foldup_aggregate_rec(node, f_leaf, f_inner, T; nload, nsave)::T
     reset && reset_counter(node)
     return v
 end
@@ -241,7 +241,7 @@ as a vector from the children.
 """
 # TODO: see whether we could standardize on `foldup` and remove this version?
 function foldup_aggregate_rec(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}; 
-                              nload = nload, nsave = nsave)::T where {T}
+                              nload = nload, nsave = nsave) where {T}
     if (node.counter += 1) != 1
         return nload(node)::T
     else

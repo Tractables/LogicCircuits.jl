@@ -47,8 +47,8 @@ function foldup(node::LogicCircuit, f_con::Function, f_lit::Function,
                 f_a::Function, f_o::Function, ::Type{T};
                 nload = nload, nsave = nsave, reset=true)::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
-    f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)::T
-    foldup(node, f_leaf, f_inner, T; nload, nsave, reset)
+    f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)
+    foldup(node, f_leaf, f_inner, T; nload, nsave, reset)::T
 end
 
 import ..Utils: foldup_aggregate # extend
@@ -68,14 +68,14 @@ Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an 
 """
 function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
                           f_a::Function, f_o::Function, ::Type{T};
-                          nload = nload, nsave = nsave, reset=true)::T where T
+                          nload = nload, nsave = nsave, reset=true) where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     end
     function f_inner(n, cs) 
         is⋀gate(n) ? f_a(n, cs)::T : f_o(n, cs)::T
     end
-    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; nload, nsave, reset)
+    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; nload, nsave, reset)::T
 end
 
 #####################
@@ -105,6 +105,14 @@ function variables_by_node(root::LogicCircuit)::Dict{LogicCircuit,BitSet}
     f_inner(n, call) = scope[n] = mapreduce(call, union, children(n))
     foldup(root, f_con, f_lit, f_inner, f_inner, BitSet)
     scope
+end
+
+"Get the variable in the circuit with the largest index"
+function max_variable(root::LogicCircuit; reset=true)::Var
+    f_con(n) = Var(0)
+    f_lit(n) = variable(n)
+    f_inner(n, call) = mapreduce(call, max, children(n))
+    foldup(root, f_con, f_lit, f_inner, f_inner, Var; reset)
 end
 
 """
@@ -230,48 +238,28 @@ end
 
 
 """
-    implied_literals(root::LogicCircuit)::Dict{LogicCircuit, Union{BitSet, Nothing}}
+    implied_literals(root::LogicCircuit)::Union{BitSet, Nothing}
 
 Compute at each node literals that are implied by the formula. 
-nothing at a node means all literals are implied (i.e. the node's formula is false)
+`nothing` at a node means all literals are implied (i.e. the node's formula is false)
 
 This algorithm is sound but not complete - all literals returned are correct, but some true implied literals may be missing. 
 """
-implied_literals(root::LogicCircuit)::Dict{LogicCircuit, Union{BitSet, Nothing}} =
-    implied_literals_rec(root, Dict{LogicCircuit, Union{BitSet, Nothing}}())
-    
-
-function implied_literals_rec(root::LogicCircuit, lcache::Dict{LogicCircuit, Union{BitSet, Nothing}})
-    if isconstantgate(root)
-        if constant(root)
-            # True implies no literals
-            lcache[root] = BitSet()
-        else
-            # False implies any literal, so "full" bitset represented by Nothing
-            lcache[root] = nothing
-        end
-    elseif isliteralgate(root)
-        lcache[root] = BitSet([literal(root)])
-    elseif isinnergate(root)
-        for c in root.children
-            if !haskey(lcache, c)
-                implied_literals_rec(c, lcache)
-            end
-        end
-        if is⋀gate(root)
-            # If there's a false in here then this is false too
-            if any(x -> lcache[x] === nothing, root.children)
-                lcache[root] = nothing
-            else
-                lcache[root] = mapreduce(c -> lcache[c], union, root.children)
-            end
-        else
-            # Just filter out any falses, they don't do anything here
-            lcache[root] = mapreduce(c -> lcache[c], intersect, filter(x -> lcache[x] !== nothing, root.children))
-        end
+function implied_literals(root::LogicCircuit)
+    f_con(c) = constant(c) ? BitSet() : nothing
+    f_lit(n) = BitSet([literal(n)])
+    f_a(_, cs) = if any(isnothing, cs)
+        nothing
+    else
+        reduce(union, cs)
     end
-    lcache
+    f_o(_, cs) = begin
+        reduce(intersect, filter(issomething, cs))
+    end
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Union{BitSet, Nothing})
 end
+
+
 #####################
 # structural properties
 #####################

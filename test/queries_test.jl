@@ -130,16 +130,18 @@ end
     circuit = compile(mgr, c17)
     plc = PlainLogicCircuit(circuit)
 
-    il = implied_literals(plc)
+    # store implied literals in each data field
+    implied_literals(plc)
 
     for ornode in or_nodes(plc)
         @test num_children(ornode) == 2
         # If there's a nothing just continue, it'll always work
-        if il[ornode.children[1]] === nothing || il[ornode.children[2]] === nothing
+        if ornode.children[1].data === nothing || 
+            ornode.children[2].data === nothing
             continue
         end
-        implied1 = il[ornode.children[1]]
-        implied2 = il[ornode.children[2]]
+        implied1 = ornode.children[1].data
+        implied2 = ornode.children[2].data
         neg_implied2 = BitSet(map(x -> -x, collect(implied2)))
         @test !isempty(intersect(implied1, neg_implied2))
     end
