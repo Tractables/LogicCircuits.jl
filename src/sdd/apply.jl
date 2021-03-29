@@ -2,9 +2,9 @@
 Conjoin two SDDs
 """
 @inline conjoin(x::SddConstantNode, y::SddConstantNode) = 
-    (isfalse(x) || isfalse(y)) ? false_sdd : true_sdd  
+    ((x === false_sdd) || (y === false_sdd)) ? false_sdd : true_sdd  
 @inline conjoin(x::Sdd, y::SddConstantNode) = 
-    isfalse(y) ? false_sdd : x
+    (y === false_sdd) ? false_sdd : x
 @inline conjoin(x::SddConstantNode, y::Sdd) = 
     conjoin(y, x)
 
@@ -17,7 +17,6 @@ function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd
         conjoin_indep(s,t)
     end
 end
-
 
 # Note: attempts to make a special cache for conjunctions with literals have not yielded speedups
 

@@ -112,7 +112,7 @@ compile(::SddMgr, constant::Bool) =
 Negate an SDD
 """
 @inline negate(c::SddConstantNode) = 
-    isfalse(c) ? true_sdd : false_sdd
+    (c === false_sdd) ? true_sdd : false_sdd
 
 function negate(s::SddLiteralNode)
     if ispositive(s) 
@@ -210,7 +210,7 @@ model_count(root::StructLogicCircuit)::BigInt =
     model_count(root, length(global_scope(vtree(root))))
 
 "Decide whether one sentence logically entails another"
-entails(x::Sdd, y::Sdd) = isfalse(x & !y)
+entails(x::Sdd, y::Sdd) = ((x & !y) === false_sdd)
 
 "Decide whether two sentences are logically equivalent"
 equivalent(x::Sdd, y::Sdd) = begin

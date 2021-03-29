@@ -245,8 +245,8 @@ Note: this function is generally intractable for large circuits.
 function isdeterministic(root::LogicCircuit)::Bool
     mgr = sdd_mgr_for(root)
     result::Bool = true
-    f_con(c) = mgr(constant(c))
-    f_lit(n) = mgr(literal(n))
+    f_con(c) = compile(mgr,constant(c))
+    f_lit(n) = compile(mgr,literal(n))
     f_a(_, cs) = reduce(&, cs)
     f_o(_, cs) = begin
         for i = 1:length(cs)
