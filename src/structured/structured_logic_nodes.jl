@@ -79,7 +79,6 @@ const structfalse = PlainStructConstantNode(false)
 # methods
 #####################
 
-@inline constant(n::PlainStructConstantNode)::Bool = n.constant
 @inline children(n::PlainStruct⋁Node) = n.children
 @inline children(n::PlainStruct⋀Node) = [n.prime,n.sub]
 

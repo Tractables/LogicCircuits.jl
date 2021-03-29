@@ -61,9 +61,6 @@ end
 # methods
 #####################
 
-"Get the logical constant in a given constant leaf node"
-@inline constant(n::PlainConstantNode) = n.constant::Bool
-
 "Get the children of a given inner node"
 @inline children(n::PlainLogicInnerNode) = n.children
 

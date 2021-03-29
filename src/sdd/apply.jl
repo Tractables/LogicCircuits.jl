@@ -1,14 +1,12 @@
 """
 Conjoin two SDDs
 """
-@inline conjoin(::SddFalseNode, ::SddTrueNode) = false_sdd
-@inline conjoin(::SddTrueNode, ::SddFalseNode) = false_sdd
-@inline conjoin(s::Sdd, ::SddTrueNode) = s
-@inline conjoin(::Sdd, ::SddFalseNode) = false_sdd
-@inline conjoin(::SddTrueNode, s::Sdd) = s
-@inline conjoin(::SddFalseNode, ::Sdd) = false_sdd
-@inline conjoin(::SddTrueNode, ::SddTrueNode) = true_sdd
-@inline conjoin(::SddFalseNode, ::SddFalseNode) = false_sdd
+@inline conjoin(x::SddConstantNode, y::SddConstantNode) = 
+    (isfalse(x) || isfalse(y)) ? false_sdd : true_sdd  
+@inline conjoin(x::Sdd, y::SddConstantNode) = 
+    isfalse(y) ? false_sdd : x
+@inline conjoin(x::SddConstantNode, y::Sdd) = 
+    conjoin(y, x)
 
 # const stats = Dict{Tuple{Int,Int},Int}()
 

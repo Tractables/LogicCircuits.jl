@@ -20,9 +20,6 @@ export prime, sub, sdd_size, sdd_num_nodes, mgr,
 "Get the manager of a `Sdd` node, which is its `SddMgr` vtree"
 mgr(s::Sdd) = s.vtree
 
-@inline constant(::SddTrueNode) = true
-@inline constant(::SddFalseNode) = false
-
 @inline children(n::Sdd⋀Node) = [n.prime,n.sub]
 @inline children(n::Sdd⋁Node) = n.children
 
@@ -37,8 +34,8 @@ sdd_size(sdd) = mapreduce(n -> num_children(n), +, ⋁_nodes(sdd); init=0) # def
 "Count the number of decision nodes in the SDD"
 sdd_num_nodes(sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
 
-Base.show(io::IO, ::SddTrueNode) = print(io, "⊤")
-Base.show(io::IO, ::SddFalseNode) = print(io, "⊥")
+Base.show(io::IO, n::SddConstantNode) = 
+    print(io, (isfalse(n) ? "⊥" : "⊤"))
 Base.show(io::IO, c::SddLiteralNode) = print(io, literal(c))
 Base.show(io::IO, c::Sdd⋀Node) = begin
     recshow(c::Union{SddConstantNode,SddLiteralNode}) = "$c"
@@ -114,8 +111,8 @@ compile(::SddMgr, constant::Bool) =
 """
 Negate an SDD
 """
-@inline negate(::SddFalseNode) = true_sdd
-@inline negate(::SddTrueNode) = false_sdd
+@inline negate(c::SddConstantNode) = 
+    isfalse(c) ? true_sdd : false_sdd
 
 function negate(s::SddLiteralNode)
     if ispositive(s) 

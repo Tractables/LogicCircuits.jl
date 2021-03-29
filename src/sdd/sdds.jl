@@ -1,6 +1,6 @@
 export Sdd, SddMgr, 
     SddLeafNode, SddInnerNode, SddLiteralNode, SddConstantNode, 
-    Sdd⋀Node, Sdd⋁Node, SddTrueNode, SddFalseNode,
+    Sdd⋀Node, Sdd⋁Node,
     sdd_mgr_for
 
 #############
@@ -127,56 +127,36 @@ abstract type SddInnerNode <: Sdd end
 mutable struct SddLiteralNode <: SddLeafNode
     literal::Lit
     vtree::SddMgrLeafNode
-    data
-    counter::UInt32
-    SddLiteralNode(l,v) = new(l,v,nothing,false)
 end
 
 """
 A SDD logical constant leaf node, representing true or false.
 These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
 """
-abstract type SddConstantNode <: SddLeafNode end
-
-"A SDD logical true constant."
-mutable struct SddTrueNode <: SddConstantNode 
-    counter::UInt32
-    data
+struct SddConstantNode <: SddLeafNode 
+    constant::Bool
 end
 
-# there is an issue with using this canonical node: if someone breaks the `bit` field in one SDD manager, it will be broken for all SDD managers...
 "Canonical true Sdd node"
-const true_sdd = SddTrueNode(false, nothing)
+const true_sdd = SddConstantNode(true)
 
-"A SDD logical false constant."
-mutable struct SddFalseNode <: SddConstantNode 
-    counter::UInt32
-    data
-end
-
-# there is an issue with using this canonical node: if someone breaks the `bit` field in one SDD manager, it will be broken for all SDD managers...
 "Canonical false Sdd node"
-const false_sdd = SddFalseNode(false, nothing)
+const false_sdd = SddConstantNode(false)
 
 "A SDD logical conjunction node"
 mutable struct Sdd⋀Node <: SddInnerNode
     prime::Sdd
     sub::Sdd
     vtree::SddMgrInnerNode
-    counter::UInt32
-    data
-    Sdd⋀Node(p,s,v) = new(p,s,v,false)
 end
 
 "A SDD logical disjunction node"
 mutable struct Sdd⋁Node <: SddInnerNode
     children::Vector{Sdd⋀Node}
     vtree::SddMgrInnerNode
-    counter::UInt32
     negation::Sdd⋁Node
-    data
-    Sdd⋁Node(ch,v) = new(ch, v, false) # leave negation uninitialized
-    Sdd⋁Node(ch,v,neg) = new(ch, v, false, neg)
+    Sdd⋁Node(ch,v) = new(ch, v) # leave negation uninitialized
+    Sdd⋁Node(ch,v,neg) = new(ch, v, neg)
 end
 
 #####################
