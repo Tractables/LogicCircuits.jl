@@ -21,10 +21,10 @@ export variables_by_node,
 import Base: foreach # extend
 
 function foreach(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                f_a::Function, f_o::Function)
+                f_a::Function, f_o::Function, seen=nothing)
     f_leaf(n) = isliteralgate(n) ? f_lit(n) : f_con(n)
     f_inner(n) = is⋀gate(n) ? f_a(n) : f_o(n)
-    foreach(node, f_leaf, f_inner)
+    foreach(node, f_leaf, f_inner, seen)
     nothing # returning nothing helps save some allocations and time
 end
 
@@ -43,10 +43,10 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
 function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                f_a::Function, f_o::Function, ::Type{T})::T where {T}
+                f_a::Function, f_o::Function, ::Type{T}, cache=nothing)::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)
-    foldup(node, f_leaf, f_inner, T)::T
+    foldup(node, f_leaf, f_inner, T, cache)::T
 end
 
 import ..Utils: foldup_aggregate # extend
@@ -86,30 +86,26 @@ import .Utils.variables # extend
 
 Get a bitset of variables mentioned in the circuit `root`.
 """
-function variables(root::LogicCircuit)::BitSet
+function variables(root::LogicCircuit, cache=nothing)::BitSet
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
     f_inner(n, call) = mapreduce(call, union, children(n))
-    foldup(root, f_con, f_lit, f_inner, f_inner, BitSet)
+    foldup(root, f_con, f_lit, f_inner, f_inner, BitSet, cache)
 end
 
 "Get the variable scope of each node in the circuit"
 function variables_by_node(root::LogicCircuit)::Dict{LogicCircuit,BitSet}
-    # variables_by_node(linearize(root))
     scope = Dict{Node,BitSet}()
-    f_con(n) = scope[n] = BitSet()
-    f_lit(n) = scope[n] = BitSet(variable(n))
-    f_inner(n, call) = scope[n] = mapreduce(call, union, children(n))
-    foldup(root, f_con, f_lit, f_inner, f_inner, BitSet)
+    variables(root, scope)
     scope
 end
 
 "Get the variable in the circuit with the largest index"
-function max_variable(root::LogicCircuit)::Var
+function max_variable(root::LogicCircuit, cache=nothing)::Var
     f_con(n) = Var(0)
     f_lit(n) = variable(n)
     f_inner(n, call) = mapreduce(call, max, children(n))
-    foldup(root, f_con, f_lit, f_inner, f_inner, Var)
+    foldup(root, f_con, f_lit, f_inner, f_inner, Var, cache)
 end
 
 """
@@ -117,7 +113,7 @@ end
 
 Is the circuit smooth?
 """
-function issmooth(root::LogicCircuit)::Bool
+function issmooth(root::LogicCircuit, cache=nothing)::Bool
     result::Bool = true
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -127,7 +123,7 @@ function issmooth(root::LogicCircuit)::Bool
         result = result && all(c -> c == scope, cs)
         scope
     end 
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet, cache)
     result
 end
 
@@ -137,7 +133,7 @@ end
     
 Is the circuit decomposable?
 """
-function isdecomposable(root::LogicCircuit)::Bool
+function isdecomposable(root::LogicCircuit, cache=nothing)::Bool
     result::Bool = true
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -146,7 +142,7 @@ function isdecomposable(root::LogicCircuit)::Bool
         reduce(union, cs)
     end 
     f_o(_, cs) = reduce(union, cs)
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet, cache)
     result
 end
 
@@ -156,7 +152,7 @@ end
     
 Is the circuit structured-decomposable?
 """
-function isstruct_decomposable(root::LogicCircuit)::Bool
+function isstruct_decomposable(root::LogicCircuit, cache=nothing)::Bool
     # WARNING: this function is known to have bugs; https://github.com/Juice-jl/LogicCircuits.jl/issues/82
     result::Bool = true
     f_con(_) = [BitSet()]
@@ -169,7 +165,7 @@ function isstruct_decomposable(root::LogicCircuit)::Bool
         result = result && (length(cs) == 0 || all(==(cs[1]), cs))
         [reduce(union, vcat(cs...))]
     end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Vector{BitSet})
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Vector{BitSet}, cache)
     result
 end
 
@@ -179,7 +175,7 @@ end
 Infer circuits vtree if the circuit is struct-decomposable it.
 Otherwise return `nothing`.
 """
-function infer_vtree(root::LogicCircuit)::Union{Vtree, Nothing}
+function infer_vtree(root::LogicCircuit, cache=nothing)::Union{Vtree, Nothing}
     # WARNING: this function is known to have bugs; https://github.com/Juice-jl/LogicCircuits.jl/issues/82
     # TODO remove after the `isstruct_decomposable` bug is fixed
     if !issmooth(root)
@@ -205,7 +201,7 @@ function infer_vtree(root::LogicCircuit)::Union{Vtree, Nothing}
         @assert num_children(n) > 0 "Or node has no children"
         call(children(n)[1])        
     end
-    foldup(root, f_con, f_lit, f_a, f_o, Vtree)
+    foldup(root, f_con, f_lit, f_a, f_o, Vtree, cache)
 end
 
 
@@ -242,7 +238,7 @@ end
 Is the circuit determinstic?
 Note: this function is generally intractable for large circuits.
 """
-function isdeterministic(root::LogicCircuit)::Bool
+function isdeterministic(root::LogicCircuit, cache=nothing)::Bool
     mgr = sdd_mgr_for(root)
     result::Bool = true
     f_con(c) = compile(mgr,constant(c))
@@ -256,7 +252,7 @@ function isdeterministic(root::LogicCircuit)::Bool
         end
         reduce(|, cs)
     end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Sdd)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Sdd, cache)
     result
 end
 
@@ -294,13 +290,13 @@ end
 Get the probability that a random world satisties the circuit. 
 Probability of each variable is given by `varprob` Function which defauls to 1/2 for every variable.
 """
-function sat_prob(root::LogicCircuit; 
+function sat_prob(root::LogicCircuit, cache=nothing; 
                   varprob::Function = v -> BigInt(1) // BigInt(2))::Rational{BigInt}
     f_con(n) = istrue(n) ? one(Rational{BigInt}) : zero(Rational{BigInt})
     f_lit(n) = ispositive(n) ? varprob(variable(n)) : one(Rational{BigInt}) - varprob(variable(n))
     f_a(n, call) = mapreduce(call, *, children(n))
     f_o(n, call) = mapreduce(call, +, children(n))
-    foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt})
+    foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt}, cache)
 end
 
 """

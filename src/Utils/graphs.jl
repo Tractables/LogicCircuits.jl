@@ -73,14 +73,14 @@ function children end
 import Base.foreach #extend
 
 "Apply a function to each node in a graph, bottom up"
-foreach(f::Function, node::Dag, seen::Nothing=nothing) =
-    foreach_dict(f, node, Dict{Dag,Nothing}())
+foreach(f::Function, node::Dag, ::Nothing=nothing) =
+    foreach(f, node, Dict{Dag,Nothing}())
 
-function foreach_dict(f::Function, node::Dag, seen)
+function foreach(f::Function, node::Dag, seen)
     get!(seen, node) do
         if isinner(node)
             for c in children(node)
-                foreach_dict(f, c, seen)
+                foreach(f, c, seen)
             end
         end
         f(node)
@@ -106,7 +106,7 @@ end
 import Base.filter #extend
 
 """Retrieve list of nodes in graph matching predicate `p`"""
-function filter(p::Function, root::Dag, ::Type{T} = Union{}, seen=nothing)::Vector where T
+function filter(p::Function, root::Dag, seen=nothing, ::Type{T} = Union{})::Vector where T
     results = Vector{T}()
     foreach(root, seen) do n
         if p(n)
@@ -129,14 +129,14 @@ Compute a function bottom-up on the graph.
 `f_leaf` is called on leaf nodes, and `f_inner` is called on inner nodes.
 Values of type `T` are passed up the circuit and given to `f_inner` as a function on the children.
 """
-function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, cache::Nothing=nothing) where {T}
+function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, ::Nothing=nothing) where {T}
     foldup(node, f_leaf, f_inner, T, Dict{Dag,T}())
 end
 
-function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, seen::Dict) where {T}
-    get!(seen, node) do 
+function foldup(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, cache) where {T}
+    get!(cache, node) do 
         if isinner(node)
-            callback(c) = foldup(c, f_leaf, f_inner, T, seen)::T
+            callback(c) = foldup(c, f_leaf, f_inner, T, cache)::T
             f_inner(node, callback)::T
         else
             f_leaf(node)::T
@@ -150,15 +150,15 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_inner` in aggregate 
 as a vector from the children.
 """
-function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, cache::Nothing=nothing) where {T}
+function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, ::Nothing=nothing) where {T}
     foldup_aggregate(node, f_leaf, f_inner, T, Dict{Dag,T}())
 end
 
-function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, seen::Dict) where {T}
-    get!(seen, node) do 
+function foldup_aggregate(node::Dag, f_leaf::Function, f_inner::Function, ::Type{T}, cache) where {T}
+    get!(cache, node) do 
         if isinner(node)
             child_values = Vector{T}(undef, num_children(node))
-            map!(c -> foldup_aggregate(c, f_leaf, f_inner, T, seen)::T, 
+            map!(c -> foldup_aggregate(c, f_leaf, f_inner, T, cache)::T, 
                                         child_values, children(node))
             f_inner(node, child_values)::T
         else
@@ -176,10 +176,19 @@ end
 
 Count the number of nodes in the `Dag`
 """
-function num_nodes(node::Dag)
+function num_nodes(node::Dag, seen=nothing)
     count::Int = 0
-    foreach(node) do n
+    foreach(node, seen) do n
         count += 1
+    end
+    count
+end
+
+"Number of edges in the `Dag`"
+function num_edges(node::Dag, seen=nothing)
+    count::Int = 0
+    foreach(node, seen) do n
+        count += num_children(n)
     end
     count
 end
@@ -189,10 +198,10 @@ end
 
 Compute the number of nodes in of a tree-unfolding of the `Dag`. 
 """
-function tree_num_nodes(node::Dag)::BigInt
+function tree_num_nodes(node::Dag, cache=nothing)
     @inline f_leaf(n) = one(BigInt)
     @inline f_inner(n, call) = (1 + mapreduce(call, +, children(n)))
-    foldup(node, f_leaf, f_inner, BigInt)
+    foldup(node, f_leaf, f_inner, BigInt, cache)
 end
 
 """
@@ -200,41 +209,36 @@ end
     
 Compute the number of edges in the tree-unfolding of the `Dag`. 
 """
-function tree_num_edges(node::Dag)::BigInt
+function tree_num_edges(node::Dag, cache=nothing)::BigInt
     @inline f_leaf(n) = zero(BigInt)
     @inline f_inner(n, call) = (num_children(n) + mapreduce(c -> call(c), +, children(n)))
-    foldup(node, f_leaf, f_inner, BigInt)
-end
-
-"Number of edges in the `Dag`"
-function num_edges(node::Dag)
-    count::Int = 0
-    foreach(node) do n
-        count += num_children(n)
-    end
-    count
+    foldup(node, f_leaf, f_inner, BigInt, cache)
 end
 
 "Is the node contained in the `Dag`?"
-function Base.in(needle::Dag, circuit::Dag)
+function Base.in(needle::Dag, circuit::Dag, seen=nothing)
     contained::Bool = false
-    foreach(circuit) do n
+    foreach(circuit, seen) do n
         contained |= (n == needle)
     end
     contained
 end
 
 "Get the list of inner nodes in a given graph"
-inodes(c::Dag) = filter(isinner, c)
+inodes(c::Dag, seen=nothing) = 
+    filter(isinner, c, seen)
 
 "Get the list of inner nodes in a given graph"
-innernodes(c::Dag) = inodes(c)
+innernodes(c::Dag, seen=nothing) = 
+    inodes(c, seen)
 
 "Get the list of leaf nodes in a given graph"
-leafnodes(c::Dag) = filter(isleaf, c)
+leafnodes(c::Dag, seen=nothing) = 
+    filter(isleaf, c, seen)
 
 "Order the `Dag`'s nodes bottom-up in a list (with optional element type)"
-@inline linearize(r::Dag, ::Type{T} = Union{}) where T = filter(x -> true, r, typejoin(T,typeof(r)))
+@inline linearize(r::Dag, ::Type{T} = Union{}, seen=nothing) where T = 
+    filter(x -> true, r, seen, typejoin(T,typeof(r)))
 
 """
 Return the left-most descendent.
