@@ -173,15 +173,24 @@ function infer_vtree(root::LogicCircuit, cache=nothing)::Union{Vtree, Nothing}
     f_con(_) = nothing # can we have constants when there is a vtree?
     f_lit(n) = (PlainVtree(variable(n)), true)
     f_a(n, call) = begin
-        @assert  num_children(n) == 2 "And node had $num_children(n) childern. Should be 2"
+        if num_children != 2
+            return (call(children(n)[1])[1], false)
+        end
+        # @assert  num_children(n) == 2 "And node had $(num_children(n)) children. Should be 2"
         (left, ld) = call(children(n)[1])
         (right, rd) = call(children(n)[2])
-        (PlainVtreeInnerNode(left, right), ld & rd)
+        if !has_parent(left) & !has_parent(right)
+            (PlainVtreeInnerNode(left, right), ld & rd)
+        elseif has_parent(left) & has_parent(right) & parent(left) == parent(right)
+            (parent(left), ld & rd)
+        else
+            (left, false)
+        end
     end
     f_o(n, call) = begin 
         @assert num_children(n) > 0 "Or node has no children"
-        ccalls = map(x -> call(c), children(n))
-        (vtrees[1], all(x -> x[1] == ccalls[1][1], ccalls) & all(x -> x[2], ccalls))
+        @show ccalls = map(x -> call(x), children(n))
+        (ccalls[1][1], all(x -> x[1] == ccalls[1][1], ccalls) & all(x -> x[2], ccalls))
     end    
     res = foldup(root, f_con, f_lit, f_a, f_o, Tuple{Vtree, Bool})
     res[2] ? res[1] : nothing
