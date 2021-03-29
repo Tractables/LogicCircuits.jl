@@ -106,9 +106,6 @@ Base.show(io::IO, c::Vtree) = print(io, "$(typeof(c))($(join(variables(c), ','))
 # Constructors
 #############
 
-# Syntactic sugar to compile circuits using a vtree
-(vtree::Vtree)(arg) = compile(vtree, arg)
-
 # construct vtrees from other vtrees
 function (::Type{V})(vtree::Vtree)::V where V<:Vtree
     f_leaf(l) = V(variable(l))

@@ -12,7 +12,7 @@ include("../helper/validate_sdd.jl")
    @test_throws Exception compile(mgr.left, cnf)
    @test_throws Exception compile(right_most_descendent(mgr), cnf)
 
-   r = mgr(cnf)
+   r = compile(mgr,cnf)
    @test compile(mgr, cnf) === r
 
    @test respects_vtree(r)

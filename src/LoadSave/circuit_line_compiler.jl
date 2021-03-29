@@ -24,8 +24,8 @@ function compile_logical_m(lines::CircuitFormatLines)
         PlainLiteralNode(l)
     end
 
-    true_node = PlainTrueNode()
-    false_node = PlainFalseNode()
+    true_node = PlainConstantNode(true)
+    false_node = PlainConstantNode(false)
 
     function compile(ln::CircuitFormatLine)
         error("Compilation of line $ln is not supported")

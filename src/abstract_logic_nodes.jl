@@ -58,9 +58,6 @@ import ..Utils.children # make available for extension by concrete types
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::LogicCircuit)::Lit = n.literal # override when needed
 
-"Get the logical constant in a given constant leaf node"
-function constant end
-
 "Conjoin nodes into a single circuit"
 function conjoin end
 
@@ -87,13 +84,18 @@ function compile end
 "Is the node a constant gate?"
 @inline isconstantgate(n) = GateType(n) isa ConstantGate
 
+"Get the logical constant in a given constant leaf node"
+@inline constant(n::LogicCircuit) = constant(GateType(n), n)
+@inline constant(::ConstantGate, n::LogicCircuit) = n.constant::Bool
+
 "Get the logical variable in a given literal leaf node"
-@inline variable(n::LogicCircuit)::Var = variable(GateType(n), n)
-@inline variable(::LiteralGate, n::LogicCircuit)::Var = lit2var(literal(n))
+@inline variable(n::LogicCircuit) = variable(GateType(n), n)
+@inline variable(::LiteralGate, n::LogicCircuit)::Var = lit2var(literal(n))::Var
 
 "Get the sign of the literal leaf node"
-@inline ispositive(n::LogicCircuit)::Bool = ispositive(GateType(n), n)
+@inline ispositive(n::LogicCircuit) = ispositive(GateType(n), n)
 @inline ispositive(::LiteralGate, n::LogicCircuit)::Bool = literal(n) >= 0 
+
 @inline isnegative(n::LogicCircuit)::Bool = !ispositive(n)
 
 "Is the circuit syntactically equal to true?"

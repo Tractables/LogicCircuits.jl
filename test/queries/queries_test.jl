@@ -2,7 +2,7 @@ using Test
 using Suppressor
 using LogicCircuits
 
-include("helper/plain_logic_circuits.jl")
+include("../helper/plain_logic_circuits.jl")
 
 
 @testset "Queries test" begin
@@ -131,17 +131,18 @@ end
     plc = PlainLogicCircuit(circuit)
 
     # store implied literals in each data field
-    implied_literals(plc)
+    data = Dict()
+    implied_literals(plc, data)
 
     for ornode in or_nodes(plc)
         @test num_children(ornode) == 2
         # If there's a nothing just continue, it'll always work
-        if ornode.children[1].data === nothing || 
-            ornode.children[2].data === nothing
+        if data[ornode.children[1]] === nothing || 
+            data[ornode.children[2]] === nothing
             continue
         end
-        implied1 = ornode.children[1].data
-        implied2 = ornode.children[2].data
+        implied1 = data[ornode.children[1]]
+        implied2 = data[ornode.children[2]]
         neg_implied2 = BitSet(map(x -> -x, collect(implied2)))
         @test !isempty(intersect(implied1, neg_implied2))
     end

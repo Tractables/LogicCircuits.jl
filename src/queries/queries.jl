@@ -35,8 +35,7 @@ import ..Utils: foldup # extend
         f_con::Function, 
         f_lit::Function, 
         f_a::Function, 
-        f_o::Function, 
-        ::Type{T}; nload = nload, nsave = nsave, reset=true)::T where {T}
+        f_o::Function)::T where {T}
 
 Compute a function bottom-up on the circuit. 
 `f_con` is called on constant gates, `f_lit` is called on literal gates, 
@@ -44,11 +43,10 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
 function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                f_a::Function, f_o::Function, ::Type{T};
-                nload = nload, nsave = nsave, reset=true)::T where {T}
+                f_a::Function, f_o::Function, ::Type{T})::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)
-    foldup(node, f_leaf, f_inner, T; nload, nsave, reset)::T
+    foldup(node, f_leaf, f_inner, T)::T
 end
 
 import ..Utils: foldup_aggregate # extend
@@ -59,7 +57,7 @@ import ..Utils: foldup_aggregate # extend
         f_lit::Function, 
         f_a::Function, 
         f_o::Function, 
-        ::Type{T};  nload = nload, nsave = nsave, reset=true)::T where T
+        ::Type{T})::T where T
 
 Compute a function bottom-up on the circuit. 
 `f_con` is called on constant gates, `f_lit` is called on literal gates, 
@@ -67,15 +65,14 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an aggregate vector from the children.
 """
 function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                          f_a::Function, f_o::Function, ::Type{T};
-                          nload = nload, nsave = nsave, reset=true) where T
+                          f_a::Function, f_o::Function, ::Type{T}, cache=nothing) where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     end
     function f_inner(n, cs) 
         is⋀gate(n) ? f_a(n, cs)::T : f_o(n, cs)::T
     end
-    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; nload, nsave, reset)::T
+    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T, cache)::T
 end
 
 #####################
@@ -108,11 +105,11 @@ function variables_by_node(root::LogicCircuit)::Dict{LogicCircuit,BitSet}
 end
 
 "Get the variable in the circuit with the largest index"
-function max_variable(root::LogicCircuit; reset=true)::Var
+function max_variable(root::LogicCircuit)::Var
     f_con(n) = Var(0)
     f_lit(n) = variable(n)
     f_inner(n, call) = mapreduce(call, max, children(n))
-    foldup(root, f_con, f_lit, f_inner, f_inner, Var; reset)
+    foldup(root, f_con, f_lit, f_inner, f_inner, Var)
 end
 
 """
@@ -212,54 +209,6 @@ function infer_vtree(root::LogicCircuit)::Union{Vtree, Nothing}
 end
 
 
-"""
-    isdeterministic(root::LogicCircuit)::Bool
-    
-Is the circuit determinstic?
-Note: this function is generally intractable for large circuits.
-"""
-function isdeterministic(root::LogicCircuit)::Bool
-    mgr = sdd_mgr_for(root)
-    result::Bool = true
-    f_con(c) = mgr(constant(c))
-    f_lit(n) = mgr(literal(n))
-    f_a(_, cs) = reduce(&, cs)
-    f_o(_, cs) = begin
-        for i = 1:length(cs)
-            for j = i+1:length(cs)
-               result &= isfalse(cs[i] & cs[j])
-            end
-        end
-        reduce(|, cs)
-    end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Sdd)
-    result
-end
-
-
-"""
-    implied_literals(root::LogicCircuit)::Union{BitSet, Nothing}
-
-Compute at each node literals that are implied by the formula. 
-`nothing` at a node means all literals are implied (i.e. the node's formula is false)
-
-This algorithm is sound but not complete - all literals returned are correct, but some true implied literals may be missing. 
-"""
-function implied_literals(root::LogicCircuit)
-    f_con(c) = constant(c) ? BitSet() : nothing
-    f_lit(n) = BitSet([literal(n)])
-    f_a(_, cs) = if any(isnothing, cs)
-        nothing
-    else
-        reduce(union, cs)
-    end
-    f_o(_, cs) = begin
-        reduce(intersect, filter(issomething, cs))
-    end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Union{BitSet, Nothing})
-end
-
-
 #####################
 # structural properties
 #####################
@@ -285,6 +234,55 @@ function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
    end
    return true
 end
+
+
+"""
+    isdeterministic(root::LogicCircuit)::Bool
+    
+Is the circuit determinstic?
+Note: this function is generally intractable for large circuits.
+"""
+function isdeterministic(root::LogicCircuit)::Bool
+    mgr = sdd_mgr_for(root)
+    result::Bool = true
+    f_con(c) = compile(mgr,constant(c))
+    f_lit(n) = compile(mgr,literal(n))
+    f_a(_, cs) = reduce(&, cs)
+    f_o(_, cs) = begin
+        for i = 1:length(cs)
+            for j = i+1:length(cs)
+               result &= isfalse(cs[i] & cs[j])
+            end
+        end
+        reduce(|, cs)
+    end
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Sdd)
+    result
+end
+
+
+"""
+    implied_literals(root::LogicCircuit)::Union{BitSet, Nothing}
+
+Compute at each node literals that are implied by the formula. 
+`nothing` at a node means all literals are implied (i.e. the node's formula is false)
+
+This algorithm is sound but not complete - all literals returned are correct, but some true implied literals may be missing. 
+"""
+function implied_literals(root::LogicCircuit, cache=nothing)
+    f_con(c) = constant(c) ? BitSet() : nothing
+    f_lit(n) = BitSet([literal(n)])
+    f_a(_, cs) = if any(isnothing, cs)
+        nothing
+    else
+        reduce(union, cs)
+    end
+    f_o(_, cs) = begin
+        reduce(intersect, filter(issomething, cs))
+    end
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Union{BitSet, Nothing}, cache)
+end
+
 
 #####################
 # algebraic model counting queries

@@ -37,7 +37,7 @@ using DataFrames: DataFrame
     @test !istrue(f)
     @test !isfalse(f)
 
-    @test literal(vtree(Lit(-5))) == Lit(-5)
+    @test literal(compile(vtree,Lit(-5))) == Lit(-5)
     @test literal((PlainStructLogicCircuit,vtree)(Lit(-5))) == Lit(-5)
     @test constant((PlainStructLogicCircuit,vtree)(false)) == false
     

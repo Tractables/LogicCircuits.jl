@@ -1,6 +1,6 @@
 export StructLogicCircuit, PlainStructLogicCircuit, 
     PlainStructLogicLeafNode, PlainStructLogicInnerNode,
-    PlainStructLiteralNode, PlainStructConstantNode, PlainStructTrueNode, PlainStructFalseNode,
+    PlainStructLiteralNode, PlainStructConstantNode,
     PlainStruct⋀Node, PlainStruct⋁Node,
     vtree, vtree_safe, prime, sub
 
@@ -25,11 +25,9 @@ abstract type PlainStructLogicInnerNode <: PlainStructLogicCircuit end
 mutable struct PlainStructLiteralNode <: PlainStructLogicLeafNode
     literal::Lit
     vtree::Vtree
-    data
-    counter::UInt32
     PlainStructLiteralNode(l,v) = begin
         @assert lit2var(l) ∈ v 
-        new(l, v, nothing, 0)
+        new(l, v)
     end
 end
 
@@ -37,32 +35,21 @@ end
 A plain structured logical constant leaf node, representing true or false.
 These are the only structured nodes that don't have an associated vtree node (cf. SDD file format)
 """
-abstract type PlainStructConstantNode <: PlainStructLogicInnerNode end
-
-"A plain structured logical true constant. Never construct one, use `structtrue` to access its unique instance"
-mutable struct PlainStructTrueNode <: PlainStructConstantNode
-    data
-    counter::UInt32
+struct PlainStructConstantNode <: PlainStructLogicInnerNode 
+    constant::Bool
 end
 
-"A plain structured logical false constant.  Never construct one, use `structfalse` to access its unique instance"
-mutable struct PlainStructFalseNode <: PlainStructConstantNode
-    data
-    counter::UInt32
-end
 
 "A plain structured logical conjunction node"
 mutable struct PlainStruct⋀Node <: PlainStructLogicInnerNode
     prime::PlainStructLogicCircuit
     sub::PlainStructLogicCircuit
     vtree::Vtree
-    data
-    counter::UInt32
     PlainStruct⋀Node(p,s,v) = begin
         @assert isinner(v) "Structured conjunctions must respect inner vtree node"
         @assert isconstantgate(p) || varsubset_left(vtree(p),v) "$p does not go left in $v"
         @assert isconstantgate(s) || varsubset_right(vtree(s),v) "$s does not go right in $v"
-        new(p,s, v, nothing, 0)
+        new(p,s,v)
     end
 end
 
@@ -70,16 +57,14 @@ end
 mutable struct PlainStruct⋁Node <: PlainStructLogicInnerNode
     children::Vector{PlainStructLogicCircuit}
     vtree::Vtree # could be leaf or inner
-    data
-    counter::UInt32
-    PlainStruct⋁Node(c,v) = new(c, v, nothing, 0)
 end
 
+#TODO remove these now that they are unique and not mutable?
 "The unique plain structured logical true constant"
-const structtrue = PlainStructTrueNode(nothing, 0)
+const structtrue = PlainStructConstantNode(true)
 
 "The unique splain tructured logical false constant"
-const structfalse = PlainStructFalseNode(nothing, 0)
+const structfalse = PlainStructConstantNode(false)
 
 #####################
 # traits
@@ -94,8 +79,6 @@ const structfalse = PlainStructFalseNode(nothing, 0)
 # methods
 #####################
 
-@inline constant(n::PlainStructTrueNode)::Bool = true
-@inline constant(n::PlainStructFalseNode)::Bool = false
 @inline children(n::PlainStruct⋁Node) = n.children
 @inline children(n::PlainStruct⋀Node) = [n.prime,n.sub]
 
