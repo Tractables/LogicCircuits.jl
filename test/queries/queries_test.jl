@@ -19,8 +19,6 @@ include("../helper/plain_logic_circuits.jl")
     @test isstruct_decomposable(compile(PlainLogicCircuit, Lit(1)))
 
     @test variables(r1) == BitSet(1:10)
-    @test variables_by_node(r1)[r1] == BitSet(1:10)
-    @test variables_by_node(r1)[children(children(r1)[1])[5]] == BitSet(5)
 
     @test num_variables(r1) == 10
     @test issmooth(r1)

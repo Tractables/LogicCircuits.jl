@@ -1,7 +1,6 @@
 using DataFrames: DataFrame
 
-export variables_by_node, 
-    issmooth, 
+export issmooth, 
     isdecomposable, 
     isstruct_decomposable,
     isdeterministic, 
@@ -91,13 +90,6 @@ function variables(root::LogicCircuit, cache=nothing)::BitSet
     f_lit(n) = BitSet(variable(n))
     f_inner(n, call) = mapreduce(call, union, children(n))
     foldup(root, f_con, f_lit, f_inner, f_inner, BitSet, cache)
-end
-
-"Get the variable scope of each node in the circuit"
-function variables_by_node(root::LogicCircuit)::Dict{LogicCircuit,BitSet}
-    scope = Dict{Node,BitSet}()
-    variables(root, scope)
-    scope
 end
 
 "Get the variable in the circuit with the largest index"

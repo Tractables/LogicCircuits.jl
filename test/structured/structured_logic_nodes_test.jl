@@ -54,7 +54,6 @@ using DataFrames: DataFrame
     @test isdecomposable(f)
 
     @test variables(f) == BitSet(1:10)
-    @test variables_by_node(f)[f] == BitSet(1:10)
 
     @test num_variables(f) == 10
     @test issmooth(f)

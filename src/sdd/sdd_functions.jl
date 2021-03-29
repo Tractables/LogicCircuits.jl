@@ -57,7 +57,12 @@ compile(::Type{<:Sdd}, mgr::SddMgr, arg::LogicCircuit) = compile(mgr, arg)
 
 "Compile a circuit (e.g., CNF or DNF) into an SDD, bottom up by distributing circuit nodes over vtree nodes"
 
-compile(mgr::SddMgr, c::LogicCircuit, scopes=variables_by_node(c)) = 
+compile(mgr::SddMgr, c::LogicCircuit) = begin 
+    scopes = Dict{LogicCircuit, BitSet}()
+    variables(c, scopes) # populate scopes dict
+    compile(mgr, c, GateType(c), scopes)
+end
+compile(mgr::SddMgr, c::LogicCircuit, scopes) = 
     compile(mgr, c, GateType(c), scopes)
 compile(mgr::SddMgr, c::LogicCircuit, ::ConstantGate, _) = 
     compile(mgr, constant(c))
