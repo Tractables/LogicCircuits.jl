@@ -37,10 +37,7 @@ struct Inner <: NodeType end
 # basic fields and methods
 #####################
 
-# Each `Node` is required to have fields
-#  - `counter::UInt32`
-#  - `data:Any`
-# and a specialized method for the following functions.
+# Each `Node` is required to provide a specialized method for the following functions.
 
 "Get the node type trait of the given `Node`"
 @inline NodeType(node::Node) = NodeType(typeof(node))

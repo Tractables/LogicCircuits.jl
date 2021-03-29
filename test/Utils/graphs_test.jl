@@ -9,16 +9,12 @@ module TestNodes
     mutable struct TestINode <: Dag
         id::Int
         children::Vector{Dag}
-        data
-        counter::UInt32
-        TestINode(i,c) = new(i,c,nothing,false)
+        TestINode(i,c) = new(i,c)
     end
 
     mutable struct TestLNode <: Dag
         id::Int
-        data
-        counter::UInt32
-        TestLNode(i) = new(i,nothing,false)
+        TestLNode(i) = new(i)
     end
 
     LogicCircuits.NodeType(::Type{<:TestINode}) = Inner()
@@ -62,9 +58,6 @@ module TestNodes
         @test i12.id == 4
         @test j2.id == 3
         @test r.id == 6
-        @test r.counter == 0
-        @test l1.counter == 0
-        @test i12.counter == 0
 
         foreach(r, l -> l.id += 1, i -> i.id -= 1)
         @test l1.id == 2+1
@@ -72,9 +65,6 @@ module TestNodes
         @test i12.id == 4-1
         @test j2.id == 3-1
         @test r.id == 6-1
-        @test r.counter == 0
-        @test l1.counter == 0
-        @test i12.counter == 0
 
         @test filter(n -> iseven(n.id), r) == [l2,i2,j2]
 
