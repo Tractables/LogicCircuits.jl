@@ -15,7 +15,6 @@ include("queries/satisfies.jl")
 include("queries/satisfies_flow.jl")
 
 include("plain_logic_nodes.jl")
-include("small_logic_nodes.jl")
 
 include("structured/abstract_vtrees.jl")
 include("structured/plain_vtrees.jl")

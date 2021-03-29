@@ -62,7 +62,7 @@ include("helper/plain_logic_circuits.jl")
 
     @test canonical_constants(r1) == (nothing, nothing)
 
-    @test node_stats(n0c)[PlainFalseNode] == 1
+    @test node_stats(n0c)[PlainConstantNode] == 2
 
     io = IOBuffer()
     show(io,n0c)
@@ -73,14 +73,14 @@ include("helper/plain_logic_circuits.jl")
     @test n0c2 !== n0c
     @test num_edges(n0c2) == num_edges(n0c)
     @test num_nodes(n0c2) == num_nodes(n0c) 
-    @test isempty(intersect(linearize(n0c2),linearize(n0c)))
+    @test all(isleaf, intersect(linearize(n0c2),linearize(n0c))) 
 
     n0c2 = PlainLogicCircuit(n0c)
     @test n0c2 isa PlainLogicCircuit 
     @test n0c2 !== n0c
     @test num_edges(n0c2) == num_edges(n0c)
     @test num_nodes(n0c2) == num_nodes(n0c) 
-    @test isempty(intersect(linearize(n0c2),linearize(n0c)))
+    @test all(isleaf, intersect(linearize(n0c2),linearize(n0c)))
 
 end
 

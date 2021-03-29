@@ -122,8 +122,7 @@ end
     istats = inode_stats(lc);
     nstats = node_stats(lc);
 
-    @test !(PlainTrueNode in keys(lstats));
-    @test !(PlainFalseNode in keys(lstats));
+    @test !(PlainConstantNode in keys(lstats));
     @test lstats[PlainLiteralNode] == 8;
     
     @test istats[(Plain⋀Node, 2)] == 9;

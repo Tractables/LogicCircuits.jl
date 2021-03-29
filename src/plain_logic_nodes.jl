@@ -1,6 +1,5 @@
 export PlainLogicCircuit, PlainLogicLeafNode, PlainLogicInnerNode,
-    PlainLiteralNode, PlainConstantNode, PlainTrueNode, PlainFalseNode,
-    Plain⋀Node, Plain⋁Node
+    PlainLiteralNode, PlainConstantNode, Plain⋀Node, Plain⋁Node
 
 #####################
 # Plain logic nodes without additional fields
@@ -24,34 +23,15 @@ abstract type PlainLogicInnerNode <: PlainLogicCircuit end
 """
 A plain logical literal leaf node, representing the positive or negative literal of its variable
 """
-mutable struct PlainLiteralNode <: PlainLogicLeafNode
+struct PlainLiteralNode <: PlainLogicLeafNode
     literal::Lit
-    data
-    counter::UInt32
-    PlainLiteralNode(l) = new(l, nothing, 0)
 end
 
 """
 A plain logical constant leaf node, representing true or false
 """
-abstract type PlainConstantNode <: PlainLogicInnerNode end
-
-"""
-Plain constant true node
-"""
-mutable struct PlainTrueNode <: PlainConstantNode 
-    data
-    counter::UInt32
-    PlainTrueNode() = new(nothing, 0)
-end
-
-"""
-Plain constant false node
-"""
-mutable struct PlainFalseNode <: PlainConstantNode 
-    data
-    counter::UInt32
-    PlainFalseNode() = new(nothing, 0)
+struct PlainConstantNode <: PlainLogicInnerNode 
+    constant::Bool
 end
 
 """
@@ -59,9 +39,6 @@ A plain logical conjunction node (And node)
 """
 mutable struct Plain⋀Node <: PlainLogicInnerNode
     children::Vector{PlainLogicCircuit}
-    data
-    counter::UInt32
-    Plain⋀Node(c) = new(c, nothing, 0)
 end
 
 """
@@ -69,9 +46,6 @@ A plain logical disjunction node (Or node)
 """
 mutable struct Plain⋁Node <: PlainLogicInnerNode
     children::Vector{PlainLogicCircuit}
-    data
-    counter::UInt32
-    Plain⋁Node(c) = new(c, nothing, 0)
 end
 
 #####################
@@ -88,8 +62,7 @@ end
 #####################
 
 "Get the logical constant in a given constant leaf node"
-@inline constant(n::PlainTrueNode)::Bool = true
-@inline constant(n::PlainFalseNode)::Bool = false
+@inline constant(n::PlainConstantNode) = n.constant::Bool
 
 "Get the children of a given inner node"
 @inline children(n::PlainLogicInnerNode) = n.children
@@ -116,7 +89,7 @@ compile(::Type{LogicCircuit}, args...) =
     compile(PlainLogicCircuit, args...)
 
 compile(::Type{<:PlainLogicCircuit}, b::Bool) =
-    b ? PlainTrueNode() : PlainFalseNode()
+    PlainConstantNode(b)
 
 compile(::Type{<:PlainLogicCircuit}, l::Lit) =
     PlainLiteralNode(l)
@@ -128,7 +101,6 @@ function compile(::Type{<:PlainLogicCircuit}, circuit::LogicCircuit)
     f_o(_, cns) = disjoin(cns)
     foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, PlainLogicCircuit)
 end
-
 
 fully_factorized_circuit(::Type{LogicCircuit}, n::Int) =
     fully_factorized_circuit(PlainLogicCircuit, n)
