@@ -169,19 +169,29 @@ function infer_vtree(root::LogicCircuit, cache=nothing)::Union{Vtree, Nothing}
         throw("Circuit not smooth. Inferring vtree not supported yet!")
     end
 
+    vtr_dict = Dict{Var, PlainVtreeLeafNode}()
 
-    f_con(_) = nothing # can we have constants when there is a vtree?
-    f_lit(n) = (PlainVtree(variable(n)), true)
+    f_con(_) = (nothing, true) # give constants nothing
+    f_lit(n) = begin 
+        if variable(n) ∉ keys(vtr_dict)
+            vtr_dict[variable(n)] = PlainVtree(variable(n))
+        end
+        (vtr_dict[variable(n)], true)
+    end
     f_a(n, call) = begin
-        if num_children != 2
+        if num_children(n) != 2
             return (call(children(n)[1])[1], false)
         end
-        # @assert  num_children(n) == 2 "And node had $(num_children(n)) children. Should be 2"
+
         (left, ld) = call(children(n)[1])
         (right, rd) = call(children(n)[2])
-        if !has_parent(left) & !has_parent(right)
+        if ((left === nothing) | (right === nothing)) & (left !== right)
+            (left === nothing ? right : left, true)
+        elseif !isdisjoint(variables(left), variables(right))
+            (left, false)
+        elseif !has_parent(left) & !has_parent(right)
             (PlainVtreeInnerNode(left, right), ld & rd)
-        elseif has_parent(left) & has_parent(right) & parent(left) == parent(right)
+        elseif has_parent(left) & has_parent(right) & (parent(left) == parent(right))
             (parent(left), ld & rd)
         else
             (left, false)
@@ -189,10 +199,10 @@ function infer_vtree(root::LogicCircuit, cache=nothing)::Union{Vtree, Nothing}
     end
     f_o(n, call) = begin 
         @assert num_children(n) > 0 "Or node has no children"
-        @show ccalls = map(x -> call(x), children(n))
+        ccalls = map(x -> call(x), children(n))
         (ccalls[1][1], all(x -> x[1] == ccalls[1][1], ccalls) & all(x -> x[2], ccalls))
     end    
-    res = foldup(root, f_con, f_lit, f_a, f_o, Tuple{Vtree, Bool})
+    res = foldup(root, f_con, f_lit, f_a, f_o, Tuple{Union{Vtree, Nothing}, Bool})
     res[2] ? res[1] : nothing
 end
 

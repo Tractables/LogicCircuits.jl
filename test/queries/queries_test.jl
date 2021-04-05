@@ -15,7 +15,7 @@ include("../helper/plain_logic_circuits.jl")
     @test isdeterministic(r1)
     @test isdeterministic(compile(PlainLogicCircuit, Lit(1)))
 
-    @test isstruct_decomposable(r1)
+    @test !isstruct_decomposable(r1)
     @test isstruct_decomposable(compile(PlainLogicCircuit, Lit(1)))
 
     @test variables(r1) == BitSet(1:10)
@@ -95,7 +95,7 @@ include("../helper/plain_logic_circuits.jl")
     @test isstruct_decomposable(and2)
     @test isdecomposable(circuit)
     @test !isstruct_decomposable(circuit)
-    @test !isstruct_decomposable(or1 & lits[3] | lits[3] & or1)
+    @test isstruct_decomposable(or1 & lits[3] | lits[3] & or1)
     @test isstruct_decomposable(or1 & lits[3] | or1 & lits[3])
 
 end
