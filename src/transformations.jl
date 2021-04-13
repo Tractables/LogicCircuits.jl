@@ -188,7 +188,8 @@ function condition(root::Node, lit::Lit; callback=noop)::Node
             kept = last.(cv)
             new_children = first.(cv)[kept]
             if all(kept)
-                (conjoin([new_children...]; reuse=n), true)
+                # (conjoin([new_children...]; reuse=n), true)
+                (conjoin([new_children...]), true)
             else
                 (false_node, false)
             end
@@ -199,7 +200,8 @@ function condition(root::Node, lit::Lit; callback=noop)::Node
             if any(kept) && (length(new_children) == 1) && isliteralgate(new_children[1])
                 (new_children[1], true)
             elseif any(kept)
-                new_n = disjoin([new_children...]; reuse=n)
+                # new_n = disjoin([new_children...]; reuse=n)
+                new_n = disjoin([new_children...])
                 callback(new_n, n, kept)
                 (new_n, true)
             else
@@ -218,7 +220,7 @@ import Base.split
 
 Return the circuit after spliting on edge `edge` and variable `var`
 """
-function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true)
+function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true, callback=noop)
     # sanity check
     if sanity_check
         @assert depth >= 0
@@ -230,11 +232,11 @@ function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sani
 
     # split
     new_children1 = map(children(and)) do c
-        condition(c, var2lit(var))
+        condition(c, var2lit(var), callback=callback)
     end
 
     new_children2 = map(children(and)) do c
-        condition(c, - var2lit(var))
+        condition(c, - var2lit(var), callback=callback)
     end
 
     new_and1 = deepcopy(conjoin(new_children1), depth; cache=false)
