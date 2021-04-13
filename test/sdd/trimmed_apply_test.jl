@@ -16,12 +16,12 @@ using LogicCircuits
     notx_c = compile(mgr,notx)
     true_c = compile(mgr,true)
     @test true_c isa Sdd
-    @test true_c === mgr(true)
+    @test true_c === compile(mgr,true)
     @test true_c === compile(Sdd,mgr,true)
     @test true_c === (Sdd,mgr)(true)
     @test true_c === (mgr,Sdd)(true)
     false_c = compile(mgr,false)
-    @test false_c === mgr(false)
+    @test false_c === compile(mgr,false)
     
     @test false_c & true_c == false_c
     @test false_c & notx_c == false_c
@@ -121,7 +121,7 @@ using LogicCircuits
     @test f4c isa PlainLogicCircuit
     @test num_edges(f4c) == num_edges(f4)
     @test num_nodes(f4c) == num_nodes(f4)
-    @test model_count(f4c) == model_count(f4)
+    @test model_count(f4c, num_vars) == model_count(f4)
     @test isdeterministic(f4c)
 
     f4c = StructLogicCircuit(mgr, f4)
@@ -139,7 +139,7 @@ using LogicCircuits
     @test model_count(f4c) == model_count(f4)
     @test f4c.vtree === f4.vtree
 
-    f4c = mgr(StructLogicCircuit(mgr,f4))
+    f4c = compile(mgr,StructLogicCircuit(mgr,f4))
     @test Sdd(mgr,f4c) === f4c
     @test f4 === f4c
     @test f4c isa Sdd

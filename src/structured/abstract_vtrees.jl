@@ -1,6 +1,6 @@
 export Vtree, vtree, variable, find_leaf,
     varsubset, varsubset_left, varsubset_right, 
-    depth,
+    depth, global_scope,
     respects_vtree
 
 import Base: parent, in # extend
@@ -67,6 +67,9 @@ lca(v::Union{Nothing,Vtree}, w::Union{Nothing,Vtree}) = lca(v, w, varsubset)
 # lca_safe(x,y)::Union{Nothing,Vtree} = 
 #     (isnothing(x) ? y : (isnothing(y) ? x : lca(x,y)) )
     
+"Get the variable scope of the root of this vtree"
+global_scope(vtree::Vtree) = variables(root(vtree))
+
 """
 Does the circuit respect the given vtree?
 This function allows for constants in conjunctions, but only when a vtree node can be found where the left and right conjunct can be assigned to the left and right vtree.
@@ -102,9 +105,6 @@ Base.show(io::IO, c::Vtree) = print(io, "$(typeof(c))($(join(variables(c), ','))
 #############
 # Constructors
 #############
-
-# Syntactic sugar to compile circuits using a vtree
-(vtree::Vtree)(arg) = compile(vtree, arg)
 
 # construct vtrees from other vtrees
 function (::Type{V})(vtree::Vtree)::V where V<:Vtree

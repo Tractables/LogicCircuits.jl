@@ -6,7 +6,7 @@ using LogicCircuits
     v1 = PlainVtree(Var(1))
     v2 = PlainVtree(Var(2))
     v3 = PlainVtree(Var(3))
-    @test_throws Exception PlainVtree(3)
+    @test_throws Exception PlainVtree(3) # note: we want to avoid confusing 3 meaning 3 variables vs the literal 3
     i1 = PlainVtree(v1,v2)
     r = PlainVtree(i1,v3)
 
@@ -21,7 +21,7 @@ using LogicCircuits
     @test lca(v1,i1) == i1
     @test lca(v1,i1,v1) == i1
     @test lca(v1,v2,v3) == r
-    @test lca(vtree_safe(r(true)), vtree_safe(r(false))) === nothing
+    @test lca(vtree_safe(compile(r,true)), vtree_safe(compile(r,false))) === nothing
 
     @test_throws Exception lca(i1,PlainVtree(Var(4)))
     @test varsubset_left(v1,r)

@@ -1,17 +1,79 @@
-import DataFrames: DataFrame, DataFrameRow, nrow, ncol, eltypes, mapcols
+import DataFrames: DataFrame, DataFrameRow, nrow, ncol, mapcols, missings
 import Random: shuffle
-import Statistics: mean, std
+import Statistics: mean, median, std
 import CUDA: CuVector, CuMatrix
 
 export num_examples, num_features, 
     example, feature_values,
     iscomplete, isweighted, isfpdata, isbinarydata, 
     num_chunks, chunks, eltype,
-    add_sample_weights, split_sample_weights, get_weights,
+    weigh_samples, split_sample_weights, get_weights,
     shuffle_examples, batch, batch_size, isbatched,
     threshold, soften, marginal_prob, bagging_dataset,
+    random_sample,
     to_gpu, to_cpu, isgpu, same_device,
-    ll_per_example, bits_per_pixel
+    ll_per_example, bits_per_pixel,
+    make_missing_mcar, impute
+
+##############################
+# Generic DataFrame Extensions
+##############################
+
+import Base: eltype # extend
+
+"Find a type that can capture all column values"
+eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
+
+import Base: _msk_end
+
+# lift BitVector function to DataFrame of BitVectors
+@inline _msk_end(df::DataFrame) = _msk_end(nrow(df))
+
+##############################
+# GPU-CPU memory helper function
+##############################
+
+"Move data to the GPU"
+to_gpu(d::Union{CuBitVector,CuArray}) = d
+to_gpu(m::Array) = CuArray(m)
+to_gpu(v::BitVector) = 
+    AbstractBitVector(to_gpu(chunks(v)), length(v))
+to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
+    CuArray(F.(coalesce(v,typemax(F))))
+to_gpu(v::Vector{Union{Bool,Missing}}) =
+    CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
+to_gpu(df::DataFrame) = isgpu(df) ? df : mapcols(to_gpu, df)
+to_gpu(df::Vector{DataFrame}) = map(df) do d
+    to_gpu(d)
+end
+
+"Move data to the CPU"
+to_cpu(m::Union{BitVector,Array}) = m
+to_cpu(m::CuArray) = Array(m)
+to_cpu(cv::CuBitVector) = 
+    AbstractBitVector(to_cpu(cv.chunks), length(cv))
+to_cpu(v::CuVector{T}) where T<:AbstractFloat =
+    replace(Array(v), typemax(T) => missing)
+to_cpu(v::CuVector{UInt8}) =
+    convert(Vector{Union{Bool,Missing}}, 
+        replace(Array(v), typemax(UInt8) => missing))
+to_cpu(df::DataFrame) = mapcols(to_cpu, df)
+to_cpu(df::Vector{DataFrame}) = map(df) do d
+    to_gpu(d)
+end
+
+"Check whether data resides on the GPU"
+isgpu(::Union{Array, BitArray}) = false
+isgpu(::Union{CuArray, CuBitVector}) = true
+isgpu(df::DataFrame) = all(isgpu, eachcol(df))
+isgpu(df::Vector{DataFrame}) = all(isgpu, df)
+
+"Ensure that `x` resides on the same device as `data`"
+same_device(x, data) = isgpu(data) ? to_gpu(x) : to_cpu(x)
+
+##############################
+# Dataset Utilities
+##############################
 
 # Basic data-related utilities.
 # These methods assume the following possible representations.
@@ -34,7 +96,7 @@ export num_examples, num_features,
 Number of examples in data
 """
 num_examples(df::DataFrame) = nrow(df)
-num_examples(df::Array{DataFrame}) = mapreduce(d -> num_examples(d), +, df)
+num_examples(df::Vector{DataFrame}) = mapreduce(num_examples, +, df)
 
 """
     num_features(df::DataFrame)
@@ -42,58 +104,40 @@ num_examples(df::Array{DataFrame}) = mapreduce(d -> num_examples(d), +, df)
 Number of features in the data
 """
 num_features(df::DataFrame) = isweighted(df) ? ncol(df) - 1 : ncol(df)
-num_features(df::Array{DataFrame}) = num_features(df[1])
+num_features(df::Vector{DataFrame}) = num_features(df[1])
 
 "Get the ith example"
-example(d,i) = vec(convert(Array, d[i,:]))
+example(d::DataFrame,i) = vec(convert(Array, d[i,:]))
 
 "Get the ith feature values"
 feature_values(df::DataFrame, i) = df[!,i]
 
-import Base: eltype # extend
-
-"Find a type that can capture all feature values"
-eltype(df::DataFrame) = reduce(typejoin, eltype.(eachcol(df)))
-
 "Is the data complete (no missing values)?"
-iscomplete(data::DataFrame) = begin
-    if isweighted(data)
-        all(iscomplete, eachcol(data)[1:end-1])
-    else
-        all(iscomplete, eachcol(data))
-    end
-end
-iscomplete(data::DataFrameRow) = begin
-    if isweighted(data)
-        all(v -> (v isa Bool), data[1:end-1])
-    else
-        all(v -> (v isa Bool), data)
-    end
-end
-iscomplete(::AbstractArray{Bool}) = true
-iscomplete(::Array{<:AbstractFloat}) = true
-iscomplete(x::Array{Union{Bool,Missing}}) = !any(ismissing, x)
-iscomplete(x::Array{Union{<:AbstractFloat,Missing}}) = !any(ismissing, x)
-iscomplete(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) = 
+iscomplete(data::DataFrame) = 
+    all(iscomplete_col, eachcol_unweighted(data))
+iscomplete(data::Vector{DataFrame}) = all(iscomplete, data)
+
+"Is the data column complete (no missing values)?"
+iscomplete_col(::AbstractVector{Bool}) = true
+iscomplete_col(::AbstractVector{<:AbstractFloat}) = true
+iscomplete_col(x::AbstractVector{Union{Bool,Missing}}) = !any(ismissing, x)
+iscomplete_col(x::AbstractVector{Union{<:AbstractFloat,Missing}}) = !any(ismissing, x)
+iscomplete_col(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) = 
     !any(v -> v == typemax(v), x)
-iscomplete(data::Array{DataFrame}) = all(d -> iscomplete(d), data)
 
 "Is the dataset binary?"
-isbinarydata(df::DataFrame) = begin
-    if isweighted(df)
-        all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df))[1:end-1])
-    else
-        all(t -> nonmissingtype(t) <: Union{Bool,UInt8}, eltype.(eachcol(df)))
-    end
+isbinarydata(df::DataFrame) = all(eachcol_unweighted(df)) do col
+    nonmissingtype(eltype(col)) <: Union{Bool,UInt8}
 end
-isbinarydata(df::Array{DataFrame}) = 
-    all(d -> isbinarydata(d), df)
+isbinarydata(df::Vector{DataFrame}) = 
+    all(isbinarydata, df)
 
 "Is the dataset consisting of floating point data?"
-isfpdata(df::DataFrame) = 
-    all(t -> nonmissingtype(t) <: AbstractFloat, eltype.(eachcol(df)))
-isfpdata(df::Array{DataFrame}) = 
-    all(d -> isfpdata(d), df)
+isfpdata(df::DataFrame) = all(eachcol_unweighted(df)) do col
+    nonmissingtype(eltype(col)) <: AbstractFloat
+end
+isfpdata(df::Vector{DataFrame}) = 
+    all(isfpdata, df)
 
 "For binary complete data, how many `UInt64` bit strings are needed to store one feature?"
 num_chunks(d::DataFrame) = num_chunks(feature_values(d,1))
@@ -103,56 +147,33 @@ num_chunks(v::AbstractBitVector) = length(v.chunks)
 chunks(v::AbstractBitVector) = v.chunks
 chunks(df::DataFrame, i) = chunks(feature_values(df, i))
 
+
 # WEIGHTED DATASETS
 
-"Add sample weights by adding a named column `weight`
- at the end of the DataFrame."
-add_sample_weights(df::DataFrame, weights::DataFrame) = begin
-    if isweighted(df)
-        df = split_sample_weights(df)[1]
-    end
-    df.weight = weights[!,1]
-    
-    df
-end
-add_sample_weights(df::DataFrame, weights::AbstractArray) = begin
-    if isweighted(df)
-        df = split_sample_weights(df)[1]
-    end
-    df.weight = collect(Iterators.flatten(weights))
-    
-    df
-end
-add_sample_weights(df::Array{DataFrame}, weights) = begin
-    if (weights isa DataFrame) || (weights isa AbstractArray{F} where F <: AbstractFloat)
-        weights = batch(weights, batch_size(df))
-    end
-    
-    map(zip(df, weights)) do (d, dw)
-        add_sample_weights(d, dw)
-    end
+"Iterate over columns, excluding the sample weight column"
+eachcol_unweighted(data::DataFrame) = 
+    isweighted(data) ? eachcol(data)[1:end-1] : eachcol(data)
+
+"Create a weighted copy of the data set"
+weigh_samples(df::DataFrame, weights) = begin
+    @assert length(weights) == num_examples(df) 
+    df2 = copy(df)
+    df2.weight = weights
+    df2
 end
     
 "Split a weighted dataset into unweighted dataset
  and its corresponding weights."
 split_sample_weights(df::DataFrame) = begin
     @assert isweighted(df) "`df` is not weighted."
-    weights = df[!, end]
-    df = df[!, 1:end-1]
-    
-    df, weights
+    df[!, 1:end-1], df[!, end]
 end
-split_sample_weights(df::Array{DataFrame}) = begin
-    @assert isweighted(df) "`df` is not weighted."
-    weights = map(df) do d
-        d[!, end]
-    end
-    
-    df = map(df) do d
-        d[!, 1:end-1]
-    end
-    
-    df, weights
+
+split_sample_weights(batches::Vector{DataFrame}) = begin
+    @assert isweighted(batches) "`batches` is not weighted."
+    samples = map(b -> b[!, 1:end-1], batches)
+    weights = get_weights(batches)
+    (samples, weights)
 end
 
 "Get the weights from a weighted dataset."
@@ -160,19 +181,17 @@ get_weights(df::DataFrame) = begin
     @assert isweighted(df) "`df` is not weighted."
     df[!, end]
 end
-get_weights(df::Array{DataFrame}) = begin
-    @assert isweighted(df) "`df` is not weighted."
-    map(df) do d
-        d[!, end]
-    end
+get_weights(df::Vector{DataFrame}) = begin
+    map(get_weights, df)
 end
 
 "Is the dataset weighted?"
-isweighted(df::Union{DataFrame, DataFrameRow}) = 
-    cmp(names(df)[end], "weight") === 0
-isweighted(df::Array{DataFrame}) = 
+isweighted(df::DataFrame) = 
+    names(df)[end] == "weight"
+isweighted(df::Vector{DataFrame}) = 
     all(d -> isweighted(d), df)
 
+    
 # DATA TRANSFORMATIONS
 
 """
@@ -183,80 +202,65 @@ Shuffle the examples in the data
 shuffle_examples(data) = data[shuffle(axes(data, 1)), :]
 
 "Create mini-batches"
-function batch(data, batchsize=1024; shuffle::Bool = true)
-    to_gpu_flag = false
-    if isgpu(data)
-        to_gpu_flag = true
-        data = to_cpu(data)
-    end
+function batch(data::DataFrame, batchsize=1024; shuffle::Bool = true)
+    from_gpu = isgpu(data)
+    # move data to CPU to do minibatching
+    from_gpu && (data = to_cpu(data))
     
-    if data isa Array{T} where T <: AbstractFloat
-        n_examples = length(data)
-    else
-        n_examples = num_examples(data)
-    end
-    
-    if shuffle
-        data = shuffle_examples(data)
-    end
+    shuffle && (data = shuffle_examples(data))
+
+    n_examples = num_examples(data)
     data = map(1:batchsize:n_examples) do start_index 
         stop_index = min(start_index + batchsize - 1, n_examples)
         data[start_index:stop_index, :]
     end
-    
-    if to_gpu_flag
-        data = to_cpu(data)
-    end
-    
-    data
+
+    # move data back to GPU if that's where it came from
+    from_gpu ? to_gpu(data) : data
 end
 
 "Is the dataset batched?"
-isbatched(data::DataFrame) = false
-isbatched(data::Array{DataFrame}) = true  
+isbatched(::DataFrame) = false
+isbatched(::Vector{DataFrame}) = true  
     
 "Batch size of the dataset"
-batch_size(data::Array{DataFrame}) = num_examples(data[1])
+batch_size(data::Vector{DataFrame}) = num_examples(data[1])
 
-"Dataset bagging"
-function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0,
-                         batch_size::Integer = 0)
-    if isweighted(data)
+"Randomly draw samples from the dataset with replacement"
+function random_sample(data::DataFrame, num_samples=1, weighted=isweighted(data))
+    # TODO add keyword to fix the random seed
+    example_idxs = if weighted
         data, weights = split_sample_weights(data)
-    else
-        weights = num_examples(data)
-    end
-    
-    # Randomly draw samples with replacement
-    function random_sample(weights::AbstractArray, num_examples::Integer)
-        weights = cumsum(weights)
-        cum_weights = weights[end]
-        len = length(weights)
-        map(1:num_examples) do idx
-            randval = rand() * cum_weights
-            i, j, k = 1, len, 0
+        cum_weights = cumsum(weights)
+        total_weight = cum_weights[end]
+        map(1:num_samples) do idx
+            randval = rand() * total_weight
+            i, j, k = 1, num_examples(data), 0
+            #  do binary search for sample
             while i < j - 1
                 k = (i + j) ÷ 2
-                if randval < weights[k]
+                if randval < cum_weights[k]
                     j = k
                 else
                     i = k
                 end
             end
-            i == j ? i : (randval >= weights[i] ? j : i)
+            i == j ? i : (randval >= cum_weights[i] ? j : i)
+        end
+    else
+        map(1:num_samples) do idx
+            rand(1:num_examples(data))
         end
     end
-    function random_sample(weights::Integer, num_examples::Integer)
-        map(1:num_examples) do idx
-            rand(1:weights)
-        end
-    end
-    
-    # Returns an array of DataFrames where each DataFrame is randomly sampled from the 
-    # original dataset `data`.
+    data[example_idxs, :]
+end
+
+"Returns an array of DataFrames where each DataFrame is randomly sampled from the original dataset `data`"
+function bagging_dataset(data::DataFrame; num_bags::Integer = 1, frac_examples::AbstractFloat = 1.0,
+                         batch_size::Integer = 0)
     map(1:num_bags) do dataset_idx
-        example_idxs = random_sample(weights, convert(UInt32, floor(num_examples(data) * frac_examples)))
-        batch_size == 0 ? data[example_idxs, :] : batch(data[example_idxs, :], batch_size)
+        sample = random_sample(data, floor(UInt32, num_examples(data) * frac_examples))
+        batch_size == 0 ? sample : batch(sample, batch_size)
     end
 end
 
@@ -264,7 +268,7 @@ end
 threshold(train, valid, test) = threshold(train, valid, test, 0.05) # default threshold offset (used for MNIST)
 
 function threshold(train::DataFrame, valid, test, offset)
-    @assert isfpdata(train) "DataFrame to be thresholded contains non-numeric columns: $(eltypes(x))"
+    @assert isfpdata(train) "DataFrame to be thresholded contains non-numeric columns."
     train = convert(Matrix, train)
     valid = issomething(valid) ? convert(Matrix, valid) : nothing
     test = issomething(test) ? convert(Matrix, test) : nothing
@@ -279,6 +283,7 @@ end
 
 "Turn binary data into floating point data close to 0 and 1."
 soften(data::DataFrame, softness=0.05; scale_by_marginal=true, precision=Float32) = begin
+    @assert !isfpdata(data) "'soften' does not support floating point data."
     n_col = ncol(data)
     data_weighted = isweighted(data)
     
@@ -302,52 +307,12 @@ end
 
 "Compute the marginal prob of each feature in a binary dataset."
 marginal_prob(data; precision=Float32) = begin
-    @assert isbinarydata(data) "marginal_prob only support binary data."
+    @assert !isfpdata(data) "'marginal_prob' does not support floating point data."
     n_examples = num_examples(data)
     map(1:num_features(data)) do idx
-        precision(sum(feature_values(data, idx))) / n_examples
+        precision(sum(coalesce.(feature_values(data, idx), 0.5))) / n_examples
     end
 end
-
-@inline _msk_end(df::DataFrame) = _msk_end(num_examples(df))
-
-"Move data to the GPU"
-to_gpu(d::Union{CuBitVector,CuArray}) = d
-to_gpu(m::Array) = CuArray(m)
-to_gpu(v::BitVector) = 
-    AbstractBitVector(to_gpu(chunks(v)), length(v))
-to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
-    CuArray(T.(coalesce(v,typemax(T))))
-to_gpu(v::Vector{Union{Bool,Missing}}) =
-    CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
-to_gpu(df::DataFrame) = isgpu(df) ? df : mapcols(to_gpu, df)
-to_gpu(df::Array{DataFrame}) = map(df) do d
-    to_gpu(d)
-end
-
-"Move data to the CPU"
-to_cpu(m::Union{BitVector,Array}) = m
-to_cpu(m::CuArray) = Array(m)
-to_cpu(cv::CuBitVector) = 
-    AbstractBitVector(to_cpu(cv.chunks), length(cv))
-to_cpu(v::CuVector{T}) where T<:AbstractFloat =
-    replace(Array(v), typemax(T) => missing)
-to_cpu(v::CuVector{UInt8}) =
-    convert(Vector{Union{Bool,Missing}}, 
-        replace(Array(v), typemax(UInt8) => missing))
-to_cpu(df::DataFrame) = mapcols(to_cpu, df)
-to_cpu(df::Array{DataFrame}) = map(df) do d
-    to_gpu(d)
-end
-
-"Check whether data resides on the GPU"
-isgpu(::Union{Array, BitArray}) = false
-isgpu(::Union{CuArray, CuBitVector}) = true
-isgpu(df::DataFrame) = all(isgpu, eachcol(df))
-isgpu(df::Array{DataFrame}) = all(isgpu, df)
-
-"Ensure that `x` resides on the same device as `data`"
-same_device(x, data) = isgpu(data) ? to_gpu(x) : to_cpu(x)
 
 # LIKELIHOOD HELPERS
 
@@ -367,4 +332,84 @@ function fully_factorized_log_likelihood(data; pseudocount=0)
     ll = sum(log_estimates .* counts)
     ll += sum(log.(1 .- exp.(log_estimates)) .* (num_examples(data) .- counts))
     ll_per_example(ll, data)
+end
+
+##############################
+# Imputations & Missing value generation
+##############################
+
+"""
+    make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
+
+Returns a copy of dataframe with making some features missing as MCAR, with
+`keep_prob` as probability of keeping each feature.
+"""
+function make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
+    m = missings(eltype(d), num_examples(d), num_features(d))
+    flag = rand(num_examples(d), num_features(d)) .<= keep_prob
+    m[flag] .= Matrix(d)[flag]
+    DataFrame(m)
+end;
+
+
+"""
+Return a copy of Imputed values of X  (potentially statistics from another DataFrame)
+
+For example, to impute using same DataFrame:
+
+    impute(X; method=:median)
+
+If you want to use another DataFrame to provide imputation statistics:
+
+    impute(test_x, train_x; method=:mean)
+
+
+Supported methods are `:median`, `:mean`, `:one`, `:zero`
+"""
+function impute(X::DataFrame; method=:median)
+    impute(X, X; method=method)
+end
+function impute(X::DataFrame, train::DataFrame; method=:median)
+    type = typeintersect(eltype(X), eltype(train))
+    @assert type !== Union{}
+
+    if typeintersect(type, Bool) == Bool
+        type = Bool
+    elseif typeintersect(type, AbstractFloat) <: AbstractFloat
+        type = typeintersect(type, AbstractFloat)
+    end
+    @assert type !== Union
+
+    if method == :median
+        impute_function = median
+    elseif method == :mean
+        impute_function = mean
+    elseif method == :one
+        impute_function = (x -> one(type))
+    elseif method == :zero    
+        impute_function = (x -> zero(type))
+    else
+        throw("Unsupported imputation type $(method)")
+    end
+
+    X_impute = deepcopy(X)
+    for feature = 1:size(X)[2]
+        mask_train = ismissing.(train[:, feature])
+        mask_x     = ismissing.(X[:, feature])
+
+        cur_impute = impute_function(train[:, feature][.!(mask_train)] )
+
+        if type == Bool
+            X_impute[mask_x, feature] .= Bool(cur_impute .>= 0.5)
+        else 
+            X_impute[mask_x, feature] .= type(cur_impute)
+        end
+    end
+
+    # For Bool return BitArray instead
+    if type == Bool
+        return DataFrame(BitArray(convert(Matrix, X_impute)))
+    else
+        return X_impute::DataFrame
+    end
 end

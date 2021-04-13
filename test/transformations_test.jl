@@ -15,6 +15,24 @@ include("helper/plain_logic_circuits.jl")
     end
 end
 
+@testset "Structured smooth test" begin
+    sdd = zoo_sdd("random.sdd")
+    vtr = zoo_vtree("random.vtree")
+    slc = smooth(sdd)
+    plc = propagate_constants(sdd, remove_unary=true)
+    structplc = compile(StructLogicCircuit, vtr, plc) 
+    sstructplc = smooth(structplc)
+
+    @test !issmooth(sdd)
+    @test issmooth(slc)
+    @test issmooth(sstructplc)
+    @test respects_vtree(sstructplc, vtr)
+
+    e1 = prob_equiv_signature(slc, 3)
+    e2 = prob_equiv_signature(sstructplc, 3, e1)
+    @test e1[slc] == e2[sstructplc]
+end
+
 @testset "Forget test" begin
     for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"),
         c1 = load_logic_circuit(file)
@@ -66,33 +84,33 @@ end
     end
 end
 
-@testset "Condition test" begin
+@testset "conjoin test" begin
     c1 = load_logic_circuit(zoo_sdd_file("random.sdd"))
     
     lit = Lit(num_variables(c1) + 1)
-    @test c1 === condition(c1, lit)
+    @test c1 === conjoin(c1, lit)
 
     lit1 = Lit(1)
-    c2 = condition(c1, lit1)
+    c2 = conjoin(c1, lit1)
     dict = canonical_literals(c2)
     @test haskey(dict, lit1)
     @test !haskey(dict, -lit1) 
-    c3 = condition(c2, -lit1)
+    c3 = conjoin(c2, -lit1)
     @test isfalse(c3)
-    c4 = condition(c2, lit1)
+    c4 = conjoin(c2, lit1)
     @test c4 == c2
 
     c1 = little_2var()
-    c2 = condition(c1, lit1)
+    c2 = conjoin(c1, lit1)
     @test num_nodes(c2) == 6
     @test num_edges(c2) == 5
 
     lit2 = Lit(2)
-    c3 = condition(c1, lit2)
+    c3 = conjoin(c1, lit2)
     @test num_nodes(c3) == 6
     @test num_edges(c3) == 6
 
-    c4 = condition(c2, lit2)
+    c4 = conjoin(c2, lit2)
     @test num_nodes(c4) == 4
     @test num_edges(c4) == 3
 
@@ -101,7 +119,7 @@ end
     lit2 = compile(PlainLogicCircuit, Lit(2))
     or = Plain⋁Node([lit1])
     c5 = or & lit2 & litn1
-    @test isfalse(condition(c5, - Lit(1)))
+    @test isfalse(conjoin(c5, - Lit(1)))
 end
 
 @testset "Split test" begin
@@ -186,6 +204,11 @@ end
     # TODO
     # @test isstructdecomposable(c1)
     # @test isdeterministic(c1)
+
+    # Test when there are no candidates to transform.
+    c2 = (compile(PlainLogicCircuit, -Lit(2)) & compile(PlainLogicCircuit, Lit(1))) |
+         (compile(PlainLogicCircuit, -Lit(1)) & compile(PlainLogicCircuit, Lit(2)))
+    @test_nowarn struct_learn(c2; maxiter = 10, verbose = false)
 end
 
 @testset "Clone Candidates" begin

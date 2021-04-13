@@ -1,13 +1,14 @@
 using DataFrames: DataFrame
 
-export variables_by_node, 
-    issmooth, 
+export issmooth, 
     isdecomposable, 
     isstruct_decomposable,
     isdeterministic, 
     iscanonical,
     implied_literals,
     sat_prob, 
+    issatisfiable,
+    istautology,
     model_count, 
     prob_equiv_signature,
     infer_vtree
@@ -19,10 +20,10 @@ export variables_by_node,
 import Base: foreach # extend
 
 function foreach(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                f_a::Function, f_o::Function)
+                f_a::Function, f_o::Function, seen=nothing)
     f_leaf(n) = isliteralgate(n) ? f_lit(n) : f_con(n)
     f_inner(n) = is⋀gate(n) ? f_a(n) : f_o(n)
-    foreach(node, f_leaf, f_inner)
+    foreach(node, f_leaf, f_inner, seen)
     nothing # returning nothing helps save some allocations and time
 end
 
@@ -33,8 +34,7 @@ import ..Utils: foldup # extend
         f_con::Function, 
         f_lit::Function, 
         f_a::Function, 
-        f_o::Function, 
-        ::Type{T}; nload = nload, nsave = nsave, reset=true)::T where {T}
+        f_o::Function)::T where {T}
 
 Compute a function bottom-up on the circuit. 
 `f_con` is called on constant gates, `f_lit` is called on literal gates, 
@@ -42,11 +42,10 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` through a callback from the children.
 """
 function foldup(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                f_a::Function, f_o::Function, ::Type{T};
-                nload = nload, nsave = nsave, reset=true)::T where {T}
+                f_a::Function, f_o::Function, ::Type{T}, cache=nothing)::T where {T}
     f_leaf(n) = isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
-    f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)::T
-    foldup(node, f_leaf, f_inner, T; nload, nsave, reset)
+    f_inner(n, call) = is⋀gate(n) ? f_a(n, call)::T : f_o(n, call)
+    foldup(node, f_leaf, f_inner, T, cache)::T
 end
 
 import ..Utils: foldup_aggregate # extend
@@ -57,7 +56,7 @@ import ..Utils: foldup_aggregate # extend
         f_lit::Function, 
         f_a::Function, 
         f_o::Function, 
-        ::Type{T};  nload = nload, nsave = nsave, reset=true)::T where T
+        ::Type{T})::T where T
 
 Compute a function bottom-up on the circuit. 
 `f_con` is called on constant gates, `f_lit` is called on literal gates, 
@@ -65,15 +64,14 @@ Compute a function bottom-up on the circuit.
 Values of type `T` are passed up the circuit and given to `f_a` and `f_o` in an aggregate vector from the children.
 """
 function foldup_aggregate(node::LogicCircuit, f_con::Function, f_lit::Function, 
-                          f_a::Function, f_o::Function, ::Type{T};
-                          nload = nload, nsave = nsave, reset=true)::T where T
+                          f_a::Function, f_o::Function, ::Type{T}, cache=nothing) where T
     function f_leaf(n) 
         isliteralgate(n) ? f_lit(n)::T : f_con(n)::T
     end
     function f_inner(n, cs) 
         is⋀gate(n) ? f_a(n, cs)::T : f_o(n, cs)::T
     end
-    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T; nload, nsave, reset)
+    foldup_aggregate(node, f_leaf::Function, f_inner::Function, T, cache)::T
 end
 
 #####################
@@ -87,22 +85,19 @@ import .Utils.variables # extend
 
 Get a bitset of variables mentioned in the circuit `root`.
 """
-function variables(root::LogicCircuit)::BitSet
+function variables(root::LogicCircuit, cache=nothing)::BitSet
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
     f_inner(n, call) = mapreduce(call, union, children(n))
-    foldup(root, f_con, f_lit, f_inner, f_inner, BitSet)
+    foldup(root, f_con, f_lit, f_inner, f_inner, BitSet, cache)
 end
 
-"Get the variable scope of each node in the circuit"
-function variables_by_node(root::LogicCircuit)::Dict{LogicCircuit,BitSet}
-    # variables_by_node(linearize(root))
-    scope = Dict{Node,BitSet}()
-    f_con(n) = scope[n] = BitSet()
-    f_lit(n) = scope[n] = BitSet(variable(n))
-    f_inner(n, call) = scope[n] = mapreduce(call, union, children(n))
-    foldup(root, f_con, f_lit, f_inner, f_inner, BitSet)
-    scope
+"Get the variable in the circuit with the largest index"
+function max_variable(root::LogicCircuit, cache=nothing)::Var
+    f_con(n) = Var(0)
+    f_lit(n) = variable(n)
+    f_inner(n, call) = mapreduce(call, max, children(n))
+    foldup(root, f_con, f_lit, f_inner, f_inner, Var, cache)
 end
 
 """
@@ -110,7 +105,7 @@ end
 
 Is the circuit smooth?
 """
-function issmooth(root::LogicCircuit)::Bool
+function issmooth(root::LogicCircuit, cache=nothing)::Bool
     result::Bool = true
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -120,7 +115,7 @@ function issmooth(root::LogicCircuit)::Bool
         result = result && all(c -> c == scope, cs)
         scope
     end 
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet, cache)
     result
 end
 
@@ -130,7 +125,7 @@ end
     
 Is the circuit decomposable?
 """
-function isdecomposable(root::LogicCircuit)::Bool
+function isdecomposable(root::LogicCircuit, cache=nothing)::Bool
     result::Bool = true
     f_con(_) = BitSet()
     f_lit(n) = BitSet(variable(n))
@@ -139,7 +134,7 @@ function isdecomposable(root::LogicCircuit)::Bool
         reduce(union, cs)
     end 
     f_o(_, cs) = reduce(union, cs)
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, BitSet, cache)
     result
 end
 
@@ -150,19 +145,7 @@ end
 Is the circuit structured-decomposable?
 """
 function isstruct_decomposable(root::LogicCircuit)::Bool
-    result::Bool = true
-    f_con(_) = [BitSet()]
-    f_lit(n) = [BitSet(variable(n))]
-    f_a(_, cs) = begin
-        result = result && isdisjoint(vcat(cs...)...)
-        map(c -> reduce(union!, c), cs)
-    end 
-    f_o(_, cs) = begin
-        result = result && (length(cs) == 0 || all(==(cs[1]), cs))
-        [reduce(union, vcat(cs...))]
-    end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Vector{BitSet})
-    result
+    infer_vtree(root) !== nothing
 end
 
 
@@ -171,101 +154,51 @@ end
 Infer circuits vtree if the circuit is struct-decomposable it.
 Otherwise return `nothing`.
 """
-function infer_vtree(root::LogicCircuit)::Union{Vtree, Nothing}
+function infer_vtree(root::LogicCircuit, cache=nothing)::Union{Vtree, Nothing}
+    # WARNING: this function is known to have bugs; https://github.com/Juice-jl/LogicCircuits.jl/issues/82
     # TODO remove after the `isstruct_decomposable` bug is fixed
     if !issmooth(root)
         throw("Circuit not smooth. Inferring vtree not supported yet!")
     end
 
-    if !isstruct_decomposable(root)
-        return nothing # or should we throw error?
-    end
+    vtr_dict = Dict{Var, PlainVtreeLeafNode}()
 
-    f_con(_) = nothing # can we have constants when there is a vtree?
+    f_con(_) = (nothing, true) # give constants nothing
     f_lit(n) = begin 
-        PlainVtree(variable(n))
+        if variable(n) ∉ keys(vtr_dict)
+            vtr_dict[variable(n)] = PlainVtree(variable(n))
+        end
+        (vtr_dict[variable(n)], true)
     end
     f_a(n, call) = begin
-        @assert  num_children(n) == 2 "And node had $num_children(n) childern. Should be 2"
-        left = call(children(n)[1])::Vtree
-        right = call(children(n)[2])::Vtree
-        PlainVtreeInnerNode(left, right)
+        if num_children(n) != 2
+            return (call(children(n)[1])[1], false)
+        end
+
+        (left, ld) = call(children(n)[1])
+        (right, rd) = call(children(n)[2])
+        if ((left === nothing) | (right === nothing)) & (left !== right)
+            (left === nothing ? right : left, true)
+        elseif !isdisjoint(variables(left), variables(right))
+            (left, false)
+        elseif !has_parent(left) & !has_parent(right)
+            (PlainVtreeInnerNode(left, right), ld & rd)
+        elseif has_parent(left) & has_parent(right) & (parent(left) == parent(right))
+            (parent(left), ld & rd)
+        else
+            (left, false)
+        end
     end
     f_o(n, call) = begin 
-        # Already checked struct-decomposable so just expand on first child
         @assert num_children(n) > 0 "Or node has no children"
-        call(children(n)[1])        
-    end
-    foldup(root, f_con, f_lit, f_a, f_o, Vtree)
+        ccalls = map(x -> call(x), children(n))
+        (ccalls[1][1], all(x -> x[1] == ccalls[1][1], ccalls) & all(x -> x[2], ccalls))
+    end    
+    res = foldup(root, f_con, f_lit, f_a, f_o, Tuple{Union{Vtree, Nothing}, Bool})
+    res[2] ? res[1] : nothing
 end
 
 
-"""
-    isdeterministic(root::LogicCircuit)::Bool
-    
-Is the circuit determinstic?
-Note: this function is generally intractable for large circuits.
-"""
-function isdeterministic(root::LogicCircuit)::Bool
-    mgr = sdd_mgr_for(root)
-    result::Bool = true
-    f_con(c) = mgr(constant(c))
-    f_lit(n) = mgr(literal(n))
-    f_a(_, cs) = reduce(&, cs)
-    f_o(_, cs) = begin
-        for i = 1:length(cs)
-            for j = i+1:length(cs)
-               result &= isfalse(cs[i] & cs[j])
-            end
-        end
-        reduce(|, cs)
-    end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Sdd)
-    result
-end
-
-
-"""
-    implied_literals(root::LogicCircuit)::Dict{LogicCircuit, Union{BitSet, Nothing}}
-
-Compute at each node literals that are implied by the formula. 
-nothing at a node means all literals are implied (i.e. the node's formula is false)
-
-This algorithm is sound but not complete - all literals returned are correct, but some true implied literals may be missing. 
-"""
-implied_literals(root::LogicCircuit)::Dict{LogicCircuit, Union{BitSet, Nothing}} =
-    implied_literals_rec(root, Dict{LogicCircuit, Union{BitSet, Nothing}}())
-    
-
-function implied_literals_rec(root::LogicCircuit, lcache::Dict{LogicCircuit, Union{BitSet, Nothing}})
-    if isconstantgate(root)
-        if constant(root)
-            # True implies no literals
-            lcache[root] = BitSet()
-        else
-            # False implies any literal, so "full" bitset represented by Nothing
-            lcache[root] = nothing
-        end
-    elseif isliteralgate(root)
-        lcache[root] = BitSet([literal(root)])
-    elseif isinnergate(root)
-        for c in root.children
-            implied_literals_rec(c, lcache)
-        end
-        if is⋀gate(root)
-            # If there's a false in here then this is false too
-            if any(x -> lcache[x] === nothing, root.children)
-                lcache[root] = nothing
-            else
-                lcache[root] = mapreduce(c -> lcache[c], union, root.children)
-            end
-        else
-            # Just filter out any falses, they don't do anything here
-            lcache[root] = mapreduce(c -> lcache[c], intersect, filter(x -> lcache[x] !== nothing, root.children))
-        end
-    end
-    lcache
-end
 #####################
 # structural properties
 #####################
@@ -292,6 +225,55 @@ function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
    return true
 end
 
+
+"""
+    isdeterministic(root::LogicCircuit)::Bool
+    
+Is the circuit determinstic?
+Note: this function is generally intractable for large circuits.
+"""
+function isdeterministic(root::LogicCircuit, cache=nothing)::Bool
+    mgr = sdd_mgr_for(root)
+    result::Bool = true
+    f_con(c) = compile(mgr,constant(c))
+    f_lit(n) = compile(mgr,literal(n))
+    f_a(_, cs) = reduce(&, cs)
+    f_o(_, cs) = begin
+        for i = 1:length(cs)
+            for j = i+1:length(cs)
+               result &= isfalse(cs[i] & cs[j])
+            end
+        end
+        reduce(|, cs)
+    end
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Sdd, cache)
+    result
+end
+
+
+"""
+    implied_literals(root::LogicCircuit)::Union{BitSet, Nothing}
+
+Compute at each node literals that are implied by the formula. 
+`nothing` at a node means all literals are implied (i.e. the node's formula is false)
+
+This algorithm is sound but not complete - all literals returned are correct, but some true implied literals may be missing. 
+"""
+function implied_literals(root::LogicCircuit, cache=nothing)
+    f_con(c) = constant(c) ? BitSet() : nothing
+    f_lit(n) = BitSet([literal(n)])
+    f_a(_, cs) = if any(isnothing, cs)
+        nothing
+    else
+        reduce(union, cs)
+    end
+    f_o(_, cs) = begin
+        reduce(intersect, filter(issomething, cs))
+    end
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Union{BitSet, Nothing}, cache)
+end
+
+
 #####################
 # algebraic model counting queries
 #####################
@@ -302,14 +284,30 @@ end
 Get the probability that a random world satisties the circuit. 
 Probability of each variable is given by `varprob` Function which defauls to 1/2 for every variable.
 """
-function sat_prob(root::LogicCircuit; 
+function sat_prob(root::LogicCircuit, cache=nothing; 
                   varprob::Function = v -> BigInt(1) // BigInt(2))::Rational{BigInt}
     f_con(n) = istrue(n) ? one(Rational{BigInt}) : zero(Rational{BigInt})
     f_lit(n) = ispositive(n) ? varprob(variable(n)) : one(Rational{BigInt}) - varprob(variable(n))
     f_a(n, call) = mapreduce(call, *, children(n))
     f_o(n, call) = mapreduce(call, +, children(n))
-    foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt})
+    foldup(root, f_con, f_lit, f_a, f_o, Rational{BigInt}, cache)
 end
+
+"""
+    issatisfiable(root::LogicCircuit)::Bool    
+
+Determine whether the logical circuit is satisfiable (has a satisfying assignment).
+Requires decomposability of the circuit."""
+issatisfiable(root::LogicCircuit)::Bool =
+    !iszero(sat_prob(root)) 
+
+"""
+istautology(root::LogicCircuit)::Bool    
+
+Determine whether the logical circuit is a tautology (every assignment satisfies it; the sentence is valid). 
+Requires decomposability and determinism of the circuit."""
+istautology(root::LogicCircuit)::Bool = 
+    isone(sat_prob(root)) 
 
 """
     model_count(root::LogicCircuit, num_vars_in_scope::Int = num_variables(root))::BigInt    
@@ -331,9 +329,11 @@ const Signature = Vector{Rational{BigInt}}
 Get a signature for each node using probabilistic equivalence checking.
 Note that this implentation may not have any formal guarantees as such.
 """
-function prob_equiv_signature(circuit::LogicCircuit, k::Int)::Dict{Union{Var,Node},Signature}
+function prob_equiv_signature(circuit::LogicCircuit, k::Int, signs=Dict{Union{Var,Node},Signature}())::Dict{Union{Var,Node},Signature}
     # uses probability instead of integers to circumvent smoothing, no mod though
-    signs::Dict{Union{Var,Node},Signature} = Dict{Union{Var,Node},Signature}()
+    if signs === nothing
+        signs = Dict{Union{Var,Node},Signature}()
+    end
     prime::Int = 7919 #TODO set as smallest prime larger than num_variables
     randprob() = BigInt(1) .// rand(1:prime,k)
     do_signs(v::Var) = get!(randprob, signs, v)

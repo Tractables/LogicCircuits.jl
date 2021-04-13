@@ -3,6 +3,7 @@ using LightGraphs
 using TikzGraphs
 
 import LightGraphs: DiGraph
+
 function DiGraph(vtree::Vtree)
     N = num_nodes(vtree)
     g = DiGraph(N)
@@ -64,7 +65,12 @@ function DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
     g, label
 end
 
+
 import TikzGraphs: plot
 plot(vtree::Vtree) = TikzGraphs.plot(DiGraph(vtree)...)
-plot(lc::LogicCircuit) = TikzGraphs.plot(DiGraph(lc)...)
-
+function plot(lc::LogicCircuit; simplify=false) 
+    if simplify
+        lc = propagate_constants(LogicCircuit(lc))
+    end
+    TikzGraphs.plot(DiGraph(lc)...)
+end

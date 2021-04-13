@@ -9,16 +9,12 @@ module TestNodes
     mutable struct TestINode <: Dag
         id::Int
         children::Vector{Dag}
-        data
-        counter::UInt32
-        TestINode(i,c) = new(i,c,nothing,false)
+        TestINode(i,c) = new(i,c)
     end
 
     mutable struct TestLNode <: Dag
         id::Int
-        data
-        counter::UInt32
-        TestLNode(i) = new(i,nothing,false)
+        TestLNode(i) = new(i)
     end
 
     LogicCircuits.NodeType(::Type{<:TestINode}) = Inner()
@@ -54,16 +50,6 @@ module TestNodes
         @test has_children(r)
         @test num_children(r) == 3
         
-        reset_counter(r,5)
-        @test r.counter == 5
-        @test l1.counter == 5
-        @test i12.counter == 5
-
-        reset_counter(r)
-        @test r.counter == 0
-        @test l1.counter == 0
-        @test i12.counter == 0
-
         foreach(r) do n
             n.id += 1
         end
@@ -72,9 +58,6 @@ module TestNodes
         @test i12.id == 4
         @test j2.id == 3
         @test r.id == 6
-        @test r.counter == 0
-        @test l1.counter == 0
-        @test i12.counter == 0
 
         foreach(r, l -> l.id += 1, i -> i.id -= 1)
         @test l1.id == 2+1
@@ -82,9 +65,6 @@ module TestNodes
         @test i12.id == 4-1
         @test j2.id == 3-1
         @test r.id == 6-1
-        @test r.counter == 0
-        @test l1.counter == 0
-        @test i12.counter == 0
 
         @test filter(n -> iseven(n.id), r) == [l2,i2,j2]
 
@@ -132,8 +112,7 @@ end
     istats = inode_stats(lc);
     nstats = node_stats(lc);
 
-    @test !(PlainTrueNode in keys(lstats));
-    @test !(PlainFalseNode in keys(lstats));
+    @test !(PlainConstantNode in keys(lstats));
     @test lstats[PlainLiteralNode] == 8;
     
     @test istats[(Plain⋀Node, 2)] == 9;

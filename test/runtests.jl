@@ -2,4 +2,4 @@
 
 using Jive
 
-runtests(@__DIR__, skip=["runtests.jl", "helper", "_manual_"])
+runtests(@__DIR__, skip=["runtests.jl", "helper/", "_manual_/", "build/"])

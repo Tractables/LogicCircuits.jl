@@ -10,5 +10,8 @@
 *.vscode
 **checkpoint.ipynb
 *Manifest.toml
-docs/build/
+test/build/
 scratch/
+docs/build/
+docs/site/
+docs/src/generated

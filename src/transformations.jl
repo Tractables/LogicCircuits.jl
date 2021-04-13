@@ -2,6 +2,43 @@ export smooth, forget, propagate_constants, deepcopy, condition, replace_node,
     split, clone, merge, split_candidates, random_split, split_step, struct_learn,
     clone_candidates, standardize_circuit
 
+
+"""
+    smooth(root::StructLogicCircuit)::StructLogicCircuit
+    
+Create an equivalent smooth circuit from the given circuit.
+"""
+function smooth(root::StructLogicCircuit)::StructLogicCircuit
+    (false_node, true_node) = canonical_constants(root)
+    @assert (false_node === nothing && true_node === nothing) "You should propagate constants before smoothing a structured circuit!"
+
+    lit_nodes = canonical_literals(root)
+    f_con(n) = (n, BitSet())
+    f_lit(n) = (n, BitSet(variable(n)))
+    f_a(n, call) = begin
+        (prime, pscope) = call(n.prime)
+        prime = fill_missing_vtree(prime, vtree(n).left, vtree(prime), lit_nodes)
+        pscope = variables(vtree(n).left)
+        (sub, sscope) = call(n.sub)
+        sub = fill_missing_vtree(sub, vtree(n).right, vtree(sub), lit_nodes)
+        sscope = variables(vtree(n).right)
+
+        parent_scope = pscope ∪ sscope
+        smoothed = conjoin([prime, sub])
+        @assert variables(vtree(smoothed)) == parent_scope
+        (smoothed, parent_scope)
+    end
+    f_o(n, call) = begin
+        parent_scope = mapreduce(c -> call(c)[2], union, children(n))
+        smooth_children = Vector{Node}(undef, num_children(n))
+        map!(smooth_children, children(n)) do child
+            (smooth_child, scope) = call(child)
+            smooth_node(smooth_child, parent_scope, scope, lit_nodes)
+        end
+        return (disjoin([smooth_children...]; reuse=n), parent_scope)
+    end
+    foldup(root, f_con, f_lit, f_a, f_o, Tuple{Node, BitSet})[1]
+end
 """
     smooth(root::Node)::Node
     
@@ -31,6 +68,46 @@ function smooth(root::Node)::Node
         return (disjoin([smooth_children...]; reuse=n), parent_scope)
     end
     foldup(root, f_con, f_lit, f_a, f_o, Tuple{Node, BitSet})[1]
+end
+
+
+"""
+    smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes)
+
+Return a smooth version of the node where 
+the are added to the scope by filling the gap in vtrees, using literals from `lit_nodes`
+"""
+function smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes)
+    # Compute the vtrees based on variables used
+    target_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
+    curr_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(scope))...)
+    if curr_vtr == target_vtr
+        @assert isempty(setdiff(parent_scope, scope))
+        node # If the node is where it should be on the vtree, we're done
+    else
+        fill_missing_vtree(node, target_vtr, curr_vtr, lit_nodes)
+    end
+end
+
+
+"Construct a smoothed node from start_vtr, when you get to end_vtr insert the original node"
+function fill_missing_vtree(node::StructLogicCircuit, start_vtr, end_vtr, lit_nodes)
+    # If we're at the end just return
+    if start_vtr == end_vtr
+        node
+    elseif isleaf(start_vtr)
+        # If we're at a leaf node, just return the disjunction of literals
+        get_lit(l,vtr) = get!(() -> compile(StructLogicCircuit, vtr, l), lit_nodes, l)
+        lit = var2lit(start_vtr.var)
+        lit_node = get_lit(lit, start_vtr)
+        not_lit_node = get_lit(-lit, start_vtr)
+        disjoin([lit_node, not_lit_node]; use_vtree=start_vtr)
+    else
+        # We're at an inner node, so recurse and conjoin the results?
+        left = fill_missing_vtree(node, start_vtr.left, end_vtr, lit_nodes)
+        right = fill_missing_vtree(node, start_vtr.right, end_vtr, lit_nodes)
+        conjoin(left, right, use_vtree=start_vtr)
+    end
 end
 
 """
@@ -97,7 +174,7 @@ function propagate_constants(root::Node; remove_unary=false)
             proped_children = convert(Vector{T}, filter(c -> !istrue(c), cn))
             if isempty(proped_children)
                 return true_node
-            elseif remove_unary && issingle(proped_children)
+            elseif remove_unary && (length(proped_children) == 1)
                 return proped_children[1]
             else
                 return conjoin(proped_children; reuse=n)
@@ -112,7 +189,7 @@ function propagate_constants(root::Node; remove_unary=false)
             proped_children = convert(Vector{T}, filter(c -> !isfalse(c), cn))
             if isempty(proped_children)
                 return false_node
-            elseif remove_unary && issingle(proped_children)
+            elseif remove_unary && (length(proped_children) == 1)
                 return proped_children[1]
             else
                 return disjoin(proped_children; reuse=n)
@@ -155,12 +232,12 @@ end
 
 
 """
-    condition(root::Node, lit::Lit; callback::Function)::Node
+    conjoin(root::Node, lit::Lit; callback::Function)::Node
 
-Return the circuit conditioned on given literal constrains
+Return the circuit conjoined with th given literal constrains
 `callback` is called after modifying conjunction node
 """
-function condition(root::Node, lit::Lit; callback=noop)::Node
+function conjoin(root::Node, lit::Lit; callback=noop)::Node
     literals = canonical_literals(root)
     (false_node, ) = canonical_constants(root) # reuse constants when possible
     if isnothing(false_node)
@@ -336,6 +413,7 @@ Randomly picking egde and variable from candidates
 """
 function random_split(circuit::Node)
     candidates, variable_scope = split_candidates(circuit)
+    if isempty(candidates) return nothing end
     or, and = rand(candidates)
     vars = Var.(collect(variable_scope[and]))
     var = rand(vars)
@@ -346,6 +424,8 @@ end
 Split step
 """
 function split_step(circuit::Node; loss=random_split, depth=0, sanity_check=true)
+    res = loss(circuit)
+    if isnothing(res) return nothing end
     edge, var = loss(circuit)
     split(circuit, edge, var; depth=depth, sanity_check=sanity_check)
 end
@@ -356,12 +436,26 @@ Structure learning manager
 function struct_learn(circuit::Node; 
     primitives=[split_step], 
     kwargs=Dict(split_step=>(loss=random_split, depth=0)),
-    maxiter=typemax(Int), stop::Function=x->false)
+    maxiter=typemax(Int), stop::Function=x->false, verbose = true)
+
+    valid_prims = copy(primitives)
+    m = length(valid_prims)
 
     for iter in 1 : maxiter
-        primitive_step = rand(primitives)
+        which_primitive = rand(1:m)
+        primitive_step = valid_prims[which_primitive]
         kwarg = kwargs[primitive_step]
-        c2, _ = primitive_step(circuit; kwarg...)
+        r = primitive_step(circuit; kwarg...)
+        if isnothing(r)
+            verbose && println("No more candidates to ", primitive_step, ". Skipping...")
+            deleteat!(valid_prims, which_primitive)
+            m -= 1
+            if m == 0
+                verbose && println("No more transformations available.")
+                return circuit
+            end
+        end
+        c2, _ = r
         if stop(c2)
             return c2
         end
@@ -417,7 +511,7 @@ end
 Replace node `old` with node `new` in circuit `root`
 """
 function replace_node(root::Node, old::Node, new::Node; callback::Function=(x, y, z) -> nothing)::Node
-    @assert GateType(old) == GateType(new)
+    # @assert GateType(old) == GateType(new) # this assertion was removed because it seems unnecessary?
     f_con(n) = old == n ? new : n
     f_lit = f_con
     f_a(n, cns) = old == n ? new : conjoin([cns...]; reuse=n)

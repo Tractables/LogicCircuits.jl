@@ -49,21 +49,27 @@ lc = smooth(load_logic_circuit(zoo_sdd_file("random.sdd")));
 model_count(lc)
 ```
 
-Lets see how forgetting a variable affects the model count. Note that to get the correct model count need to give the number of vairables in the original circuit.
-```@example mc
-f2 = forget(lc, (i) -> (i == 2));
-model_count(f2, num_variables(lc))
-```
-
-Lets see how conditioning affects the model count. Observe that model count of ``\Delta`` should equal to adding model counts of ``\Delta \mid x_2`` and ``\Delta \mid \lnot x_2``.
+Let's see how conjoining affects the model count. Observe that model count of ``\Delta`` should equal to adding model counts of ``\Delta \mid x_2`` and ``\Delta \mid \lnot x_2``.
 
 ```@example mc
-c2 = condition(lc, Lit(2));
-c2not = condition(lc, Lit(-2));
+c2 = conjoin(lc, Lit(2));
+c2not = conjoin(lc, Lit(-2));
 model_count(c2, num_variables(lc)), model_count(c2not, num_variables(lc))
 ```
+
+Note that some transformations lead to losing required properties needed for tractable model count. For example, after forgetting variables we lose determinism and hence cannot use [`model_count`](@ref) anymore.
 
 
 ## Equivalence Checking
 
 Given two logic circuits ``\Delta_1`` and ``\Delta_2``, the goal is to check whether these two circuits represent the same formula. There are both determnistic and probabilistic algorithms for this task.
+
+
+## Misc
+
+Here are few other useful queries. Look inside thier documentation for more details.
+
+- [`variables`](@ref): Get the variable mentioned in the circuit root.
+- [`variables_by_node`](@ref): Get the variable scope of each node in the circuit .
+- [`infer_vtree`](@ref) Infer vtree of struct decomposable circuits.
+- [`implied_literals`](@ref) Implied Literals.

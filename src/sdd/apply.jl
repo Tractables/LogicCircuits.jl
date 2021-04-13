@@ -1,14 +1,12 @@
 """
 Conjoin two SDDs
 """
-@inline conjoin(::SddFalseNode, ::SddTrueNode) = false_sdd
-@inline conjoin(::SddTrueNode, ::SddFalseNode) = false_sdd
-@inline conjoin(s::Sdd, ::SddTrueNode) = s
-@inline conjoin(::Sdd, ::SddFalseNode) = false_sdd
-@inline conjoin(::SddTrueNode, s::Sdd) = s
-@inline conjoin(::SddFalseNode, ::Sdd) = false_sdd
-@inline conjoin(::SddTrueNode, ::SddTrueNode) = true_sdd
-@inline conjoin(::SddFalseNode, ::SddFalseNode) = false_sdd
+@inline conjoin(x::SddConstantNode, y::SddConstantNode) = 
+    ((x === false_sdd) || (y === false_sdd)) ? false_sdd : true_sdd  
+@inline conjoin(x::Sdd, y::SddConstantNode) = 
+    (y === false_sdd) ? false_sdd : x
+@inline conjoin(x::SddConstantNode, y::Sdd) = 
+    conjoin(y, x)
 
 # const stats = Dict{Tuple{Int,Int},Int}()
 
@@ -19,7 +17,6 @@ function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd
         conjoin_indep(s,t)
     end
 end
-
 
 # Note: attempts to make a special cache for conjunctions with literals have not yielded speedups
 

@@ -37,7 +37,7 @@ using DataFrames: DataFrame
     @test !istrue(f)
     @test !isfalse(f)
 
-    @test literal(vtree(Lit(-5))) == Lit(-5)
+    @test literal(compile(vtree,Lit(-5))) == Lit(-5)
     @test literal((PlainStructLogicCircuit,vtree)(Lit(-5))) == Lit(-5)
     @test constant((PlainStructLogicCircuit,vtree)(false)) == false
     
@@ -54,7 +54,6 @@ using DataFrames: DataFrame
     @test isdecomposable(f)
 
     @test variables(f) == BitSet(1:10)
-    @test variables_by_node(f)[f] == BitSet(1:10)
 
     @test num_variables(f) == 10
     @test issmooth(f)

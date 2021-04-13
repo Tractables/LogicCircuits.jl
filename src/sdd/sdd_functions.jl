@@ -1,5 +1,6 @@
 export prime, sub, sdd_size, sdd_num_nodes, mgr, 
-       compress, unique⋁, canonicalize, negate
+       compress, unique⋁, canonicalize, negate,
+       entails, equivalent, (≡)
 
 
 #####################
@@ -19,9 +20,6 @@ export prime, sub, sdd_size, sdd_num_nodes, mgr,
 "Get the manager of a `Sdd` node, which is its `SddMgr` vtree"
 mgr(s::Sdd) = s.vtree
 
-@inline constant(::SddTrueNode) = true
-@inline constant(::SddFalseNode) = false
-
 @inline children(n::Sdd⋀Node) = [n.prime,n.sub]
 @inline children(n::Sdd⋁Node) = n.children
 
@@ -36,8 +34,8 @@ sdd_size(sdd) = mapreduce(n -> num_children(n), +, ⋁_nodes(sdd); init=0) # def
 "Count the number of decision nodes in the SDD"
 sdd_num_nodes(sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
 
-Base.show(io::IO, ::SddTrueNode) = print(io, "⊤")
-Base.show(io::IO, ::SddFalseNode) = print(io, "⊥")
+Base.show(io::IO, n::SddConstantNode) = 
+    print(io, (isfalse(n) ? "⊥" : "⊤"))
 Base.show(io::IO, c::SddLiteralNode) = print(io, literal(c))
 Base.show(io::IO, c::Sdd⋀Node) = begin
     recshow(c::Union{SddConstantNode,SddLiteralNode}) = "$c"
@@ -59,7 +57,12 @@ compile(::Type{<:Sdd}, mgr::SddMgr, arg::LogicCircuit) = compile(mgr, arg)
 
 "Compile a circuit (e.g., CNF or DNF) into an SDD, bottom up by distributing circuit nodes over vtree nodes"
 
-compile(mgr::SddMgr, c::LogicCircuit, scopes=variables_by_node(c)) = 
+compile(mgr::SddMgr, c::LogicCircuit) = begin 
+    scopes = Dict{LogicCircuit, BitSet}()
+    variables(c, scopes) # populate scopes dict
+    compile(mgr, c, GateType(c), scopes)
+end
+compile(mgr::SddMgr, c::LogicCircuit, scopes) = 
     compile(mgr, c, GateType(c), scopes)
 compile(mgr::SddMgr, c::LogicCircuit, ::ConstantGate, _) = 
     compile(mgr, constant(c))
@@ -113,8 +116,8 @@ compile(::SddMgr, constant::Bool) =
 """
 Negate an SDD
 """
-@inline negate(::SddFalseNode) = true_sdd
-@inline negate(::SddTrueNode) = false_sdd
+@inline negate(c::SddConstantNode) = 
+    (c === false_sdd) ? true_sdd : false_sdd
 
 function negate(s::SddLiteralNode)
     if ispositive(s) 
@@ -206,3 +209,31 @@ function unique⋁(xy::XYPartition, mgr::SddMgrInnerNode)
         node
     end::Sdd⋁Node
 end
+
+# specialize mode count to extract number of variables from vtree global scope
+model_count(root::StructLogicCircuit)::BigInt =
+    model_count(root, length(global_scope(vtree(root))))
+
+"Decide whether one sentence logically entails another"
+entails(x::Sdd, y::Sdd) = ((x & !y) === false_sdd)
+
+"Decide whether two sentences are logically equivalent"
+equivalent(x::Sdd, y::Sdd) = begin
+    # note that ≡ has the wrong operator prescedence for use in logic
+    @assert root(vtree(x)) === root(vtree(y))
+    return (x === y)
+end
+
+import Base: xor
+
+"Exclusive logical disjunction (XOR)"
+xor(x::Sdd,y::Sdd) = (x ∧ ¬y) ∨ (y ∧ ¬x)
+
+"Smooth an sdd to a StructLogicCircuit"
+function smooth(root::Sdd)::StructLogicCircuit
+    lc = LogicCircuit(root)
+    plc = propagate_constants(lc, remove_unary=true)
+    slc = StructLogicCircuit(root.vtree, plc)
+    smooth(slc)
+end
+

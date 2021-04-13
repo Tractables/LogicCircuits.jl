@@ -58,9 +58,6 @@ import ..Utils.children # make available for extension by concrete types
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::LogicCircuit)::Lit = n.literal # override when needed
 
-"Get the logical constant in a given constant leaf node"
-function constant end
-
 "Conjoin nodes into a single circuit"
 function conjoin end
 
@@ -87,13 +84,18 @@ function compile end
 "Is the node a constant gate?"
 @inline isconstantgate(n) = GateType(n) isa ConstantGate
 
+"Get the logical constant in a given constant leaf node"
+@inline constant(n::LogicCircuit) = constant(GateType(n), n)
+@inline constant(::ConstantGate, n::LogicCircuit) = n.constant::Bool
+
 "Get the logical variable in a given literal leaf node"
-@inline variable(n::LogicCircuit)::Var = variable(GateType(n), n)
-@inline variable(::LiteralGate, n::LogicCircuit)::Var = lit2var(literal(n))
+@inline variable(n::LogicCircuit) = variable(GateType(n), n)
+@inline variable(::LiteralGate, n::LogicCircuit)::Var = lit2var(literal(n))::Var
 
 "Get the sign of the literal leaf node"
-@inline ispositive(n::LogicCircuit)::Bool = ispositive(GateType(n), n)
+@inline ispositive(n::LogicCircuit) = ispositive(GateType(n), n)
 @inline ispositive(::LiteralGate, n::LogicCircuit)::Bool = literal(n) >= 0 
+
 @inline isnegative(n::LogicCircuit)::Bool = !ispositive(n)
 
 "Is the circuit syntactically equal to true?"
@@ -118,6 +120,11 @@ function compile end
 @inline Base.:|(x::LogicCircuit, y::LogicCircuit) = disjoin(x,y)
 @inline Base.:|(xs::LogicCircuit...) = disjoin(xs...)
 
+@inline Base.:-(x::LogicCircuit) = begin
+    @assert isliteralgate(x) "Negation is only supported for literal gates, not arbitrary circuits."
+    compile(x, -literal(x))
+end
+
 # Get the function corresponding to the gate type
 @inline op(::⋀Gate)::Function = conjoin
 @inline op(::⋁Gate)::Function = disjoin
@@ -131,10 +138,15 @@ function compile end
 
 compile(n::LogicCircuit, args...) = compile(typeof(n), args...)
 
+"Get a sequence of positive literals"
 pos_literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
     map(l -> compile(T, Lit(l)), 1:num_lits)
+
+"Get a sequence of negative literals"
 neg_literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
     map(l -> compile(T, -Lit(l)), 1:num_lits)
+
+"Get a sequence of positive and negative literals"
 literals(::Type{T}, num_lits::Int) where {T<:LogicCircuit} = 
     zip(pos_literals(T,num_lits), neg_literals(T,num_lits))
 

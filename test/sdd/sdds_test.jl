@@ -12,7 +12,7 @@ include("../helper/validate_sdd.jl")
    @test_throws Exception compile(mgr.left, cnf)
    @test_throws Exception compile(right_most_descendent(mgr), cnf)
 
-   r = mgr(cnf)
+   r = compile(mgr,cnf)
    @test compile(mgr, cnf) === r
 
    @test respects_vtree(r)
@@ -45,4 +45,28 @@ include("../helper/validate_sdd.jl")
 
    end
 
+end
+
+@testset "sdd smoothing test" begin
+   cnfs = [ 
+            ("easy","C17_mince",32,92,45)
+            ("easy","majority_mince",32,132,61)
+            ("easy","b1_mince",8,169,84)
+            ("easy","cm152a_mince",2048,127,62)
+            ("iscas89","s208.1.scan",262144,1942,927)
+          ]
+   
+          
+   for (suite, name, count, size, nodes) in cnfs
+
+      cnf = zoo_cnf("$suite/$name.cnf")
+      vtree = zoo_vtree("$suite/$name.min.vtree");
+
+      mgr = SddMgr(vtree)
+      cnfΔ = compile(mgr, cnf)
+
+      smooth_slc = smooth(cnfΔ)
+      @test issmooth(smooth_slc)
+      @test respects_vtree(smooth_slc, vtree)
+   end  
 end

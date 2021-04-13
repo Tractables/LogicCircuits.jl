@@ -2,7 +2,7 @@ using Test
 using Suppressor
 using LogicCircuits
 
-include("helper/plain_logic_circuits.jl")
+include("../helper/plain_logic_circuits.jl")
 
 
 @testset "Queries test" begin
@@ -15,12 +15,10 @@ include("helper/plain_logic_circuits.jl")
     @test isdeterministic(r1)
     @test isdeterministic(compile(PlainLogicCircuit, Lit(1)))
 
-    @test isstruct_decomposable(r1)
+    @test !isstruct_decomposable(r1)
     @test isstruct_decomposable(compile(PlainLogicCircuit, Lit(1)))
 
     @test variables(r1) == BitSet(1:10)
-    @test variables_by_node(r1)[r1] == BitSet(1:10)
-    @test variables_by_node(r1)[children(children(r1)[1])[5]] == BitSet(5)
 
     @test num_variables(r1) == 10
     @test issmooth(r1)
@@ -42,7 +40,7 @@ include("helper/plain_logic_circuits.jl")
     or1 = and1 | and2
     @test !isdecomposable(or1)
     @test !isdeterministic(or1)
-    @test !isstruct_decomposable(or1)
+    # @test !isstruct_decomposable(or1)
 
     #######################
     ors = map(1:10) do v
@@ -59,7 +57,7 @@ include("helper/plain_logic_circuits.jl")
     and5 = or1 & or2
     @test !isdecomposable(and5)
     @test !isdeterministic(and5)
-    @test !isstruct_decomposable(and5)
+    # @test !isstruct_decomposable(and5)
 
     #######################
     leaf1 = compile(PlainLogicCircuit, Lit(1))
@@ -95,7 +93,7 @@ include("helper/plain_logic_circuits.jl")
     @test isstruct_decomposable(and2)
     @test isdecomposable(circuit)
     @test !isstruct_decomposable(circuit)
-    @test !isstruct_decomposable(or1 & lits[3] | lits[3] & or1)
+    @test isstruct_decomposable(or1 & lits[3] | lits[3] & or1)
     @test isstruct_decomposable(or1 & lits[3] | or1 & lits[3])
 
 end
@@ -130,16 +128,19 @@ end
     circuit = compile(mgr, c17)
     plc = PlainLogicCircuit(circuit)
 
-    il = implied_literals(plc)
+    # store implied literals in each data field
+    data = Dict()
+    implied_literals(plc, data)
 
     for ornode in or_nodes(plc)
         @test num_children(ornode) == 2
         # If there's a nothing just continue, it'll always work
-        if il[ornode.children[1]] === nothing || il[ornode.children[2]] === nothing
+        if data[ornode.children[1]] === nothing || 
+            data[ornode.children[2]] === nothing
             continue
         end
-        implied1 = il[ornode.children[1]]
-        implied2 = il[ornode.children[2]]
+        implied1 = data[ornode.children[1]]
+        implied2 = data[ornode.children[2]]
         neg_implied2 = BitSet(map(x -> -x, collect(implied2)))
         @test !isempty(intersect(implied1, neg_implied2))
     end

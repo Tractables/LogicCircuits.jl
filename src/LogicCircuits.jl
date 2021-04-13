@@ -9,14 +9,18 @@ include("Utils/Utils.jl")
 
 include("abstract_logic_nodes.jl")
 include("bit_circuit.jl")
-include("queries.jl")
-include("satisfies_flow.jl")
-include("transformations.jl")
+
+include("queries/queries.jl")
+include("queries/satisfies.jl")
+include("queries/satisfies_flow.jl")
+
 include("plain_logic_nodes.jl")
 
 include("structured/abstract_vtrees.jl")
 include("structured/plain_vtrees.jl")
 include("structured/structured_logic_nodes.jl")
+
+include("transformations.jl")
 
 include("sdd/sdds.jl")
 include("sdd/sdd_functions.jl")

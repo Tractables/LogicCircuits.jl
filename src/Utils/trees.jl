@@ -16,7 +16,7 @@ abstract type Tree <: Dag end
 import Base: parent
 
 "Get the parent of a given tree node (or nothing if the node is root)"
-parent(n::Tree) = n.parent
+@inline parent(n::Tree) = n.parent
 
 "Does the node have a parent?"
 @inline has_parent(n::Tree)::Bool = issomething(parent(n))
@@ -57,6 +57,7 @@ lca(::Nothing, v::Tree, ::Function)::Tree = v
 lca(v::Tree, ::Nothing, ::Function)::Tree = v
 lca(::Nothing, ::Nothing, ::Function)::Nothing = nothing
 lca(v::Tree, w::Tree, u::Tree, r::Tree...) = lca(lca(v,w), u, r...)
+lca(v::Tree)::Tree = v
 
 "Find the leaf in the tree by follwing the branching function"
 find_leaf(n::Tree, branch::Function) = find_leaf(n, NodeType(n), branch)

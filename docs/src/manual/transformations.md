@@ -1,21 +1,13 @@
 # [Tranformations](@id man-tranformations)
 
-## Conditioning 
+In this section, we go over definition of possible transformations and code snippets to use them `LogicCircuits.jl`. We will use the following circuit(s) in our examples.
 
-Given the logical formula of the circuit ``\Delta``, conditioning on the literal ``x`` (resp. ``\lnot x``) is equivalent to replacing every occurance of ``X`` with `true` (resp. `false`). 
+```@example transform
+using LogicCircuits
+X1, X2, X3 = pos_literals(LogicCircuit, 3)
+circuit = (X1 & (X2 | -X3)) | (-X1 & (-X2 | X3));
 
-```math
-(\Delta \mid x)
-```
-
-For example, to condition on ``\lnot x_2``, you can use [`condition`](@ref) as follows:
-
-```@example condition
-using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
-c2not = condition(lc, Lit(-2));
-
-num_nodes(lc), num_nodes(c2not)
+tree_formula_string(circuit)
 ```
 
 ## Forgetting
@@ -32,15 +24,22 @@ Forgeting is also equivalent to disjunction of different ways to condition on ``
 \exists X \Delta = (\Delta \mid x) \lor (\Delta \mid \lnot x)
 ```
 
+Given a circuit you can use [`forget`](@ref) to forget a variable (or multiple variables). For example, let's forget ``X_1``:
 
-For example, to forget ``X_2`` you can use [`forget`](@ref) as follows:
+```@example transform
+f1 = forget(circuit, (i) -> (i == Var(1)));
 
-```@example forget
-using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
-f1 = forget(lc, (i) -> (i == 2));
+tree_formula_string(f1)
+```
 
-num_variables(lc), num_variables(f1)
+## Propagate Constants
+
+Some circuits might have constants `True` or `False` in them. To remove the constants and simplifying the circuits we can use [`propagate_constants`](@ref).
+
+```@example transform
+f1_prop = propagate_constants(f1);
+
+tree_formula_string(f1_prop)
 ```
 
 ## Smoothing
@@ -51,13 +50,76 @@ An OR node is smooth if all of its children mention the same variables.
 
 Given a non-smooth circuit we can [`smooth`](@ref) it, for example:
 
-```@example smooth2
-using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
-smooth_lc = smooth(lc)
-
-issmooth(lc), issmooth(smooth_lc)
+```@example transform
+nonsmooth_circuit = X1 | -X2
+tree_formula_string(nonsmooth_circuit)
 ```
+
+```@example transform
+smooth_circuit = smooth(nonsmooth_circuit)
+tree_formula_string(smooth_circuit)
+```
+
+## Split
+
+Given the logical formula of the circuit ``\Delta`` and a variable ``x``, splitting would give us the following logical circuit:
+
+```math
+(\Delta \land x) \lor (\Delta \land \lnot x)
+```
+
+```@example transform
+c1 = |((X1 | -X1) & (X2 | -X2));
+c2, _ = split(c1, (c1, c1.children[1]), Var(1); depth = 2);
+plot(c1)
+```
+
+```@example transform
+plot(c2)
+```
+
+
+## Clone
+
+Clone an `or` node and redirect one of its parents to the new copy. See [`clone`](@ref) for more documentation.
+
+```@example transform
+or = X1 | -X1
+and1, and2 = (&)(or), (&)(or)
+c1 = and1 | and2
+c2 = clone(c1, and1, and2, or)
+plot(c1)
+```
+
+```@example transform
+plot(c2)
+```
+
+## Merge
+
+Merges two circuits. See [`merge`](@ref) for more documentation.
+
+```@example transform
+or1 = X1 | (-X1 & -X2)
+or2 = -X1 | -X2
+c1 = |(or1 & or2)
+c2 = merge(c1, or1, or2)
+plot(c1)
+```
+
+```@example transform
+plot(c2)
+```
+
+## Standardize Circuit
+
+Standraizes a given circuit to make sure the following properties hold:
+
+1. Children of or nodes are and nodes.
+2. Children of and nodes are or nodes.
+3. Each and node has exactly two children.
+
+See [`standardize_circuit`](@ref) for more details. 
 
 ## Apply
 
@@ -77,3 +139,12 @@ The major binary operations are conjunction (``\land``), disjunction (``\lor``),
     \Delta_1 \oplus \Delta_2, \lnot (\Delta_1 \oplus \Delta_2) \\
 ```
 
+## Misc
+
+The following are also useful circuit transformation:
+
+- [`deepcopy`](@ref): Recursively create a copy circuit rooted at `n` to a certain depth `depth`.
+- [`replace_node`](@ref): Replaces node `old` with node `new` in the circuit.
+- [`split_candidates`](@ref): Return a list of possible split candidates
+- `clone_candidates`: Returns a list of possible clone candidates
+- [`random_split`](@ref): Randomly picking egde and variable from split candidates 

@@ -1,9 +1,8 @@
-export mnist, 
+export process_mnist, 
     sampled_mnist, 
     twenty_datasets,
     twenty_dataset_names 
     
-using MLDatasets
 using CSV
 using Pkg.Artifacts
 using DataFrames
@@ -23,11 +22,16 @@ const twenty_dataset_names = [
 # Data loaders
 #####################
 
-function mnist(labeled = false)
+"""
+Processes the mnist dataset using the MNIST object from MLDataSets package
+`MLDS_MNIST` = the MNIST from MLDataSets
+`labeled` = whether to return the lables
+"""
+function process_mnist(MLDS_MNIST, labeled = false)
     # transposing makes slicing by variable much much faster
     # need to take a copy to physically move the data around
-    train_x = collect(Float32, transpose(reshape(MNIST.traintensor(), 28*28, :)))
-    test_x  = collect(Float32, transpose(reshape(MNIST.testtensor(), 28*28, :)))
+    train_x = collect(Float32, transpose(reshape(MLDS_MNIST.traintensor(), 28*28, :)))
+    test_x  = collect(Float32, transpose(reshape(MLDS_MNIST.testtensor(), 28*28, :)))
     
     train = DataFrame(train_x)
     valid = nothing # why is there no validation set in `MLDataSets`??
@@ -43,6 +47,12 @@ end
 
 sampled_mnist() = twenty_datasets("binarized_mnist")
 
+"""
+    train, valid, test = twenty_datasets(name)
+
+Load a given dataset from the density estimation datasets. Automatically downloads the files as julia Artifacts. 
+See https://github.com/UCLA-StarAI/Density-Estimation-Datasets for a list of avaialble datasets.
+"""
 function twenty_datasets(name)
     @assert in(name, twenty_dataset_names)
     data_dir = artifact"density_estimation_datasets"

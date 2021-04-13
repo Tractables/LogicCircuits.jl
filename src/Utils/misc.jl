@@ -1,7 +1,6 @@
 # Miscellaneous utilities.
 
 export issomething, 
-        issingle, 
         order_asc, 
         isdisjoint, 
         pushrand!, 
@@ -13,27 +12,22 @@ export issomething,
         Lit, 
         var2lit, 
         lit2var, 
-        variables, 
+        variables,
         num_variables, 
+        (¬), (∨), (∧), (⇒), (⇐), (⇔),
         always, 
         never, 
         uniform, 
         logsumexp, 
         noop, 
         map_values, 
-        groupby,
-        make_missing_mcar,
-        impute
+        groupby
+
 
 using CUDA: CuArray, CuVector, CuMatrix, CUDA
-using DataFrames: DataFrame, missings
-using Statistics: mean, median
 
 "Is the argument not `nothing`?"
 @inline issomething(x) = !isnothing(x)
-
-"Is the argument of length 1; a singleton?"
-@inline issingle(x) = (length(x) == 1)
 
 "Order the arguments in a tuple in ascending order"
 @inline order_asc(x, y) = x > y ? (y, x) : (x , y)
@@ -74,6 +68,7 @@ get_bit(chunk, j) = chunk & (UInt64(1) << Base._mod64(j-1)) != 0
 
 "Replacement for BitSet.⊆ that does not allocate a new BitSet"
 function subseteq_fast(s::BitSet,t::BitSet) # see https://discourse.julialang.org/t/issubset-bitset-bitset-is-slow-and-allocates-unnecessarily/43828
+    # TODO see if https://github.com/JuliaLang/julia/pull/36882/files has fixed this issue in 1.6
     s === t && return true
     s.offset < t.offset && return false
     length(s.bits) > length(t.bits) && return false
@@ -85,7 +80,7 @@ end
 function similar!(reuse, ::Type{A}, desired_size...) where A<:AbstractArray
     if reuse isa A && size(reuse) == (desired_size...,)
         reuse
-    elseif reuse isa A && length(size(reuse)) == 1 && length((desired_size...,)) == 1
+    elseif reuse isa A && ndims(reuse) == 1 && length(desired_size) == 1
         # Use resize! to save some effort when the desired array is 1-dimentional
         resize!(reuse, desired_size...)
     else
@@ -119,6 +114,21 @@ function variables end
 
 "Number of variables in the data structure"
 @inline num_variables(x)::Int = length(variables(x))
+
+# logical syntactic sugar
+
+"Logical negation"
+const ¬ = !
+"Logical disjunction"
+const ∨ = |
+"Logical conjunction"
+const ∧ = &
+"Material logical implication"
+(⇒)(x,y) = ¬x ∨ y
+"Material logical implication (reverse)"
+(⇐)(x,y) = (y ⇒ x)
+"Bidirectional logical implication"
+(⇔)(x,y) = (x ⇒ y) ∧ (y ⇒ x)
 
 #####################
 # probability semantics
@@ -172,85 +182,4 @@ function groupby(f::Function, list::Union{Vector{E},Set{E}})::Dict{Any,Vector{E}
         push!(get!(groups, f(v), []), v)
     end
     groups
-end
-
-
-##############################
-# Imputations & Missing value generation
-##############################
-
-"""
-    make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
-
-Returns a copy of dataframe with making some features missing as MCAR, with
-`keep_prob` as probability of keeping each feature.
-"""
-function make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
-    m = missings(eltype(d), num_examples(d), num_features(d))
-    flag = rand(num_examples(d), num_features(d)) .<= keep_prob
-    m[flag] .= Matrix(d)[flag]
-    DataFrame(m)
-end;
-
-
-"""
-Return a copy of Imputed values of X  (potentiallyl statistics from another DataFrame)
-
-For example, to impute using same DataFrame:
-
-    impute(X; method=:median)
-
-If you want to use another DataFrame to provide imputation statistics:
-
-    impute(test_x, train_x; method=:mean)
-
-
-Supported methods are `:median`, `:mean`, `:one`, `:zero`
-"""
-function impute(X::DataFrame; method=:median)
-    impute(X, X; method=method)
-end
-function impute(X::DataFrame, train::DataFrame; method::Symbol=:median)
-    type = typeintersect(eltype(X), eltype(train))
-    @assert type !== Union{}
-
-    if typeintersect(type, Bool) == Bool
-        type = Bool
-    elseif typeintersect(type, AbstractFloat) <: AbstractFloat
-        type = typeintersect(type, AbstractFloat)
-    end
-    @assert type !== Union
-
-    if method == :median
-        impute_function = median
-    elseif method == :mean
-        impute_function = mean
-    elseif method == :one
-        impute_function = (x -> one(type))
-    elseif method == :zero    
-        impute_function = (x -> zero(type))
-    else
-        throw("Unsupported imputation type $(method)")
-    end
-
-    X_impute = deepcopy(X)
-    for feature = 1:size(X)[2]
-        mask_train = ismissing.(train[:, feature])
-        mask_x     = ismissing.(X[:, feature])
-
-        cur_impute = impute_function(train[:, feature][.!(mask_train)] )
-
-        if type == Bool
-            X_impute[mask_x, feature] .= Bool(cur_impute .>= 0.5)
-        else 
-            X_impute[mask_x, feature] .= type(cur_impute)
-        end
-    end
-
-    # For Bool return BitArray instead
-    if type == Bool
-        return DataFrame(BitArray(convert(Matrix, X_impute)))
-    else
-        return X_impute
-    end
 end
