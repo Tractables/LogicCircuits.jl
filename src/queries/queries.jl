@@ -144,21 +144,8 @@ end
     
 Is the circuit structured-decomposable?
 """
-function isstruct_decomposable(root::LogicCircuit, cache=nothing)::Bool
-    # WARNING: this function is known to have bugs; https://github.com/Juice-jl/LogicCircuits.jl/issues/82
-    result::Bool = true
-    f_con(_) = [BitSet()]
-    f_lit(n) = [BitSet(variable(n))]
-    f_a(_, cs) = begin
-        result = result && isdisjoint(vcat(cs...)...)
-        map(c -> reduce(union!, c), cs)
-    end 
-    f_o(_, cs) = begin
-        result = result && (length(cs) == 0 || all(==(cs[1]), cs))
-        [reduce(union, vcat(cs...))]
-    end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Vector{BitSet}, cache)
-    result
+function isstruct_decomposable(root::LogicCircuit)::Bool
+    infer_vtree(root) !== nothing
 end
 
 
@@ -174,26 +161,41 @@ function infer_vtree(root::LogicCircuit, cache=nothing)::Union{Vtree, Nothing}
         throw("Circuit not smooth. Inferring vtree not supported yet!")
     end
 
-    if !isstruct_decomposable(root)
-        return nothing # or should we throw error?
-    end
+    vtr_dict = Dict{Var, PlainVtreeLeafNode}()
 
-    f_con(_) = nothing # can we have constants when there is a vtree?
+    f_con(_) = (nothing, true) # give constants nothing
     f_lit(n) = begin 
-        PlainVtree(variable(n))
+        if variable(n) ∉ keys(vtr_dict)
+            vtr_dict[variable(n)] = PlainVtree(variable(n))
+        end
+        (vtr_dict[variable(n)], true)
     end
     f_a(n, call) = begin
-        @assert  num_children(n) == 2 "And node had $num_children(n) childern. Should be 2"
-        left = call(children(n)[1])::Vtree
-        right = call(children(n)[2])::Vtree
-        PlainVtreeInnerNode(left, right)
+        if num_children(n) != 2
+            return (call(children(n)[1])[1], false)
+        end
+
+        (left, ld) = call(children(n)[1])
+        (right, rd) = call(children(n)[2])
+        if ((left === nothing) | (right === nothing)) & (left !== right)
+            (left === nothing ? right : left, true)
+        elseif !isdisjoint(variables(left), variables(right))
+            (left, false)
+        elseif !has_parent(left) & !has_parent(right)
+            (PlainVtreeInnerNode(left, right), ld & rd)
+        elseif has_parent(left) & has_parent(right) & (parent(left) == parent(right))
+            (parent(left), ld & rd)
+        else
+            (left, false)
+        end
     end
     f_o(n, call) = begin 
-        # Already checked struct-decomposable so just expand on first child
         @assert num_children(n) > 0 "Or node has no children"
-        call(children(n)[1])        
-    end
-    foldup(root, f_con, f_lit, f_a, f_o, Vtree, cache)
+        ccalls = map(x -> call(x), children(n))
+        (ccalls[1][1], all(x -> x[1] == ccalls[1][1], ccalls) & all(x -> x[2], ccalls))
+    end    
+    res = foldup(root, f_con, f_lit, f_a, f_o, Tuple{Union{Vtree, Nothing}, Bool})
+    res[2] ? res[1] : nothing
 end
 
 

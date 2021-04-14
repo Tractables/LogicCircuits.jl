@@ -283,6 +283,7 @@ end
 
 "Turn binary data into floating point data close to 0 and 1."
 soften(data::DataFrame, softness=0.05; scale_by_marginal=true, precision=Float32) = begin
+    @assert !isfpdata(data) "'soften' does not support floating point data."
     n_col = ncol(data)
     data_weighted = isweighted(data)
     
@@ -306,10 +307,10 @@ end
 
 "Compute the marginal prob of each feature in a binary dataset."
 marginal_prob(data; precision=Float32) = begin
-    @assert isbinarydata(data) "marginal_prob only support binary data."
+    @assert !isfpdata(data) "'marginal_prob' does not support floating point data."
     n_examples = num_examples(data)
     map(1:num_features(data)) do idx
-        precision(sum(feature_values(data, idx))) / n_examples
+        precision(sum(coalesce.(feature_values(data, idx), 0.5))) / n_examples
     end
 end
 

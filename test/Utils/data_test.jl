@@ -118,5 +118,17 @@ using CUDA: CUDA
         @test isgpu(dfb_gpu_split1)
         @test isgpu(to_gpu(wdfb1_gpu))
     end
+    
+    df = DataFrame(Matrix{Union{Bool,Missing}}([true missing; missing false]))
+    sdf = soften(df, 0.01; scale_by_marginal = false)
+    @test sdf[1,1] ≈ 0.99 atol = 1e-6
+    @test ismissing(sdf[1,2])
+    @test ismissing(sdf[2,1])
+    @test sdf[2,2] ≈ 0.01 atol = 1e-6
+    sdf = soften(df, 0.01; scale_by_marginal = true)
+    @test sdf[1,1] ≈ 0.9975 atol = 1e-6
+    @test ismissing(sdf[1,2])
+    @test ismissing(sdf[2,1])
+    @test sdf[2,2] ≈ 0.0025 atol = 1e-6
 end
 
