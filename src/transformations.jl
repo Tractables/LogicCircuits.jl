@@ -309,11 +309,11 @@ function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sani
 
     # split
     new_children1 = map(children(and)) do c
-        condition(c, var2lit(var), callback=callback)
+        conjoin(c, var2lit(var), callback=callback)
     end
 
     new_children2 = map(children(and)) do c
-        condition(c, - var2lit(var), callback=callback)
+        conjoin(c, - var2lit(var), callback=callback)
     end
 
     new_and1 = deepcopy(conjoin(new_children1), depth; cache=false)
