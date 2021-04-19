@@ -1,15 +1,52 @@
 export load_vtree, zoo_vtree, zoo_vtree_file
 
+using Pkg.Artifacts
+using Lerche
+
+const vtree_grammar = raw"""
+    ?start: header body
+
+    ?header : "vtree" SPACE INT
+    body : (NEWLINE node)* NEWLINE?
+
+    node : "L" SPACE INT SPACE INT -> leaf
+         | "I" SPACE INT SPACE INT SPACE INT -> inode
+    
+    COMMENT : "c" /[^\n]/* (/\n/|/$/)
+    %ignore COMMENT
+
+    %import common.INT
+    %import common.WS_INLINE -> SPACE
+    %import common.NEWLINE
+    """
+
+const vtree_parser = Lark(vtree_grammar, parser="lalr", lexer="contextual")
+struct Ast2Vtree <: Transformer
+    nodes::Dict{String,PlainVtree}
+    Ast2Vtree() = new(Dict{String,PlainVtree}())
+end
+
+Lerche.visit_tokens(t::Ast2Vtree) = false
+
+@rule leaf(t::Ast2Vtree,x) = 
+    t.nodes[x[2]] = PlainVtreeLeafNode(Base.parse(UInt32,x[4]))
+@rule inode(t::Ast2Vtree,x) = 
+    t.nodes[x[2]] = PlainVtreeInnerNode(t.nodes[x[4]], t.nodes[x[6]])
+@rule body(t::Ast2Vtree,nodes) = 
+    nodes[findlast(x -> x isa PlainVtree, nodes)]
+@rule start(t::Ast2Vtree,x) = x[2]
+
 """
     load_vtree(file::String, ::Type{V}=PlainVtree)::V where V<:Vtree
 
 Load a vtree file from file. Currently only supports ".vtree" format.
 """
 function load_vtree(file::Union{String, IO}, ::Type{V}=PlainVtree)::V where V<:Vtree
-    return compile_vtree_format_lines(parse_vtree_file(file), V)
+    vtree_str = read(file, String)
+    ast = Lerche.parse(vtree_parser, vtree_str);
+    vtree = Lerche.transform(Ast2Vtree(),ast)
+    (vtree isa V) ? vtree : V(vtree)
 end
-
-using Pkg.Artifacts
 
 zoo_vtree_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/vtrees/$name"
@@ -17,6 +54,8 @@ zoo_vtree_file(name) =
 function zoo_vtree(name, ::Type{V}=PlainVtree)::V where V<:Vtree 
     load_vtree(zoo_vtree_file(name), V)
 end
+
+# OLD PARSER TO BE REMOVED WHEN DEPENDENCIES ARE GONE
 
 function parse_vtree_comment_line(ln::String)
     VtreeCommentLine(lstrip(chop(ln, head = 1, tail = 0)))
