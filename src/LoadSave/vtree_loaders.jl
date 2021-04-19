@@ -4,20 +4,20 @@ using Pkg.Artifacts
 using Lerche
 
 const vtree_grammar = raw"""
-    ?start: header body
+    ?start: _HEADER body
 
-    ?header : "vtree" SPACE INT
-    body : (NEWLINE node)* NEWLINE?
+    _HEADER : "vtree" _WS INT
+    body : (_NL node)* _NL?
 
-    node : "L" SPACE INT SPACE INT -> leaf
-         | "I" SPACE INT SPACE INT SPACE INT -> inode
-    
+    node : "L" _WS INT _WS INT -> leaf
+         | "I" _WS INT _WS INT _WS INT -> inode
+
     COMMENT : "c" /[^\n]/* (/\n/|/$/)
     %ignore COMMENT
 
     %import common.INT
-    %import common.WS_INLINE -> SPACE
-    %import common.NEWLINE
+    %import common.WS_INLINE -> _WS
+    %import common.NEWLINE -> _NL
     """
 
 const vtree_parser = Lark(vtree_grammar, parser="lalr", lexer="contextual")
@@ -29,12 +29,10 @@ end
 Lerche.visit_tokens(t::Ast2Vtree) = false
 
 @rule leaf(t::Ast2Vtree,x) = 
-    t.nodes[x[2]] = PlainVtreeLeafNode(Base.parse(UInt32,x[4]))
+    t.nodes[x[1]] = PlainVtreeLeafNode(Base.parse(Var,x[2]))
 @rule inode(t::Ast2Vtree,x) = 
-    t.nodes[x[2]] = PlainVtreeInnerNode(t.nodes[x[4]], t.nodes[x[6]])
-@rule body(t::Ast2Vtree,nodes) = 
-    nodes[findlast(x -> x isa PlainVtree, nodes)]
-@rule start(t::Ast2Vtree,x) = x[2]
+    t.nodes[x[1]] = PlainVtreeInnerNode(t.nodes[x[2]], t.nodes[x[3]])
+@rule body(t::Ast2Vtree,nodes) = nodes[end]
 
 """
     load_vtree(file::String, ::Type{V}=PlainVtree)::V where V<:Vtree
