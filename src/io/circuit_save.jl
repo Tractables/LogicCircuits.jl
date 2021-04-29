@@ -1,43 +1,5 @@
 export save_as_dot, save_circuit, save_as_sdd, save_as_tex, save_as_dot2tex, save_as_cnf
 
-#####################
-# Save lines
-#####################
-
-function save_lines(file::Union{String, IO}, lines::CircuitFormatLines)
-    if file isa String
-        open(file, "w") do f
-            for line in lines
-                println(f, line)
-            end
-        end
-    else
-        for line in lines println(file, line) end
-    end
-end
-
-#####################
-# decompile for nodes
-#####################
-
-"Decompile for sdd circuit, used during saving of circuits to file" 
-decompile(n::Union{SddLiteralNode,PlainStructLiteralNode}, node2id, vtree2id) = 
-    UnweightedLiteralLine(node2id[n], vtree2id[n.vtree], literal(n), false)
-
-decompile(n::Union{SddConstantNode,PlainStructConstantNode}, node2id, _) = 
-    AnonymousConstantLine(node2id[n], constant(n), false)
-
-decompile(n::Union{Sdd⋁Node,PlainStruct⋁Node}, node2id, vtree2id) = 
-    DecisionLine(node2id[n], vtree2id[n.vtree], UInt32(num_children(n)), 
-                 map(c -> make_element(c, node2id), children(n)))
-
-make_element(n::Union{Sdd⋀Node,PlainStruct⋀Node}, node2id) = 
-    SDDElement(node2id[children(n)[1]],  node2id[children(n)[2]])
-
-make_element(_::StructLogicCircuit, _) = 
-    error("Given circuit is not an SDD, its decision node elements are not conjunctions.")
-
-# TODO: decompile for logic circuit to some file format
 
 #####################
 # build maping
