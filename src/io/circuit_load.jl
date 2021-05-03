@@ -3,18 +3,18 @@ export zoo_cnf,
     zoo_sdd,
     zoo_cnf_file, 
     zoo_dnf_file, 
-    zoo_lc_file, 
+    zoo_logistic_circuit_file, 
     zoo_psdd_file, 
     zoo_sdd_file
-
-using Lerche: Lerche, Lark, Transformer, @rule, @inline_rule
-
 
 ############################### 
 # Logistic Circuits
 ############################### 
 
-const lc_struct_grammar = raw"""
+zoo_logistic_circuit_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/lcs/$name"
+
+const logistic_struct_grammar = raw"""
     ?start: _HEADER body
 
     body : (_NL node)* _NL _BIAS _NL?
@@ -39,42 +39,119 @@ const lc_struct_grammar = raw"""
     %import common.SIGNED_FLOAT
     """
     
-const lc_struct_parser = Lark(lc_struct_grammar, parser="lalr", lexer="contextual")
+const logistic_struct_parser = Lark(logistic_struct_grammar, parser="lalr", lexer="contextual")
 
-struct LcAst2LogicCircuit <: Transformer
+#  parse unstructured
+
+struct LogisticPlainTransformer <: JuiceTransformer
     nodes::Dict{String,PlainLogicCircuit}
-    LcAst2LogicCircuit() = new(Dict{String,PlainLogicCircuit}())
+    LogisticPlainTransformer() = new(Dict{String,PlainLogicCircuit}())
 end
 
-Lerche.visit_tokens(t::LcAst2LogicCircuit) = false
-
-@rule pos_lit(t::LcAst2LogicCircuit,x) = 
+@rule pos_lit(t::LogisticPlainTransformer,x) = 
     t.nodes[x[1]] = Plain⋁Node([PlainLiteralNode(Base.parse(Lit,x[3]))])
 
-@rule neg_lit(t::LcAst2LogicCircuit,x) = 
+@rule neg_lit(t::LogisticPlainTransformer,x) = 
     t.nodes[x[1]] = Plain⋁Node([PlainLiteralNode(-Base.parse(Lit,x[3]))])
 
-@rule elem(t::LcAst2LogicCircuit,x) = 
+@rule elem(t::LogisticPlainTransformer,x) = 
     Plain⋀Node([t.nodes[x[1]], t.nodes[x[2]]])
 
-@rule elems(t::LcAst2LogicCircuit,x) = Array(x)
+@rule elems(t::LogisticPlainTransformer,x) = Array(x)
 
-@rule decision(t::LcAst2LogicCircuit,x) = 
+@rule decision(t::LogisticPlainTransformer,x) = 
     t.nodes[x[1]] = Plain⋁Node(x[4])
 
-@rule body(t::LcAst2LogicCircuit,nodes) = Plain⋁Node([nodes[end]])
+@rule body(t::LogisticPlainTransformer,nodes) = 
+    Plain⋁Node([nodes[end]])
+
+function parse(::Type{PlainLogicCircuit}, str)
+    ast = Lerche.parse(logistic_struct_parser, str);
+    Lerche.transform(LogisticPlainTransformer(),ast)
+end
+
+parse(::Type{LogicCircuit}, str) = 
+    parse(PlainLogicCircuit, str)
+
+read(io::IO, ::Type{PlainLogicCircuit}) =
+    parse(PlainLogicCircuit, read(io, String))
+
+read(io::IO, ::Type{LogicCircuit}) = 
+    read(io, PlainLogicCircuit)
+
+#  parse structured
+
+struct LogisticStructTransformer <: JuiceTransformer
+    id2vtree::Dict{String,Vtree}
+    nodes::Dict{String,StructLogicCircuit}
+    LogisticStructTransformer(id2vtree) = 
+        new(id2vtree,Dict{String,StructLogicCircuit}())
+end
+
+@rule pos_lit(t::LogisticStructTransformer,x) = begin
+    vtree = t.id2vtree[x[2]]
+    lit = Base.parse(Lit,x[3])
+    node = PlainStruct⋁Node([PlainStructLiteralNode(lit,vtree)], vtree)
+    t.nodes[x[1]] = node
+end
+
+@rule neg_lit(t::LogisticStructTransformer,x) = begin
+    vtree = t.id2vtree[x[2]]
+    lit = -Base.parse(Lit,x[3])
+    node = PlainStruct⋁Node([PlainStructLiteralNode(lit,vtree)], vtree)
+    t.nodes[x[1]] = node
+end
+
+@rule elem(t::LogisticStructTransformer,x) = 
+    ([t.nodes[x[1]], t.nodes[x[2]]])
+
+@rule elems(t::LogisticStructTransformer,x) = Array(x)
+
+@rule decision(t::LogisticStructTransformer,x) = begin
+    vtree = t.id2vtree[x[2]]
+    elems = map(x[4]) do elem
+        PlainStruct⋀Node(elem[1], elem[2], vtree)
+    end
+    t.nodes[x[1]] = PlainStruct⋁Node(elems, vtree)
+end
+
+@rule body(t::LogisticStructTransformer,nodes) = 
+    PlainStruct⋁Node([nodes[end]], nodes[end].vtree)
+
+function parse(::Type{PlainStructLogicCircuit}, circuit_str, vtree_str)
+    id2vtree = parse(Dict{String,Vtree}, vtree_str)
+    circuit_ast = Lerche.parse(logistic_struct_parser, circuit_str);
+    Lerche.transform(LogisticStructTransformer(id2vtree),circuit_ast)
+end
+
+parse(::Type{StructLogicCircuit}, circuit_str, vtree_str) = 
+    parse(PlainStructLogicCircuit, circuit_str, vtree_str)
+
+read(circuit_io::IO, vtree_io::IO, ::Type{PlainStructLogicCircuit}) =
+    parse(PlainStructLogicCircuit, 
+          read(circuit_io, String), read(vtree_io, String))
+
+read(circuit_io::IO, vtree_io::IO, ::Type{StructLogicCircuit}) = 
+    read(circuit_io, vtree_io, PlainStructLogicCircuit)
+
+read(circuit_file::String, vtree_file::String, ::Type{C}) where {C <: StructLogicCircuit} = begin 
+    circuit_str = read(circuit_file, String)
+    vtree_str = read(vtree_file, String)
+    parse(C, circuit_str, vtree_str)
+end
 
 #####################
 # loaders from model zoo
 #####################
-
-const zoo_version = "/Circuit-Model-Zoo-0.1.4"
 
 zoo_cnf(name) = 
     load_cnf(zoo_cnf_file(name))
 
 zoo_dnf(name) = 
     load_dnf(zoo_dnf_file(name))
+
+zoo_sdd(name) =
+    load_logic_circuit(zoo_sdd_file(name))
 
 # zoo file identifiers
 
@@ -84,14 +161,9 @@ zoo_cnf_file(name) =
 zoo_dnf_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/dnfs/$name"
 
-zoo_lc_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/lcs/$name"
-
 zoo_psdd_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/psdds/$name"
 
 zoo_sdd_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
 
-zoo_sdd(name) =
-    load_logic_circuit(zoo_sdd_file(name))

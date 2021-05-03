@@ -1,8 +1,24 @@
 export zoo_vtree, zoo_vtree_file
 
 using Pkg.Artifacts
-
 using Lerche: Lerche, Lark, Transformer, @rule, @inline_rule
+
+# bit of circuit/vtree loading infrastructure
+
+const zoo_version = "/Circuit-Model-Zoo-0.1.4"
+
+abstract type JuiceTransformer <: Transformer end
+
+Lerche.visit_tokens(t::JuiceTransformer) = false
+
+# Vtrees
+
+zoo_vtree_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/vtrees/$name"
+
+function zoo_vtree(name, ::Type{V}=PlainVtree)::V where V<:Vtree 
+    read(zoo_vtree_file(name), V)
+end
 
 const vtree_grammar = raw"""
     ?start: _HEADER body
@@ -23,35 +39,37 @@ const vtree_grammar = raw"""
 
 const vtree_parser = Lark(vtree_grammar, parser="lalr", lexer="contextual")
 
-struct Ast2Vtree <: Transformer
-    nodes::Dict{String,PlainVtree}
-    Ast2Vtree() = new(Dict{String,PlainVtree}())
+struct Ast2Vtree{V <: Vtree} <: JuiceTransformer
+    nodes::Dict{String,V}
+    Ast2Vtree{V}() where V = new{V}(Dict{String,V}())
 end
 
-Lerche.visit_tokens(t::Ast2Vtree) = false
+# TODO: simplify when https://github.com/jamesrhester/Lerche.jl/issues/15 is fixed
+@rule leaf(t::Ast2Vtree,x) = _leaf(t,x)
+_leaf(t::Ast2Vtree{V},x) where V = begin 
+    t.nodes[x[1]] = V(Base.parse(Var,x[2]))
+end
 
-@rule leaf(t::Ast2Vtree,x) = 
-    t.nodes[x[1]] = PlainVtreeLeafNode(Base.parse(Var,x[2]))
-@rule inode(t::Ast2Vtree,x) = 
-    t.nodes[x[1]] = PlainVtreeInnerNode(t.nodes[x[2]], t.nodes[x[3]])
+@rule inode(t::Ast2Vtree,x) = _inode(t,x)
+_inode(t::Ast2Vtree{V},x) where V = 
+    t.nodes[x[1]] = V(t.nodes[x[2]], t.nodes[x[3]])
+
 @rule body(t::Ast2Vtree,nodes) = nodes[end]
 
 import Base: parse, read # extend
 
 function parse(::Type{V}, str) where V <: Vtree
-    ast = Lerche.parse(vtree_parser, str);
-    vtree = Lerche.transform(Ast2Vtree(),ast)
-    (vtree isa V) ? vtree : V(vtree)
+    ast = Lerche.parse(vtree_parser, str)
+    Lerche.transform(Ast2Vtree{V}(),ast)
+end
+
+function parse(::Type{Dict{String,V}}, str) where V <: Vtree
+    ast = Lerche.parse(vtree_parser, str)
+    transformer = Ast2Vtree{V}()
+    Lerche.transform(transformer,ast)
+    transformer.nodes
 end
 
 function read(io::IO, ::Type{V}) where V <: Vtree
     parse(V, read(io, String))
 end
-
-zoo_vtree_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/vtrees/$name"
-
-function zoo_vtree(name, ::Type{V}=PlainVtree)::V where V<:Vtree 
-    read(zoo_vtree_file(name), V)
-end
-
