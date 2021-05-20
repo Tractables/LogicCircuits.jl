@@ -44,14 +44,11 @@ struct Ast2Vtree{V <: Vtree} <: JuiceTransformer
     Ast2Vtree{V}() where V = new{V}(Dict{String,V}())
 end
 
-# TODO: simplify when https://github.com/jamesrhester/Lerche.jl/issues/15 is fixed
-@rule leaf(t::Ast2Vtree,x) = _leaf(t,x)
-_leaf(t::Ast2Vtree{V},x) where V = begin 
+@rule leaf(t::Ast2Vtree{V},x) where V = begin 
     t.nodes[x[1]] = V(Base.parse(Var,x[2]))
 end
 
-@rule inode(t::Ast2Vtree,x) = _inode(t,x)
-_inode(t::Ast2Vtree{V},x) where V = 
+@rule inode(t::Ast2Vtree{V},x) where V = 
     t.nodes[x[1]] = V(t.nodes[x[2]], t.nodes[x[3]])
 
 @rule body(t::Ast2Vtree,nodes) = nodes[end]
