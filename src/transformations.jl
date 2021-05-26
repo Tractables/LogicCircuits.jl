@@ -237,7 +237,7 @@ end
 Return the circuit conjoined with th given literal constrains
 `callback` is called after modifying conjunction node
 """
-function conjoin(root::Node, lit::Lit; callback=noop)::Node
+function conjoin(root::Node, lit::Lit; callback=noop, keep_unary=false)::Node
     literals = canonical_literals(root)
     (false_node, ) = canonical_constants(root) # reuse constants when possible
     if isnothing(false_node)
@@ -274,7 +274,7 @@ function conjoin(root::Node, lit::Lit; callback=noop)::Node
         f_o(n, cv) = begin
             kept = last.(cv)
             new_children = first.(cv)[kept]
-            if any(kept) && (length(new_children) == 1) && isliteralgate(new_children[1])
+            if any(kept) && (length(new_children) == 1) && isliteralgate(new_children[1]) && !keep_unary
                 (new_children[1], true)
             elseif any(kept)
                 # new_n = disjoin([new_children...]; reuse=n)
@@ -297,7 +297,7 @@ import Base.split
 
 Return the circuit after spliting on edge `edge` and variable `var`
 """
-function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true, callback=noop)
+function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true, callback=noop, keep_unary=false)
     # sanity check
     if sanity_check
         @assert depth >= 0
@@ -309,11 +309,11 @@ function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sani
 
     # split
     new_children1 = map(children(and)) do c
-        conjoin(c, var2lit(var), callback=callback)
+        conjoin(c, var2lit(var), callback=callback, keep_unary=keep_unary)
     end
 
     new_children2 = map(children(and)) do c
-        conjoin(c, - var2lit(var), callback=callback)
+        conjoin(c, - var2lit(var), callback=callback, keep_unary=keep_unary)
     end
 
     new_and1 = deepcopy(conjoin(new_children1), depth; cache=false)
