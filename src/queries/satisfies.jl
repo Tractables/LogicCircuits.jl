@@ -1,5 +1,5 @@
 using CUDA: CUDA, @cuda
-using DataFrames: DataFrame
+using DataFrames: DataFrame, Tables
 using LoopVectorization: @avx
 
 export satisfies, satisfies_all
@@ -16,9 +16,10 @@ end
 "Evaluate satisfaction of the circuit bottom-up for a given input"
 satisfies(root::LogicCircuit, data::Real...) =
     satisfies(root, collect(data))
+    
 
 satisfies(root::LogicCircuit, data::AbstractVector{Bool}) =
-    satisfies(root, DataFrame(reshape(BitVector(data), 1, :)))[1]
+    satisfies(root, DataFrame(Tables.table(reshape(BitVector(data), 1, :))))[1]
 
 satisfies(root::LogicCircuit, data::AbstractVector{<:AbstractFloat}) =
     satisfies(root, DataFrame(reshape(data, 1, :)))[1]
