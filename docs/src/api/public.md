@@ -55,7 +55,7 @@ foldup_aggregate
 
 ```@docs
 smooth
-condition
+conjoin
 forget
 deepcopy
 split
