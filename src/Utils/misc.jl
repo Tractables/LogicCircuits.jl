@@ -14,7 +14,6 @@ export issomething,
         lit2var, 
         variables,
         num_variables, 
-        (¬), (∨), (∧), (⇒), (⇐), (⇔),
         always, 
         never, 
         uniform, 
@@ -114,21 +113,6 @@ function variables end
 
 "Number of variables in the data structure"
 @inline num_variables(x)::Int = length(variables(x))
-
-# logical syntactic sugar
-
-"Logical negation"
-const ¬ = !
-"Logical disjunction"
-const ∨ = |
-"Logical conjunction"
-const ∧ = &
-"Material logical implication"
-(⇒)(x,y) = ¬x ∨ y
-"Material logical implication (reverse)"
-(⇐)(x,y) = (y ⇒ x)
-"Bidirectional logical implication"
-(⇔)(x,y) = (x ⇒ y) ∧ (y ⇒ x)
 
 #####################
 # probability semantics
