@@ -1,7 +1,8 @@
 export Sdd, SddMgr, 
     SddLeafNode, SddInnerNode, SddLiteralNode, SddConstantNode, 
     Sdd⋀Node, Sdd⋁Node,
-    sdd_mgr_for
+    sdd_mgr_for,
+    (¬), (∨), (∧), (⇒), (⇐), (⇔)
 
 #############
 # Trimmed Sdds
@@ -187,3 +188,19 @@ function construct_new_sdd_literal(n::SddMgrLeafNode, l::Lit)::SddLiteralNode
     @assert n.var == lit2var(l) "Cannot compile literal $l respecting vtree leaf for variable $(n.var)"
     SddLiteralNode(l,n)
 end
+
+# logical syntactic sugar
+
+"Logical negation"
+(¬)(x::Sdd) = !x
+"Logical disjunction"
+(∨)(x::Sdd, y::Sdd) = x | y
+"Logical conjunction"
+(∧)(x::Sdd, y::Sdd) = x & y
+"Material logical implication"
+(⇒)(x::Sdd, y::Sdd) = ¬x ∨ y
+"Material logical implication (reverse)"
+(⇐)(x::Sdd, y::Sdd) = (y ⇒ x)
+"Bidirectional logical implication"
+(⇔)(x::Sdd, y::Sdd) = (x ⇒ y) ∧ (y ⇒ x)
+
