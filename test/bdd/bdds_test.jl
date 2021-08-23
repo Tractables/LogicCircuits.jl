@@ -3,7 +3,7 @@ using Random
 using LogicCircuits
 
 x1, x2, x3 = bdd_var(1), bdd_var(2), bdd_var(3)
-X = Diagram[x1, x2, x3]
+X = Bdd[x1, x2, x3]
 
 @testset "Valuations" begin
   Random.seed!(101)
@@ -24,7 +24,7 @@ end
 @testset "Conjunctions" begin
   y1, y2, y3 = bdd_var(1), bdd_var(2), bdd_var(3)
   Sc = Int[1, 2, 3]
-  E = Diagram[¬y1 ∧ ¬y2 ∧ ¬y3, y1 ∧ ¬y2 ∧ ¬y3, ¬y1 ∧ y2 ∧ ¬y3, y1 ∧ y2 ∧ ¬y3, ¬y1 ∧ ¬y2 ∧ y3,
+  E = Bdd[¬y1 ∧ ¬y2 ∧ ¬y3, y1 ∧ ¬y2 ∧ ¬y3, ¬y1 ∧ y2 ∧ ¬y3, y1 ∧ y2 ∧ ¬y3, ¬y1 ∧ ¬y2 ∧ y3,
               y1 ∧ ¬y2 ∧ y3, ¬y1 ∧ y2 ∧ y3, y1 ∧ y2 ∧ y3]
   for (i, α) ∈ enumerate(conjunctions(Sc))
     @test α == E[i]
@@ -35,7 +35,7 @@ end
 @testset "Convals" begin
   y1, y2, y3 = bdd_var(1), bdd_var(2), bdd_var(3)
   Sc = Int[1, 2, 3]
-  E = Diagram[¬y1 ∧ ¬y2 ∧ ¬y3, y1 ∧ ¬y2 ∧ ¬y3, ¬y1 ∧ y2 ∧ ¬y3, y1 ∧ y2 ∧ ¬y3, ¬y1 ∧ ¬y2 ∧ y3,
+  E = Bdd[¬y1 ∧ ¬y2 ∧ ¬y3, y1 ∧ ¬y2 ∧ ¬y3, ¬y1 ∧ y2 ∧ ¬y3, y1 ∧ y2 ∧ ¬y3, ¬y1 ∧ ¬y2 ∧ y3,
               y1 ∧ ¬y2 ∧ y3, ¬y1 ∧ y2 ∧ y3, y1 ∧ y2 ∧ y3]
   for (i, P) ∈ enumerate(convals(Sc))
     α, x = P
@@ -111,7 +111,7 @@ end
 
 @testset "Forced construction" begin
   for i ∈ 3:100
-    @test Diagram(1, i, ⊥, ⊤).id == i
+    @test Bdd(1, i, ⊥, ⊤).id == i
   end
 end
 
@@ -121,15 +121,15 @@ end
 
   for v ∈ X @test reduce!(v) == v end
 
-  a = Diagram(3, ⊥, ⊤)
-  b = Diagram(3, ⊥, ⊤)
-  c = Diagram(2, b, a)
-  d = Diagram(2, ⊥, b)
-  e = Diagram(1, d, c)
+  a = Bdd(3, ⊥, ⊤)
+  b = Bdd(3, ⊥, ⊤)
+  c = Bdd(2, b, a)
+  d = Bdd(2, ⊥, b)
+  e = Bdd(1, d, c)
   R = reduce!(e)
   E = Union{Int, Bool}[1, 2, false, 3, true]
   i = 1
-  foreach(function(α::Diagram)
+  foreach(function(α::Bdd)
             v = E[i]
             if is_term(α) @test v == α.value
             else @test v == α.index end
@@ -183,7 +183,7 @@ end
   @test f2|Y == f2
 
   f3 = ¬x2 ∨ x3
-  E = Diagram[⊤, ⊤, ⊥, ⊥, ⊤, ⊤, ⊤, ⊤, ⊤, ⊤, ⊥, ⊥, ⊤, ⊤, ⊤, ⊤]
+  E = Bdd[⊤, ⊤, ⊥, ⊥, ⊤, ⊤, ⊤, ⊤, ⊤, ⊤, ⊥, ⊥, ⊤, ⊤, ⊤, ⊤]
   for (i, y) ∈ enumerate(valuations(1:4)) f3|y == E[i] end
 
   f4 = x1 ∨ ¬x2
@@ -302,7 +302,7 @@ end
   @test ⊤ == ¬⊥
   @test ⊥ == ¬⊤
 
-  X′ = Diagram[¬x for x ∈ X]
+  X′ = Bdd[¬x for x ∈ X]
   for (i, x) ∈ enumerate(X′)
     @test !is_term(x)
     @test x.index == i
@@ -310,13 +310,13 @@ end
     @test x.low.value
   end
 
-  a = Diagram(3, ⊥, ⊤)
-  b = Diagram(2, ⊥, a)
-  c = Diagram(1, b, a)
+  a = Bdd(3, ⊥, ⊤)
+  b = Bdd(2, ⊥, a)
+  c = Bdd(1, b, a)
   d = ¬c
   E = Union{Int, Bool}[1, 2, true, 3, false, 3]
   i = 1
-  foreach(function(α::Diagram)
+  foreach(function(α::Bdd)
             v = E[i]
             if is_term(α) @test v == α.value
             else @test v == α.index end
@@ -336,9 +336,9 @@ end
   @test x1 ∧ x1 == x1
   @test x2 ∧ x2 == x2
   @test x3 ∧ x3 == x3
-  a = Diagram(3, ⊥, ⊤)
-  b = Diagram(2, ⊥, a)
-  c = Diagram(1, b, a)
+  a = Bdd(3, ⊥, ⊤)
+  b = Bdd(2, ⊥, a)
+  c = Bdd(1, b, a)
   @test c ∧ c == c
 
   # Commutative.
@@ -427,9 +427,9 @@ end
   @test x1 ∨ x1 == x1
   @test x2 ∨ x2 == x2
   @test x3 ∨ x3 == x3
-  a = Diagram(3, ⊥, ⊤)
-  b = Diagram(2, ⊥, a)
-  c = Diagram(1, b, a)
+  a = Bdd(3, ⊥, ⊤)
+  b = Bdd(2, ⊥, a)
+  c = Bdd(1, b, a)
   @test c ∨ c == c
 
   # Commutative.
@@ -513,9 +513,9 @@ end
   @test x1 ⊻ x1 == ⊥
   @test x2 ⊻ x2 == ⊥
   @test x3 ⊻ x3 == ⊥
-  a = Diagram(3, ⊥, ⊤)
-  b = Diagram(2, ⊥, a)
-  c = Diagram(1, b, a)
+  a = Bdd(3, ⊥, ⊤)
+  b = Bdd(2, ⊥, a)
+  c = Bdd(1, b, a)
   @test c ⊻ c == ⊥
 
   # Commutative.
@@ -602,10 +602,10 @@ end
 end
 
 @testset "Iterators" begin
-  Φ = Diagram[¬(x1 ∨ (x2 ∧ x3)) ∨ ((x3 ∧ x1) ∨ x2), x1 ∧ x2 ∨ x3, (x1 ∧ x2) ∨ (¬x2 ∧ ¬x3),
+  Φ = Bdd[¬(x1 ∨ (x2 ∧ x3)) ∨ ((x3 ∧ x1) ∨ x2), x1 ∧ x2 ∨ x3, (x1 ∧ x2) ∨ (¬x2 ∧ ¬x3),
               (x1 ∧ x2) ∨ (x2 ∧ ¬x3 ∧ ¬x1)]
   for ϕ ∈ Φ
-    U, V, W = Vector{Diagram}(), Vector{Diagram}(), Vector{Diagram}()
+    U, V, W = Vector{Bdd}(), Vector{Bdd}(), Vector{Bdd}()
     for v ∈ ϕ push!(V, v) end
     foreach(x -> push!(U, x), ϕ)
     W = collect(ϕ)
@@ -617,9 +617,9 @@ end
 end
 
 @testset "Hash function" begin
-  Φ = Diagram[¬(x1 ∨ (x2 ∧ x3)) ∨ ((x3 ∧ x1) ∨ x2), x1 ∧ x2 ∨ x3, (x1 ∧ x2) ∨ (¬x2 ∧ ¬x3),
+  Φ = Bdd[¬(x1 ∨ (x2 ∧ x3)) ∨ ((x3 ∧ x1) ∨ x2), x1 ∧ x2 ∨ x3, (x1 ∧ x2) ∨ (¬x2 ∧ ¬x3),
        (x1 ∧ x2) ∨ (x2 ∧ ¬x3 ∧ ¬x1)]
-  test_hash(ϕ::Diagram) = foreach((x -> @test shallowhash(x) == hash((x.id, x.value, x.index))), ϕ)
+  test_hash(ϕ::Bdd) = foreach((x -> @test shallowhash(x) == hash((x.id, x.value, x.index))), ϕ)
   test_hash.(Φ)
 
   @test shallowhash(⊤) != shallowhash(x1)
@@ -642,7 +642,7 @@ end
 end
 
 @testset "Shannon decomposition" begin
-  function test_formula(ϕ::Diagram, E::Vector{Tuple{Diagram, Diagram, Diagram, Diagram}})
+  function test_formula(ϕ::Bdd, E::Vector{Tuple{Bdd, Bdd, Bdd, Bdd}})
     for (i, e) ∈ enumerate(E)
       u, α, v, β = shannon(ϕ, i)
       @test u == e[1]
@@ -681,7 +681,7 @@ end
   @test ¬x2 == ¬copy(x2)
   @test ¬x3 == ¬copy(x3)
 
-  Φ = Diagram[¬(x1 ∨ (x2 ∧ x3)) ∨ ((x3 ∧ x1) ∨ x2), x1 ∧ x2 ∨ x3, (x1 ∧ x2) ∨ (¬x2 ∧ ¬x3),
+  Φ = Bdd[¬(x1 ∨ (x2 ∧ x3)) ∨ ((x3 ∧ x1) ∨ x2), x1 ∧ x2 ∨ x3, (x1 ∧ x2) ∨ (¬x2 ∧ ¬x3),
               (x1 ∧ x2) ∨ (x2 ∧ ¬x3 ∧ ¬x1)]
   for ϕ ∈ Φ
     @test ϕ == deepcopy(ϕ)
@@ -709,7 +709,7 @@ end
 end
 
 @testset "Elimination" begin
-  elimtest(α::Diagram, Sc::UnitRange{Int}) = for v ∈ Sc @test eliminate(α, v) == ((α|v) ∨ (α|-v)) end
+  elimtest(α::Bdd, Sc::UnitRange{Int}) = for v ∈ Sc @test eliminate(α, v) == ((α|v) ∨ (α|-v)) end
   elimtest(⊥, 1:2)
   elimtest(⊤, 1:2)
   elimtest(bdd_var(1), 1:2)
@@ -752,7 +752,7 @@ end
 end
 
 @testset "Marginalization" begin
-  margtest(α::Diagram, ⊕, Sc::UnitRange{Int}) = for v ∈ Sc
+  margtest(α::Bdd, ⊕, Sc::UnitRange{Int}) = for v ∈ Sc
     @test marginalize(α, v, ⊕) == (α|v) ⊕ (α|-v)
   end
   for o ∈ Function[⊻, ∨, ∧]
@@ -769,7 +769,7 @@ end
 end
 
 @testset "Scope" begin
-  F = Tuple{Diagram, Set{Int}}[
+  F = Tuple{Bdd, Set{Int}}[
     (⊥, Set{Int}()),
     (⊤, Set{Int}()),
     (bdd_var(1), Set{Int}([1])),
@@ -960,15 +960,15 @@ end
 @testset "Parallelism" begin
   n = 8
   m = 2^n
-  Φ = Vector{Diagram}(undef, m)
+  Φ = Vector{Bdd}(undef, m)
   M = all_valuations(1:n)
   E = and.(map.(x -> x[2] ? x[1] : -x[1], enumerate.(eachrow(M))))
   Threads.@threads for i ∈ 1:m
     Φ[i] = and(map(x -> x[2] ? x[1] : -x[1], enumerate(M[i,:])))
   end
   for i ∈ 1:m @test Φ[i] == E[i] end
-  Ψ = Vector{Diagram}(undef, m)
-  F = Vector{Diagram}(undef, m)
+  Ψ = Vector{Bdd}(undef, m)
+  F = Vector{Bdd}(undef, m)
   Threads.@threads for i ∈ 1:m
     α = (2 ∧ ¬10 ∧ ¬11 ∧ ¬3)
     Ψ[i] = Φ[i] ∨ α
@@ -983,7 +983,7 @@ end
     ϕ = Φ[i]
     S = scope(ϕ)
     ψ = [forget(ϕ, S[1:k]) for k ∈ 1:length(S)]
-    α = Vector{Diagram}(undef, length(S))
+    α = Vector{Bdd}(undef, length(S))
     Threads.@threads for j ∈ 1:length(S)
       α[j] = forget(ϕ, S[1:j])
     end
@@ -1009,7 +1009,7 @@ end
     @test T[1] != T[2]
     push!(V, objectid(T[1]))
     push!(V, objectid(T[2]))
-    foreach(function(α::Diagram)
+    foreach(function(α::Bdd)
               o = objectid(α)
               @test o ∉ V
               @test objectid(α.low) ∈ V
@@ -1044,7 +1044,7 @@ end
     @test α == ϕ
     @test n_c > 0
     @test c == n_c
-    β = load(Diagram, f)
+    β = load(Bdd, f)
     @test β == ϕ
   end
 end
@@ -1074,7 +1074,7 @@ end
     @test α == ϕ
     @test n_c > 0
     @test c == n_c
-    β = load(Diagram, f)
+    β = load(Bdd, f)
     @test β == ϕ
   end
 end
@@ -1087,7 +1087,7 @@ end
   for ϕ ∈ Φ
     f = tempname() * ".bdd"
     save(ϕ, f)
-    α = load(Diagram, f)
+    α = load(Bdd, f)
     @test ϕ == α
   end
 end
