@@ -920,8 +920,8 @@ function save_dnf(α::Bdd, filename::String; kwargs...)
   nothing
 end
 
-"Save as BDD. Use the `save` function instead."
-function save_bdd(α::Bdd, filename::String; kwargs...)
+"Save as BDD. Use the `save_bdd` function instead."
+function save_bdd_(α::Bdd, filename::String; kwargs...)
   open(filename, "w"; kwargs...) do out
     write(out, "c BDD file format. See https://www.ime.usp.br/~renatolg/bdd/bdd.html.\n")
     foreach(function(ϕ::Bdd)
@@ -948,13 +948,13 @@ Keyword arguments are passed down to the `open` function.
 """
 function save_bdd(α::Bdd, filename::String; kwargs...)
   @assert length(filename) > 4 "BDD.save: Filename must contain name and valid extension!"
-  funcs = Dict{String, Function}(".cnf" => save_cnf, ".dnf" => save_dnf, ".bdd" => save_bdd)
+  funcs = Dict{String, Function}(".cnf" => save_cnf, ".dnf" => save_dnf, ".bdd" => save_bdd_)
   ext = filename[end-3:end]
   @assert haskey(funcs, ext) "BDD.save: Not a valid extension!"
   funcs[ext](α, filename; kwargs...)
   nothing
 end
-export save
+export save_bdd
 
 "Loads a CNF as a BDD. Use `load` instead."
 function load_cnf(::Type{Bdd}, filename::String; kwargs...)::Bdd
