@@ -946,7 +946,7 @@ To save as any of these file formats, simply set the filename with the desired e
 
 Keyword arguments are passed down to the `open` function.
 """
-function save(α::Bdd, filename::String; kwargs...)
+function save_bdd(α::Bdd, filename::String; kwargs...)
   @assert length(filename) > 4 "BDD.save: Filename must contain name and valid extension!"
   funcs = Dict{String, Function}(".cnf" => save_cnf, ".dnf" => save_dnf, ".bdd" => save_bdd)
   ext = filename[end-3:end]

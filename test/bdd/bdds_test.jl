@@ -1025,7 +1025,7 @@ end
        atleast(5, collect(1:10)), exactly(5, collect(1:10))]
   for (i, ϕ) ∈ enumerate(Φ)
     f = tempname() * ".cnf"
-    save(ϕ, f)
+    save_bdd(ϕ, f)
     α, c, n_c = ⊤, 0, -1
     open(f, "r") do input
       for (j, line) ∈ enumerate(eachline(input))
@@ -1055,7 +1055,7 @@ end
        atleast(5, collect(1:10)), exactly(5, collect(1:10))]
   for (i, ϕ) ∈ enumerate(Φ)
     f = tempname() * ".dnf"
-    save(ϕ, f)
+    save_bdd(ϕ, f)
     α, c, n_c = ⊥, 0, -1
     open(f, "r") do input
       for (j, line) ∈ enumerate(eachline(input))
@@ -1086,7 +1086,7 @@ end
        (1 ∧ ¬2) ∨ (¬3 ∧ 4), (1 ∧ ¬2) ∨ (3 ∧ ¬4) ∨ (3 ∧ 5) ∨ (4 ∧ ¬5)]
   for ϕ ∈ Φ
     f = tempname() * ".bdd"
-    save(ϕ, f)
+    save_bdd(ϕ, f)
     α = load(Bdd, f)
     @test ϕ == α
   end
