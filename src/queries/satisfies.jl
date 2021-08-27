@@ -19,10 +19,10 @@ satisfies(root::LogicCircuit, data::Real...) =
     
 
 satisfies(root::LogicCircuit, data::AbstractVector{Bool}) =
-    satisfies(root, DataFrame(Tables.table(reshape(BitVector(data), 1, :))))[1]
+    satisfies(root, DataFrame(reshape(BitVector(data), 1, :), :auto))[1]
 
 satisfies(root::LogicCircuit, data::AbstractVector{<:AbstractFloat}) =
-    satisfies(root, DataFrame(reshape(data, 1, :)))[1]
+    satisfies(root, DataFrame(reshape(data, 1, :), :auto))[1]
 
 satisfies(circuit::LogicCircuit, data::DataFrame) =
     satisfies(same_device(BitCircuit(circuit, data), data) , data)
