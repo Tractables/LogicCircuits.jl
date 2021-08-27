@@ -71,7 +71,7 @@ end
          2.0 1.0;
          5.0 10.0;
          ]
-    df = DataFrame(m)
+    df = DataFrame(m, :auto)
     dfb = DataFrame(BitMatrix([true false true; 
                                true true true; 
                                false true true;
@@ -79,7 +79,7 @@ end
                                false false false;
                                true false true;
                                false false true;
-                            ]))
+                            ]), :auto)
 
     all_missing = make_missing_mcar(df; keep_prob=0.0)
     @test all(ismissing.(Matrix(all_missing)))

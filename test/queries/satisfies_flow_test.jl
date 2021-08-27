@@ -13,7 +13,7 @@ include("../helper/gpu.jl")
             0 0 0 0 0 0 0 0 0 0;
             0 1 1 0 1 0 0 1 0 1]
 
-    input = DataFrame(BitArray(input))
+    input = DataFrame(BitArray(input), :auto)
     @test r(input) == BitVector([1,1,1,1])
 
     vtree = PlainVtree(10, :balanced)
@@ -41,7 +41,7 @@ include("../helper/gpu.jl")
         (v[2] | !v[7] | v[6]) &
         (v[3] | !v[4] | v[5]) &
         (v[1] | !v[4] | v[6])
-    input = DataFrame(bitrand(25,num_vars))
+    input = DataFrame(bitrand(25,num_vars), :auto)
     
     r = smooth(PlainLogicCircuit(c)) # flows don't make sense unless the circuit is smooth; cannot smooth trimmed SDDs
 
@@ -64,7 +64,7 @@ include("../helper/gpu.jl")
     l3 = LogicCircuit(Lit(-1))
     l4 = LogicCircuit(Lit(-2))
     r = (l1 & l2) | (l3 & l4)
-    input = DataFrame(bitrand(4,2))
+    input = DataFrame(bitrand(4,2), :auto)
 
     v, f, node2id = satisfies_flows(r, input)
     foreach(literal_nodes(r)) do n
@@ -91,7 +91,7 @@ end
             0 0 0 0 0 0 0 0 0 0;
             0 1 1 0 1 0 0 1 0 1]
 
-    input = DataFrame(BitArray(input))
+    input = DataFrame(BitArray(input), :auto)
     @test r(input) == BitVector([1,1,1,1])
     
     weights = [0.6, 0.6, 0.6, 0.6]
@@ -120,7 +120,7 @@ end
         (v[2] | !v[7] | v[6]) &
         (v[3] | !v[4] | v[5]) &
         (v[1] | !v[4] | v[6])
-    input = DataFrame(bitrand(25,num_vars))
+    input = DataFrame(bitrand(25,num_vars), :auto)
     
     weights = Array{Float32, 1}(ones(25) * 0.6)
     
@@ -143,7 +143,7 @@ end
     l3 = LogicCircuit(Lit(-1))
     l4 = LogicCircuit(Lit(-2))
     r = (l1 & l2) | (l3 & l4)
-    input = DataFrame(bitrand(4,2))
+    input = DataFrame(bitrand(4,2), :auto)
 
     v, f, node2id = satisfies_flows(r, input; weights = weights)
     foreach(literal_nodes(r)) do n
@@ -173,7 +173,7 @@ end
     weights = [0.6, 0.6, 0.6]
     weights = Array{Float32, 1}(weights)
     
-    df = DataFrame(BitMatrix([true true; false true; false false]))
+    df = DataFrame(BitMatrix([true true; false true; false false]), :auto)
     sdf = soften(df, 0.001; scale_by_marginal = false)
     
     v, f, node2id = satisfies_flows(r, sdf)
@@ -201,7 +201,7 @@ end
     input = DataFrame(Float64[1 0 1 0 1 0 1 0 1 0;
                     1 1 1 1 1 1 1 1 1 1;
                     0 0 0 0 0 0 0 0 0 0;
-                    0 1 1 0 1 0 0 1 0 1])
+                    0 1 1 0 1 0 0 1 0 1], :auto)
 
     @test r(input) ≈ [1.0, 1.0, 1.0, 1.0]
 
@@ -230,7 +230,7 @@ end
     o_nc = (l_a & l_b & l_nc) | (l_a & l_nb & l_nc) | (l_na & l_b & l_nc) | (l_na & l_nb & l_nc)
     r = (o_c | o_nc)
 
-    input = DataFrame(rand(Float64, (10,3)))
+    input = DataFrame(rand(Float64, (10,3)), :auto)
 
     @test all(r(input) .≈ 1.0)
 
@@ -260,7 +260,7 @@ end
     o_nc = (l_a & l_nb & l_nc) | (l_na & l_nb & l_nc)
     r = (o_c | o_nc)
 
-    input = DataFrame(rand(Float64, (10,3)))
+    input = DataFrame(rand(Float64, (10,3)), :auto)
     input[1:5, 3] .= 0.0
 
     v, f, node2id = satisfies_flows(r, input)
@@ -291,9 +291,9 @@ end
     input_b = DataFrame(BitArray([1 0 1 0 1 0 1 0 1 0;
                     1 1 1 1 1 1 1 1 1 1;
                     0 0 0 0 0 0 0 0 0 0;
-                    0 1 1 0 1 0 0 1 0 1]))
+                    0 1 1 0 1 0 0 1 0 1]), :auto)
     
-    input_f = DataFrame(Float64.(Matrix(input_b)))
+    input_f = DataFrame(Float64.(Matrix(input_b)), :auto)
     
     f_b, v_b, node2id = satisfies_flows(r, input_b)
     f_f, v_f, node2id = satisfies_flows(r, input_f)
@@ -313,21 +313,21 @@ end
     input1 = DataFrame(BitArray([1 0 1 0 1 0 1 0 1 0;
                                 1 1 1 1 1 1 1 1 1 1;
                                 0 0 0 0 0 0 0 0 0 0;
-                                0 1 1 0 1 0 0 1 0 1]))
+                                0 1 1 0 1 0 0 1 0 1]), :auto)
 
     input2 = DataFrame(BitArray([0 1 1 1 0 1 1 1 0 0;
                                 1 1 0 0 1 1 0 1 0 1;
                                 1 0 0 0 1 0 1 0 1 0;
-                                0 0 1 1 0 1 1 0 0 1]))
+                                0 0 1 1 0 1 1 0 0 1]), :auto)
 
     input3 = DataFrame(BitArray([1 0 1 0 1 0 1 0 1 0;
                                 0 1 0 1 0 1 1 1 0 1;
                                 0 1 0 1 0 1 1 0 1 0;
-                                0 0 1 1 1 0 1 0 0 1]))
+                                0 0 1 1 1 0 1 0 0 1]), :auto)
     
     input4 = DataFrame(0.3 .* Float64.(Matrix(input1)) .+ 
                         0.1 .* Float64.(Matrix(input2)) .+ 
-                        0.6 .* Float64.(Matrix(input3)))
+                        0.6 .* Float64.(Matrix(input3)), :auto)
 
     inputs = [input1, input2, input3, input4]
     vfs = [satisfies_flows(r, input) for input in inputs]

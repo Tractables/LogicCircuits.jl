@@ -62,9 +62,9 @@ using DataFrames: DataFrame
     @test model_count(f) == BigInt(2)^10
 
     @test f(DataFrame(BitArray([1 0 1 0 1 0 1 0 1 0;
-                       1 1 1 1 1 1 1 1 1 1;
-                       0 0 0 0 0 0 0 0 0 0;
-                       0 1 1 0 1 0 0 1 0 1]))) == BitVector([1,1,1,1])
+                        1 1 1 1 1 1 1 1 1 1;
+                        0 0 0 0 0 0 0 0 0 0;
+                        0 1 1 0 1 0 0 1 0 1]), :auto)) == BitVector([1,1,1,1])
 
     plainf = PlainLogicCircuit(f) 
     foreach(plainf) do n
