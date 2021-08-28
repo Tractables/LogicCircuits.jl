@@ -298,27 +298,31 @@ import Base.split
 Return the circuit after spliting on edge `edge` and variable `var`
 """
 function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true, callback=noop, keep_unary=false)
+    literals = canonical_literals(and)
+
     # sanity check
     if sanity_check
         @assert depth >= 0
         @assert is⋁gate(or) && is⋀gate(and) && and in children(or)
         @assert or in or_nodes(root) && and in and_nodes(root)
-        literals = canonical_literals(and)
-        @assert haskey(literals, var2lit(var)) && haskey(literals, - var2lit(var))
+        @assert haskey(literals, var2lit(var)) || haskey(literals, - var2lit(var))
     end
 
     # split
-    new_children1 = map(children(and)) do c
-        conjoin(c, var2lit(var), callback=callback, keep_unary=keep_unary)
+    conjoin_with(lit) = begin
+        new_child = map(children(and)) do c
+            conjoin(c, lit, callback=callback, keep_unary=keep_unary)
+        end
+        deepcopy(conjoin(new_child), depth; cache=false)
     end
 
-    new_children2 = map(children(and)) do c
-        conjoin(c, - var2lit(var), callback=callback, keep_unary=keep_unary)
+    if haskey(literals, var2lit(var)) && haskey(literals, -var2lit(var))
+        new_or = disjoin([[conjoin_with(var2lit(var)), conjoin_with(-var2lit(var))]; filter(c -> c != and, children(or))])
+    elseif haskey(literals, var2lit(var))
+        new_or = disjoin([[conjoin_with(var2lit(var))]; filter(c -> c != and, children(or))])
+    elseif haskey(literals, -var2lit(var))
+        new_or = disjoin([[conjoin_with(-var2lit(var))]; filter(c -> c != and, children(or))])
     end
-
-    new_and1 = deepcopy(conjoin(new_children1), depth; cache=false)
-    new_and2 = deepcopy(conjoin(new_children2), depth; cache=false)
-    new_or = disjoin([[new_and1, new_and2]; filter(c -> c != and, children(or))])
 
     replace_node(root, or, new_or), new_or
 end
