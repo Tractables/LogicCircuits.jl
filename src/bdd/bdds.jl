@@ -957,7 +957,7 @@ end
 export save_bdd
 
 "Loads a CNF as a BDD. Use `load` instead."
-function load_cnf(::Type{Bdd}, filename::String; kwargs...)::Bdd
+function LoadSave.load_cnf(::Type{Bdd}, filename::String; kwargs...)::Bdd
   ϕ = ⊤
   open(filename, "r"; kwargs...) do input
     for line ∈ eachline(input)
@@ -971,7 +971,7 @@ function load_cnf(::Type{Bdd}, filename::String; kwargs...)::Bdd
 end
 
 "Loads a CNF as a BDD. Use `load` instead."
-function load_dnf(::Type{Bdd}, filename::String; kwargs...)::Bdd
+function LoadSave.load_dnf(::Type{Bdd}, filename::String; kwargs...)::Bdd
   ϕ = ⊥
   open(filename, "r"; kwargs...) do input
     for line ∈ eachline(input)
