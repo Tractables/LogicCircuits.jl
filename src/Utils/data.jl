@@ -2,6 +2,7 @@ import DataFrames: DataFrame, DataFrameRow, nrow, ncol, mapcols, missings
 import Random: shuffle
 import Statistics: mean, median, std
 import CUDA: CuVector, CuMatrix
+import Tables
 
 export num_examples, num_features, 
     example, feature_values,
@@ -107,7 +108,7 @@ num_features(df::DataFrame) = isweighted(df) ? ncol(df) - 1 : ncol(df)
 num_features(df::Vector{DataFrame}) = num_features(df[1])
 
 "Get the ith example"
-example(d::DataFrame,i) = vec(convert(Array, d[i,:]))
+example(d::DataFrame,i) = vec(convert(Array, collect(d[i,:])))
 
 "Get the ith feature values"
 feature_values(df::DataFrame, i) = df[!,i]
@@ -269,15 +270,15 @@ threshold(train, valid, test) = threshold(train, valid, test, 0.05) # default th
 
 function threshold(train::DataFrame, valid, test, offset)
     @assert isfpdata(train) "DataFrame to be thresholded contains non-numeric columns."
-    train = convert(Matrix, train)
-    valid = issomething(valid) ? convert(Matrix, valid) : nothing
-    test = issomething(test) ? convert(Matrix, test) : nothing
+    train = Tables.matrix(train)
+    valid = issomething(valid) ? Tables.matrix(valid) : nothing
+    test = issomething(test) ? Tables.matrix(test) : nothing
     means = mean(train, dims=1)
     stds = std(train, dims=1)
     threshold_value = means .+ offset .* stds
-    train = DataFrame(BitArray(train .> threshold_value))
-    valid = issomething(valid) ? DataFrame(BitArray(valid .> threshold_value)) : nothing
-    test = issomething(test) ? DataFrame(BitArray(test .> threshold_value)) : nothing
+    train = DataFrame(BitArray(train .> threshold_value), :auto)
+    valid = issomething(valid) ? DataFrame(BitArray(valid .> threshold_value), :auto) : nothing
+    test = issomething(test) ? DataFrame(BitArray(test .> threshold_value), :auto) : nothing
     return train, valid, test
 end
 
@@ -325,7 +326,7 @@ bits_per_pixel(ll, data) = -(ll_per_example(ll, data)  / num_features(data)) / l
 "Computer the per-example log-likelihood of a fully factorized ML model on Bool data"
 function fully_factorized_log_likelihood(data; pseudocount=0)
     @assert isbinarydata(data) && iscomplete(data) "This method requires complete binary data"
-    m = convert(Matrix,data)
+    m = Tables.matrix(data)
     counts = sum(m, dims=1)    
     smoothed_counts = counts .+ pseudocount/2.0
     log_estimates = log.(smoothed_counts ./ (num_examples(data) + pseudocount))
@@ -348,7 +349,7 @@ function make_missing_mcar(d::DataFrame; keep_prob::Float64=0.8)
     m = missings(eltype(d), num_examples(d), num_features(d))
     flag = rand(num_examples(d), num_features(d)) .<= keep_prob
     m[flag] .= Matrix(d)[flag]
-    DataFrame(m)
+    DataFrame(m, names(d))
 end;
 
 
@@ -408,7 +409,7 @@ function impute(X::DataFrame, train::DataFrame; method=:median)
 
     # For Bool return BitArray instead
     if type == Bool
-        return DataFrame(BitArray(convert(Matrix, X_impute)))
+        return DataFrame(BitArray(Tables.matrix(X_impute)), names(X_impute))
     else
         return X_impute::DataFrame
     end

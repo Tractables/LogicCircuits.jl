@@ -330,7 +330,7 @@ function load_cnf(file::String; dual=false)::PlainLogicCircuit
     open(file) do file
 
         for ln in eachline(file)
-            @assert !isempty(ln)
+            if isempty(ln) continue end
             if ln[1] == 'c' || 
                 !dual && startswith(ln, "p cnf") || 
                 dual && startswith(ln, "p dnf")

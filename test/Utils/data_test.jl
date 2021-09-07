@@ -6,8 +6,8 @@ using CUDA: CUDA
 @testset "Data utils" begin
 
     m = [1.1 2.1; 3.1 4.1; 5.1 6.1]
-    df = DataFrame(m)
-    dfb = DataFrame(BitMatrix([true false; true true; false true]))
+    df = DataFrame(m, :auto)
+    dfb = DataFrame(BitMatrix([true false; true true; false true]), :auto)
     
     batched_df = batch(df, 1)
     batched_dfb = batch(dfb, 1)
@@ -34,7 +34,7 @@ using CUDA: CUDA
     @test !isfpdata(dfb)
     @test isfpdata(batched_df)
     @test !isfpdata(batched_dfb)
-    @test !isfpdata(DataFrame([1 "2"; 3 "4"]))
+    @test !isfpdata(DataFrame([1 "2"; 3 "4"], :auto))
 
     @test !isbinarydata(df)
     @test isbinarydata(dfb)
@@ -55,7 +55,7 @@ using CUDA: CUDA
 
     @test bits_per_pixel(-12.3, dfb) ≈ 2.9575248338223754 #not verified
     
-    dfb = DataFrame(BitMatrix([true false; true true; false true]))
+    dfb = DataFrame(BitMatrix([true false; true true; false true]), :auto)
     
     @test !isweighted(dfb)
     
@@ -72,7 +72,7 @@ using CUDA: CUDA
     @test isweighted(wdfb2)
     @test !isweighted(dfb_split1)
     
-    dataset = DataFrame([true false false; true true true; false false true; false true false])
+    dataset = DataFrame([true false false; true true true; false false true; false true false], :auto)
     weights = [0.6, 0.6, 0.6, 0.8]
     dataset = weigh_samples(dataset, weights)
     bag_datasets = bagging_dataset(dataset; num_bags = 5, frac_examples = 1.0);
@@ -86,7 +86,7 @@ using CUDA: CUDA
     @test length(bag_datasets[1]) == 4
     @test ncol(bag_datasets[1][1]) == ncol(dataset) - 1
     
-    df = DataFrame(BitMatrix([true true; false true; false false]))
+    df = DataFrame(BitMatrix([true true; false true; false false]), :auto)
     mar = marginal_prob(df)
     @test mar[1] ≈ 0.333333333 atol = 1e-6
     @test mar[2] ≈ 0.666666666 atol = 1e-6
@@ -119,7 +119,7 @@ using CUDA: CUDA
         @test isgpu(to_gpu(wdfb1_gpu))
     end
     
-    df = DataFrame(Matrix{Union{Bool,Missing}}([true missing; missing false]))
+    df = DataFrame(Matrix{Union{Bool,Missing}}([true missing; missing false]), :auto)
     sdf = soften(df, 0.01; scale_by_marginal = false)
     @test sdf[1,1] ≈ 0.99 atol = 1e-6
     @test ismissing(sdf[1,2])

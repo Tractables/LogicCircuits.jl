@@ -70,6 +70,5 @@ Given two logic circuits ``\Delta_1`` and ``\Delta_2``, the goal is to check whe
 Here are few other useful queries. Look inside thier documentation for more details.
 
 - [`variables`](@ref): Get the variable mentioned in the circuit root.
-- [`variables_by_node`](@ref): Get the variable scope of each node in the circuit .
 - [`infer_vtree`](@ref) Infer vtree of struct decomposable circuits.
 - [`implied_literals`](@ref) Implied Literals.

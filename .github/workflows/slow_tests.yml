@@ -10,9 +10,6 @@ on:
       master
 
   workflow_dispatch:
-  
-  schedule:
-    - cron: '0 0 */7 * *'
 
 
 env:

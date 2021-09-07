@@ -1,6 +1,6 @@
 using Test
 using LogicCircuits
-using LogicCircuits.LoadSave: zoo_lc_file, zoo_vtree_file
+using LogicCircuits.LoadSave: zoo_lc_file, zoo_vtree_file, load_cnf
 
 include("../helper/plain_logic_circuits.jl")
 

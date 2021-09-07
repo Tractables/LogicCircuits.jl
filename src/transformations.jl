@@ -1,4 +1,4 @@
-export smooth, forget, propagate_constants, deepcopy, condition, replace_node, 
+export smooth, forget, propagate_constants, deepcopy, conjoin, replace_node, 
     split, clone, merge, split_candidates, random_split, split_step, struct_learn,
     clone_candidates, standardize_circuit
 

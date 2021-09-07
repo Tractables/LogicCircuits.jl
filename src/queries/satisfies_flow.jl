@@ -8,7 +8,7 @@ export model_var_prob, satisfies_flows_down, satisfies_flows, count_downflow, do
 "Compute the probability of each variable for a random satisfying assignment of the logical circuit"
 function model_var_prob(root::LogicCircuit)
     nvars = num_variables(root)
-    v, f, _ = satisfies_flows(root, DataFrame(fill(0.5, 1, nvars)))
+    v, f, _ = satisfies_flows(root, DataFrame(fill(0.5, 1, nvars), :auto))
     f[3:2+nvars]./v[end]
 end
 

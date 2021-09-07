@@ -29,4 +29,6 @@ include("sdd/apply.jl")
 include("LoadSave/LoadSave.jl")
 @reexport using .LoadSave
 
+include("bdd/bdds.jl")
+
 end
