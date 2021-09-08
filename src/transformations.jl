@@ -265,8 +265,7 @@ function conjoin(root::Node, lit::Lit; callback=noop, keep_unary=false)::Node
             kept = last.(cv)
             new_children = first.(cv)[kept]
             if all(kept)
-                # (conjoin([new_children...]; reuse=n), true)
-                (conjoin([new_children...]), true)
+                (conjoin([new_children...]; reuse=n), true)
             else
                 (false_node, false)
             end
@@ -277,8 +276,7 @@ function conjoin(root::Node, lit::Lit; callback=noop, keep_unary=false)::Node
             if any(kept) && (length(new_children) == 1) && isliteralgate(new_children[1]) && !keep_unary
                 (new_children[1], true)
             elseif any(kept)
-                # new_n = disjoin([new_children...]; reuse=n)
-                new_n = disjoin([new_children...])
+                new_n = disjoin([new_children...]; reuse=n)
                 callback(new_n, n, kept)
                 (new_n, true)
             else
