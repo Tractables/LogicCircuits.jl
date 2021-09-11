@@ -29,8 +29,8 @@ include("sdd/sdd_functions.jl")
 include("sdd/apply.jl")
 
 include("io/vtree_io.jl")
-include("io/circuit_load.jl")
-include("io/circuit_save.jl")
+include("io/circuit_read.jl")
+include("io/circuit_write.jl")
 include("io/data_load.jl")
 include("io/plot.jl")
 

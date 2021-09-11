@@ -3,6 +3,13 @@ using LogicCircuits
 import .LogicCircuits.LoadSave: 
    parse_sdd_file, CircuitFormatLines, zoo_sdd_file
 
+
+#  reinstate
+lines = parse_sdd_file(zoo_sdd_file("random.sdd"))
+save_lines("$tmp/temp.sdd", lines)
+lines2 = parse_sdd_file("$tmp/temp.sdd")
+@test length(lines) == length(lines2)
+
 @testset "SDD file parser tests" begin
 
   @test parse_sdd_file(zoo_sdd_file("random.sdd")) isa CircuitFormatLines

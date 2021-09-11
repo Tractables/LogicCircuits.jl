@@ -4,6 +4,13 @@ using LogicCircuits.LoadSave: zoo_lc_file, zoo_vtree_file, load_cnf
 
 include("../helper/plain_logic_circuits.jl")
 
+
+# reinstate
+lines = parse_lc_file(zoo_lc_file("little_4var.circuit"))
+save_lines("$tmp/temp.circuit", lines)
+lines2 = parse_lc_file("$tmp/temp.circuit")
+@test length(lines) == length(lines2)
+
 @testset "Circuit saver tests" begin
 
   mktempdir() do tmp
