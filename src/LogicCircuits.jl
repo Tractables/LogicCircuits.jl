@@ -22,6 +22,8 @@ include("structured/structured_logic_nodes.jl")
 
 include("transformations.jl")
 
+include("bdd/bdds.jl")
+
 include("sdd/sdds.jl")
 include("sdd/sdd_functions.jl")
 include("sdd/apply.jl")
@@ -32,7 +34,5 @@ include("io/circuit_load.jl")
 include("io/circuit_save.jl")
 include("io/data_load.jl")
 include("io/plot.jl")
-
-include("bdd/bdds.jl")
 
 end

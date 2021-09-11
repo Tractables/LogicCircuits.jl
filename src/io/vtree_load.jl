@@ -3,6 +3,7 @@ export zoo_vtree, zoo_vtree_file
 using Pkg.Artifacts
 using Lerche: Lerche, Lark, Transformer, @rule, @inline_rule
 
+
 # bit of circuit/vtree loading infrastructure
 
 const zoo_version = "/Circuit-Model-Zoo-0.1.4"
@@ -10,6 +11,7 @@ const zoo_version = "/Circuit-Model-Zoo-0.1.4"
 abstract type JuiceTransformer <: Transformer end
 
 Lerche.visit_tokens(t::JuiceTransformer) = false
+
 
 # Vtrees
 
@@ -39,6 +41,7 @@ const vtree_grammar = raw"""
 
 const vtree_parser = Lark(vtree_grammar, parser="lalr", lexer="contextual")
 
+
 struct Ast2Vtree{V <: Vtree} <: JuiceTransformer
     nodes::Dict{String,V}
     Ast2Vtree{V}() where V = new{V}(Dict{String,V}())
@@ -53,17 +56,18 @@ end
 
 @rule body(t::Ast2Vtree,nodes) = nodes[end]
 
+
 import Base: parse, read # extend
 
 function parse(::Type{V}, str) where V <: Vtree
     ast = Lerche.parse(vtree_parser, str)
-    Lerche.transform(Ast2Vtree{V}(),ast)
+    Lerche.transform(Ast2Vtree{V}(), ast)
 end
 
 function parse(::Type{Dict{String,V}}, str) where V <: Vtree
     ast = Lerche.parse(vtree_parser, str)
     transformer = Ast2Vtree{V}()
-    Lerche.transform(transformer,ast)
+    Lerche.transform(transformer, ast)
     transformer.nodes
 end
 

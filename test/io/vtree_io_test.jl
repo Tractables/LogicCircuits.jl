@@ -1,23 +1,10 @@
  using Test
- using LogicCircuits
- using LogicCircuits.LoadSave: VtreeCommentLine, VtreeHeaderLine, VtreeLeafLine, VtreeInnerLine, zoo_vtree_file, parse_vtree_file, compile_vtree_format_lines
+ using LogicCircuits: zoo_vtree_file
 
 @testset "Vtree file loader test" begin
 
-    vtree_lines = parse_vtree_file(zoo_vtree_file("little_4var.vtree"))
-    for i = 1:9
-        @test vtree_lines[i] isa VtreeCommentLine
-    end
-    @test vtree_lines[10] isa VtreeHeaderLine
-    for i = 11:14
-        @test vtree_lines[i] isa VtreeLeafLine
-    end
-    for i = 15:17
-        @test vtree_lines[i] isa VtreeInnerLine
-    end
-
-    vtree = compile_vtree_format_lines(vtree_lines)
-
+    vtree = read(zoo_vtree_file("little_4var.vtree"), Vtree)
+    
     function test_vtree(vtree)
         @test num_variables(vtree) == 4
         @test sort(Int.(variables(vtree))) == [1,2,3,4]
@@ -41,7 +28,7 @@
         # load from file, and then run the same tests
         temp_stream = open("$tmp/little_4var_temp_stream.vtree", "r")
         for f in [temp_path, temp_stream]
-            vtree2 = load_vtree(f)
+            vtree2 = read(f, Vtree)
             test_vtree(vtree2)
             @test vtree == vtree2 # we can test equality of plain vtrees!
         end
