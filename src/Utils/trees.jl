@@ -133,6 +133,16 @@ function foreach(f::Function, node::Tree)
     nothing
 end
 
+function foreach_down(f::Function, node::Tree)
+    f(node)
+    if isinner(node)
+        for c in children(node)
+            foreach(f, c)
+        end
+    end
+    nothing
+end
+
 function foldup(node::Tree, f_leaf::Function, f_inner::Function, ::Type{T})::T where T
     v = if isinner(node)
         callback(c) = (foldup(c, f_leaf, f_inner, T)::T)

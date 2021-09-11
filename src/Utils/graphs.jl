@@ -4,6 +4,7 @@ export Node, Dag, NodeType, Leaf, Inner,
        num_nodes, num_edges, tree_num_nodes, tree_num_edges, in,
        inodes, innernodes, leafnodes, linearize,
        left_most_descendent, right_most_descendent,
+       label_nodes,
        node_stats, inode_stats, leaf_stats
 
 
@@ -258,6 +259,18 @@ function right_most_descendent(root::Dag)::Dag
         root = children(root)[end]
     end
     root
+end
+
+"""
+Assign an integer label to each circuit node, bottom up, starting at `1`
+"""
+function label_nodes(root::Dag)
+    labeling = Dict{Node,Int}()
+    i = 0
+    foreach(root) do node
+        labeling[node] = (i+=1)
+    end
+    labeling
 end
 
 #####################
