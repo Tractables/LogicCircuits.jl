@@ -65,7 +65,7 @@ end
     Base.parse(Int,x)
 
 @rule start(t::PlainSddParse, x) = begin
-    @assert sdd_num_nodes(x[end]) + num_leafnodes(x[end]) == x[1]
+    @assert sdd_num_nodes_leafs(x[end]) == x[1]
     x[end]
 end 
 
@@ -85,7 +85,7 @@ Base.read(io::IO, ::Type{PlainLogicCircuit}, ::SddFormat) =
 # Write SDDs
 ##############################################
 
-const sdd_FORMAT = """c this file was saved by LogicCircuits.jl
+const SDD_FORMAT = """c this file was saved by LogicCircuits.jl
 c ids of sdd nodes start at 0
 c sdd nodes appear bottom-up, children before parents
 c
@@ -96,3 +96,40 @@ c T id-of-true-sdd-node
 c L id-of-literal-sdd-node id-of-vtree literal
 c D id-of-decomposition-sdd-node id-of-vtree number-of-elements {id-of-prime id-of-sub}*
 c"""
+
+function Base.write(io::IO, sdd::Sdd, vtreenodeid = (x -> 0))
+
+    id = -1
+
+    println(io, SDD_FORMAT)
+    println(io, "sdd $(sdd_num_nodes_leafs(sdd))")
+
+    f_con(n) = begin
+        nid = id += 1
+        sign = isfalse(n) ? "F" : "T"
+        println(io, "$sign $nid")
+        nid
+    end
+
+    f_lit(n) = begin
+        nid = id += 1
+        println(io, "L $nid $(vtreenodeid(mgr(n))) $(literal(n))")
+        nid
+    end
+
+    f_a(n, ids) = tuple(ids...)
+
+    f_o(n, ids) = begin
+        nid = id += 1
+        print(io, "D $nid $(vtreenodeid(mgr(n))) $(length(ids))")
+        for el in ids
+            print(io, " $(el[1]) $(el[2])")
+        end
+        println(io)
+        nid
+    end
+    
+    foldup_aggregate(sdd, f_con, f_lit, f_a, f_o, Union{Int, Tuple{Int,Int}})
+
+    nothing
+end
