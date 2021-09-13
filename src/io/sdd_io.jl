@@ -79,70 +79,20 @@ Base.read(io::IO, ::Type{PlainLogicCircuit}, ::SddFormat) =
 
 #  parse structured
 
+# TODO after write
+
 ##############################################
 # Write SDDs
 ##############################################
 
-# const sdd_FORMAT = """c ids of sdd nodes start at 0
-# c ids of variables start at 1
-# c sdd nodes appear bottom-up, children before parents
-# c
-# c file syntax:
-# c sdd number-of-nodes-in-sdd
-# c L id-of-leaf-sdd-node id-of-variable
-# c I id-of-internal-sdd-node id-of-left-child id-of-right-child
-# c"""
-
-# # 
-
-# """
-#     write(file::AbstractString, sdd::Plainsdd)
-
-# Saves a sdd in the given file path based on file format.
-# Supported formats:
-# * ".sdd" for sdd files
-# * ".dot" for dot files
-# """
-# function Base.write(file::AbstractString, sdd::sdd)
-#     open(file,"w") do io
-#         if endswith(file,".sdd")
-#             write(io, sdd; format = :dimacs)
-#         elseif endswith(file, ".dot")
-#             write(io, sdd; format = :dot)
-#         else
-#             throw("Unsupported file extension in $file: choose either *.sdd or *.dot")
-#         end
-#     end
-# end
-
-# function Base.write(io::IO, sdd::sdd; format = :dimacs)
-
-#     labeling = label_nodes(sdd)
-
-#     if format == :dimacs
-#         println(io, sdd_FORMAT)
-#         println(io, "sdd $(num_nodes(sdd))")
-#         foreach(sdd) do n
-#             if isleaf(n)
-#                 println(io, "L $(labeling[n]) $(n.var)")
-#             else
-#                 @assert isinner(n)
-#                 println(io, "I $(labeling[n]) $(labeling[n.left]) $(labeling[n.right])")
-#             end
-#         end
-
-#     elseif format == :dot
-#         println(io,"strict graph sdd { node [shape=point]; splines=false;")
-#         # reverse order is better for dot
-#         foreach_down(sdd) do n
-#             if isleaf(n)
-#                 println(io, "$(labeling[n]) [label=$(n.var), shape=\"plaintext\"]")
-#             else
-#                 @assert isinner(n)
-#                 println(io, "$(labeling[n]) -- $(labeling[n.right])")
-#                 println(io, "$(labeling[n]) -- $(labeling[n.left])")
-#             end
-#         end
-#         println(io, "}")
-#     end
-# end
+const sdd_FORMAT = """c this file was saved by LogicCircuits.jl
+c ids of sdd nodes start at 0
+c sdd nodes appear bottom-up, children before parents
+c
+c file syntax:
+c sdd count-of-sdd-nodes
+c F id-of-false-sdd-node
+c T id-of-true-sdd-node
+c L id-of-literal-sdd-node id-of-vtree literal
+c D id-of-decomposition-sdd-node id-of-vtree number-of-elements {id-of-prime id-of-sub}*
+c"""

@@ -55,7 +55,7 @@ function Base.parse(::Type{V}, str,
     Lerche.transform(VtreeParse{V}(), ast)
 end
 
-function Base.parse(::Type{Dict{String,V}}, str
+function Base.parse(::Type{Dict{String,V}}, str,
                     ::VtreeFormat = VtreeFormat()) where V <: Vtree
     ast = Lerche.parse(vtree_parser, str)
     transformer = VtreeParse{V}()
@@ -63,8 +63,14 @@ function Base.parse(::Type{Dict{String,V}}, str
     transformer.nodes
 end
 
-Base.read(io::IO, ::Type{V}) where V <: Vtree =
-    parse(V, read(io, String))
+Base.read(io::IO, ::Type{V},
+          ::VtreeFormat = VtreeFormat()) where V <: Vtree =
+    parse(V, read(io, String), VtreeFormat())
+
+
+Base.read(io::IO, ::Type{Dict{String,V}},
+          ::VtreeFormat = VtreeFormat()) where V <: Vtree =
+    parse(Dict{String,V}, read(io, String), VtreeFormat())
 
 ##############################################
 # Write Vtrees
@@ -105,16 +111,17 @@ end
 function Base.write(io::IO, vtree::Vtree, format = VtreeFormat)
 
     labeling = label_nodes(vtree)
+    nodeid(x) = labeling[x]-1
 
     if format == VtreeFormat
         println(io, VTREE_FORMAT)
         println(io, "vtree $(num_nodes(vtree))")
         foreach(vtree) do n
             if isleaf(n)
-                println(io, "L $(labeling[n]) $(n.var)")
+                println(io, "L $(nodeid(n)) $(n.var)")
             else
                 @assert isinner(n)
-                println(io, "I $(labeling[n]) $(labeling[n.left]) $(labeling[n.right])")
+                println(io, "I $(nodeid(n)) $(nodeid(n.left)) $(nodeid(n.right))")
             end
         end
 
@@ -123,11 +130,11 @@ function Base.write(io::IO, vtree::Vtree, format = VtreeFormat)
         # reverse order is better for dot
         foreach_down(vtree) do n
             if isleaf(n)
-                println(io, "$(labeling[n]) [label=$(n.var), shape=\"plaintext\"]")
+                println(io, "$(nodeid(n)) [label=$(n.var), shape=\"plaintext\"]")
             else
                 @assert isinner(n)
-                println(io, "$(labeling[n]) -- $(labeling[n.right])")
-                println(io, "$(labeling[n]) -- $(labeling[n.left])")
+                println(io, "$(nodeid(n)) -- $(nodeid(n.right))")
+                println(io, "$(nodeid(n)) -- $(nodeid(n.left))")
             end
         end
         println(io, "}")

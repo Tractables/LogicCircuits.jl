@@ -25,12 +25,16 @@ for (V, VI, VL) in [(PlainVtree, PlainVtreeInnerNode, PlainVtreeLeafNode),
             write(temp_path, vtree)
 
             # load from file, and then run the same tests
-            f = open("$tmp/little_4var_temp.vtree", "r")
-            vtree2 = read(f, V)
+            vtree2 = read(temp_path, V)
             test_vtree(vtree2)
             @test PlainVtree(vtree) == PlainVtree(vtree2) # we can test equality of plain vtrees!
-            close(f)
 
+            mapping = read(temp_path, Dict{String,V})
+            for i = 0:num_nodes(vtree)-1 # ids of vtree nodes start at 0
+                @test haskey(mapping, "$i")
+            end
+            @test !haskey(mapping, "$(num_nodes(vtree))")
+            
             # Save dot file
             dot_path = "$tmp/little_4var_temp.dot"
             write(dot_path, vtree)
