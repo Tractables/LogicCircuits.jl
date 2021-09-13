@@ -1,13 +1,13 @@
  using Test
  using LogicCircuits
- using LogicCircuits: zoo_vtree_file, SddMgrInnerNode, SddMgrLeafNode
+ using LogicCircuits: SddMgrInnerNode, SddMgrLeafNode
 
 for (V, VI, VL) in [(PlainVtree, PlainVtreeInnerNode, PlainVtreeLeafNode),
                     (SddMgr, SddMgrInnerNode, SddMgrLeafNode)]
 
     @testset "$V IO test" begin
 
-        vtree = read(zoo_vtree_file("little_4var.vtree"), V)
+        vtree = zoo_vtree("little_4var.vtree", V)
         
         function test_vtree(vtree)
             @test num_variables(vtree) == 4

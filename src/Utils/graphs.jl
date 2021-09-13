@@ -2,7 +2,7 @@ export Node, Dag, NodeType, Leaf, Inner,
        children, has_children, num_children, isleaf, isinner,
        foreach, foreach_down, filter, foldup, foldup_aggregate, 
        num_nodes, num_edges, tree_num_nodes, tree_num_edges, in,
-       inodes, innernodes, leafnodes, linearize,
+       inodes, innernodes, leafnodes, num_innernodes, num_leafnodes, linearize,
        left_most_descendent, right_most_descendent,
        label_nodes,
        node_stats, inode_stats, leaf_stats
@@ -236,6 +236,14 @@ innernodes(c::Dag, seen=nothing) =
 "Get the list of leaf nodes in a given graph"
 leafnodes(c::Dag, seen=nothing) = 
     filter(isleaf, c, seen)
+
+"Count the number of leaf nodes in a given graph"
+num_leafnodes(c::Dag) = 
+    length(leafnodes(c))
+
+"Count the number of inner nodes in a given graph"
+num_innernodes(c::Dag) = 
+    length(innernodes(c))
 
 "Order the `Dag`'s nodes bottom-up in a list (with optional element type)"
 @inline linearize(r::Dag, ::Type{T} = Union{}, seen=nothing) where T = 

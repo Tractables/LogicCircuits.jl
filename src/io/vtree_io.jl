@@ -1,29 +1,13 @@
 export zoo_vtree, zoo_vtree_file
 
-using Pkg.Artifacts
-using Lerche: Lerche, Lark, Transformer, @rule, @inline_rule
-
 ##############################################
-# bit of IO infrastructure
+# Read Vtrees
 ##############################################
-
-const zoo_version = "/Circuit-Model-Zoo-0.1.4"
-
-abstract type JuiceTransformer <: Transformer end
-
-Lerche.visit_tokens(t::JuiceTransformer) = false
-
-
-##############################################
-# Vtrees
-##############################################
-
-# Read
 
 zoo_vtree_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/vtrees/$name"
 
-function zoo_vtree(name, ::Type{V}=PlainVtree)::V where V<:Vtree 
+function zoo_vtree(name, ::Type{V}=PlainVtree)::V where V<:Vtree
     read(zoo_vtree_file(name), V)
 end
 
@@ -46,48 +30,48 @@ const vtree_grammar = raw"""
 const vtree_parser = Lark(vtree_grammar, parser="lalr", lexer="contextual")
 
 
-mutable struct Ast2Vtree{V <: Vtree} <: JuiceTransformer
+mutable struct VtreeParse{V <: Vtree} <: JuiceTransformer
     nodes::Dict{String,V}
-    Ast2Vtree{V}() where V = new{V}(Dict{String,V}())
+    VtreeParse{V}() where V = new{V}(Dict{String,V}())
 end
 
-@inline_rule header(t::Ast2Vtree,x) = Base.parse(Int,x)
+@inline_rule header(t::VtreeParse,x) = Base.parse(Int,x)
 
-@rule leaf(t::Ast2Vtree{V},x) where V = begin 
+@rule leaf(t::VtreeParse{V},x) where V = begin 
     t.nodes[x[1]] = V(Base.parse(Var,x[2]))
 end
 
-@rule inode(t::Ast2Vtree{V},x) where V = 
+@rule inode(t::VtreeParse{V},x) where V = 
     t.nodes[x[1]] = V(t.nodes[x[2]], t.nodes[x[3]])
 
-@rule start(t::Ast2Vtree, x) = begin
+@rule start(t::VtreeParse, x) = begin
     @assert num_nodes(x[end]) == x[1]
     x[end]
 end 
 
-
-import Base: parse, read # extend
-
-function parse(::Type{V}, str) where V <: Vtree
+function Base.parse(::Type{V}, str, 
+                    ::VtreeFormat = VtreeFormat()) where V <: Vtree
     ast = Lerche.parse(vtree_parser, str)
-    Lerche.transform(Ast2Vtree{V}(), ast)
+    Lerche.transform(VtreeParse{V}(), ast)
 end
 
-function parse(::Type{Dict{String,V}}, str) where V <: Vtree
+function Base.parse(::Type{Dict{String,V}}, str
+                    ::VtreeFormat = VtreeFormat()) where V <: Vtree
     ast = Lerche.parse(vtree_parser, str)
-    transformer = Ast2Vtree{V}()
+    transformer = VtreeParse{V}()
     Lerche.transform(transformer, ast)
     transformer.nodes
 end
 
-function read(io::IO, ::Type{V}) where V <: Vtree
+Base.read(io::IO, ::Type{V}) where V <: Vtree =
     parse(V, read(io, String))
-end
 
+##############################################
+# Write Vtrees
+##############################################
 
-# Write
-
-const VTREE_FORMAT = """c ids of vtree nodes start at 0
+const VTREE_FORMAT = """c this file was saved by LogicCircuits.jl
+c ids of vtree nodes start at 0
 c ids of variables start at 1
 c vtree nodes appear bottom-up, children before parents
 c
@@ -96,8 +80,7 @@ c vtree number-of-nodes-in-vtree
 c L id-of-leaf-vtree-node id-of-variable
 c I id-of-internal-vtree-node id-of-left-child id-of-right-child
 c"""
-
-# 
+#end vtree format header 
 
 """
     write(file::AbstractString, vtree::PlainVtree)
@@ -110,20 +93,20 @@ Supported formats:
 function Base.write(file::AbstractString, vtree::Vtree)
     open(file,"w") do io
         if endswith(file,".vtree")
-            write(io, vtree; format = :dimacs)
+            write(io, vtree, VtreeFormat)
         elseif endswith(file, ".dot")
-            write(io, vtree; format = :dot)
+            write(io, vtree, DotFormat)
         else
             throw("Unsupported file extension in $file: choose either *.vtree or *.dot")
         end
     end
 end
 
-function Base.write(io::IO, vtree::Vtree; format = :dimacs)
+function Base.write(io::IO, vtree::Vtree, format = VtreeFormat)
 
     labeling = label_nodes(vtree)
 
-    if format == :dimacs
+    if format == VtreeFormat
         println(io, VTREE_FORMAT)
         println(io, "vtree $(num_nodes(vtree))")
         foreach(vtree) do n
@@ -135,7 +118,7 @@ function Base.write(io::IO, vtree::Vtree; format = :dimacs)
             end
         end
 
-    elseif format == :dimacs
+    elseif format == DotFormat
         println(io,"strict graph vtree { node [shape=point]; splines=false;")
         # reverse order is better for dot
         foreach_down(vtree) do n
