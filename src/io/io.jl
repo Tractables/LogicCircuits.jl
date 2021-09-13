@@ -18,11 +18,22 @@ struct DotFormat <: FileFormat end
 
 #  when asked to parse/read as `LogicCircuit`, default to `PlainLogicCircuit`
 
-Base.parse(::Type{LogicCircuit}, str, format) = 
-    parse(PlainLogicCircuit, str, format)
+Base.parse(::Type{LogicCircuit}, args...) = 
+    parse(PlainLogicCircuit, args...)
 
-Base.read(f::IOStream, ::Type{LogicCircuit}, format) = 
-    read(f, PlainLogicCircuit, format)
+Base.read(f::IOStream, ::Type{LogicCircuit},  args...) = 
+    read(f, PlainLogicCircuit,  args...)
+
+#  when asked to parse/read as `StructLogicCircuit`, default to `PlainStructLogicCircuit`
+
+Base.parse(::Type{StructLogicCircuit}, args...) = 
+    parse(PlainStructLogicCircuit, args...)
+
+Base.read(f::IOStream, ::Type{StructLogicCircuit},  args...) = 
+    read(f, PlainStructLogicCircuit,  args...)
+
+Base.read(io::IO, a2, ::Type{StructLogicCircuit}, args...)  =
+    read(io, a2, PlainStructLogicCircuit,  args...)
 
 # individual io functionalities 
 

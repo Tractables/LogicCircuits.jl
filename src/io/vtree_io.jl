@@ -111,17 +111,17 @@ end
 function Base.write(io::IO, vtree::Vtree, format = VtreeFormat)
 
     labeling = label_nodes(vtree)
-    nodeid(x) = labeling[x]-1
+    map!(x -> x-1, values(labeling)) # vtree nodes are 0-based indexed
 
     if format == VtreeFormat
         println(io, VTREE_FORMAT)
         println(io, "vtree $(num_nodes(vtree))")
         foreach(vtree) do n
             if isleaf(n)
-                println(io, "L $(nodeid(n)) $(n.var)")
+                println(io, "L $(labeling[n]) $(n.var)")
             else
                 @assert isinner(n)
-                println(io, "I $(nodeid(n)) $(nodeid(n.left)) $(nodeid(n.right))")
+                println(io, "I $(labeling[n]) $(labeling[n.left]) $(labeling[n.right])")
             end
         end
 
@@ -130,13 +130,16 @@ function Base.write(io::IO, vtree::Vtree, format = VtreeFormat)
         # reverse order is better for dot
         foreach_down(vtree) do n
             if isleaf(n)
-                println(io, "$(nodeid(n)) [label=$(n.var), shape=\"plaintext\"]")
+                println(io, "$(labeling[n]) [label=$(n.var), shape=\"plaintext\"]")
             else
                 @assert isinner(n)
-                println(io, "$(nodeid(n)) -- $(nodeid(n.right))")
-                println(io, "$(nodeid(n)) -- $(nodeid(n.left))")
+                println(io, "$(labeling[n]) -- $(labeling[n.right])")
+                println(io, "$(labeling[n]) -- $(labeling[n.left])")
             end
         end
         println(io, "}")
     end
+    
+    # return the labeling to be reused by consumers of this vtree file
+    labeling
 end

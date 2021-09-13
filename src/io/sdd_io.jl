@@ -34,9 +34,24 @@ const sdd_grammar = raw"""
 
 const sdd_parser = Lark(sdd_grammar, parser="lalr", lexer="contextual")
 
-#  parse unstructured
+abstract type SddParse <: JuiceTransformer end
 
-struct PlainSddParse <: JuiceTransformer
+@inline_rule header(t::SddParse, x) = 
+    Base.parse(Int,x)
+
+@rule start(t::SddParse, x) = begin
+    @assert sdd_num_nodes_leafs(x[end]) == x[1]
+    x[end]
+end 
+
+@rule elem(t::SddParse, x) = 
+    [t.nodes[x[1]], t.nodes[x[2]]]
+
+@rule elems(t::SddParse, x) = 
+    Array(x)
+
+#  parse unstructured
+struct PlainSddParse <: SddParse
     nodes::Dict{String,PlainLogicCircuit}
     PlainSddParse() = new(Dict{String,PlainLogicCircuit}())
 end
@@ -48,26 +63,15 @@ end
     t.nodes[x[1]] = PlainConstantNode(false)
 
 @rule true_node(t::PlainSddParse, x) = 
-        t.nodes[x[1]] = PlainConstantNode(true)
-
-@rule elem(t::PlainSddParse, x) = 
-    Plain⋀Node([t.nodes[x[1]], t.nodes[x[2]]])
-
-@rule elems(t::PlainSddParse, x) = 
-    Array(x)
+    t.nodes[x[1]] = PlainConstantNode(true)
 
 @rule decision_node(t::PlainSddParse,x) = begin
     @assert length(x[4]) == Base.parse(Int,x[3])
-    t.nodes[x[1]] = Plain⋁Node(x[4])
+    elems = map(x[4]) do elem
+        Plain⋀Node(elem)
+    end
+    t.nodes[x[1]] = Plain⋁Node(elems)
 end
-
-@inline_rule header(t::PlainSddParse, x) = 
-    Base.parse(Int,x)
-
-@rule start(t::PlainSddParse, x) = begin
-    @assert sdd_num_nodes_leafs(x[end]) == x[1]
-    x[end]
-end 
 
 function Base.parse(::Type{PlainLogicCircuit}, str, ::SddFormat) 
     ast = Lerche.parse(sdd_parser, str)
@@ -78,8 +82,58 @@ Base.read(io::IO, ::Type{PlainLogicCircuit}, ::SddFormat) =
     parse(PlainLogicCircuit, read(io, String), SddFormat())
 
 #  parse structured
+struct StructSddParse <: SddParse
+    id2vtree::Dict{String,Vtree}
+    nodes::Dict{String,StructLogicCircuit}
+    StructSddParse(id2vtree) = 
+        new(id2vtree,Dict{String,StructLogicCircuit}())
+end
 
-# TODO after write
+@rule literal_node(t::StructSddParse, x) = begin
+    lit = Base.parse(Lit,x[3])
+    vtree = t.id2vtree[x[2]]
+    t.nodes[x[1]] = PlainStructLiteralNode(lit, vtree)
+end
+
+@rule false_node(t::StructSddParse, x) = 
+    t.nodes[x[1]] = PlainStructConstantNode(false)
+
+@rule true_node(t::StructSddParse, x) = 
+    t.nodes[x[1]] = PlainStructConstantNode(true)
+
+
+@rule decision_node(t::StructSddParse,x) = begin
+    @assert length(x[4]) == Base.parse(Int,x[3])
+    vtree = t.id2vtree[x[2]]
+    elems = map(x[4]) do elem
+        PlainStruct⋀Node(elem[1], elem[2], vtree)
+    end
+    t.nodes[x[1]] = PlainStruct⋁Node(elems, vtree)
+end
+
+function Base.parse(::Type{PlainStructLogicCircuit}, str::AbstractString, ::SddFormat, id2vtree) 
+    ast = Lerche.parse(sdd_parser, str)
+    Lerche.transform(StructSddParse(id2vtree), ast)
+end
+
+function Base.parse(::Type{PlainStructLogicCircuit}, sdd_str::AbstractString, ::SddFormat, 
+                    vtree_str::AbstractString, ::VtreeFormat = VtreeFormat()) 
+    id2vtree = parse(Dict{String,Vtree}, vtree_str, VtreeFormat())
+    parse(PlainStructLogicCircuit, sdd_str, SddFormat(), id2vtree)
+end
+
+Base.read(io::IO, ::Type{PlainStructLogicCircuit}, ::SddFormat, id2vtree) =
+    parse(PlainStructLogicCircuit, read(io, String), SddFormat(), id2vtree)
+
+function Base.read(circuit_io::IO, vtree_io::Union{IO,AbstractString}, 
+          ::Type{PlainStructLogicCircuit}, ::SddFormat, 
+          ::Type{Vtree}, ::VtreeFormat = VtreeFormat()) 
+    circuit_str = read(circuit_io, String)
+    vtree_str = read(vtree_io, String)
+    parse(PlainStructLogicCircuit, circuit_str, SddFormat(), vtree_str, VtreeFormat())
+end
+
+#  parse as SDD
 
 ##############################################
 # Write SDDs
@@ -97,7 +151,7 @@ c L id-of-literal-sdd-node id-of-vtree literal
 c D id-of-decomposition-sdd-node id-of-vtree number-of-elements {id-of-prime id-of-sub}*
 c"""
 
-function Base.write(io::IO, sdd::Sdd, vtreenodeid = (x -> 0))
+function Base.write(io::IO, sdd::Sdd, vtree2id::Function = (x -> 0))
 
     id = -1
 
@@ -113,7 +167,7 @@ function Base.write(io::IO, sdd::Sdd, vtreenodeid = (x -> 0))
 
     f_lit(n) = begin
         nid = id += 1
-        println(io, "L $nid $(vtreenodeid(mgr(n))) $(literal(n))")
+        println(io, "L $nid $(vtree2id(mgr(n))) $(literal(n))")
         nid
     end
 
@@ -121,7 +175,7 @@ function Base.write(io::IO, sdd::Sdd, vtreenodeid = (x -> 0))
 
     f_o(n, ids) = begin
         nid = id += 1
-        print(io, "D $nid $(vtreenodeid(mgr(n))) $(length(ids))")
+        print(io, "D $nid $(vtree2id(mgr(n))) $(length(ids))")
         for el in ids
             print(io, " $(el[1]) $(el[2])")
         end
@@ -132,4 +186,17 @@ function Base.write(io::IO, sdd::Sdd, vtreenodeid = (x -> 0))
     foldup_aggregate(sdd, f_con, f_lit, f_a, f_o, Union{Int, Tuple{Int,Int}})
 
     nothing
+end
+
+function Base.write(sdd_io::IO, vtree_io::IO, sdd::Sdd)
+    vtree2id = write(vtree_io, mgr(sdd))
+    write(sdd_io, sdd, i -> vtree2id[i])
+end
+
+function Base.write(sdd_f::AbstractString, vtree_f::AbstractString, sdd::Sdd)
+    open(sdd_f, "w") do sdd_io
+        open(vtree_f, "w") do vtree_io
+            write(sdd_io, vtree_io, sdd)
+        end
+    end
 end

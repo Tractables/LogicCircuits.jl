@@ -28,9 +28,7 @@ end
     @test issmooth(sstructplc)
     @test respects_vtree(sstructplc, vtr)
 
-    e1 = prob_equiv_signature(slc, 3)
-    e2 = prob_equiv_signature(sstructplc, 3, e1)
-    @test e1[slc] == e2[sstructplc]
+    @test prob_equiv(slc, sstructplc, 3)
 end
 
 @testset "Forget test" begin

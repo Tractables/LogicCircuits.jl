@@ -32,17 +32,28 @@ end
 
   mktempdir() do tmp
     
-    temp_path = "$tmp/example.sdd"
-    write(temp_path, sdd)
+    sdd_path = "$tmp/example.sdd"
+    write(sdd_path, sdd)
 
-    sdd2 = read(temp_path, LogicCircuit, SddFormat())
+    sdd2 = read(sdd_path, LogicCircuit, SddFormat())
     
     @test sdd2 isa PlainLogicCircuit
-    @test num_nodes(sdd) == num_nodes(sdd2)
 
-    e1 = prob_equiv_signature(sdd, 10)
-    e2 = prob_equiv_signature(sdd2, 10, e1)
-    @test e1[sdd] == e2[sdd2]
+    @test num_nodes(sdd) == num_nodes(sdd2)
+    @test prob_equiv(sdd, sdd2, 10)
+
+
+    vtree_path = "$tmp/example.vtree"
+    write(sdd_path, vtree_path, sdd)
+
+    sdd3 = read(sdd_path, vtree_path, StructLogicCircuit, SddFormat(), Vtree, VtreeFormat()) 
+    
+    @test sdd3 isa PlainStructLogicCircuit
+
+    @test num_nodes(sdd) == num_nodes(sdd3)
+    @test prob_equiv(sdd, sdd3, 10)
+
+    @test Vtree(mgr(sdd)) == vtree(sdd3)
 
   end
 
