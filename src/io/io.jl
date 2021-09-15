@@ -12,28 +12,6 @@ Lerche.visit_tokens(t::JuiceTransformer) = false
 
 # file formats supported by this package
 abstract type FileFormat end
-struct SddFormat <: FileFormat end
-struct VtreeFormat <: FileFormat end
-struct DotFormat <: FileFormat end
-
-#  when asked to parse/read as `LogicCircuit`, default to `PlainLogicCircuit`
-
-Base.parse(::Type{LogicCircuit}, args...) = 
-    parse(PlainLogicCircuit, args...)
-
-Base.read(f::IOStream, ::Type{LogicCircuit},  args...) = 
-    read(f, PlainLogicCircuit,  args...)
-
-#  when asked to parse/read as `StructLogicCircuit`, default to `PlainStructLogicCircuit`
-
-Base.parse(::Type{StructLogicCircuit}, args...) = 
-    parse(PlainStructLogicCircuit, args...)
-
-Base.read(f::IOStream, ::Type{StructLogicCircuit},  args...) = 
-    read(f, PlainStructLogicCircuit,  args...)
-
-Base.read(io::IO, a2, ::Type{StructLogicCircuit}, args...)  =
-    read(io, a2, PlainStructLogicCircuit,  args...)
 
 # individual io functionalities 
 
@@ -41,3 +19,50 @@ include("vtree_io.jl")
 include("sdd_io.jl")
 include("data_load.jl")
 include("plot.jl")
+
+# if no file format is given on read, infer file format from extension
+
+function Base.read(file::AbstractString, ::Type{C}) where C <: LogicCircuit
+    if endswith(file,".sdd")
+        read(file, C, SddFormat())
+    else
+        throw("Unknown file extension in $file: provide a file format argument")
+    end
+end
+
+#  when asked to parse/read as `LogicCircuit`, default to `PlainLogicCircuit`
+
+Base.parse(::Type{LogicCircuit}, args...) = 
+    parse(PlainLogicCircuit, args...)
+
+Base.read(io::IO, ::Type{LogicCircuit},  args...) = 
+    read(io, PlainLogicCircuit,  args...)
+
+#  when asked to parse/read as `StructLogicCircuit`, default to `PlainStructLogicCircuit`
+
+Base.parse(::Type{StructLogicCircuit}, args...) = 
+    parse(PlainStructLogicCircuit, args...)
+
+Base.read(io::IO, ::Type{StructLogicCircuit},  args...) = 
+    read(io, PlainStructLogicCircuit,  args...)
+
+Base.read(ios::Tuple{IO,IO}, ::Type{StructLogicCircuit},  args...) = 
+    read(ios, PlainStructLogicCircuit,  args...)
+
+# copy read/write API for tuples of files
+
+function Base.read(files::Tuple{AbstractString, AbstractString}, ::Type{C}, args...) where C <: StructLogicCircuit
+    open(files[1]) do io1 
+        open(files[2]) do io2 
+            read((io1, io2), C, args...)
+        end
+    end
+end
+
+function Base.write(files::Tuple{AbstractString,AbstractString}, circuit::StructLogicCircuit) 
+    open(files[1], "w") do io1
+        open(files[2], "w") do io2
+            write((io1, io2), circuit)
+        end
+    end
+end

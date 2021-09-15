@@ -1,5 +1,10 @@
 export zoo_sdd, zoo_sdd_file
 
+struct SddFormat <: FileFormat end
+
+const SddVtreeFormat = Tuple{SddFormat,VtreeFormat}
+SddVtreeFormat() = (SddFormat(),VtreeFormat())
+
 ##############################################
 # Read SDDs
 ##############################################
@@ -83,7 +88,7 @@ Base.read(io::IO, ::Type{PlainLogicCircuit}, ::SddFormat) =
 
 #  parse structured
 struct StructSddParse <: SddParse
-    id2vtree::Dict{String,Vtree}
+    id2vtree::Dict{String,<:Vtree}
     nodes::Dict{String,StructLogicCircuit}
     StructSddParse(id2vtree) = 
         new(id2vtree,Dict{String,StructLogicCircuit}())
@@ -116,24 +121,44 @@ function Base.parse(::Type{PlainStructLogicCircuit}, str::AbstractString, ::SddF
     Lerche.transform(StructSddParse(id2vtree), ast)
 end
 
-function Base.parse(::Type{PlainStructLogicCircuit}, sdd_str::AbstractString, ::SddFormat, 
-                    vtree_str::AbstractString, ::VtreeFormat = VtreeFormat()) 
-    id2vtree = parse(Dict{String,Vtree}, vtree_str, VtreeFormat())
-    parse(PlainStructLogicCircuit, sdd_str, SddFormat(), id2vtree)
+function Base.parse(::Type{PlainStructLogicCircuit}, strings, format::SddVtreeFormat) 
+    id2vtree = parse(Dict{String,Vtree}, strings[2], format[2])
+    parse(PlainStructLogicCircuit, strings[1], format[1], id2vtree)
 end
 
 Base.read(io::IO, ::Type{PlainStructLogicCircuit}, ::SddFormat, id2vtree) =
     parse(PlainStructLogicCircuit, read(io, String), SddFormat(), id2vtree)
 
-function Base.read(circuit_io::IO, vtree_io::Union{IO,AbstractString}, 
-          ::Type{PlainStructLogicCircuit}, ::SddFormat, 
-          ::Type{Vtree}, ::VtreeFormat = VtreeFormat()) 
-    circuit_str = read(circuit_io, String)
-    vtree_str = read(vtree_io, String)
-    parse(PlainStructLogicCircuit, circuit_str, SddFormat(), vtree_str, VtreeFormat())
+function Base.read(ios::Tuple{IO,IO}, ::Type{PlainStructLogicCircuit}, ::SddVtreeFormat) 
+    circuit_str = read(ios[1], String)
+    vtree_str = read(ios[2], String)
+    parse(PlainStructLogicCircuit, (circuit_str,vtree_str), SddVtreeFormat())
 end
 
 #  parse as SDD
+
+function Base.parse(::Type{Sdd}, str::AbstractString, ::SddFormat, id2mgr::Dict{String,<:SddMgr}) 
+    ast = Lerche.parse(sdd_parser, str)
+    # create a structured logic circuit for Sdd Mgr
+    struct_circuit = Lerche.transform(StructSddParse(id2mgr), ast)
+    # turn logic circuit into Sdd
+    compile(vtree(struct_circuit)::SddMgr, struct_circuit)::Sdd
+end
+
+function Base.parse(::Type{Sdd}, strings, format::SddVtreeFormat) 
+    id2mgr = parse(Dict{String,SddMgr}, strings[2], format[2])
+    parse(Sdd, strings[1], format[1], id2mgr)
+end
+
+Base.read(io::IO, ::Type{Sdd}, ::SddFormat, id2mgr::Dict{String,<:SddMgr}) =
+    parse(Sdd, read(io, String), SddFormat(), id2mgr)
+
+function Base.read(ios::Tuple{IO,IO}, ::Type{Sdd}, ::SddVtreeFormat) 
+    circuit_str = read(ios[1], String)
+    vtree_str = read(ios[2], String)
+    parse(Sdd, (circuit_str,vtree_str), SddVtreeFormat())
+end
+
 
 ##############################################
 # Write SDDs
@@ -188,15 +213,7 @@ function Base.write(io::IO, sdd::Sdd, vtree2id::Function = (x -> 0))
     nothing
 end
 
-function Base.write(sdd_io::IO, vtree_io::IO, sdd::Sdd)
-    vtree2id = write(vtree_io, mgr(sdd))
-    write(sdd_io, sdd, i -> vtree2id[i])
-end
-
-function Base.write(sdd_f::AbstractString, vtree_f::AbstractString, sdd::Sdd)
-    open(sdd_f, "w") do sdd_io
-        open(vtree_f, "w") do vtree_io
-            write(sdd_io, vtree_io, sdd)
-        end
-    end
+function Base.write(ios::Tuple{IO,IO}, sdd::Sdd)
+    vtree2id = write(ios[2], mgr(sdd))
+    write(ios[1], sdd, i -> vtree2id[i])
 end

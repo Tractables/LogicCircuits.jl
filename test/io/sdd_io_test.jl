@@ -25,6 +25,7 @@ end
   manager = SddMgr(7, :balanced)
 
   sun, rain, rainbow, cloud, snow, los_angeles, belgium = pos_literals(Sdd, manager, 7)
+
   sdd = (rainbow & sun & rain) | (-rainbow)
   sdd &= (-los_angeles | -belgium) 
   sdd &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud)
@@ -32,9 +33,11 @@ end
 
   mktempdir() do tmp
     
+    # write as a unstructured logic circuit
     sdd_path = "$tmp/example.sdd"
     write(sdd_path, sdd)
 
+    # read as a unstructured logic circuit
     sdd2 = read(sdd_path, LogicCircuit, SddFormat())
     
     @test sdd2 isa PlainLogicCircuit
@@ -42,11 +45,14 @@ end
     @test num_nodes(sdd) == num_nodes(sdd2)
     @test prob_equiv(sdd, sdd2, 10)
 
-
+    # write with vtree
     vtree_path = "$tmp/example.vtree"
-    write(sdd_path, vtree_path, sdd)
+    paths = (sdd_path, vtree_path)
+    write(paths, sdd)
 
-    sdd3 = read(sdd_path, vtree_path, StructLogicCircuit, SddFormat(), Vtree, VtreeFormat()) 
+    # read as a structured logic circuit
+    formats = (SddFormat(), VtreeFormat())
+    sdd3 = read(paths, StructLogicCircuit, formats) 
     
     @test sdd3 isa PlainStructLogicCircuit
 
@@ -54,6 +60,16 @@ end
     @test prob_equiv(sdd, sdd3, 10)
 
     @test Vtree(mgr(sdd)) == vtree(sdd3)
+
+    # read as an SDD
+    sdd4 = read(paths, Sdd, formats) 
+    
+    @test sdd4 isa Sdd
+
+    @test num_nodes(sdd) == num_nodes(sdd4)
+    @test prob_equiv(sdd, sdd4, 10)
+
+    @test Vtree(mgr(sdd)) == Vtree(mgr(sdd4))
 
   end
 

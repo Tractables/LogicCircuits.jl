@@ -1,5 +1,8 @@
 export zoo_vtree, zoo_vtree_file
 
+struct VtreeFormat <: FileFormat end
+struct DotFormat <: FileFormat end
+
 ##############################################
 # Read Vtrees
 ##############################################
@@ -28,7 +31,6 @@ const vtree_grammar = raw"""
     """
 
 const vtree_parser = Lark(vtree_grammar, parser="lalr", lexer="contextual")
-
 
 mutable struct VtreeParse{V <: Vtree} <: JuiceTransformer
     nodes::Dict{String,V}
