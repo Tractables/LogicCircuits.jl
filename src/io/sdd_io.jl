@@ -27,17 +27,14 @@ const sdd_grammar = raw"""
          
     elems : elem (_WS elem)*
     elem : INT _WS INT
-     
-    COMMENT : "c" /[^\n]/* (/\n/|/$/)
-    %ignore COMMENT
 
     %import common.INT
     %import common.SIGNED_INT
     %import common.WS_INLINE -> _WS
     %import common.NEWLINE -> _NL
-    """
+    """ * default_comments
 
-const sdd_parser = Lark(sdd_grammar, parser="lalr", lexer="contextual")
+const sdd_parser = Lark(sdd_grammar)
 
 abstract type SddParse <: JuiceTransformer end
 

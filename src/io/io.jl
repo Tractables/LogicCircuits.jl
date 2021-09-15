@@ -13,9 +13,16 @@ Lerche.visit_tokens(t::JuiceTransformer) = false
 # file formats supported by this package
 abstract type FileFormat end
 
+# usual comment format for DIMACS-based file formats
+const default_comments = raw"""
+    COMMENT : ("c" | "cc") (_WS /[^\n]/*)? (/\n/|/$/)
+    %ignore COMMENT
+"""
+
 # individual io functionalities 
 
 include("vtree_io.jl")
+include("fnf_io.jl")
 include("sdd_io.jl")
 include("data_load.jl")
 include("plot.jl")

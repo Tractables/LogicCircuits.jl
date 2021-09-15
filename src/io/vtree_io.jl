@@ -22,15 +22,12 @@ const vtree_grammar = raw"""
     node : "L" _WS INT _WS INT -> leaf
          | "I" _WS INT _WS INT _WS INT -> inode
 
-    COMMENT : "c" /[^\n]/* (/\n/|/$/)
-    %ignore COMMENT
-
     %import common.INT
     %import common.WS_INLINE -> _WS
     %import common.NEWLINE -> _NL
-    """
+    """ * default_comments
 
-const vtree_parser = Lark(vtree_grammar, parser="lalr", lexer="contextual")
+const vtree_parser = Lark(vtree_grammar)
 
 mutable struct VtreeParse{V <: Vtree} <: JuiceTransformer
     nodes::Dict{String,V}
