@@ -96,23 +96,21 @@ Supported formats:
 * ".dot" for dot files
 """
 function Base.write(file::AbstractString, vtree::Vtree)
-    open(file,"w") do io
-        if endswith(file,".vtree")
-            write(io, vtree, VtreeFormat)
-        elseif endswith(file, ".dot")
-            write(io, vtree, DotFormat)
-        else
-            throw("Unsupported file extension in $file: choose either *.vtree or *.dot")
-        end
+    if endswith(file,".vtree")
+        write(file, vtree, VtreeFormat())
+    elseif endswith(file, ".dot")
+        write(file, vtree, DotFormat())
+    else
+        throw("Unsupported file extension in $file: choose either *.vtree or *.dot")
     end
 end
 
-function Base.write(io::IO, vtree::Vtree, format = VtreeFormat)
+function Base.write(io::IO, vtree::Vtree, format = VtreeFormat())
 
     labeling = label_nodes(vtree)
     map!(x -> x-1, values(labeling)) # vtree nodes are 0-based indexed
 
-    if format == VtreeFormat
+    if format == VtreeFormat()
         println(io, VTREE_FORMAT)
         println(io, "vtree $(num_nodes(vtree))")
         foreach(vtree) do n
@@ -124,7 +122,7 @@ function Base.write(io::IO, vtree::Vtree, format = VtreeFormat)
             end
         end
 
-    elseif format == DotFormat
+    elseif format == DotFormat()
         println(io,"strict graph vtree { node [shape=point]; splines=false;")
         # reverse order is better for dot
         foreach_down(vtree) do n
@@ -137,6 +135,8 @@ function Base.write(io::IO, vtree::Vtree, format = VtreeFormat)
             end
         end
         println(io, "}")
+    else
+        error("Unknown vtree format: $format")
     end
     
     # return the labeling to be reused by consumers of this vtree file

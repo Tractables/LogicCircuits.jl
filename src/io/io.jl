@@ -29,13 +29,21 @@ include("plot.jl")
 
 # if no file format is given on read, infer file format from extension
 
-function Base.read(file::AbstractString, ::Type{C}) where C <: LogicCircuit
+function file2format(file) 
     if endswith(file,".sdd")
-        read(file, C, SddFormat())
+        SddFormat()
+    elseif endswith(file,".cnf") || endswith(file,".dnf")
+        FnfFormat()
     else
         throw("Unknown file extension in $file: provide a file format argument")
     end
 end
+
+Base.read(file::AbstractString, ::Type{C}) where C <: LogicCircuit =
+    read(file, C, file2format(file))
+
+Base.write(file::AbstractString, circuit::LogicCircuit) =
+    write(file, circuit, file2format(file))
 
 #  when asked to parse/read as `LogicCircuit`, default to `PlainLogicCircuit`
 
