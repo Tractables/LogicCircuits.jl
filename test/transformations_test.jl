@@ -1,7 +1,7 @@
 using Test
 using LogicCircuits
 
-include("helper/plain_logic_circuits.jl")
+include("helper/little_circuits.jl")
 
 zoo_sdd_random = zoo_sdd("random.sdd")
 

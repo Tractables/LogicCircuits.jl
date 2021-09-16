@@ -57,7 +57,7 @@ end
 
 @rule and_node(t::NnfParse, x) = begin 
     @assert length(x[2]) == Base.parse(Lit,x[1])
-    t.nodes[t.i+=1] = if length(x) == 1
+    t.nodes[t.i+=1] = if length(x[2]) == 0
         PlainConstantNode(true)
     else
         Plain⋀Node(x[2])
@@ -66,7 +66,7 @@ end
 
 @rule or_node(t::NnfParse, x) = begin
     @assert length(x[3]) == Base.parse(Lit,x[2])
-    t.nodes[t.i+=1] = if length(x) == 2
+    t.nodes[t.i+=1] = if length(x[3]) == 0
         PlainConstantNode(false)
     else
         Plain⋁Node(x[3])

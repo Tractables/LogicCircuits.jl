@@ -1,8 +1,9 @@
  using Test
  using LogicCircuits
 
+include("../helper/little_circuits.jl")
 
-@testset "Nnf IO test" begin
+@testset "Nnf c2d IO test" begin
 
     c2d_example = """
         nnf 15 17 4
@@ -45,5 +46,21 @@
 
         @test prob_equiv(circuit, circuit2, 10)
 
+    end
+end
+
+@testset "Nnf SDD IO test" begin
+
+    circuit = readme_sdd()
+
+    mktempdir() do tmp
+        temp_path = "$tmp/test.nnf"
+        write(temp_path, circuit)
+
+        circuit2 = read(temp_path, LogicCircuit)
+                
+        @test num_nodes(circuit) == num_nodes(circuit2)
+        @test num_edges(circuit) == num_edges(circuit2)
+        @test prob_equiv(circuit, circuit2, 10)
     end
 end
