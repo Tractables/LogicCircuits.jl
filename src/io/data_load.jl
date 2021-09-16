@@ -4,7 +4,6 @@ export process_mnist,
     twenty_dataset_names 
     
 using CSV
-using Pkg.Artifacts
 using DataFrames
 
 ####################
