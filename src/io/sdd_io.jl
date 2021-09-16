@@ -1,4 +1,5 @@
-export zoo_sdd, zoo_sdd_file
+export zoo_sdd, zoo_sdd_file, 
+    SddFormat, SddVtreeFormat
 
 struct SddFormat <: FileFormat end
 

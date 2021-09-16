@@ -1,216 +1,122 @@
-export zoo_sdd, zoo_sdd_file
+export zoo_nnf, zoo_nnf_file, NnfFormat
 
-struct SddFormat <: FileFormat end
-
-const SddVtreeFormat = Tuple{SddFormat,VtreeFormat}
-SddVtreeFormat() = (SddFormat(),VtreeFormat())
+struct NnfFormat <: FileFormat end
 
 ##############################################
-# Read SDDs
+# Read NNFs (file format used by the c2d and D4 compilers)
 ##############################################
 
-zoo_sdd_file(name) = 
-    artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
+zoo_nnf_file(name) = 
+    artifact"circuit_model_zoo" * zoo_version * "/nnfs/$name"
 
-zoo_sdd(name) = 
-    read(zoo_sdd_file(name), LogicCircuit, SddFormat())
+zoo_nnf(name) = 
+    read(zoo_nnf_file(name), LogicCircuit, NnfFormat())
 
-const sdd_grammar = raw"""
+const nnf_grammar = raw"""
     start: header (_NL node)+ _NL?
 
-    header : "sdd" _WS INT
+    header : "nnf" _WS INT _WS INT _WS INT
     
-    node : "F" _WS INT -> false_node
-         | "T" _WS INT -> true_node
-         | "L" _WS INT _WS INT _WS SIGNED_INT -> literal_node
-         | "D" _WS INT _WS INT _WS INT _WS elems  -> decision_node
+    node : "L" _WS SIGNED_INT -> literal_node
+         | "A" _WS INT child_nodes -> and_node
+         | "O" _WS INT _WS INT child_nodes -> or_node
          
-    elems : elem (_WS elem)*
-    elem : INT _WS INT
+        child_nodes : (_WS INT)*
 
     %import common.INT
     %import common.SIGNED_INT
     %import common.WS_INLINE -> _WS
     %import common.NEWLINE -> _NL
-    """ * default_comments
+    """
 
-const sdd_parser = Lark(sdd_grammar)
+const nnf_parser = Lark(nnf_grammar)
 
-abstract type SddParse <: JuiceTransformer end
+mutable struct NnfParse <: JuiceTransformer 
+    i::Int
+    nodes::Vector{PlainLogicCircuit}
+    NnfParse() = new(0, PlainLogicCircuit[])
+end
 
-@inline_rule header(t::SddParse, x) = 
-    Base.parse(Int,x)
-
-@rule start(t::SddParse, x) = begin
-    @assert sdd_num_nodes_leafs(x[end]) == x[1]
-    x[end]
+@rule start(t::NnfParse, x) = begin
+    v, e, n = x[1]
+    circuit = t.nodes[end]
+    @assert num_nodes(circuit) == v
+    @assert num_edges(circuit) == e
+    @assert num_variables(circuit) == n
+    circuit
 end 
 
-@rule elem(t::SddParse, x) = 
-    [t.nodes[x[1]], t.nodes[x[2]]]
-
-@rule elems(t::SddParse, x) = 
-    Array(x)
-
-#  parse unstructured
-struct PlainSddParse <: SddParse
-    nodes::Dict{String,PlainLogicCircuit}
-    PlainSddParse() = new(Dict{String,PlainLogicCircuit}())
+@rule header(t::NnfParse, x) = begin 
+    v, e, n = Base.parse.(Int, x)
+    t.nodes = Vector{PlainLogicCircuit}(undef,v)
+    v, e, n
 end
 
-@rule literal_node(t::PlainSddParse, x) = 
-    t.nodes[x[1]] = PlainLiteralNode(Base.parse(Lit,x[3]))
+@inline_rule literal_node(t::NnfParse, x) = 
+    t.nodes[t.i+=1] = PlainLiteralNode(Base.parse(Lit,x))
 
-@rule false_node(t::PlainSddParse, x) = 
-    t.nodes[x[1]] = PlainConstantNode(false)
-
-@rule true_node(t::PlainSddParse, x) = 
-    t.nodes[x[1]] = PlainConstantNode(true)
-
-@rule decision_node(t::PlainSddParse,x) = begin
-    @assert length(x[4]) == Base.parse(Int,x[3])
-    elems = map(x[4]) do elem
-        Plain⋀Node(elem)
+@rule and_node(t::NnfParse, x) = begin 
+    @assert length(x[2]) == Base.parse(Lit,x[1])
+    t.nodes[t.i+=1] = if length(x) == 1
+        PlainConstantNode(true)
+    else
+        Plain⋀Node(x[2])
     end
-    t.nodes[x[1]] = Plain⋁Node(elems)
 end
 
-function Base.parse(::Type{PlainLogicCircuit}, str, ::SddFormat) 
-    ast = Lerche.parse(sdd_parser, str)
-    Lerche.transform(PlainSddParse(), ast)
-end
-
-Base.read(io::IO, ::Type{PlainLogicCircuit}, ::SddFormat) =
-    parse(PlainLogicCircuit, read(io, String), SddFormat())
-
-#  parse structured
-struct StructSddParse <: SddParse
-    id2vtree::Dict{String,<:Vtree}
-    nodes::Dict{String,StructLogicCircuit}
-    StructSddParse(id2vtree) = 
-        new(id2vtree,Dict{String,StructLogicCircuit}())
-end
-
-@rule literal_node(t::StructSddParse, x) = begin
-    lit = Base.parse(Lit,x[3])
-    vtree = t.id2vtree[x[2]]
-    t.nodes[x[1]] = PlainStructLiteralNode(lit, vtree)
-end
-
-@rule false_node(t::StructSddParse, x) = 
-    t.nodes[x[1]] = PlainStructConstantNode(false)
-
-@rule true_node(t::StructSddParse, x) = 
-    t.nodes[x[1]] = PlainStructConstantNode(true)
-
-
-@rule decision_node(t::StructSddParse,x) = begin
-    @assert length(x[4]) == Base.parse(Int,x[3])
-    vtree = t.id2vtree[x[2]]
-    elems = map(x[4]) do elem
-        PlainStruct⋀Node(elem[1], elem[2], vtree)
+@rule or_node(t::NnfParse, x) = begin
+    @assert length(x[3]) == Base.parse(Lit,x[2])
+    t.nodes[t.i+=1] = if length(x) == 2
+        PlainConstantNode(false)
+    else
+        Plain⋁Node(x[3])
     end
-    t.nodes[x[1]] = PlainStruct⋁Node(elems, vtree)
 end
 
-function Base.parse(::Type{PlainStructLogicCircuit}, str::AbstractString, ::SddFormat, id2vtree) 
-    ast = Lerche.parse(sdd_parser, str)
-    Lerche.transform(StructSddParse(id2vtree), ast)
+@rule child_nodes(t::NnfParse, x) = begin 
+    child_i = Base.parse.(Int,x) .+ 1
+    t.nodes[child_i]
 end
 
-function Base.parse(::Type{PlainStructLogicCircuit}, strings, format::SddVtreeFormat) 
-    id2vtree = parse(Dict{String,Vtree}, strings[2], format[2])
-    parse(PlainStructLogicCircuit, strings[1], format[1], id2vtree)
+function Base.parse(::Type{PlainLogicCircuit}, str, ::NnfFormat) 
+    ast = Lerche.parse(nnf_parser, str)
+    Lerche.transform(NnfParse(), ast)
 end
 
-Base.read(io::IO, ::Type{PlainStructLogicCircuit}, ::SddFormat, id2vtree) =
-    parse(PlainStructLogicCircuit, read(io, String), SddFormat(), id2vtree)
-
-function Base.read(ios::Tuple{IO,IO}, ::Type{PlainStructLogicCircuit}, ::SddVtreeFormat) 
-    circuit_str = read(ios[1], String)
-    vtree_str = read(ios[2], String)
-    parse(PlainStructLogicCircuit, (circuit_str,vtree_str), SddVtreeFormat())
-end
-
-#  parse as SDD
-
-function Base.parse(::Type{Sdd}, str::AbstractString, ::SddFormat, id2mgr::Dict{String,<:SddMgr}) 
-    ast = Lerche.parse(sdd_parser, str)
-    # create a structured logic circuit for Sdd Mgr
-    struct_circuit = Lerche.transform(StructSddParse(id2mgr), ast)
-    # turn logic circuit into Sdd
-    compile(vtree(struct_circuit)::SddMgr, struct_circuit)::Sdd
-end
-
-function Base.parse(::Type{Sdd}, strings, format::SddVtreeFormat) 
-    id2mgr = parse(Dict{String,SddMgr}, strings[2], format[2])
-    parse(Sdd, strings[1], format[1], id2mgr)
-end
-
-Base.read(io::IO, ::Type{Sdd}, ::SddFormat, id2mgr::Dict{String,<:SddMgr}) =
-    parse(Sdd, read(io, String), SddFormat(), id2mgr)
-
-function Base.read(ios::Tuple{IO,IO}, ::Type{Sdd}, ::SddVtreeFormat) 
-    circuit_str = read(ios[1], String)
-    vtree_str = read(ios[2], String)
-    parse(Sdd, (circuit_str,vtree_str), SddVtreeFormat())
-end
-
+Base.read(io::IO, ::Type{PlainLogicCircuit}, ::NnfFormat) =
+    parse(PlainLogicCircuit, read(io, String), NnfFormat())
 
 ##############################################
-# Write SDDs
+# Write Nnfs
 ##############################################
 
-const SDD_FORMAT = """c this file was saved by LogicCircuits.jl
-c ids of sdd nodes start at 0
-c sdd nodes appear bottom-up, children before parents
-c
-c file syntax:
-c sdd count-of-sdd-nodes
-c F id-of-false-sdd-node
-c T id-of-true-sdd-node
-c L id-of-literal-sdd-node id-of-vtree literal
-c D id-of-decomposition-sdd-node id-of-vtree number-of-elements {id-of-prime id-of-sub}*
-c"""
+function Base.write(io::IO, circuit::LogicCircuit, ::NnfFormat)
 
-function Base.write(io::IO, sdd::Sdd, ::SddFormat = SddFormat(), vtree2id::Function = (x -> 0))
+    labeling = label_nodes(circuit)
+    map!(x -> x-1, values(labeling)) # vtree nodes are 0-based indexed
 
-    id = -1
-
-    println(io, SDD_FORMAT)
-    println(io, "sdd $(sdd_num_nodes_leafs(sdd))")
-
-    f_con(n) = begin
-        nid = id += 1
-        sign = isfalse(n) ? "F" : "T"
-        println(io, "$sign $nid")
-        nid
-    end
-
-    f_lit(n) = begin
-        nid = id += 1
-        println(io, "L $nid $(vtree2id(mgr(n))) $(literal(n))")
-        nid
-    end
-
-    f_a(n, ids) = tuple(ids...)
-
-    f_o(n, ids) = begin
-        nid = id += 1
-        print(io, "D $nid $(vtree2id(mgr(n))) $(length(ids))")
-        for el in ids
-            print(io, " $(el[1]) $(el[2])")
+    println(io, "nnf $(num_nodes(circuit)) $(num_edges(circuit)) $(num_variables(circuit))")
+    foreach(circuit) do n
+        if isliteralgate(n)
+            println(io, "L $(literal(n))")
+        elseif isconstantgate(n)
+            if constant(n) == true
+                println(io, "A 0")
+            else
+                println(io, "O 0 0")
+            end
+        else
+            if is⋀gate(n)
+                print(io, "A $(num_children(n))")
+            else
+                @assert is⋁gate(n)
+                print(io, "O 0 $(num_children(n))")
+            end
+            for child in children(n)
+                print(io, " $(labeling[child])")
+            end
+            println(io)
         end
-        println(io)
-        nid
     end
-    
-    foldup_aggregate(sdd, f_con, f_lit, f_a, f_o, Union{Int, Tuple{Int,Int}})
-
     nothing
-end
-
-function Base.write(ios::Tuple{IO,IO}, sdd::Sdd, format::SddVtreeFormat = SddVtreeFormat())
-    vtree2id = write(ios[2], mgr(sdd), format[2])
-    write(ios[1], sdd, format[1], i -> vtree2id[i])
 end

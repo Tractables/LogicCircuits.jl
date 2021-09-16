@@ -24,6 +24,7 @@ const default_comments = raw"""
 include("vtree_io.jl")
 include("fnf_io.jl")
 include("sdd_io.jl")
+include("nnf_io.jl")
 include("data_load.jl")
 include("plot.jl")
 
@@ -32,6 +33,8 @@ include("plot.jl")
 function file2format(file) 
     if endswith(file,".sdd")
         SddFormat()
+    elseif endswith(file,".nnf")
+        NnfFormat()
     elseif endswith(file,".cnf") || endswith(file,".dnf")
         FnfFormat()
     else

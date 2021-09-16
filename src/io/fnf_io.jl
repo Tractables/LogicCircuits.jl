@@ -1,5 +1,6 @@
 export zoo_cnf, zoo_dnf,
-    zoo_cnf_file, zoo_dnf_file
+    zoo_cnf_file, zoo_dnf_file,
+    FnfFormat
 
 struct FnfFormat <: FileFormat end
 

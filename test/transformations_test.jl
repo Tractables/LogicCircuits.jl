@@ -3,8 +3,10 @@ using LogicCircuits
 
 include("helper/plain_logic_circuits.jl")
 
+zoo_sdd_random = zoo_sdd("random.sdd")
+
 @testset "Smooth test" begin
-    c1 = zoo_sdd("random.sdd")
+    c1  = zoo_sdd_random
     c2 = smooth(c1)
     @test model_count(c1) == model_count(c2)
     @test !issmooth(c1)
@@ -14,7 +16,7 @@ include("helper/plain_logic_circuits.jl")
 end
 
 @testset "Structured smooth test" begin
-    sdd = zoo_sdd("random.sdd")
+    sdd  = zoo_sdd_random
     vtr = zoo_vtree("random.vtree")
     slc = smooth(sdd)
     plc = propagate_constants(sdd, remove_unary=true)
@@ -30,7 +32,7 @@ end
 end
 
 @testset "Forget test" begin
-    c1 = zoo_sdd("random.sdd")
+    c1  = zoo_sdd_random
     vars = variables(c1)
     c2 = forget(c1, x -> x > maximum(vars))
     @test c2 === c1
@@ -43,7 +45,7 @@ end
 end
 
 @testset "Propagate constants test" begin
-    c1 = zoo_sdd("random.sdd")
+    c1  = zoo_sdd_random
     c2 = propagate_constants(c1)
     @test model_count(c1) == model_count(c2)
     (false_node, true_node) = canonical_constants(c2)
@@ -66,7 +68,7 @@ end
     @test all(vcat(children.(children(n3))...) .=== vcat(children.(children(n0))...))
 
     for depth in [5, typemax(Int)]
-        n3 = zoo_sdd("random.sdd")
+        n3 = zoo_sdd_random
         n4 = deepcopy(n3, depth)
         @test num_nodes(n3) == num_nodes(n4)
         @test num_edges(n3) == num_edges(n4)
@@ -75,7 +77,7 @@ end
 end
 
 @testset "conjoin test" begin
-    c1 = zoo_sdd("random.sdd")
+    c1  = zoo_sdd_random
     
     lit = Lit(num_variables(c1) + 1)
     @test c1 === conjoin(c1, lit)
@@ -174,7 +176,7 @@ end
 end
 
 @testset "Random splits" begin
-    c0 = smooth(zoo_sdd("random.sdd"))
+    c0 = smooth(zoo_sdd_random)
     @test issmooth(c0)
     @test isdecomposable(c0)
     for _ in 1 : 4

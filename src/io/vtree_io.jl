@@ -1,4 +1,5 @@
-export zoo_vtree, zoo_vtree_file
+export zoo_vtree, zoo_vtree_file, 
+    VtreeFormat, DotFormat
 
 struct VtreeFormat <: FileFormat end
 struct DotFormat <: FileFormat end
