@@ -15,7 +15,7 @@ abstract type FileFormat end
 
 # usual comment format for DIMACS-based file formats
 const default_comments = raw"""
-    COMMENT : ("c" | "cc") (_WS /[^\n]/*)? (/\n/|/$/)
+    COMMENT : ("c" | "cc") (_WS /[^\n]/*)? (_NL | /$/)
     %ignore COMMENT
 """
 
@@ -27,7 +27,7 @@ include("sdd_io.jl")
 include("data_load.jl")
 include("plot.jl")
 
-# if no file format is given on read, infer file format from extension
+# if no logic circuit file format is given on read, infer file format from extension
 
 function file2format(file) 
     if endswith(file,".sdd")

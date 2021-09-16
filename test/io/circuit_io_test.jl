@@ -4,21 +4,7 @@ using LogicCircuits.LoadSave: zoo_lc_file, zoo_vtree_file, load_cnf
 
 include("../helper/plain_logic_circuits.jl")
 
-
-# reinstate
-lines = parse_lc_file(zoo_lc_file("little_4var.circuit"))
-save_lines("$tmp/temp.circuit", lines)
-lines2 = parse_lc_file("$tmp/temp.circuit")
-@test length(lines) == length(lines2)
-
 @testset "Circuit saver tests" begin
-
-  mktempdir() do tmp
-    circuit, vtree = load_struct_smooth_logic_circuit(zoo_lc_file("mnist-medium.circuit"), zoo_vtree_file("balanced.vtree"))
-    # the circuit above does not conform the the SDD requirements
-    @test_throws Exception save_circuit("$tmp/temp.sdd", circuit, vtree)
-  end
-
 
   mktempdir() do tmp
     mgr = SddMgr(7, :balanced)
@@ -73,17 +59,4 @@ lines2 = parse_lc_file("$tmp/temp.circuit")
   # TODO add a test to load and save and load an .sdd file
   # currently we have no sdd+vtree in the model zoo to do this
 
-end
-
-@testset "CNF Saver tests" begin
-  mktempdir() do tmp
-    # Small CNF test, load from zoo, save and then load again and assert equivalence
-    cnf_orig = zoo_cnf("easy/C17_mince.cnf")
-    @test_nowarn save_as_cnf("$tmp/temp.cnf", cnf_orig)
-    cnf_new = load_cnf("$tmp/temp.cnf")
-    @test num_variables(cnf_orig) == num_variables(cnf_new)
-    @test all(x isa Plain⋁Node || x isa PlainLiteralNode for x in cnf_new.children)
-    @test all(all(x isa PlainLiteralNode for x in or_node.children) for or_node in or_nodes(cnf_new))
-    @test tree_formula_string(cnf_orig) == tree_formula_string(cnf_new)
-  end
 end
