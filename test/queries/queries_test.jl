@@ -101,14 +101,6 @@ end
 
 @testset "Infer Vtrees Test" begin
 
-    little = load_logic_circuit(zoo_psdd_file("little_4var.psdd")) 
-    little_vtree = zoo_vtree("little_4var.vtree")
-
-    inferred = infer_vtree(little)::Vtree
-
-    @test respects_vtree(little, little_vtree)
-    @test respects_vtree(little, inferred)
-
     random = zoo_sdd("random.sdd")
     random_vtree = zoo_vtree("random.vtree")
     @test_throws String random_inferred = infer_vtree(random) # remove test_throws after "issues/#47" is fixed
