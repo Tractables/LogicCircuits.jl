@@ -91,6 +91,7 @@ c literals are numbered beginning at 1
 c positive/negative number indicates positive/negative literal
 c file syntax:
 c p cnf num-vars num-clauses 
+c {literal-in-clause}* 0
 c"""
 
 function Base.write(io::IO, fnf::LogicCircuit, ::FnfFormat)    
