@@ -4,7 +4,7 @@ export zoo_sdd, zoo_sdd_file,
 struct SddFormat <: FileFormat end
 
 const SddVtreeFormat = Tuple{SddFormat,VtreeFormat}
-SddVtreeFormat() = (SddFormat(),VtreeFormat())
+Tuple{SddFormat,VtreeFormat}() = (SddFormat(),VtreeFormat())
 
 ##############################################
 # Read SDDs
@@ -174,7 +174,7 @@ c L id-of-literal-sdd-node id-of-vtree literal
 c D id-of-decomposition-sdd-node id-of-vtree number-of-elements {id-of-prime id-of-sub}*
 c"""
 
-function Base.write(io::IO, sdd::Sdd, ::SddFormat = SddFormat(), vtree2id::Function = (x -> 0))
+function Base.write(io::IO, sdd::Sdd, ::SddFormat, vtree2id::Function = (x -> 0))
 
     id = -1
 
@@ -211,7 +211,7 @@ function Base.write(io::IO, sdd::Sdd, ::SddFormat = SddFormat(), vtree2id::Funct
     nothing
 end
 
-function Base.write(ios::Tuple{IO,IO}, sdd::Sdd, format::SddVtreeFormat = SddVtreeFormat())
+function Base.write(ios::Tuple{IO,IO}, sdd::Sdd, format::SddVtreeFormat)
     vtree2id = write(ios[2], mgr(sdd), format[2])
     write(ios[1], sdd, format[1], i -> vtree2id[i])
 end

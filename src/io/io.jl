@@ -23,6 +23,7 @@ const default_comments = raw"""
 
 include("vtree_io.jl")
 include("fnf_io.jl")
+include("jlc_io.jl")
 include("sdd_io.jl")
 include("nnf_io.jl")
 include("data_load.jl")
@@ -31,7 +32,9 @@ include("plot.jl")
 # if no logic circuit file format is given on read, infer file format from extension
 
 function file2format(file) 
-    if endswith(file,".sdd")
+    if endswith(file,".jlc")
+        JlcFormat()
+    elseif endswith(file,".sdd")
         SddFormat()
     elseif endswith(file,".nnf")
         NnfFormat()
@@ -47,6 +50,10 @@ Base.read(file::AbstractString, ::Type{C}) where C <: LogicCircuit =
 
 Base.write(file::AbstractString, circuit::LogicCircuit) =
     write(file, circuit, file2format(file))
+
+Base.write(files::Tuple{AbstractString,AbstractString}, 
+           circuit::StructLogicCircuit) =
+    write(files, circuit, (file2format(files[1]), VtreeFormat()))
 
 #  when asked to parse/read as `LogicCircuit`, default to `PlainLogicCircuit`
 
@@ -77,10 +84,11 @@ function Base.read(files::Tuple{AbstractString, AbstractString}, ::Type{C}, args
     end
 end
 
-function Base.write(files::Tuple{AbstractString,AbstractString}, circuit::StructLogicCircuit) 
+function Base.write(files::Tuple{AbstractString,AbstractString},
+                    circuit::StructLogicCircuit, args...) 
     open(files[1], "w") do io1
         open(files[2], "w") do io2
-            write((io1, io2), circuit)
+            write((io1, io2), circuit, args...)
         end
     end
 end

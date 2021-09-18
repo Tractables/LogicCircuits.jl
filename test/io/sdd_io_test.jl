@@ -1,6 +1,8 @@
 using Test
 using LogicCircuits
 
+include("../helper/little_circuits.jl")
+
 @testset "SDD as LogicCircuit parser" begin
 
   circuit = zoo_sdd("random.sdd") 
@@ -22,14 +24,7 @@ end
 
 @testset "SDD write and save" begin
 
-  manager = SddMgr(7, :balanced)
-
-  sun, rain, rainbow, cloud, snow, los_angeles, belgium = pos_literals(Sdd, manager, 7)
-
-  sdd = (rainbow & sun & rain) | (-rainbow)
-  sdd &= (-los_angeles | -belgium) 
-  sdd &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud)
-  sdd &= (¬(rain ∨ snow) ⇐ ¬cloud)
+  sdd = readme_sdd()
 
   mktempdir() do tmp
     
