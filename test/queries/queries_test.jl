@@ -2,7 +2,7 @@ using Test
 using Suppressor
 using LogicCircuits
 
-include("../helper/plain_logic_circuits.jl")
+include("../helper/little_circuits.jl")
 
 
 @testset "Queries test" begin
@@ -100,14 +100,6 @@ end
 
 
 @testset "Infer Vtrees Test" begin
-
-    little = load_logic_circuit(zoo_psdd_file("little_4var.psdd")) 
-    little_vtree = zoo_vtree("little_4var.vtree")
-
-    inferred = infer_vtree(little)::Vtree
-
-    @test respects_vtree(little, little_vtree)
-    @test respects_vtree(little, inferred)
 
     random = zoo_sdd("random.sdd")
     random_vtree = zoo_vtree("random.vtree")

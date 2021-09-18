@@ -1,10 +1,13 @@
-export DiGraph, plot
+export 
+    save_as_dot, 
+    save_as_tex, 
+    save_as_dot2tex,
+    plot
+
 using LightGraphs
 using TikzGraphs
 
-import LightGraphs: DiGraph
-
-function DiGraph(vtree::Vtree)
+function LightGraphs.DiGraph(vtree::Vtree)
     N = num_nodes(vtree)
     g = DiGraph(N)
     nv = num_variables(vtree)
@@ -29,7 +32,7 @@ function DiGraph(vtree::Vtree)
     g, label
 end
 
-function DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
+function LightGraphs.DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
     nv = num_variables(lc)
     nn = num_nodes(lc)
     g = DiGraph(nn)
@@ -65,10 +68,10 @@ function DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
     g, label
 end
 
+TikzGraphs.plot(vtree::Vtree) =
+    TikzGraphs.plot(DiGraph(vtree)...)
 
-import TikzGraphs: plot
-plot(vtree::Vtree) = TikzGraphs.plot(DiGraph(vtree)...)
-function plot(lc::LogicCircuit; simplify=false) 
+function TikzGraphs.plot(lc::LogicCircuit; simplify=false) 
     if simplify
         lc = propagate_constants(LogicCircuit(lc))
     end

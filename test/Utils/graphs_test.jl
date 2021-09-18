@@ -103,31 +103,3 @@ module TestNodes
     end    
 
 end
-
-@testset "Node stats tests" begin
-
-    lc = load_logic_circuit(zoo_lc_file("little_4var.circuit"));
-
-    lstats = leaf_stats(lc);
-    istats = inode_stats(lc);
-    nstats = node_stats(lc);
-
-    @test !(PlainConstantNode in keys(lstats));
-    @test lstats[PlainLiteralNode] == 8;
-    
-    @test istats[(Plain⋀Node, 2)] == 9;
-    @test istats[(Plain⋁Node, 1)] == 10;
-    @test istats[(Plain⋁Node, 4)] == 2;
- 
-    for t in keys(lstats)
-        @test lstats[t] == nstats[t]
-    end
-    for t in keys(istats)
-        @test istats[t] == nstats[t]
-    end
-
-    @test num_nodes(lc) == 29
-    @test num_variables(lc) == 4;
-    @test num_edges(lc) == 36;
-
-end

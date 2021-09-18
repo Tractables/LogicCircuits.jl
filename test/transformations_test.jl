@@ -1,22 +1,22 @@
 using Test
 using LogicCircuits
 
-include("helper/plain_logic_circuits.jl")
+include("helper/little_circuits.jl")
+
+zoo_sdd_random = zoo_sdd("random.sdd")
 
 @testset "Smooth test" begin
-    for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"), 
-        c1 = load_logic_circuit(file)
-        c2 = smooth(c1)
-        @test model_count(c1) == model_count(c2)
-        @test !issmooth(c1)
-        @test issmooth(c2)
-        @test c1 !== c2
-        @test smooth(c2) === c2
-    end
+    c1  = zoo_sdd_random
+    c2 = smooth(c1)
+    @test model_count(c1) == model_count(c2)
+    @test !issmooth(c1)
+    @test issmooth(c2)
+    @test c1 !== c2
+    @test smooth(c2) === c2
 end
 
 @testset "Structured smooth test" begin
-    sdd = zoo_sdd("random.sdd")
+    sdd  = zoo_sdd_random
     vtr = zoo_vtree("random.vtree")
     slc = smooth(sdd)
     plc = propagate_constants(sdd, remove_unary=true)
@@ -28,39 +28,31 @@ end
     @test issmooth(sstructplc)
     @test respects_vtree(sstructplc, vtr)
 
-    e1 = prob_equiv_signature(slc, 3)
-    e2 = prob_equiv_signature(sstructplc, 3, e1)
-    @test e1[slc] == e2[sstructplc]
+    @test prob_equiv(slc, sstructplc, 3)
 end
 
 @testset "Forget test" begin
-    for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"),
-        c1 = load_logic_circuit(file)
-        vars = variables(c1)
-        c2 = forget(c1, x -> x > maximum(vars))
-        @test c2 === c1
-        c3 = forget(c1, x -> x > 10)
-        @test c3 !== c2
-        @test variables(c3) == BitSet(1:10)
-        c4 = propagate_constants(c1)
-        c5 = forget(c4, x -> x == 10)
-        @test !(10 in variables(c5))
-    end
-
-
+    c1  = zoo_sdd_random
+    vars = variables(c1)
+    c2 = forget(c1, x -> x > maximum(vars))
+    @test c2 === c1
+    c3 = forget(c1, x -> x > 10)
+    @test c3 !== c2
+    @test variables(c3) == BitSet(1:10)
+    c4 = propagate_constants(c1)
+    c5 = forget(c4, x -> x == 10)
+    @test !(10 in variables(c5))
 end
 
 @testset "Propagate constants test" begin
-    for file in [zoo_sdd_file("random.sdd")] #  save some test time;zoo_psdd_file("plants.psdd"),
-        c1 = load_logic_circuit(file)
-        c2 = propagate_constants(c1)
-        @test model_count(c1) == model_count(c2)
-        (false_node, true_node) = canonical_constants(c2)
-        @test false_node === nothing
-        @test true_node === nothing
-        c3 = propagate_constants(c2)
-        @test c3 === c2
-    end
+    c1  = zoo_sdd_random
+    c2 = propagate_constants(c1)
+    @test model_count(c1) == model_count(c2)
+    (false_node, true_node) = canonical_constants(c2)
+    @test false_node === nothing
+    @test true_node === nothing
+    c3 = propagate_constants(c2)
+    @test c3 === c2
 end
 
 @testset "Deepcopy test" begin
@@ -76,7 +68,7 @@ end
     @test all(vcat(children.(children(n3))...) .=== vcat(children.(children(n0))...))
 
     for depth in [5, typemax(Int)]
-        n3 = load_logic_circuit(zoo_sdd_file("random.sdd"))
+        n3 = zoo_sdd_random
         n4 = deepcopy(n3, depth)
         @test num_nodes(n3) == num_nodes(n4)
         @test num_edges(n3) == num_edges(n4)
@@ -85,7 +77,7 @@ end
 end
 
 @testset "conjoin test" begin
-    c1 = load_logic_circuit(zoo_sdd_file("random.sdd"))
+    c1  = zoo_sdd_random
     
     lit = Lit(num_variables(c1) + 1)
     @test c1 === conjoin(c1, lit)
@@ -184,7 +176,7 @@ end
 end
 
 @testset "Random splits" begin
-    c0 = smooth(load_logic_circuit(zoo_sdd_file("random.sdd")))
+    c0 = smooth(zoo_sdd_random)
     @test issmooth(c0)
     @test isdecomposable(c0)
     for _ in 1 : 4

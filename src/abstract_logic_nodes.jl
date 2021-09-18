@@ -6,7 +6,8 @@ export LogicCircuit, GateType, InnerGate, LeafGate,
     conjoin, disjoin, copy, compile, pos_literals, neg_literals, literals,
     fully_factorized_circuit, 
     ⋁_nodes, ⋀_nodes, or_nodes, and_nodes, 
-    canonical_literals, canonical_constants, tree_formula_string
+    canonical_literals, canonical_constants, tree_formula_string,
+    isflat, iscnf, isdnf
 
 #####################
 # Abstract infrastructure for logic circuit nodes
@@ -234,3 +235,18 @@ function tree_formula_string(n::LogicCircuit)
         s
     end
 end
+
+"Is the circuit a flat DNF or CNF structure?"
+isflat(circuit) = iscnf(circuit) || isdnf(circuit)
+
+"Is the circuit a conjunction of disjunctive clauses?"
+iscnf(circuit) =
+    is⋀gate(circuit) && all(children(circuit)) do clause
+        is⋁gate(clause) && all(isliteralgate, children(clause))
+    end
+
+"Is the circuit a disjunction of conjunctive clauses?"
+isdnf(circuit) =
+    is⋁gate(circuit) && all(children(circuit)) do clause
+        is⋀gate(clause) && all(isliteralgate, children(clause))
+    end
