@@ -13,6 +13,17 @@ read
 write
 ```
 
+## Circuit Zoo IO
+
+```@docs
+zoo_cnf
+zoo_dnf
+zoo_sdd
+zoo_nnf
+zoo_jlc
+zoo_vtree
+```
+
 ## Circuit Properties
 
 ```@docs

@@ -13,6 +13,11 @@ Tuple{SddFormat,VtreeFormat}() = (SddFormat(),VtreeFormat())
 zoo_sdd_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/sdds/$name"
 
+"""
+    zoo_sdd(name)
+
+Loads SDD file with given name from model zoo. See https://github.com/UCLA-StarAI/Circuit-Model-Zoo.    
+"""
 zoo_sdd(name) = 
     read(zoo_sdd_file(name), LogicCircuit, SddFormat())
 

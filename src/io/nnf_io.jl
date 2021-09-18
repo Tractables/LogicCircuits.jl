@@ -9,6 +9,12 @@ struct NnfFormat <: FileFormat end
 zoo_nnf_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/nnfs/$name"
 
+
+"""
+    zoo_nnf(name)
+
+Loads NNF file with given name from model zoo. See https://github.com/UCLA-StarAI/Circuit-Model-Zoo.    
+"""
 zoo_nnf(name) = 
     read(zoo_nnf_file(name), LogicCircuit, NnfFormat())
 
