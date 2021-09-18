@@ -8,14 +8,14 @@ Given a logic circuit ``\Delta`` and an assignment to its variable, we would lik
 X \land Y = \text{true} \land \text{false} = \text{false}
 ```
 
-```@example eval
+<!-- ```@example eval
 using LogicCircuits # hide
-lc = load_logic_circuit(zoo_psdd_file("plants.psdd"));
+DEPRECATED: lc = load_logic_circuit(zoo_psdd_file("plants.psdd"));
 train, valid, test = twenty_datasets("plants");
 
 results = lc(train);
 results[1:3]
-```
+``` -->
 
 ## Satisfiability
 
@@ -26,7 +26,7 @@ We can use [`sat_prob`](@ref) to compute probability of a random world satisfyin
 
 ```@example sat
 using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
+lc = zoo_sdd("random.sdd");
 prob = sat_prob(lc);
 Float64(prob)
 ```
@@ -45,7 +45,7 @@ Given a logic circuit ``\Delta``, the goal of model counting is to count how man
 
 ```@example mc
 using LogicCircuits # hide
-lc = smooth(load_logic_circuit(zoo_sdd_file("random.sdd")));
+lc = smooth(zoo_sdd("random.sdd"));
 model_count(lc)
 ```
 

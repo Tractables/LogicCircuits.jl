@@ -6,28 +6,6 @@ This page lists documentation for the most commonly used public APIs of `LogicCi
 Pages = ["public.md"]
 ```
 
-## Loading Circuits
-
-```@docs
-load_cnf
-load_dnf
-load_logic_circuit
-load_smooth_logic_circuit
-load_struct_smooth_logic_circuit
-```
-
-## Saving Circuits
-
-```@docs
-save_circuit
-save_vtree
-save_as_sdd
-save_as_dot
-save_as_cnf
-save_as_tex
-save_as_dot2tex
-```
-
 ## Circuit Properties
 
 ```@docs
