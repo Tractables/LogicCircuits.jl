@@ -152,16 +152,10 @@ end
 
 """
     infer_vtree(root::LogicCircuit)::Vtree
-Infer circuits vtree if the circuit is struct-decomposable it.
+Infer circuits vtree if the circuit is struct-decomposable.
 Otherwise return `nothing`.
 """
 function infer_vtree(root::LogicCircuit, cache=nothing)::Union{Vtree, Nothing}
-    # WARNING: this function is known to have bugs; https://github.com/Juice-jl/LogicCircuits.jl/issues/82
-    # TODO remove after the `isstruct_decomposable` bug is fixed
-    if !issmooth(root)
-        throw("Circuit not smooth. Inferring vtree not supported yet!")
-    end
-
     vtr_dict = Dict{Var, PlainVtreeLeafNode}()
 
     f_con(_) = (nothing, true) # give constants nothing

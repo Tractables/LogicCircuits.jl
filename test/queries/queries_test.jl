@@ -100,14 +100,10 @@ end
 
 
 @testset "Infer Vtrees Test" begin
-
     random = zoo_sdd("random.sdd")
     random_vtree = zoo_vtree("random.vtree")
-    @test_throws String random_inferred = infer_vtree(random) # remove test_throws after "issues/#47" is fixed
-
+    @test nothing == infer_vtree(random)
     @test respects_vtree(random, random_vtree)
-    # @test respects_vtree(random, random_inferred) # "issues/#47"
-
 end
 
 
