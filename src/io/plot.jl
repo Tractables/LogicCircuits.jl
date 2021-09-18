@@ -1,7 +1,4 @@
 export 
-    save_as_dot, 
-    save_as_tex, 
-    save_as_dot2tex,
     plot
 
 using LightGraphs
