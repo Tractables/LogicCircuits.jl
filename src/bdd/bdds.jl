@@ -58,51 +58,113 @@ const ⊤ = Bdd(true)
 const ⊥ = Bdd(false)
 export ⊤, ⊥
 
-"Returns a shallow hash for the given node (not BDD as a whole)."
+"""
+    shallowhash(α::Bdd, h::UInt = UInt64(0))
+
+Returns a shallow hash for the given node (not BDD as a whole).
+"""
 @inline shallowhash(α::Bdd, h::UInt = UInt64(0)) = hash((α.id, α.value, α.index), h)
 export shallowhash
 
-"Returns a unique hash for the whole BDD."
+"""
+    hash(α::Bdd, h::UInt)::UInt
+
+Returns a unique hash for the whole BDD.
+"""
 function Base.hash(α::Bdd, h::UInt)::UInt
   H = Tuple{Bool, Int}[]
   foreach(x -> push!(H, (is_term(x) ? x.value : false, x.index)), α)
   return hash(H, h)
 end
 
-"Returns whether this Bdd node is terminal."
+"""
+    is_term(α::Bdd)::Bool
+
+Returns whether this Bdd node is terminal.
+"""
 @inline is_term(α::Bdd)::Bool = (α.index < 0) || (!isdefined(α, :low) && !isdefined(α, :high))
 export is_term
 
-"Returns whether the given Bdd node represents a ⊤."
+"""
+    is_⊤(α::Bdd)::Bool
+
+Returns whether the given Bdd node represents a ⊤.
+"""
 @inline is_⊤(α::Bdd)::Bool = is_term(α) && α.value
 export is_⊤
 
-"Returns whether the given Bdd node represents a ⊥."
+"""
+    is_⊥(α::Bdd)::Bool
+
+Returns whether the given Bdd node represents a ⊥.
+"""
 @inline is_⊥(α::Bdd)::Bool = is_term(α) && !α.value
 export is_⊥
 
-"Returns whether the given Bdd node represents a variable."
+"""
+    is_var(α::Bdd)::Bool
+
+Returns whether the given Bdd node represents a variable.
+"""
 @inline is_var(α::Bdd)::Bool = (isdefined(α, :low) && is_⊥(α.low)) && (isdefined(α, :high) && is_⊤(α.high))
-"Returns whether the given Bdd node represents a literal."
+
+"""
+    is_lit(α::Bdd)::Bool
+
+Returns whether the given Bdd node represents a literal.
+"""
 @inline is_lit(α::Bdd)::Bool = isdefined(α, :low) && isdefined(α, :high) && is_term(α.low) && is_term(α.high)
-"Returns whether the given Bdd node is an atomic formula (i.e. a variable, ⊥, ⊤, or literal)."
+
+"""
+    is_atom(α::Bdd)::Bool
+
+Returns whether the given Bdd node is an atomic formula (i.e. a variable, ⊥, ⊤, or literal).
+"""
 @inline is_atom(α::Bdd)::Bool = is_term(α) || is_lit(α)
 export is_var, is_lit, is_atom
 
-"Negates this boolean function."
+"""
+    (¬)(α::Bdd)::Bdd
+    (¬)(x::Integer)::Bdd
+    (¬)(x::Bool)::Bool
+
+Negates this boolean function.
+"""
 @inline (¬)(α::Bdd)::Bdd = is_⊤(α) ? ⊥ : is_⊥(α) ? ⊤ : Bdd(α.index, ¬α.low, ¬α.high)
 @inline (¬)(x::Integer)::Bdd = x > 0 ? Bdd(x, ⊤, ⊥) : x < 0 ? Bdd(-x, ⊥, ⊤) : ⊥
 @inline (¬)(x::Bool)::Bool = !x
 export ¬
 
-"Returns a conjunction over the given boolean functions."
+"""
+    (∧)(α::Bdd, β::Bdd)::Bdd
+    (∧)(x::Integer, β::Bdd)::Bdd
+    (∧)(α::Bdd, x::Integer)::Bdd
+    (∧)(x::Integer, y::Integer)::Bdd
+    (∧)(x::Bool, y::Bool)::Bool
+
+Returns a conjunction over the given boolean functions.
+"""
 @inline (∧)(α::Bdd, β::Bdd)::Bdd = apply(α, β, &)
 @inline (∧)(x::Integer, β::Bdd)::Bdd = apply(bdd_var(x), β, &)
 @inline (∧)(α::Bdd, x::Integer)::Bdd = apply(α, bdd_var(x), &)
 @inline (∧)(x::Integer, y::Integer)::Bdd = apply(bdd_var(x), bdd_var(y), &)
 @inline (∧)(x::Bool, y::Bool)::Bool = x & y
 export ∧
-"Returns a conjunction over the given boolean functions."
+
+
+"""
+    and(α::Bdd, β::Bdd)::Bdd
+    and(x::Integer, β::Bdd)::Bdd
+    and(α::Bdd, x::Integer)::Bdd
+    and(x::Integer, y::Integer)::Bdd
+    and(Φ::Vararg{Bdd})::Bdd
+    and(Φ::AbstractVector{Bdd})::Bdd
+    and(Φ::Vararg{T})::Bdd where T <: Integer
+    and(Φ::AbstractVector{T})::Bdd where T <: Integer
+    and(Φ::Vararg{Union{T, Bdd}})::Bdd where T <: Integer
+
+Returns a conjunction over the given boolean functions.
+"""
 @inline and(α::Bdd, β::Bdd)::Bdd = α ∧ β
 @inline and(x::Integer, β::Bdd)::Bdd = x ∧ β
 @inline and(α::Bdd, x::Integer)::Bdd = α ∧ x
@@ -123,14 +185,35 @@ function and(Φ::Vararg{Union{T, Bdd}})::Bdd where T <: Integer
 end
 export and
 
-"Returns a disjunction over the given boolean functions."
+"""
+    (∨)(α::Bdd, β::Bdd)::Bdd
+    (∨)(x::Integer, β::Bdd)::Bdd
+    (∨)(α::Bdd, x::Integer)::Bdd
+    (∨)(x::Integer, y::Integer)::Bdd
+    (∨)(x::Bool, y::Bool)::Bool
+
+Returns a disjunction over the given boolean functions.
+"""
 @inline (∨)(α::Bdd, β::Bdd)::Bdd = apply(α, β, |)
 @inline (∨)(x::Integer, β::Bdd)::Bdd = apply(bdd_var(x), β, |)
 @inline (∨)(α::Bdd, x::Integer)::Bdd = apply(α, bdd_var(x), |)
 @inline (∨)(x::Integer, y::Integer)::Bdd = apply(bdd_var(x), bdd_var(y), |)
 @inline (∨)(x::Bool, y::Bool)::Bool = x | y
 export ∨
-"Returns a disjunction over the given boolean functions."
+
+"""
+    or(α::Bdd, β::Bdd)::Bdd 
+    or(x::Integer, β::Bdd)::Bdd
+    or(α::Bdd, x::Integer)::Bdd
+    or(x::Integer, y::Integer)::Bdd
+    or(Φ::Vararg{Bdd})::Bdd
+    or(Φ::AbstractVector{Bdd})::Bdd
+    or(Φ::Vararg{T})::Bdd where T <: Integer
+    or(Φ::AbstractVector{T})::Bdd where T <: Integer
+    or(Φ::Vararg{Union{T, Bdd}})::Bdd where T <: Integer
+
+Returns a disjunction over the given boolean functions.
+"""
 @inline or(α::Bdd, β::Bdd)::Bdd = α ∨ β
 @inline or(x::Integer, β::Bdd)::Bdd = x ∨ β
 @inline or(α::Bdd, x::Integer)::Bdd = α ∨ x
@@ -151,7 +234,9 @@ function or(Φ::Vararg{Union{T, Bdd}})::Bdd where T <: Integer
 end
 export or
 
-"Returns a xor of the given boolean functions."
+"""
+Returns a xor of the given boolean functions.
+"""
 @inline Base.:⊻(α::Bdd, β::Bdd)::Bdd = apply(α, β, ⊻)
 @inline Base.:⊻(x::Integer, β::Bdd)::Bdd = apply(bdd_var(x), β, ⊻)
 @inline Base.:⊻(α::Bdd, x::Integer)::Bdd = apply(α, bdd_var(x), ⊻)
@@ -587,7 +672,12 @@ function eliminate_step(α::Bdd, V::Union{Set, BitSet, AbstractVector{T}})::Bdd 
 end
 export eliminate
 
-"Returns the resulting BDD after applying the `forget` operation. Equivalent to \$\\phi|_x \\vee \\phi|_{\\neg x}\$."
+"""
+    forget(α::Bdd, x::Integer)::Bdd = eliminate(α, x)
+    forget(α::Bdd, X::Union{Set, BitSet, AbstractVector{T}}) where T <: Integer
+
+Returns the resulting BDD after applying the `forget` operation. Equivalent to \$\\phi|_x \\vee \\phi|_{\\neg x}\$.
+"""
 @inline forget(α::Bdd, x::Integer)::Bdd = eliminate(α, x)
 @inline forget(α::Bdd, X::Union{Set, BitSet, AbstractVector{T}}) where T <: Integer = eliminate(α, X)
 export forget

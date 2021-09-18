@@ -6,6 +6,13 @@ This page lists documentation for the most commonly used public APIs of `LogicCi
 Pages = ["public.md"]
 ```
 
+## Circuit IO
+
+```@docs
+read
+write
+```
+
 ## Circuit Properties
 
 ```@docs
