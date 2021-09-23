@@ -8,9 +8,20 @@ struct FnfFormat <: FileFormat end
 # Read CNF/DNF
 ##############################################
 
+"""
+    zoo_cnf(name)
+
+Loads CNF file with given name from model zoo. See https://github.com/UCLA-StarAI/Circuit-Model-Zoo.    
+"""
 zoo_cnf(name) = 
     read(zoo_cnf_file(name), LogicCircuit, FnfFormat())::Plain⋀Node
-    
+
+
+"""
+    zoo_dnf(name)
+
+Loads DNF file with given name from model zoo. See https://github.com/UCLA-StarAI/Circuit-Model-Zoo.    
+"""
 zoo_dnf(name) = 
     read(zoo_dnf_file(name), LogicCircuit, FnfFormat())::Plain⋁Node
 
@@ -79,6 +90,11 @@ function Base.parse(::Type{PlainLogicCircuit}, str, ::FnfFormat)
     Lerche.transform(FnfParse(), ast)
 end
 
+"""
+    Base.read(io::IO, ::Type{PlainLogicCircuit}, ::FnfFormat)
+
+Read CNF/DNF from file.
+"""
 Base.read(io::IO, ::Type{PlainLogicCircuit}, ::FnfFormat) =
     parse(PlainLogicCircuit, read(io, String), FnfFormat())
 
@@ -94,6 +110,11 @@ c p cnf num-vars num-clauses
 c {literal-in-clause}* 0
 c"""
 
+"""
+    Base.write(io::IO, fnf::LogicCircuit, ::FnfFormat)    
+
+Write CNF/DNF to file.
+"""
 function Base.write(io::IO, fnf::LogicCircuit, ::FnfFormat)    
     @assert isflat(fnf)
     println(io, FNF_FORMAT)

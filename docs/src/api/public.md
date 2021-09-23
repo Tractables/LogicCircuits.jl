@@ -6,6 +6,24 @@ This page lists documentation for the most commonly used public APIs of `LogicCi
 Pages = ["public.md"]
 ```
 
+## Circuit IO
+
+```@docs
+read
+write
+```
+
+## Circuit Zoo IO
+
+```@docs
+zoo_cnf
+zoo_dnf
+zoo_sdd
+zoo_nnf
+zoo_jlc
+zoo_vtree
+```
+
 ## Circuit Properties
 
 ```@docs

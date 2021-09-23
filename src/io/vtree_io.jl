@@ -11,6 +11,11 @@ struct DotFormat <: FileFormat end
 zoo_vtree_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/vtrees/$name"
 
+"""
+    zoo_vtree(name)
+
+Loads Vtree file with given name from model zoo. See https://github.com/UCLA-StarAI/Circuit-Model-Zoo.    
+"""
 function zoo_vtree(name, ::Type{V}=PlainVtree)::V where V<:Vtree
     read(zoo_vtree_file(name), V)
 end

@@ -13,6 +13,11 @@ Tuple{JlcFormat,VtreeFormat}() = (JlcFormat(),VtreeFormat())
 zoo_jlc_file(name) = 
     artifact"circuit_model_zoo" * zoo_version * "/jlcs/$name"
 
+"""
+    zoo_jlc(name)
+
+Loads JLC file with given name from model zoo. See https://github.com/UCLA-StarAI/Circuit-Model-Zoo.    
+"""
 zoo_jlc(name) = 
     read(zoo_jlc_file(name), LogicCircuit, JlcFormat())
 

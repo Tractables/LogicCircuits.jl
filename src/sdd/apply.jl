@@ -10,6 +10,11 @@ Conjoin two SDDs
 
 # const stats = Dict{Tuple{Int,Int},Int}()
 
+"""
+    conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd
+
+Conjoin SDD Literal Nodes.
+"""
 function conjoin(s::SddLiteralNode, t::SddLiteralNode)::Sdd 
     if mgr(s) === mgr(t)
         (s === t) ? s : false_sdd
@@ -20,6 +25,11 @@ end
 
 # Note: attempts to make a special cache for conjunctions with literals have not yielded speedups
 
+"""
+    function conjoin(s::Sdd, t::Sdd)::Sdd
+
+Conjoins two SDDs.
+"""
 function conjoin(s::Sdd, t::Sdd)::Sdd 
     if mgr(s) === mgr(t)
         conjoin_cartesian(t,s)

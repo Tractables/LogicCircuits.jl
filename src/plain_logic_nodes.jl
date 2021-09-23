@@ -64,6 +64,11 @@ end
 "Get the children of a given inner node"
 @inline children(n::PlainLogicInnerNode) = n.children
 
+"""
+    conjoin(arguments::Vector{<:PlainLogicCircuit})
+
+Conjoins Plain LogicCircuits.
+"""
 function conjoin(arguments::Vector{<:PlainLogicCircuit};
                  reuse=nothing)
     @assert length(arguments) > 0

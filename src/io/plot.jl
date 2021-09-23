@@ -65,9 +65,19 @@ function LightGraphs.DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
     g, label
 end
 
+"""
+    TikzGraphs.plot(vtree::Vtree)
+
+Plots a vtree using TikzGraphs. Need to have LaTeX installed.
+"""
 TikzGraphs.plot(vtree::Vtree) =
     TikzGraphs.plot(DiGraph(vtree)...)
 
+"""
+    TikzGraphs.plot(lc::LogicCircuit; simplify=false) 
+
+Plots a LogicCircuit using TikzGraphs. Needt o have LaTeX installed.
+"""
 function TikzGraphs.plot(lc::LogicCircuit; simplify=false) 
     if simplify
         lc = propagate_constants(LogicCircuit(lc))

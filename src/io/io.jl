@@ -45,12 +45,27 @@ function file2format(file)
     end
 end
 
+"""
+    Base.read(file::AbstractString, ::Type{C}) where C <: LogicCircuit
+
+Reads circuit from file; uses extension to detect format type, for example ".sdd" for SDDs.
+"""
 Base.read(file::AbstractString, ::Type{C}) where C <: LogicCircuit =
     read(file, C, file2format(file))
 
+"""
+    Base.write(file::AbstractString, circuit::LogicCircuit)
+
+Writes circuit to file; uses file name extention to detect file format.
+"""
 Base.write(file::AbstractString, circuit::LogicCircuit) =
     write(file, circuit, file2format(file))
 
+"""
+    Base.write(files::Tuple{AbstractString,AbstractString}, circuit::StructLogicCircuit)
+
+Saves circuit and vtree to file.
+"""
 Base.write(files::Tuple{AbstractString,AbstractString}, 
            circuit::StructLogicCircuit) =
     write(files, circuit, (file2format(files[1]), VtreeFormat()))
