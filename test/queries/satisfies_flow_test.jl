@@ -252,7 +252,7 @@ end
         satisfies_flows(r, d)[1] # same value
     end
 
-    cpu_gpu_agree_approx(input) do d
+    cpu_gpu_agree_approx(input; atol=1e-6) do d
         satisfies_flows(r, d)[2][3:end,:] # same flows (except constants)
     end
 
