@@ -1,7 +1,7 @@
 using Pkg.Artifacts
 using Lerche: Lerche, Lark, Transformer, @rule, @inline_rule
 
-export FileFormat, SddFormat, VtreeFormat, DotFormat
+export FileFormat
 
 # version of model zoo to grab files from
 const zoo_version = "/Circuit-Model-Zoo-0.1.4"
@@ -14,7 +14,7 @@ Lerche.visit_tokens(t::JuiceTransformer) = false
 abstract type FileFormat end
 
 # usual comment format for DIMACS-based file formats
-const default_comments = raw"""
+const dimacs_comments = raw"""
     COMMENT : ("c" | "cc") (_WS /[^\n]/*)? (_NL | /$/)
     %ignore COMMENT
 """

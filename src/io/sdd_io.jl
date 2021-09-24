@@ -38,7 +38,7 @@ const sdd_grammar = raw"""
     %import common.SIGNED_INT
     %import common.WS_INLINE -> _WS
     %import common.NEWLINE -> _NL
-    """ * default_comments
+    """ * dimacs_comments
 
 const sdd_parser = Lark(sdd_grammar)
 

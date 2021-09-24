@@ -31,7 +31,7 @@ const vtree_grammar = raw"""
     %import common.INT
     %import common.WS_INLINE -> _WS
     %import common.NEWLINE -> _NL
-    """ * default_comments
+    """ * dimacs_comments
 
 const vtree_parser = Lark(vtree_grammar)
 
