@@ -31,7 +31,7 @@ include("plot.jl")
 
 # if no logic circuit file format is given on read, infer file format from extension
 
-function file2format(file) 
+function file2logicformat(file) 
     if endswith(file,".jlc")
         JlcFormat()
     elseif endswith(file,".sdd")
@@ -51,7 +51,12 @@ end
 Reads circuit from file; uses extension to detect format type, for example ".sdd" for SDDs.
 """
 Base.read(file::AbstractString, ::Type{C}) where C <: LogicCircuit =
-    read(file, C, file2format(file))
+    read(file, C, file2logicformat(file))
+
+
+Base.read(files::Tuple{AbstractString,AbstractString}, 
+          ::Type{C}) where C <: StructLogicCircuit =
+    read(files, C, (file2logicformat(files[1]), VtreeFormat()))
 
 """
     Base.write(file::AbstractString, circuit::LogicCircuit)
@@ -59,7 +64,7 @@ Base.read(file::AbstractString, ::Type{C}) where C <: LogicCircuit =
 Writes circuit to file; uses file name extention to detect file format.
 """
 Base.write(file::AbstractString, circuit::LogicCircuit) =
-    write(file, circuit, file2format(file))
+    write(file, circuit, file2logicformat(file))
 
 """
     Base.write(files::Tuple{AbstractString,AbstractString}, circuit::StructLogicCircuit)
@@ -68,7 +73,7 @@ Saves circuit and vtree to file.
 """
 Base.write(files::Tuple{AbstractString,AbstractString}, 
            circuit::StructLogicCircuit) =
-    write(files, circuit, (file2format(files[1]), VtreeFormat()))
+    write(files, circuit, (file2logicformat(files[1]), VtreeFormat()))
 
 #  when asked to parse/read as `LogicCircuit`, default to `PlainLogicCircuit`
 
