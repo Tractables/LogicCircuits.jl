@@ -14,7 +14,7 @@ on:
 
 env:
   DATADEPS_ALWAYS_ACCEPT: 1
-  JIVE_PROCS: 2
+  JIVE_PROCS: 1
 
 jobs:
   build:
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@latest
         with:
-          version: 1.5
+          version: 1.6
 
       # Runs a single command using the runners shell
       - name: Unit Tests
@@ -33,4 +33,4 @@ jobs:
           julia --project -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile();'
           julia --project=test -e 'using Pkg; Pkg.instantiate(); Pkg.build(); Pkg.precompile();'
           julia --project=test -e 'using Pkg; Pkg.develop("LogicCircuits");'
-          julia --project=test --check-bounds=yes --depwarn=error test/_manual_/aqua_test.jl
+          julia --project=test --check-bounds=yes --depwarn=yes test/_manual_/aqua_test.jl

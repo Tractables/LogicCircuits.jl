@@ -1,4 +1,4 @@
-export prime, sub, sdd_size, sdd_num_nodes, mgr, 
+export prime, sub, sdd_size, sdd_num_nodes, sdd_num_nodes_leafs, mgr, 
        compress, unique⋁, canonicalize, negate,
        entails, equivalent, (≡)
 
@@ -33,6 +33,9 @@ sdd_size(sdd) = mapreduce(n -> num_children(n), +, ⋁_nodes(sdd); init=0) # def
 
 "Count the number of decision nodes in the SDD"
 sdd_num_nodes(sdd) = length(⋁_nodes(sdd)) # defined as the number of `decisions`
+
+"Count the number of decision and leaf nodes in the SDD"
+sdd_num_nodes_leafs(sdd) = sdd_num_nodes(sdd) + num_leafnodes(sdd) # defined in sdd file format
 
 Base.show(io::IO, n::SddConstantNode) = 
     print(io, (isfalse(n) ? "⊥" : "⊤"))

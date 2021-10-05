@@ -8,7 +8,7 @@ To checks whether a circuit is smooth ([`issmooth`](@ref)):
 
 ```@example smooth
 using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
+lc = zoo_sdd("random.sdd");
 issmooth(lc)
 ```
 
@@ -29,7 +29,7 @@ To check for determinism, you can use [`isdeterministic`](@ref). Note that check
 
 ```@example deterministic
 using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
+lc = zoo_sdd("random.sdd");
 isdeterministic(lc)
 ```
 
@@ -44,7 +44,7 @@ To checks whether a circuit is decomposable ([`isdecomposable`](@ref)):
 
 ```@example
 using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
+lc = zoo_sdd("random.sdd")
 isdecomposable(lc)
 ```
 
@@ -56,8 +56,8 @@ Structured decomposability is a stonger condition that decomposability. In addit
 
 ```@example struct
 using LogicCircuits # hide
-lc = load_logic_circuit(zoo_sdd_file("random.sdd"));
-vtree = load_vtree(zoo_vtree_file("random.vtree"));
+lc = zoo_sdd("random.sdd")
+vtree = zoo_vtree("random.vtree");
 respects_vtree(lc, vtree)
 ```
 

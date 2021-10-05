@@ -11,6 +11,7 @@ export issmooth,
     istautology,
     model_count, 
     prob_equiv_signature,
+    prob_equiv,
     infer_vtree
 
 #####################
@@ -151,16 +152,10 @@ end
 
 """
     infer_vtree(root::LogicCircuit)::Vtree
-Infer circuits vtree if the circuit is struct-decomposable it.
+Infer circuits vtree if the circuit is struct-decomposable.
 Otherwise return `nothing`.
 """
 function infer_vtree(root::LogicCircuit, cache=nothing)::Union{Vtree, Nothing}
-    # WARNING: this function is known to have bugs; https://github.com/Juice-jl/LogicCircuits.jl/issues/82
-    # TODO remove after the `isstruct_decomposable` bug is fixed
-    if !issmooth(root)
-        throw("Circuit not smooth. Inferring vtree not supported yet!")
-    end
-
     vtr_dict = Dict{Var, PlainVtreeLeafNode}()
 
     f_con(_) = (nothing, true) # give constants nothing
@@ -343,4 +338,14 @@ function prob_equiv_signature(circuit::LogicCircuit, k::Int, signs=Dict{Union{Va
     f_o(n, call) = (signs[n] = (mapreduce(c -> call(c), (x,y) -> (x .+ y), children(n))))
     foldup(circuit, f_con, f_lit, f_a, f_o, Signature)
     signs
+end
+
+"""
+Check equivalence using probabilistic equivalence checking.
+Note that this implentation may not have any formal guarantees as such.
+"""
+function prob_equiv(circuit1::LogicCircuit, circuit2::LogicCircuit, k::Int)
+    signature1 = prob_equiv_signature(circuit1, k)
+    signature2 = prob_equiv_signature(circuit2, k, signature1)
+    signature1[circuit1] == signature2[circuit2]
 end

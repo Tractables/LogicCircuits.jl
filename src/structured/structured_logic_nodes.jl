@@ -105,6 +105,11 @@ respects_vtree(circuit::StructLogicCircuit) =
 # constructors and compilation
 #####################
 
+"""
+    conjoin(arguments::Vector{<:PlainStructLogicCircuit})
+
+Conjoins Structered LogicCircuits
+"""
 conjoin(arguments::Vector{<:PlainStructLogicCircuit};
         reuse=nothing, use_vtree=nothing) =
         conjoin(arguments...; reuse, use_vtree)

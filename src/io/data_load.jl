@@ -4,7 +4,6 @@ export process_mnist,
     twenty_dataset_names 
     
 using CSV
-using Pkg.Artifacts
 using DataFrames
 
 ####################
@@ -58,7 +57,7 @@ function twenty_datasets(name)
     data_dir = artifact"density_estimation_datasets"
     function load(type)
         dataframe = CSV.read(data_dir*"/Density-Estimation-Datasets-1.0.1/datasets/$name/$name.$type.data", DataFrame; 
-            header=false, truestrings=["1"], falsestrings=["0"], type=Bool, strict=true)
+            header=false, truestrings=["1"], falsestrings=["0"], types=Bool, strict=true)
         
         # make sure the data is backed by a `BitArray`
         # TODO not sure if this is works [cannot use the previous version in DataFrames 1.x]
