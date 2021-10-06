@@ -99,7 +99,7 @@ Base.read(io::IO, ::Type{PlainLogicCircuit}, ::NnfFormat) =
 function Base.write(io::IO, circuit::LogicCircuit, ::NnfFormat)
 
     labeling = label_nodes(circuit)
-    map!(x -> x-1, values(labeling)) # vtree nodes are 0-based indexed
+    map!(x -> x-1, values(labeling)) # nodes are 0-based indexed
 
     println(io, "nnf $(num_nodes(circuit)) $(num_edges(circuit)) $(num_variables(circuit))")
     foreach(circuit) do n

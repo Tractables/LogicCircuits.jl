@@ -1,6 +1,6 @@
 export smooth, forget, propagate_constants, deepcopy, conjoin, replace_node, 
     split, clone, merge, split_candidates, random_split, split_step, struct_learn,
-    clone_candidates, standardize_circuit
+    clone_candidates, standardize_circuit, make_vars_contiguous
 
 
 """
@@ -588,4 +588,31 @@ function standardize_circuit(circuit::LogicCircuit)
     end
     
     foldup_aggregate(circuit, f_con, f_lit, f_a, f_o, LogicCircuit)
+end
+
+
+"""
+Make all variables in this circuit contiguously numbered. Return new circuit and the variable mapping.
+"""
+function make_vars_contiguous(root::Node)
+    var_bijection = [(v, i) for (i,v) in enumerate(variables(root))]
+    var_dict = Dict(var_bijection)
+    var2lits = Dict(map(var_bijection) do (v,i)
+        pos_lit = compile(typeof(root),  Lit(i))
+        neg_lit = compile(typeof(root), -Lit(i))
+        (v => (pos_lit, neg_lit))
+    end)
+    f_con(n) = n
+    f_lit(n) = begin
+        if var_dict[variable(n)] == variable(n)
+            n
+        else
+            lits = var2lits[variable(n)]
+            ispositive(n) ? lits[1] : lits[2]
+        end
+    end
+    f_a(n, cn) = conjoin([cn...]; reuse=n)
+    f_o(n, cn) = disjoin([cn...]; reuse=n)
+    root2 = foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
+    root2, var_bijection
 end
