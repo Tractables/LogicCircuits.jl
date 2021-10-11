@@ -7,7 +7,7 @@ export LogicCircuit, GateType, InnerGate, LeafGate,
     fully_factorized_circuit, 
     ⋁_nodes, ⋀_nodes, or_nodes, and_nodes, 
     canonical_literals, canonical_constants, tree_formula_string,
-    isflat, iscnf, isdnf
+    isflat, iscnf, isdnf, has_vars_contiguous
 
 #####################
 # Abstract infrastructure for logic circuit nodes
@@ -250,3 +250,9 @@ isdnf(circuit) =
     is⋁gate(circuit) && all(children(circuit)) do clause
         is⋀gate(clause) && all(isliteralgate, children(clause))
     end
+
+"Does the circuit have a contiguously indexed set of variables"
+has_vars_contiguous(circuit) = begin
+    vars = variables(circuit)
+    (maximum(vars) == length(vars))
+end

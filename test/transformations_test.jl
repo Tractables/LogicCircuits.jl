@@ -268,3 +268,19 @@ end
     @test circuit.children[3].literal == Lit(3)
     @test circuit.children[4].literal == Lit(4)
 end
+
+@testset "Contiguous variable test" begin
+    c1  = zoo_sdd_random
+    @test has_vars_contiguous(c1)
+
+    c2 = forget(c1, isodd)
+    @test variables(c2) == BitSet(2:2:num_variables(c1))
+    @test !has_vars_contiguous(c2)
+
+    c3, bijection = make_vars_contiguous(c2)
+    @test num_nodes(c2) == num_nodes(c3)
+    @test num_edges(c2) == num_edges(c3)
+    @test has_vars_contiguous(c3)
+
+    @test make_vars_contiguous(c1)[1] === c1
+end
