@@ -596,6 +596,10 @@ Make all variables in this circuit contiguously numbered. Return new circuit and
 """
 function make_vars_contiguous(root::Node)
     var_bijection = [(v, i) for (i,v) in enumerate(variables(root))]
+    reIndex_vars(root, var_bijection), var_bijection
+end
+
+function reIndex_vars(root::Node, var_bijection::AbstractVector)
     var_dict = Dict(var_bijection)
     var2lits = Dict(map(var_bijection) do (v,i)
         pos_lit = compile(typeof(root),  Lit(i))
@@ -614,5 +618,5 @@ function make_vars_contiguous(root::Node)
     f_a(n, cn) = conjoin([cn...]; reuse=n)
     f_o(n, cn) = disjoin([cn...]; reuse=n)
     root2 = foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
-    root2, var_bijection
+    root2
 end
