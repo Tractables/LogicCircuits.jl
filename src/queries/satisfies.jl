@@ -139,14 +139,15 @@ accum_value(v::Matrix{<:Unsigned}, i, e1p, e1s, e2p, e2s) =
 # upward pass helpers on GPU
 
 "Evaluate the layers of a bit circuit on the GPU"
-function satisfies_layers(circuit::BitCircuit, values::CuMatrix;  dec_per_thread = 8, log2_threads_per_block = 8)
+function satisfies_layers(circuit::BitCircuit, values::CuMatrix)
     CUDA.@sync for layer in circuit.layers[2:end]
         num_examples = size(values, 1)
-        num_decision_sets = length(layer)/dec_per_thread
-        num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
-        num_blocks = (ceil(Int, num_examples/num_threads[1]), 
-                      ceil(Int, num_decision_sets/num_threads[2]))
-        @cuda threads=num_threads blocks=num_blocks satisfies_layers_cuda(layer, circuit.nodes, circuit.elements, values)
+        num_decision_sets = length(layer)
+
+        kernel = @cuda name="satisfies_layers_cuda" launch=false satisfies_layers_cuda(layer, circuit.nodes, circuit.elements, values)
+        config = launch_configuration(kernel.fun)
+        threads, blocks = balance_threads_2d(num_examples, num_decision_sets, config.threads)
+        kernel(layer, circuit.nodes, circuit.elements, values; threads, blocks)
     end
 end
 
@@ -158,6 +159,36 @@ function balance_threads(num_examples, num_decisions, total_log2)
     l = total_log2-k
     (2^k, 2^l)
 end
+
+"""
+
+"""
+function balance_threads_2d(num_examples, num_decisions, total_threads_per_block)
+    lsb(n) = n ⊻ ( n& (n-1))
+    ratio_diff(a, b) =  ceil(Int, num_examples/a) - ceil(Int, num_decisions/b)
+
+    options_d1 = [Int32(2^i) for i = 0 : log2(lsb(total_threads_per_block))]
+    options_d2 = [Int32(total_threads_per_block / d1) for d1 in options_d1]
+
+    best_d1 = options_d1[1]
+    best_d2 = options_d2[2]
+    best_ratio = ratio_diff(best_d1, best_d2)
+
+    for (d1, d2) in zip(options_d1, options_d2)
+        cur_ratio = ratio_diff(d1, d2)
+        if abs(best_ratio) > abs(cur_ratio)
+            best_d1 = d1
+            best_d2 = d2
+            best_ratio = cur_ratio
+        end
+    end
+    threads = (best_d1, best_d2)
+    blocks = (ceil(Int, num_examples / threads[1]), 
+                ceil(Int, num_decision_sets / threads[2]))
+
+    threads, blocks
+end
+
 
 "CUDA kernel for circuit evaluation"
 function satisfies_layers_cuda(layer, nodes, elements, values)

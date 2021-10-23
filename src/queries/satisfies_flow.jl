@@ -124,14 +124,13 @@ end
 
 "Pass flows down the layers of a bit circuit on the GPU"
 function satisfies_flows_down_layers(circuit::BitCircuit, flows::CuMatrix, values::CuMatrix, on_node, on_edge; 
-            dec_per_thread = 8, log2_threads_per_block = 7, weights = nothing)
+            weights = nothing)
     CUDA.@sync for layer in Iterators.reverse(circuit.layers)
         num_examples = size(values, 1)
-        num_decision_sets = length(layer)/dec_per_thread
-        num_threads =  balance_threads(num_examples, num_decision_sets, log2_threads_per_block)
-        num_blocks = (ceil(Int, num_examples/num_threads[1]), 
-                      ceil(Int, num_decision_sets/num_threads[2])) 
-        @cuda threads=num_threads blocks=num_blocks satisfies_flows_down_layers_cuda(layer, circuit.nodes, circuit.elements, circuit.parents, flows, values, on_node, on_edge, weights)
+        num_decision_sets = length(layer)        
+        kernel = @cuda name="satisfies_flows_down_layers_cuda" launch=false satisfies_flows_down_layers_cuda(layer, circuit.nodes, circuit.elements, circuit.parents, flows, values, on_node, on_edge, weights)        
+        threads, blocks =  balance_threads_2d(num_examples, num_decision_sets, config.threads)
+        kernel(layer, circuit.nodes, circuit.elements, circuit.parents, flows, values, on_node, on_edge, weights; threads, blocks)
     end
 end
 
