@@ -167,7 +167,9 @@ function balance_threads_2d(num_examples, num_decisions, total_threads_per_block
     lsb(n) = n ⊻ ( n& (n-1))
     ratio_diff(a, b) =  ceil(Int, num_examples/a) - ceil(Int, num_decisions/b)
 
-    options_d1 = [Int32(2^i) for i = 0 : log2(lsb(total_threads_per_block))]
+    n_lsb = lsb(lsb(total_threads_per_block))
+    options_d1 = [Int32(2^i) for i = 0 : log2(n_lsb)]
+    append!(options_d1, [total_threads_per_block / n_lsb * Int32(2^i) for i = 0 : log2(n_lsb)])
     options_d2 = [Int32(total_threads_per_block / d1) for d1 in options_d1]
 
     best_d1 = options_d1[1]
@@ -184,7 +186,7 @@ function balance_threads_2d(num_examples, num_decisions, total_threads_per_block
     end
     threads = (best_d1, best_d2)
     blocks = (ceil(Int, num_examples / threads[1]), 
-                ceil(Int, num_decision_sets / threads[2]))
+                ceil(Int, num_decisions / threads[2]))
 
     threads, blocks
 end
