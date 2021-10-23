@@ -129,6 +129,7 @@ function satisfies_flows_down_layers(circuit::BitCircuit, flows::CuMatrix, value
         num_examples = size(values, 1)
         num_decision_sets = length(layer)        
         kernel = @cuda name="satisfies_flows_down_layers_cuda" launch=false satisfies_flows_down_layers_cuda(layer, circuit.nodes, circuit.elements, circuit.parents, flows, values, on_node, on_edge, weights)        
+        config = launch_configuration(kernel.fun)
         threads, blocks =  balance_threads_2d(num_examples, num_decision_sets, config.threads)
         kernel(layer, circuit.nodes, circuit.elements, circuit.parents, flows, values, on_node, on_edge, weights; threads, blocks)
     end
