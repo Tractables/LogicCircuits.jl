@@ -1,4 +1,4 @@
-using Pkg.Artifacts
+using LazyArtifacts
 using Lerche: Lerche, Lark, Transformer, @rule, @inline_rule
 
 export FileFormat
