@@ -5,7 +5,8 @@ export Node, Dag, NodeType, Leaf, Inner,
        inodes, innernodes, leafnodes, num_innernodes, num_leafnodes, linearize,
        left_most_descendent, right_most_descendent,
        label_nodes,
-       node_stats, inode_stats, leaf_stats
+       node_stats, inode_stats, leaf_stats,
+       parent_stats
 
 
 #####################
@@ -250,6 +251,8 @@ num_innernodes(c::Dag) =
     filter(x -> true, r, seen, typejoin(T,typeof(r)))
 
 """
+    left_most_descendent(root::Dag)::Dag    
+
 Return the left-most descendent.
 """
 function left_most_descendent(root::Dag)::Dag
@@ -260,6 +263,8 @@ function left_most_descendent(root::Dag)::Dag
 end
 
 """
+    right_most_descendent(root::Dag)::Dag    
+
 Return the right-most descendent.
 """
 function right_most_descendent(root::Dag)::Dag
@@ -290,17 +295,50 @@ end
 # To safeguard against that case, we set a default show:
 Base.show(io::IO, c::Node) = print(io, "$(typeof(c))($(hash(c)))")
 
-"Give count of types and fan-ins of all nodes in the graph"
+"""
+    node_stats(c::Dag)    
+
+Give count of types and fan-ins of all nodes in the graph
+"""
 node_stats(c::Dag) = merge(leaf_stats(c), inode_stats(c))
 
-"Give count of types and fan-ins of inner nodes in the graph"
+"""
+    inode_stats(c::Dag)
+
+Give count of types and fan-ins of inner nodes in the graph
+"""
 function inode_stats(c::Dag)
     groups = groupby(e -> (typeof(e),num_children(e)), inodes(c))
     map_values(v -> length(v), groups, Int)
 end
 
-"Give count of types of leaf nodes in the graph"
+"""
+    leaf_stats(c::Node)
+
+Give count of types of leaf nodes in the graph
+"""
 function leaf_stats(c::Node)
     groups = groupby(e -> typeof(e), leafnodes(c))
     map_values(v -> length(v), groups, Int)
+end
+
+"""
+    parent_stats(c::Dag)
+
+Give number of nodes grouped by (type, parent_count)
+"""
+function parent_stats(c::Dag)
+    par_count = Dict()
+    # Leaf nodes don't have children
+    foreach(inodes(c)) do node
+        foreach(children(node)) do child
+            if child in keys(par_count)
+                par_count[child] += 1
+            else
+                par_count[child] = 1
+            end
+        end
+    end
+    groups = groupby(e -> (typeof(e[1]), e[2]), collect(par_count));
+    map_values(v->length(v), groups, Int)
 end
