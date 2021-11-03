@@ -1,10 +1,10 @@
 export 
     plot
 
-using LightGraphs
+using Graphs
 using TikzGraphs
 
-function LightGraphs.DiGraph(vtree::Vtree)
+function Graphs.DiGraph(vtree::Vtree)
     N = num_nodes(vtree)
     g = DiGraph(N)
     nv = num_variables(vtree)
@@ -29,7 +29,7 @@ function LightGraphs.DiGraph(vtree::Vtree)
     g, label
 end
 
-function LightGraphs.DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
+function Graphs.DiGraph(lc::LogicCircuit; on_edge=noop, on_var=noop)
     nv = num_variables(lc)
     nn = num_nodes(lc)
     g = DiGraph(nn)
