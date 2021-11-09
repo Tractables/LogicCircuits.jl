@@ -39,10 +39,6 @@ to_gpu(d::Union{CuBitVector,CuArray}) = d
 to_gpu(m::Array) = CuArray(m)
 to_gpu(v::BitVector) = 
     AbstractBitVector(to_gpu(chunks(v)), length(v))
-to_gpu(v::Vector{Union{F,Missing}}) where F<:AbstractFloat =
-    CuArray(F.(coalesce(v,typemax(F))))
-to_gpu(v::Vector{Union{Bool,Missing}}) =
-    CuArray(UInt8.(coalesce.(v,typemax(UInt8))))
 to_gpu(df::DataFrame) = isgpu(df) ? df : mapcols(to_gpu, df)
 to_gpu(df::Vector{DataFrame}) = map(df) do d
     to_gpu(d)
@@ -53,14 +49,9 @@ to_cpu(m::Union{BitVector,Array}) = m
 to_cpu(m::CuArray) = Array(m)
 to_cpu(cv::CuBitVector) = 
     AbstractBitVector(to_cpu(cv.chunks), length(cv))
-to_cpu(v::CuVector{T}) where T<:AbstractFloat =
-    replace(Array(v), typemax(T) => missing)
-to_cpu(v::CuVector{UInt8}) =
-    convert(Vector{Union{Bool,Missing}}, 
-        replace(Array(v), typemax(UInt8) => missing))
 to_cpu(df::DataFrame) = mapcols(to_cpu, df)
 to_cpu(df::Vector{DataFrame}) = map(df) do d
-    to_gpu(d)
+    to_cpu(d)
 end
 
 "Check whether data resides on the GPU"
@@ -86,10 +77,10 @@ same_device(x, data) = isgpu(data) ? to_gpu(x) : to_cpu(x)
 # 2/ Incomplete data:
 #  - `Bool` data:
 #      * `DataFrame` of `Vector{Union{Bool,Missing}}`
-#      * `DataFrame` of `CuVector{Int8}` where typemax represents missing
+#      * `DataFrame` of `CuVector{Union{Missing, Bool}}` 
 #  - `Float` data:
 #      * `DataFrame` of `Vector{Union{Float,Missing}}`
-#      * `DataFrame` of `CuVector{Float}` where typmax represents missing
+#      * `DataFrame` of `CuVector{Union{Missing, Float}}`
 
 """
     num_examples(df::DataFrame)
@@ -124,12 +115,10 @@ iscomplete_col(::AbstractVector{<:Int}) = true
 iscomplete_col(::AbstractVector{<:AbstractFloat}) = true
 iscomplete_col(x::AbstractVector{Union{Bool,Missing}}) = !any(ismissing, x)
 iscomplete_col(x::AbstractVector{Union{<:AbstractFloat,Missing}}) = !any(ismissing, x)
-iscomplete_col(x::Union{CuArray{<:Int8},CuArray{<:AbstractFloat}}) = 
-    !any(v -> v == typemax(v), x)
 
 "Is the dataset binary?"
 isbinarydata(df::DataFrame) = all(eachcol_unweighted(df)) do col
-    nonmissingtype(eltype(col)) <: Union{Bool,UInt8}
+    nonmissingtype(eltype(col)) <: Union{Bool}
 end
 isbinarydata(df::Vector{DataFrame}) = 
     all(isbinarydata, df)
