@@ -50,7 +50,7 @@ Vtree(left::Vtree,right::Vtree) = PlainVtree(left, right)
 # Methods
 #####################
 
-import ..Utils: children, variables, isequal_local
+import DirectedAcyclicGraphs: children, isequal_local
 
 @inline children(n::PlainVtreeInnerNode) = [n.left, n.right]
 

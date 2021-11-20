@@ -147,23 +147,3 @@ end
 
 "Function that does nothing"
 @inline noop(_...) = nothing
-
-"Map the values in the dictionary, retaining the same keys"
-function map_values(f::Function, dict::AbstractDict{K}, vtype::Type)::AbstractDict{K,vtype} where K
-    mapped_dict = Dict{K,vtype}()
-    for key in keys(dict)
-        mapped_dict[key] = f(dict[key])
-    end
-    mapped_dict
-end
-
-import DataFrames: groupby #extend
-
-"Group the elements of `list` by their values according to function `f`"
-function groupby(f::Function, list::Union{Vector{E},Set{E}})::Dict{Any,Vector{E}} where E
-    groups = Dict{Any,Vector{E}}()
-    for v in list
-        push!(get!(groups, f(v), []), v)
-    end
-    groups
-end

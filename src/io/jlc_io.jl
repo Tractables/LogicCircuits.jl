@@ -1,6 +1,8 @@
 export zoo_jlc, zoo_jlc_file, 
     JlcFormat, JlcVtreeFormat
 
+using DirectedAcyclicGraphs: label_nodes
+
 struct JlcFormat <: FileFormat end
 
 const JlcVtreeFormat = Tuple{JlcFormat,VtreeFormat}

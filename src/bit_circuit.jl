@@ -183,7 +183,7 @@ function BitCircuit(circuit::LogicCircuit, num_features::Int; on_decision=noop)
     return BitCircuit(layers, nodes_m, elements_m, parents_m, node2id)
 end
 
-import .Utils: num_nodes # extend
+import .DirectedAcyclicGraphs: num_nodes # extend
 
 
 nodes(c::BitCircuit) = c.nodes

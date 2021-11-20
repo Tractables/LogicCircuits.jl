@@ -4,7 +4,7 @@ export Vtree, vtree, variable, find_leaf,
     respects_vtree
 
 import Base: parent, in # extend
-import .Utils: find_leaf, find_inode, lca, depth # extend
+import DirectedAcyclicGraphs: find_leaf, find_inode, lca, depth # extend
 
 #############
 # Vtree

@@ -28,7 +28,7 @@ function foreach(node::LogicCircuit, f_con::Function, f_lit::Function,
     nothing # returning nothing helps save some allocations and time
 end
 
-import ..Utils: foldup # extend
+import DirectedAcyclicGraphs: foldup # extend
 
 """
     foldup(node::LogicCircuit, 
@@ -49,7 +49,7 @@ function foldup(node::LogicCircuit, f_con::Function, f_lit::Function,
     foldup(node, f_leaf, f_inner, T, cache)::T
 end
 
-import ..Utils: foldup_aggregate # extend
+import DirectedAcyclicGraphs: foldup_aggregate # extend
 
 """
     foldup_aggregate(node::LogicCircuit, 
@@ -205,7 +205,7 @@ Does the given circuit have canonical Or gates, as determined by a probabilistic
 """
 function iscanonical(circuit::LogicCircuit, k::Int; verbose = false)
    signatures = prob_equiv_signature(circuit, k)
-   decision_nodes_by_signature = groupby(n -> signatures[n], ⋁_nodes(circuit))
+   decision_nodes_by_signature = DirectedAcyclicGraphs.groupby(n -> signatures[n], ⋁_nodes(circuit))
    for (signature, nodes) in decision_nodes_by_signature
       if length(nodes) > 1
          if verbose
@@ -319,15 +319,15 @@ end
 const Signature = Vector{Rational{BigInt}}
 
 """
-    prob_equiv_signature(circuit::LogicCircuit, k::Int)::Dict{Union{Var,Node},Signature}
+    prob_equiv_signature(circuit::LogicCircuit, k::Int)
 
 Get a signature for each node using probabilistic equivalence checking.
 Note that this implentation may not have any formal guarantees as such.
 """
-function prob_equiv_signature(circuit::LogicCircuit, k::Int, signs=Dict{Union{Var,Node},Signature}())::Dict{Union{Var,Node},Signature}
+function prob_equiv_signature(circuit::LogicCircuit, k::Int, signs=Dict{Union{Var,LogicCircuit},Signature}())
     # uses probability instead of integers to circumvent smoothing, no mod though
     if signs === nothing
-        signs = Dict{Union{Var,Node},Signature}()
+        signs = Dict{Union{Var,LogicCircuit},Signature}()
     end
     prime::Int = 7919 #TODO set as smallest prime larger than num_variables
     randprob() = BigInt(1) .// rand(1:prime,k)

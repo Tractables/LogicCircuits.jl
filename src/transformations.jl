@@ -30,27 +30,27 @@ function smooth(root::StructLogicCircuit)::StructLogicCircuit
     end
     f_o(n, call) = begin
         parent_scope = mapreduce(c -> call(c)[2], union, children(n))
-        smooth_children = Vector{Node}(undef, num_children(n))
+        smooth_children = Vector{LogicCircuit}(undef, num_children(n))
         map!(smooth_children, children(n)) do child
             (smooth_child, scope) = call(child)
             smooth_node(smooth_child, parent_scope, scope, lit_nodes)
         end
         return (disjoin([smooth_children...]; reuse=n), parent_scope)
     end
-    foldup(root, f_con, f_lit, f_a, f_o, Tuple{Node, BitSet})[1]
+    foldup(root, f_con, f_lit, f_a, f_o, Tuple{LogicCircuit, BitSet})[1]
 end
 """
-    smooth(root::Node)::Node
+    smooth(root::LogicCircuit)
     
 Create an equivalent smooth circuit from the given circuit.
 """
-function smooth(root::Node)::Node
+function smooth(root::LogicCircuit)
     lit_nodes = canonical_literals(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
     f_a(n, call) = begin
         parent_scope = BitSet()
-        smooth_children = Vector{Node}(undef, num_children(n))
+        smooth_children = Vector{LogicCircuit}(undef, num_children(n))
         map!(smooth_children, children(n)) do child
             (smooth_child, scope) = call(child)
             union!(parent_scope, scope)
@@ -60,14 +60,14 @@ function smooth(root::Node)::Node
     end
     f_o(n, call) = begin
         parent_scope = mapreduce(c -> call(c)[2], union, children(n))
-        smooth_children = Vector{Node}(undef, num_children(n))
+        smooth_children = Vector{LogicCircuit}(undef, num_children(n))
         map!(smooth_children, children(n)) do child
             (smooth_child, scope) = call(child)
             smooth_node(smooth_child, setdiff(parent_scope, scope), lit_nodes)
         end
         return (disjoin([smooth_children...]; reuse=n), parent_scope)
     end
-    foldup(root, f_con, f_lit, f_a, f_o, Tuple{Node, BitSet})[1]
+    foldup(root, f_con, f_lit, f_a, f_o, Tuple{LogicCircuit, BitSet})[1]
 end
 
 
@@ -111,12 +111,12 @@ function fill_missing_vtree(node::StructLogicCircuit, start_vtr, end_vtr, lit_no
 end
 
 """
-    smooth_node(node::Node, missing_scope, lit_nodes)
+    smooth_node(node::LogicCircuit, missing_scope, lit_nodes)
 
 Return a smooth version of the node where 
 the `missing_scope` variables are added to the scope, using literals from `lit_nodes`
 """
-function smooth_node(node::Node, missing_scope, lit_nodes)
+function smooth_node(node::LogicCircuit, missing_scope, lit_nodes)
     if isempty(missing_scope)
         return node # avoid adding unnecessary nodes
     else
@@ -133,12 +133,12 @@ end
 
 
 """
-    forget(root::Node, is_forgotten::Function)::Node
+    forget(root::LogicCircuit, is_forgotten::Function)
 
 Forget variables from the circuit.
 Warning: this may or may not destroy the determinism property.
 """
-function forget(root::Node, is_forgotten::Function, )::Node
+function forget(root::LogicCircuit, is_forgotten::Function, )
     (_, true_node) = canonical_constants(root)
     if isnothing(true_node)
         true_node = compile(typeof(root), true)
@@ -147,16 +147,16 @@ function forget(root::Node, is_forgotten::Function, )::Node
     f_lit(n) = is_forgotten(variable(n)) ? true_node : n
     f_a(n, cn) = conjoin([cn...]; reuse=n) # convert type of cn
     f_o(n, cn) = disjoin([cn...]; reuse=n)
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, LogicCircuit)
 end
 
 
 """
-    propagate_constants(root::Node)
+    propagate_constants(root::LogicCircuit)
 
 Remove all constant leafs from the circuit
 """
-function propagate_constants(root::Node; remove_unary=false)
+function propagate_constants(root::LogicCircuit; remove_unary=false)
     (false_node, true_node) = canonical_constants(root)
     if isnothing(true_node)
         true_node = compile(typeof(root), true)
@@ -196,18 +196,18 @@ function propagate_constants(root::Node; remove_unary=false)
             end
         end
     end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, LogicCircuit)
 end
 
 
 import Base.deepcopy
 
 """
-    deepcopy(n::Node, depth::Int64)
+    deepcopy(n::LogicCircuit, depth::Int64)
 
 Recursively create a copy circuit rooted at `n` to a certain depth `depth`
 """
-function deepcopy(n::Node, depth::Int64, old2new::Dict{Node, Node} = Dict{Node, Node}(); cache=true)
+function deepcopy(n::LogicCircuit, depth::Int64, old2new::Dict{LogicCircuit, LogicCircuit} = Dict{LogicCircuit, LogicCircuit}(); cache=true)
     # TODO: can we remove the Dict and use the data field instead?
     if depth == 0 || isliteralgate(n) || isconstantgate(n)
         return n
@@ -232,12 +232,12 @@ end
 
 
 """
-    conjoin(root::Node, lit::Lit; callback::Function)::Node
+    conjoin(root::LogicCircuit, lit::Lit; callback::Function)
 
 Return the circuit conjoined with th given literal constrains
 `callback` is called after modifying conjunction node
 """
-function conjoin(root::Node, lit::Lit; callback=noop)::Node
+function conjoin(root::LogicCircuit, lit::Lit; callback=noop)
     literals = canonical_literals(root)
     (false_node, ) = canonical_constants(root) # reuse constants when possible
     if isnothing(false_node)
@@ -283,7 +283,7 @@ function conjoin(root::Node, lit::Lit; callback=noop)::Node
                 (false_node, false)
             end
         end
-        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{Union{Nothing,Node}, Bool})[1]
+        foldup_aggregate(root, f_con, f_lit, f_a, f_o, Tuple{Union{Nothing,LogicCircuit}, Bool})[1]
     end
 end
 
@@ -291,11 +291,11 @@ end
 import Base.split
 
 """
-    split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true)
+    split(root::LogicCircuit, (or, and)::Tuple{LogicCircuit, LogicCircuit}, var::Var; depth=0, sanity_check=true)
 
 Return the circuit after spliting on edge `edge` and variable `var`
 """
-function split(root::Node, (or, and)::Tuple{Node, Node}, var::Var; depth=0, sanity_check=true)
+function split(root::LogicCircuit, (or, and)::Tuple{LogicCircuit, LogicCircuit}, var::Var; depth=0, sanity_check=true)
     # sanity check
     if sanity_check
         @assert depth >= 0
@@ -323,13 +323,13 @@ end
 
 
 """
-    split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{Node, BitSet}}
+    split_candidates(circuit::LogicCircuit)::Tuple{Vector{Tuple{LogicCircuit, LogicCircuit}}, Dict{LogicCircuit, BitSet}}
 
 Return the edges and variables which can be splited on
 """
-function split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{Node, BitSet}}
-    candidates::Vector{Tuple{Node, Node}} = Vector{Tuple{Node, Node}}(undef, 0)
-    variable_scope::Dict{Node, BitSet} = Dict{Node, BitSet}()
+function split_candidates(circuit::LogicCircuit)::Tuple{Vector{Tuple{LogicCircuit, LogicCircuit}}, Dict{LogicCircuit, BitSet}}
+    candidates::Vector{Tuple{LogicCircuit, LogicCircuit}} = Vector{Tuple{LogicCircuit, LogicCircuit}}(undef, 0)
+    variable_scope::Dict{LogicCircuit, BitSet} = Dict{LogicCircuit, BitSet}()
     
     f_con(n) = begin
         variable_scope[n] = BitSet()
@@ -368,9 +368,9 @@ function split_candidates(circuit::Node)::Tuple{Vector{Tuple{Node, Node}}, Dict{
     candidates, variable_scope
 end
 
-function clone_candidates(circuit::Node)::Dict{Node, Vector{Node}}
-    candidates = Dict{Node, Vector{Node}}()
-    parents = Dict{Node, Vector{Node}}()
+function clone_candidates(circuit::LogicCircuit)::Dict{LogicCircuit, Vector{LogicCircuit}}
+    candidates = Dict{LogicCircuit, Vector{LogicCircuit}}()
+    parents = Dict{LogicCircuit, Vector{LogicCircuit}}()
 
     f_con(n) = begin
         false
@@ -409,7 +409,7 @@ end
 """
 Randomly picking egde and variable from candidates
 """
-function random_split(circuit::Node)
+function random_split(circuit::LogicCircuit)
     candidates, variable_scope = split_candidates(circuit)
     if isempty(candidates) return nothing end
     or, and = rand(candidates)
@@ -421,7 +421,7 @@ end
 """
 Split step
 """
-function split_step(circuit::Node; loss=random_split, depth=0, sanity_check=true)
+function split_step(circuit::LogicCircuit; loss=random_split, depth=0, sanity_check=true)
     res = loss(circuit)
     if isnothing(res) return nothing end
     edge, var = loss(circuit)
@@ -431,7 +431,7 @@ end
 """
 Structure learning manager
 """
-function struct_learn(circuit::Node; 
+function struct_learn(circuit::LogicCircuit; 
     primitives=[split_step], 
     kwargs=Dict(split_step=>(loss=random_split, depth=0)),
     maxiter=typemax(Int), stop::Function=x->false, verbose = true)
@@ -466,7 +466,7 @@ end
 """
 Clone the `or` node and redirect one of its parents to the new copy
 """
-function clone(root::Node, and1::Node, and2::Node, or::Node; depth=1)
+function clone(root::LogicCircuit, and1::LogicCircuit, and2::LogicCircuit, or::LogicCircuit; depth=1)
     # sanity check
     @assert depth >= 1
     @assert is⋀gate(and1) && is⋀gate(and2) && is⋁gate(or)
@@ -483,11 +483,11 @@ end
 
 import Base.merge
 """
-    merge(root::Node, or1::Node, or2::Node)
+    merge(root::LogicCircuit, or1::LogicCircuit, or2::LogicCircuit)
 
 Merge two circuits.
 """
-function merge(root::Node, or1::Node, or2::Node)
+function merge(root::LogicCircuit, or1::LogicCircuit, or2::LogicCircuit)
     # sanity check
     @assert is⋁gate(or1) && is⋁gate(or2)
     @assert or1 in or_nodes(root) && or2 in or_nodes(root)
@@ -508,7 +508,7 @@ end
 """
 Replace node `old` with node `new` in circuit `root`
 """
-function replace_node(root::Node, old::Node, new::Node; callback::Function=(x, y, z) -> nothing)::Node
+function replace_node(root::LogicCircuit, old::LogicCircuit, new::LogicCircuit; callback::Function=(x, y, z) -> nothing)
     # @assert GateType(old) == GateType(new) # this assertion was removed because it seems unnecessary?
     f_con(n) = old == n ? new : n
     f_lit = f_con
@@ -518,7 +518,7 @@ function replace_node(root::Node, old::Node, new::Node; callback::Function=(x, y
             callback(new_n, n, trues(length(cns)))
             new_n
         end
-    foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
+    foldup_aggregate(root, f_con, f_lit, f_a, f_o, LogicCircuit)
 end
 
 
@@ -594,12 +594,12 @@ end
 """
 Make all variables in this circuit contiguously numbered. Return new circuit and the variable mapping.
 """
-function make_vars_contiguous(root::Node)
+function make_vars_contiguous(root::LogicCircuit)
     var_bijection = [(v, i) for (i,v) in enumerate(variables(root))]
     reIndex_vars(root, var_bijection), var_bijection
 end
 
-function reIndex_vars(root::Node, var_bijection::AbstractVector)
+function reIndex_vars(root::LogicCircuit, var_bijection::AbstractVector)
     var_dict = Dict(var_bijection)
     var2lits = Dict(map(var_bijection) do (v,i)
         pos_lit = compile(typeof(root),  Lit(i))
@@ -617,6 +617,6 @@ function reIndex_vars(root::Node, var_bijection::AbstractVector)
     end
     f_a(n, cn) = conjoin([cn...]; reuse=n)
     f_o(n, cn) = disjoin([cn...]; reuse=n)
-    root2 = foldup_aggregate(root, f_con, f_lit, f_a, f_o, Node)
+    root2 = foldup_aggregate(root, f_con, f_lit, f_a, f_o, LogicCircuit)
     root2
 end

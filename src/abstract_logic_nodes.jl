@@ -9,12 +9,16 @@ export LogicCircuit, GateType, InnerGate, LeafGate,
     canonical_literals, canonical_constants, tree_formula_string,
     isflat, iscnf, isdnf, has_vars_contiguous
 
+@reexport using DirectedAcyclicGraphs
+
+import ..Utils: variables #extend
+
 #####################
 # Abstract infrastructure for logic circuit nodes
 #####################
 
 "Root of the logic circuit node hierarchy"
-abstract type LogicCircuit <: Dag end
+abstract type LogicCircuit <: DAG end
 
 """
 A trait hierarchy denoting types of nodes
@@ -45,7 +49,7 @@ struct ⋁Gate <: InnerGate end
 @inline GateType(instance::LogicCircuit) = GateType(typeof(instance))
 
 # map gate type traits to graph node traits
-import ..Utils.NodeType # make available for extension
+import DirectedAcyclicGraphs.NodeType # make available for extension
 @inline NodeType(::Type{N}) where {N<:LogicCircuit} = NodeType(GateType(N))
 @inline NodeType(::LeafGate) = Leaf()
 @inline NodeType(::InnerGate) = Inner()
@@ -54,7 +58,7 @@ import ..Utils.NodeType # make available for extension
 # node functions that need to be implemented for each type of circuit
 #####################
 
-import ..Utils.children # make available for extension by concrete types
+import DirectedAcyclicGraphs.children # make available for extension by concrete types
 
 "Get the logical literal in a given literal leaf node"
 @inline literal(n::LogicCircuit)::Lit = n.literal # override when needed
@@ -185,9 +189,9 @@ function canonical_literals(circuit::LogicCircuit)::Dict{Lit,LogicCircuit}
 end
 
 "Construct a mapping from constants to their canonical node representation"
-function canonical_constants(circuit::LogicCircuit)::Tuple{Union{Nothing, Node},Union{Nothing, Node}}
-    true_node::Union{Nothing, Node} = nothing
-    false_node::Union{Nothing, Node} = nothing
+function canonical_constants(circuit::LogicCircuit)::Tuple{Union{Nothing, LogicCircuit},Union{Nothing, LogicCircuit}}
+    true_node::Union{Nothing, LogicCircuit} = nothing
+    false_node::Union{Nothing, LogicCircuit} = nothing
     f_con(n)= begin
         if istrue(n)
             isnothing(true_node) || error("Circuit has multiple representations of true")
