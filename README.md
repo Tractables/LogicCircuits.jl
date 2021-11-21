@@ -12,75 +12,75 @@ This package provides basic functionality for doing logical reasoning using logi
 
 Assuming that the LogicCircuits Julia package has been installed with `julia -e 'using Pkg; Pkg.add("LogicCircuits")'`, we can start using it as follows.
 
-```julia
+````julia
 using LogicCircuits
-```
+````
 
 ### Reasoning with manually constructed circuits
 
 We begin by creating three positive literals (logical variables) and manually constructing a simple circuit using logical connectives & (and), | (or), and - (not).
 
-```julia
+````julia
 sun, rain, rainbow = pos_literals(LogicCircuit, 3)
 circuit = (rainbow & sun & rain) | (-rainbow); # rainbow implies sun and rain
-```
+````
 
 Just like any logical circuit or Boolean function, we can evaluate ours on various inputs.
 
-```julia
+````julia
 circuit(false, true, true) # sun is false, rain is true, rainbow is true
-```
+````
 
-```
+````
 false
-```
+````
 
-```julia
+````julia
 circuit(true, true, true) # sun is true, rain is true, rainbow is true
-```
+````
 
-```
+````
 true
-```
+````
 
 The purpose of this package, however, is to enable more interesting inference scenarios. This is possible by ensuring that the circuit has certain [properties](https://juice-jl.github.io/LogicCircuits.jl/dev/manual/properties/), such as *decomposability*, *determinism*, and more.
 Our current circuit happens to already be decomposable and deterministic by construction:
 
-```julia
+````julia
 isdecomposable(circuit) && isdeterministic(circuit)
-```
+````
 
-```
+````
 true
-```
+````
 
 The decomposability property ensures that we can ask whether the circuit is satisfiable (the classical SAT problem) and, surprisingly, still get our answer efficiently. Of course, from the input `true, true, true` tried above, we know the answer to be true.
 
-```julia
+````julia
 issatisfiable(circuit) # does there exist an input that outputs true?
-```
+````
 
-```
+````
 true
-```
+````
 
 In addition, the determinism property allows us to efficiently decide whether the circuit is a tautology (always true), or compute its model count, that is, the number of satisfying assignments.
 
-```julia
+````julia
 istautology(circuit) # do all inputs give the circuit output true?
-```
+````
 
-```
+````
 false
-```
+````
 
-```julia
+````julia
 model_count(circuit) # how many possible inputs give the output true?
-```
+````
 
-```
+````
 5
-```
+````
 
 ### Reasoning with compiled circuits
 
@@ -88,19 +88,19 @@ As logical sentences become more complicated, it becomes infeasible to manually 
 
 A process called *compilation* can solve this problem. Concretely, `LogicCircuits` supports compilation into a particular type of circuit called SDD. We construct an SDD manager with four additional variables, and then ask to compile our running example circuit into an SDD:
 
-```julia
+````julia
 manager = SddMgr(7, :balanced)
 circuit = compile(manager, circuit);
-```
+````
 
 Now we are able to incorporate many more logical sentences into the same circuit.
 
-```julia
+````julia
 sun, rain, rainbow, cloud, snow, los_angeles, belgium = pos_literals(Sdd, manager, 7)
 circuit &= (-los_angeles | -belgium) # cannot be in LA and Belgium at the same time
 circuit &= (los_angeles ⇒ sun) ∧ (belgium ⇒ cloud) # unicode logical syntax
 circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
-```
+````
 
 Incorporating these constraints has increased the size of our circuit.
 
@@ -113,61 +113,61 @@ plot(circuit; simplify=true)
 
 Crucially, the circuit is still decomposable and deterministic.
 
-```julia
+````julia
 isdecomposable(circuit) && isdeterministic(circuit)
-```
+````
 
-```
+````
 true
-```
+````
 
 This means that we can still decide satisfiability, count models, and solve various inference tasks efficiently. For example, we can compute the fraction of inputs that gives the output true:
 
-```julia
+````julia
 sat_prob(circuit)
-```
+````
 
-```
+````
 29//128
-```
+````
 
 Moreover, compiled SDD circuits allow for efficiently checking whether one circuit logically entails another circuit, and whether two circuits are logically equivalent.
 
-```julia
+````julia
 entails(circuit, (rainbow ⇒ cloud))
-```
+````
 
-```
+````
 true
-```
+````
 
-```julia
+````julia
 entails(circuit, (rainbow ⇒ belgium))
-```
+````
 
-```
+````
 false
-```
+````
 
-```julia
+````julia
 equivalent((rainbow ⇒ belgium), (¬belgium ⇒ ¬rainbow))
-```
+````
 
-```
+````
 true
-```
+````
 
 Logical constraints are often written in conjunctive normal form (CNF). These can be loaded from file and compiled into circuits, using an SDD manager whose decomposition structure is specified by a *vtree* file.
 
-```julia
+````julia
 manager = SddMgr(zoo_vtree("iscas89/s208.1.scan.min.vtree"))
 circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 clauses
 "This CNF has $(model_count(circuit)) satisfying assignments. Its circuit has $(num_nodes(circuit)) nodes and $(num_edges(circuit)) edges."
-```
+````
 
-```
+````
 "This CNF has 262144 satisfying assignments. Its circuit has 3115 nodes and 5826 edges."
-```
+````
 
 ### Advanced functionality
 
