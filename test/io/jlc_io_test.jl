@@ -17,10 +17,17 @@ include("../helper/little_circuits.jl")
     jlc2 = read(jlc_path, LogicCircuit, JlcFormat())
     
     @test jlc2 isa PlainLogicCircuit
-
     @test num_nodes(sdd) == num_nodes(jlc2)
     @test prob_equiv(sdd, jlc2, 10)
 
+    # write/read as an instructured logic circuit, compressed 
+    write("$jlc_path.gz", sdd)
+    jlc2 = read("$jlc_path.gz", LogicCircuit)
+
+    @test jlc2 isa PlainLogicCircuit
+    @test num_nodes(sdd) == num_nodes(jlc2)
+    @test prob_equiv(sdd, jlc2, 10)
+    
     # write with vtree
     vtree_path = "$tmp/example.vtree"
     paths = (jlc_path, vtree_path)
@@ -31,10 +38,18 @@ include("../helper/little_circuits.jl")
     jlc3 = read(paths, StructLogicCircuit, formats) 
     
     @test jlc3 isa PlainStructLogicCircuit
-
     @test num_nodes(sdd) == num_nodes(jlc3)
     @test prob_equiv(sdd, jlc3, 10)
+    @test Vtree(mgr(sdd)) == vtree(jlc3)
 
+    # write/read with vtree, compressed
+    pathsgz = ("$jlc_path.gz", vtree_path)
+    write(pathsgz, sdd)
+    jlc3 = read(pathsgz, StructLogicCircuit) 
+    
+    @test jlc3 isa PlainStructLogicCircuit
+    @test num_nodes(sdd) == num_nodes(jlc3)
+    @test prob_equiv(sdd, jlc3, 10)
     @test Vtree(mgr(sdd)) == vtree(jlc3)
 
   end

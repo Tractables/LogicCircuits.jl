@@ -6,6 +6,7 @@ version = "0.3.1"
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DirectedAcyclicGraphs = "1e6dae5e-d6e2-422d-9af3-452e7a3785ee"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
