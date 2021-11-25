@@ -1,7 +1,7 @@
 name = "LogicCircuits"
 uuid = "a7847b3b-b7f1-4dd5-83c3-60e0aa0f8599"
 authors = ["Guy Van den Broeck <guyvdb@cs.ucla.edu>"]
-version = "0.3.1"
+version = "0.3.2"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
@@ -26,7 +26,7 @@ CSV = "0.7, 0.8, 0.9"
 CUDA = "3"
 CodecZlib = "0.7"
 DataFrames = "1.1, 1.2"
-DirectedAcyclicGraphs = "0.1.1"
+DirectedAcyclicGraphs = "0.1.2"
 Graphs = "1.4"
 Lerche = "0.5"
 LoopVectorization = "0.12"
