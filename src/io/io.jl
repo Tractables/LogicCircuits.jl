@@ -2,7 +2,7 @@ using LazyArtifacts
 using Lerche: Lerche, Lark, Transformer, @rule, @inline_rule
 using CodecZlib: GzipDecompressorStream, GzipCompressorStream
 
-export FileFormat
+export FileFormat, GzipFormat
 
 # version of model zoo to grab files from
 const zoo_version = "/Circuit-Model-Zoo-0.1.4"
