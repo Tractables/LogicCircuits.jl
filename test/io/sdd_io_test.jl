@@ -66,6 +66,16 @@ end
 
     @test Vtree(mgr(sdd)) == Vtree(mgr(sdd4))
 
+    # write/read compressed
+    paths = ("$sdd_path.gz", vtree_path)
+    write(paths, sdd)
+    sdd4 = read(paths, StructLogicCircuit) 
+    
+    @test sdd4 isa PlainStructLogicCircuit
+    @test num_nodes(sdd) == num_nodes(sdd4)
+    @test prob_equiv(sdd, sdd4, 10)
+    @test Vtree(mgr(sdd)) == vtree(sdd4)
+    
   end
 
   mktempdir() do tmp

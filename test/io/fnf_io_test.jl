@@ -35,9 +35,14 @@ using LogicCircuits
       cnf_orig = zoo_cnf("easy/C17_mince.cnf")
       @test_nowarn write("$tmp/temp.cnf", cnf_orig)
       cnf_new = read("$tmp/temp.cnf", LogicCircuit)
+
       @test num_variables(cnf_orig) == num_variables(cnf_new)
       @test all(x isa Plain⋁Node || x isa PlainLiteralNode for x in cnf_new.children)
       @test all(all(x isa PlainLiteralNode for x in or_node.children) for or_node in or_nodes(cnf_new))
+      @test tree_formula_string(cnf_orig) == tree_formula_string(cnf_new)
+
+      @test_nowarn write("$tmp/temp.cnf.gz", cnf_orig)
+      cnf_new = read("$tmp/temp.cnf.gz", LogicCircuit)  
       @test tree_formula_string(cnf_orig) == tree_formula_string(cnf_new)
 
   end
@@ -64,6 +69,10 @@ end
       temp_path = "$tmp/test8.dnf"
       write(temp_path, circuit)
       circuit2 = read(temp_path, LogicCircuit)
+      test8(circuit2)
+
+      write("$temp_path.gz", circuit)
+      circuit2 = read("$temp_path.gz", LogicCircuit)
       test8(circuit2)
 
   end

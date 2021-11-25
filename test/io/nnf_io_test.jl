@@ -46,6 +46,14 @@ include("../helper/little_circuits.jl")
 
         @test prob_equiv(circuit, circuit2, 10)
 
+        write("$temp_path.gz", circuit)
+
+        circuit2 = read("$temp_path.gz", LogicCircuit)
+        
+        test_circuit(circuit2)
+
+        @test prob_equiv(circuit, circuit2, 10)
+
     end
 end
 
@@ -58,6 +66,14 @@ end
         write(temp_path, circuit)
 
         circuit2 = read(temp_path, LogicCircuit)
+                
+        @test num_nodes(circuit) == num_nodes(circuit2)
+        @test num_edges(circuit) == num_edges(circuit2)
+        @test prob_equiv(circuit, circuit2, 10)
+
+        write("$temp_path.gz", circuit)
+
+        circuit2 = read("$temp_path.gz", LogicCircuit)
                 
         @test num_nodes(circuit) == num_nodes(circuit2)
         @test num_edges(circuit) == num_edges(circuit2)

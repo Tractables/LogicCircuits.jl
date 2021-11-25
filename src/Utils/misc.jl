@@ -18,9 +18,7 @@ export issomething,
         never, 
         uniform, 
         logsumexp, 
-        noop, 
-        map_values, 
-        groupby
+        noop
 
 
 using CUDA: CuArray, CuVector, CuMatrix, CUDA
