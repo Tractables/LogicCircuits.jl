@@ -112,6 +112,7 @@ iscomplete(data::Vector{DataFrame}) = all(iscomplete, data)
 "Is the data column complete (no missing values)?"
 iscomplete_col(::AbstractVector{Bool}) = true
 iscomplete_col(::AbstractVector{<:Int}) = true
+iscomplete_col(::AbstractVector{<:UInt8}) = true
 iscomplete_col(::AbstractVector{<:AbstractFloat}) = true
 iscomplete_col(x::AbstractVector{Union{Bool,Missing}}) = !any(ismissing, x)
 iscomplete_col(x::AbstractVector{Union{<:AbstractFloat,Missing}}) = !any(ismissing, x)
