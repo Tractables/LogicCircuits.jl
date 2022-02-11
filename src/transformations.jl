@@ -12,6 +12,8 @@ function smooth(root::StructLogicCircuit)::StructLogicCircuit
     (false_node, true_node) = canonical_constants(root)
     @assert (false_node === nothing && true_node === nothing) "You should propagate constants before smoothing a structured circuit!"
 
+    vtree_leaves = Dict{Var, Vtree}()
+    foreach(x -> isleaf(x) && (vtree_leaves[variable(x)] = x), root.vtree)
     lit_nodes = canonical_literals(root)
     f_con(n) = (n, BitSet())
     f_lit(n) = (n, BitSet(variable(n)))
@@ -33,7 +35,7 @@ function smooth(root::StructLogicCircuit)::StructLogicCircuit
         smooth_children = Vector{LogicCircuit}(undef, num_children(n))
         map!(smooth_children, children(n)) do child
             (smooth_child, scope) = call(child)
-            smooth_node(smooth_child, parent_scope, scope, lit_nodes)
+            smooth_node(smooth_child, parent_scope, scope, lit_nodes, vtree_leaves)
         end
         return (disjoin([smooth_children...]; reuse=n), parent_scope)
     end
@@ -72,14 +74,16 @@ end
 
 
 """
-    smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes)
+    smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes, vtree_leaves)
 
 Return a smooth version of the node where 
 the are added to the scope by filling the gap in vtrees, using literals from `lit_nodes`
 """
-function smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes)
+function smooth_node(node::StructLogicCircuit, parent_scope, scope, lit_nodes, vtree_leaves)
     # Compute the vtrees based on variables used
-    target_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(parent_scope))...)
+    target_vtr = lca(map(collect(parent_scope)) do x
+                         vtree(get!(lit_nodes, x, PlainStructLiteralNode(Lit(x), vtree_leaves[Var(x)])))
+                     end...)
     curr_vtr = lca(map(x -> vtree(lit_nodes[x]), collect(scope))...)
     if curr_vtr == target_vtr
         @assert isempty(setdiff(parent_scope, scope))
