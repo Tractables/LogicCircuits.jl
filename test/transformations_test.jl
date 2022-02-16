@@ -20,7 +20,7 @@ end
     vtr = zoo_vtree("random.vtree")
     slc = smooth(sdd)
     plc = propagate_constants(sdd, remove_unary=true)
-    structplc = compile(StructLogicCircuit, vtr, plc) 
+    structplc = compile(StructLogicCircuit, vtr, plc)
     sstructplc = smooth(structplc)
 
     @test !issmooth(sdd)
@@ -29,6 +29,35 @@ end
     @test respects_vtree(sstructplc, vtr)
 
     @test prob_equiv(slc, sstructplc, 3)
+
+    # Case when not all literals appear in the LC. See:
+    # https://github.com/Juice-jl/ProbabilisticCircuits.jl/issues/80
+    cnf = IOBuffer(b"""c Encodes the following: ϕ = (1 ∨ ¬2) ∧ (3 ∨ ¬4) ∧ (1 ∨ ¬4)
+                    p cnf 4 3
+                    1 -2 0
+                    3 -4 0
+                    1 -4 0
+                    """)
+    # Try out with different vtrees.
+    for i ∈ 1:5
+        sdd = compile(SddMgr(Vtree(4, :random)), read(cnf, LogicCircuit, FnfFormat()))
+        lc = LogicCircuit(sdd)
+        slc = smooth(lc)
+        plc = propagate_constants(lc, remove_unary=true)
+        structplc = compile(StructLogicCircuit, sdd.vtree, plc)
+        sstructplc = smooth(structplc)
+
+        @test !issmooth(sdd)
+        @test !issmooth(lc)
+        @test issmooth(slc)
+        @test issmooth(sstructplc)
+        @test respects_vtree(sstructplc, sdd.vtree)
+
+        @test prob_equiv(slc, sstructplc, 3)
+
+        # Reset stream pointer
+        seekstart(cnf)
+    end
 end
 
 @testset "Forget test" begin
@@ -78,7 +107,7 @@ end
 
 @testset "conjoin test" begin
     c1  = zoo_sdd_random
-    
+
     lit = Lit(num_variables(c1) + 1)
     @test c1 === conjoin(c1, lit)
 
@@ -86,7 +115,7 @@ end
     c2 = conjoin(c1, lit1)
     dict = canonical_literals(c2)
     @test haskey(dict, lit1)
-    @test !haskey(dict, -lit1) 
+    @test !haskey(dict, -lit1)
     c3 = conjoin(c2, -lit1)
     @test isfalse(c3)
     c4 = conjoin(c2, lit1)
@@ -235,11 +264,11 @@ end
     c = compile(PlainLogicCircuit, Lit(3))
     d = compile(PlainLogicCircuit, Lit(4))
     e = compile(PlainLogicCircuit, -Lit(4))
-    
+
     f = disjoin(conjoin(a, b), conjoin(c, d))
     candidates, variable_scope = split_candidates(f)
     @test length(candidates) == 0
-    
+
     g = disjoin(conjoin(disjoin(conjoin(d, b), conjoin(e, b)), a))
     candidates, variable_scope = split_candidates(g)
     @test length(candidates) == 1
@@ -252,13 +281,13 @@ end
     b = compile(PlainLogicCircuit, Lit(2))
     c = compile(PlainLogicCircuit, Lit(3))
     d = compile(PlainLogicCircuit, Lit(4))
-    
+
     e = conjoin(a, b, c)
     circuit = standardize_circuit(e)
     @test circuit.children[1].literal == Lit(1)
     @test circuit.children[2].children[1].children[1].literal == Lit(2)
     @test circuit.children[2].children[1].children[2].literal == Lit(3)
-    
+
     e = disjoin(a, b)
     f = disjoin(c, d)
     g = disjoin(e, f)
