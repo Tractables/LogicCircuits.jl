@@ -4,11 +4,11 @@
 
 # Logic<wbr>Circuits<wbr>.jl
 
-[![Unit Tests](https://github.com/Juice-jl/LogicCircuits.jl/workflows/Unit%20Tests/badge.svg)](https://github.com/Juice-jl/LogicCircuits.jl/actions?query=workflow%3A%22Unit+Tests%22+branch%3Amaster) [![codecov](https://codecov.io/gh/Juice-jl/LogicCircuits.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Juice-jl/LogicCircuits.jl) [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev)
+[![Unit Tests](https://github.com/Tractables/LogicCircuits.jl/workflows/Unit%20Tests/badge.svg)](https://github.com/Tractables/LogicCircuits.jl/actions?query=workflow%3A%22Unit+Tests%22+branch%3Amaster) [![codecov](https://codecov.io/gh/Tractables/LogicCircuits.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Tractables/LogicCircuits.jl) [![](https://img.shields.io/badge/docs-stable-green.svg)](https://Tractables.github.io/LogicCircuits.jl/stable) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://Tractables.github.io/LogicCircuits.jl/dev)
 
-This package provides basic functionality for doing logical reasoning using logical circuits. It has the stand-alone functionality illustrated below, and it serves as the logical foundations for other [Juice packages](https://github.com/Juice-jl) (Julia Circuit Empanada).
+This package provides basic functionality for doing logical reasoning using logical circuits. It has the stand-alone functionality illustrated below, and it serves as the logical foundations for other [Juice packages](https://github.com/Tractables) (Julia Circuit Empanada).
 
-## Quick Tutorial [![Open Notebook](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/Juice-jl/LogicCircuits.jl/blob/gh-pages/dev/generated/usage.ipynb)
+## Quick Tutorial [![Open Notebook](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/Tractables/LogicCircuits.jl/blob/gh-pages/dev/generated/usage.ipynb)
 
 Assuming that the LogicCircuits Julia package has been installed with `julia -e 'using Pkg; Pkg.add("LogicCircuits")'`, we can start using it as follows.
 
@@ -43,7 +43,7 @@ circuit(true, true, true) # sun is true, rain is true, rainbow is true
 true
 ````
 
-The purpose of this package, however, is to enable more interesting inference scenarios. This is possible by ensuring that the circuit has certain [properties](https://juice-jl.github.io/LogicCircuits.jl/dev/manual/properties/), such as *decomposability*, *determinism*, and more.
+The purpose of this package, however, is to enable more interesting inference scenarios. This is possible by ensuring that the circuit has certain [properties](https://Tractables.github.io/LogicCircuits.jl/dev/manual/properties/), such as *decomposability*, *determinism*, and more.
 Our current circuit happens to already be decomposable and deterministic by construction:
 
 ````julia
@@ -109,7 +109,7 @@ Incorporating these constraints has increased the size of our circuit.
 plot(circuit; simplify=true)
 ```
 
-<img src="https://juice-jl.github.io/LogicCircuits.jl/dev/generated/example-circuit.svg" alt="Example Logic Circuit">
+<img src="https://Tractables.github.io/LogicCircuits.jl/dev/generated/example-circuit.svg" alt="Example Logic Circuit">
 
 Crucially, the circuit is still decomposable and deterministic.
 
@@ -176,11 +176,11 @@ circuit = compile(manager, zoo_cnf("iscas89/s208.1.scan.cnf")) # CNF has 285 cla
  * Algorithms that transform circuits in non-trivial ways (split, clone, smooth, condition, etc.), verify and enforce structural properties.
  * Functionality to load and save circuits in various file formats
 
-Please see [![](https://img.shields.io/badge/docs-stable-green.svg)](https://juice-jl.github.io/LogicCircuits.jl/stable) or [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juice-jl.github.io/LogicCircuits.jl/dev) for further details.
+Please see [![](https://img.shields.io/badge/docs-stable-green.svg)](https://Tractables.github.io/LogicCircuits.jl/stable) or [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://Tractables.github.io/LogicCircuits.jl/dev) for further details.
 
 ## Development
 
-If you are interested in modifying the package please see the [development readme](https://juice-jl.github.io/LogicCircuits.jl/dev/development/).
+If you are interested in modifying the package please see the [development readme](https://Tractables.github.io/LogicCircuits.jl/dev/development/).
 
 ## Acknowledgements
 

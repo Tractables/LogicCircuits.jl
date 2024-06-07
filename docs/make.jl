@@ -75,7 +75,7 @@ pages = [
 
 format = Documenter.HTML(
     prettyurls = !("local" in ARGS),
-    canonical = "https://juice-jl.github.io/LogicCircuits.jl/stable/",
+    canonical = "https://Tractables.github.io/LogicCircuits.jl/stable/",
     assets = ["assets/favicon.ico"],
     analytics = "UA-136089579-2",
     highlights = ["yaml"],
@@ -103,7 +103,7 @@ makedocs(
 # for more information.
 deploydocs(
     target = "build",
-    repo = "github.com/Juice-jl/LogicCircuits.jl.git",
+    repo = "github.com/Tractables/LogicCircuits.jl.git",
     branch = "gh-pages",
     devbranch = "master",
     devurl = "dev",
