@@ -23,7 +23,7 @@ TikzGraphs = "b4f28e30-c73f-5eaf-a395-8a9db949a742"
 
 [compat]
 CSV = "0.7, 0.8, 0.9, 0.10"
-CUDA = "3"
+CUDA = "3, 5"
 CodecZlib = "0.7"
 DataFrames = "1.1, 1.2"
 DirectedAcyclicGraphs = "0.1.2"
