@@ -21,7 +21,7 @@ julia -e 'using Pkg; Pkg.add("LogicCircuits")'
 To install the package with the latest commits on master branch, run:
 
 ```bash
-julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/Juice-jl/LogicCircuits.jl.git"))'
+julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/Tractables/LogicCircuits.jl.git"))'
 ```
 
 #### From Julia Pkg REPL

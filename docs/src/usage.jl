@@ -1,8 +1,8 @@
 
-#!plot # ## Quick Tutorial [![Open Notebook](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/Juice-jl/LogicCircuits.jl/blob/gh-pages/dev/generated/usage.ipynb)
+#!plot # ## Quick Tutorial [![Open Notebook](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/Tractables/LogicCircuits.jl/blob/gh-pages/dev/generated/usage.ipynb)
 
 #plot # ### Quick Tutorial
-#plot # [![Open Notebook](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/Juice-jl/LogicCircuits.jl/blob/gh-pages/dev/generated/usage.ipynb)
+#plot # [![Open Notebook](https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg)](https://nbviewer.jupyter.org/github/Tractables/LogicCircuits.jl/blob/gh-pages/dev/generated/usage.ipynb)
 
 # Assuming that the LogicCircuits Julia package has been installed with `julia -e 'using Pkg; Pkg.add("LogicCircuits")'`, we can start using it as follows.
 
@@ -23,7 +23,7 @@ circuit(true, true, true) # sun is true, rain is true, rainbow is true
 
 #src TODO: specific for ipython, visualize circuit using plot(circuit)?
 
-# The purpose of this package, however, is to enable more interesting inference scenarios. This is possible by ensuring that the circuit has certain [properties](https://juice-jl.github.io/LogicCircuits.jl/dev/manual/properties/), such as *decomposability*, *determinism*, and more.
+# The purpose of this package, however, is to enable more interesting inference scenarios. This is possible by ensuring that the circuit has certain [properties](https://Tractables.github.io/LogicCircuits.jl/dev/manual/properties/), such as *decomposability*, *determinism*, and more.
 # Our current circuit happens to already be decomposable and deterministic by construction:
 isdecomposable(circuit) && isdeterministic(circuit)
 @test true == isdecomposable(circuit) && isdeterministic(circuit) #jl
@@ -66,7 +66,7 @@ circuit &= (¬(rain ∨ snow) ⇐ ¬cloud); # no rain or snow without clouds
 #!plot # plot(circuit; simplify=true)
 #!plot # ```
 
-#!plot # <img src="https://juice-jl.github.io/LogicCircuits.jl/dev/generated/example-circuit.svg" alt="Example Logic Circuit">
+#!plot # <img src="https://Tractables.github.io/LogicCircuits.jl/dev/generated/example-circuit.svg" alt="Example Logic Circuit">
 
 # Crucially, the circuit is still decomposable and deterministic.
 isdecomposable(circuit) && isdeterministic(circuit)

@@ -31,7 +31,7 @@ end
     @test prob_equiv(slc, sstructplc, 3)
 
     # Case when not all literals appear in the LC. See:
-    # https://github.com/Juice-jl/ProbabilisticCircuits.jl/issues/80
+    # https://github.com/Tractables/ProbabilisticCircuits.jl/issues/80
     cnf = IOBuffer(b"""c Encodes the following: ϕ = (1 ∨ ¬2) ∧ (3 ∨ ¬4) ∧ (1 ∨ ¬4)
                     p cnf 4 3
                     1 -2 0
