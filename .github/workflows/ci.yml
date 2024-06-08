@@ -45,6 +45,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/julia-buildpkg@latest
+      - run: |
+          sudo apt-get -qq update
+          sudo apt install -y pdf2svg texlive-latex-base texlive-binaries texlive-pictures texlive-latex-extra texlive-luatex    
+          luatex -v
+          pdflatex -v
       - uses: julia-actions/julia-docdeploy@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
